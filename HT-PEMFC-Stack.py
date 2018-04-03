@@ -1,15 +1,16 @@
 from pylab import*
+from scipy.optimize import fsolve
 import copy
 import saturation_pressure_vapour
 import matrix_database
 
 
 # # Globabal Variables and Matrix
-
+pem_type = True      #True=HT False=NT
 I_t = 6000.          #Target currentdensity                      A/m²
 Fday = 96485.        #Faraday's constant                         C/mol
 R = 8.3143           #ideal gas constant                        J/(kmol)
-N = 15               #knots, elements = N-1
+N = 20               #knots, elements = N-1
 M = 4               #Number of cell
 Tu = 298.15 
 node_backward = matrix_database.backward_matrix(N)
@@ -553,14 +554,32 @@ class Simulation():
         self.c = matrix_database.c(self.stack.cell.cathode.channel.division+1,self.stack.cell_numb,self.stack.cell.cathode.channel.length/(self.stack.cell.cathode.channel.division+1.))
     
     def update(self):
-        for i in range(2):
-            self.stack.update()
-            self.calc_sensitivity()
-            #self.calc_g()
+        for i in range(30):self.stack.update()
+        #self.calc_initial_current_density()
+        #for i in range(10):
+         #   self.stack.update()
+          #  self.calc_sensitivity()
+           # self.calc_g()
             #self.calc_n()
             #self.calc_delta()
             #self.calc_i()
-    
+
+    def calc_initial_current_density_fsolve(self,x,i,q):
+            a = self.stack.cell.e0 - x*self.stack.cell_list[i].omega[q]
+            b = R*self.stack.cell_list[i].T1[q]/(Fday*self.stack.cell.alpha)
+            c = log(x*self.stack.cell.c_ref/(self.stack.cell.i_ref*(self.stack.cell_list[i].cathode.c1[q]-self.stack.cell_list[i].delta*x)))
+            return a+self.stack.cell_list[i].psi[q]-b*c-self.stack.cell_list[i].v[q]
+
+    def calc_initial_current_density(self):
+        a =[]
+        for i in range (self.stack.cell_numb):
+            b = []
+            for q in range (self.stack.cell.cathode.channel.division+1):
+                x = fsolve(self.calc_initial_current_density_fsolve,I_t,args=(i,q))
+            b.append(x)
+        a.append(b)
+        print(a)
+
     def calc_sensitivity(self):
         self.s = diag(self.stack.dv)
         
@@ -590,7 +609,7 @@ channel_anode = Channel(0.67,N-1,20.*10.**3.,3.*10.**5.,320.,False)
 anode = Halfcell(channel_anode,1.8,2,2.)
 channel_cathode = Channel(0.67,N-1,20.*10.**3.,3.2*10.**5.,320.,True)
 cathode = Halfcell(channel_cathode,3.8,3,4.)
-cell = Cell(anode,cathode,0.62*10.**-5.,1200.,50.*10**-6,2300.,5000.,11200.,0.944,40.9,64.,0.8*10.**-3.,320.,True)
+cell = Cell(anode,cathode,0.62*10.**-5.,1200.,50.*10**-6,2300.,5000.,11200.,0.944,40.9,64.,0.8*10.**-3.,320.,pem_type)
 stack = Stack(cell,M)
 simulation = Simulation(stack,1.*10.**-3.,10.)
 simulation.update()
@@ -737,45 +756,52 @@ for i in simulation.stack.cell_list:
     #print(i.anode.c2)
     plot(x,i.anode.c2)
 show()
+if pem_type is False:
+    print('wc')
+    for i in simulation.stack.cell_list:
+        #print(i.cathode.w)
+        plot(x,i.cathode.w)
+    show()
 
-print('wc')
-for i in simulation.stack.cell_list:
-    #print(i.anode.w)
-    plot(x,i.anode.w)
-show()
+    print('wa')
+    for i in simulation.stack.cell_list:
+        #print(i.anode.w)
+        plot(x,i.anode.w)
+    show()
 
-print('gamma_c')
-for i in simulation.stack.cell_list:
-    #print(i.cathode.gamma)
-    plot(x,i.cathode.gamma)
-show()
+    print('gamma_c')
+    for i in simulation.stack.cell_list:
+        #print(i.cathode.gamma)
+        plot(x,i.cathode.gamma)
+    show()
 
-print('gamma_a')
-for i in simulation.stack.cell_list:
-    #print(i.anode.gamma)
-    plot(x,i.anode.gamma)
-show()
+    print('gamma_a')
+    for i in simulation.stack.cell_list:
+        #print(i.anode.gamma)
+        plot(x,i.anode.gamma)
+    show()
 
-print('humidity_c')
-for i in simulation.stack.cell_list:
-    #print(i.cathode.humidity)
-    plot(x,i.cathode.humidity)
-show()
+    print('humidity_c')
+    for i in simulation.stack.cell_list:
+        #print(i.cathode.humidity)
+        plot(x,i.cathode.humidity)
+    show()
 
-print('humidity_a')
-for i in simulation.stack.cell_list:
-    #print(i.anode.humidity)
-    plot(x,i.anode.humidity)
-show()
+    print('humidity_a')
+    for i in simulation.stack.cell_list:
+        #print(i.anode.humidity)
+        plot(x,i.anode.humidity)
+    show()
 
-print('free_water_c')
-for i in simulation.stack.cell_list:
-    #print(i.cathode.free_water)
-    plot(x,i.cathode.free_water)
-show()
+    print('free_water_c')
+    for i in simulation.stack.cell_list:
+        #print(i.cathode.free_water)
+        plot(x,i.cathode.free_water)
+    show()
 
-print('free_water_a')
-for i in simulation.stack.cell_list:
-    #print(i.anode.free_water)
-    plot(x,anode.free_water)
-show()
+    print('free_water_a')
+    for i in simulation.stack.cell_list:
+        #print(i.anode.free_water)
+        plot(x,anode.free_water)
+    show()
+
