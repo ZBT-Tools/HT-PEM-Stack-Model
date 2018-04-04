@@ -411,15 +411,18 @@ class Cell:
         
     def calc_voltage(self):#nodewise
         a = self.e0 - self.i*self.omega
-        b = R*self.T1/(Fday*self.alpha)
+        print(a)
+        b = R*self.T1/(Fday)
+        print(b)
         c = log(self.i*self.c_ref/(self.i_ref*(self.cathode.c1-self.delta*self.i)))
+        print(c)
         self.v = a+self.psi-b*c
         #ok
         
     def calc_dvdi(self):#nodewise
         a = -self.omega
         b = R*self.T1*self.cathode.c1
-        c = Fday*self.alpha*self.i*(-self.cathode.c1-self.delta*self.i)
+        c = Fday*self.i*(-self.cathode.c1-self.delta*self.i)
         self.dv = a+b/c
         self.dv[0] = 0.
         self.dv[-1] = 0.
@@ -554,7 +557,7 @@ class Simulation():
         self.c = matrix_database.c(self.stack.cell.cathode.channel.division+1,self.stack.cell_numb,self.stack.cell.cathode.channel.length/(self.stack.cell.cathode.channel.division+1.))
     
     def update(self):
-        for i in range(30):self.stack.update()
+        for i in range(2):self.stack.update()
         #self.calc_initial_current_density()
         #for i in range(10):
          #   self.stack.update()
@@ -566,7 +569,7 @@ class Simulation():
 
     def calc_initial_current_density_fsolve(self,x,i,q):
             a = self.stack.cell.e0 - x*self.stack.cell_list[i].omega[q]
-            b = R*self.stack.cell_list[i].T1[q]/(Fday*self.stack.cell.alpha)
+            b = R*self.stack.cell_list[i].T1[q]/(Fday)
             c = log(x*self.stack.cell.c_ref/(self.stack.cell.i_ref*(self.stack.cell_list[i].cathode.c1[q]-self.stack.cell_list[i].delta*x)))
             return a+self.stack.cell_list[i].psi[q]-b*c-self.stack.cell_list[i].v[q]
 
