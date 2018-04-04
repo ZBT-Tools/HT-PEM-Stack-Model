@@ -49,24 +49,25 @@ def element_to_node_func(start,end,element_vector):
     node_vector.append(end)
     return np.asarray(node_vector)
 
-def temperature_matrix(n,M,mu_p,mu_g,mu_m,a):
-    m = np.full(((n+1)*M*5,(n+1)*M*5),0.)
+def temperature_matrix(n,mu_p,mu_g,mu_m,a):
+    m = np.full((n*5,n*5),0.)
     w = 0
-    while w<M*(n+1)*5:
-        m[0+w,0+w] = mu_p + mu_g
-        m[0+w,1+w] = -mu_p
-        m[0+w,2+w] = -mu_g
-        m[1+w,0+w] = -mu_g
-        m[1+w,2+w] = mu_m + mu_g
+    while w<n*5:
+        m[0+w,0+w] = -mu_g
+        m[0+w,1+w] = mu_p+mu_g
+        m[0+w,2+w] = -mu_p
+        m[1+w,0+w] = mu_g+mu_m
+        m[1+w,1+w] = -mu_g
         m[1+w,3+w] = -mu_m
-        m[2+w,2+w] = -mu_m
+        m[2+w,0+w] = -mu_m
         m[2+w,3+w] = mu_g + mu_m
         m[2+w,4+w] = -mu_g
-        m[3+w,1+w] = -mu_p
+        m[3+w,2+w] = -mu_p
         m[3+w,3+w] = -mu_g 
         m[3+w,4+w] = mu_p + mu_g
-        m[4+w,0+w] = mu_p
-        m[4+w,1+w] = -2.*mu_p-a  
+        m[4+w,1+w] = mu_p
+        m[4+w,2+w] = -2.*mu_p -a
+        m[4+w,4+w] = mu_p
         w =w+5
     return m
 
@@ -100,3 +101,4 @@ def c(n,M,d_x):
                 m[l,j+(n)] = 1.
     return m/d_x**2.
 
+print(temperature_matrix(5,1,2,3,4))
