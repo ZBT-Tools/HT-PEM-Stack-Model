@@ -10,8 +10,8 @@ pem_type = True      #True=HT False=NT
 I_t = 6000.          #Target currentdensity                      A/m²
 Fday = 96485.        #Faraday's constant                         C/mol
 R = 8.3143           #ideal gas constant                        J/(kmol)
-N = 20               #knots, elements = N-1
-M = 4               #Number of cell
+N = 3               #knots, elements = N-1
+M = 1               #Number of cell
 Tu = 298.15 
 node_backward = matrix_database.backward_matrix(N)
 element_backward = matrix_database.backward_matrix(N-1)
@@ -411,11 +411,11 @@ class Cell:
         
     def calc_voltage(self):#nodewise
         a = self.e0 - self.i*self.omega
-        print(a)
+        #print(a)
         b = R*self.T1/(Fday)
-        print(b)
+        #print(b)
         c = log(self.i*self.c_ref/(self.i_ref*(self.cathode.c1-self.delta*self.i)))
-        print(c)
+        #print(c)
         self.v = a+self.psi-b*c
         #ok
         
@@ -424,8 +424,6 @@ class Cell:
         b = R*self.T1*self.cathode.c1
         c = Fday*self.i*(-self.cathode.c1-self.delta*self.i)
         self.dv = a+b/c
-        self.dv[0] = 0.
-        self.dv[-1] = 0.
         #ok
 
 
@@ -445,7 +443,8 @@ class Stack:
         self.g = 529.# coolant flo
         self.h_vap = 45400.# vaporization heat
         self.a = 4000. # scaled heat transfer factor to the cooland
-        self.mat = matrix_database.temperature_matrix(self.cell.cathode.channel.division,cell_numb,self.cell.mu_p,self.cell.mu_g,self.cell.mu_m,self.a)
+        self.mat = matrix_database.temperature_matrix(self.cell.cathode.channel.division+1,self.cell_numb,self.cell.mu_p,self.cell.mu_g,self.cell.mu_m,self.a)
+        #print(len(self.mat))
         
     def update(self):
         for j in range(self.cell_numb):
@@ -469,7 +468,8 @@ class Stack:
         var = []
         for i, item in enumerate(self.cell_list):var = hstack((var,self.cell_list[i].dv))
         self.dv = var
-        #running            
+        #running
+
     def calc_coolant_T(self):#elementwise
         for q, item in enumerate(self.cell_list):#calc elements
             for w in range (self.cell.cathode.channel.division):
@@ -511,33 +511,34 @@ class Stack:
         #print(len(self.i[:,0]))
         for q, item in enumerate(self.cell_list):
             for w in range (self.cell.cathode.channel.division+1):
-                RES[0] = self.h_vap*self.cell_list[q].cathode.gamma[w]
+                RES[0] = self.h_vap*self.cell_list[q].cathode.gamma[w]#ok
                 #print('0',q,w,RES[0])
-                var1 = self.cell.vtn-self.cell_list[q].v[w]
-                var2 = self.cell_list[q].omega[w]*self.i[q,w]/2. 
-                RES[1] = (var1-var2) * self.i[q,w]
+                var1 = self.cell.vtn-self.cell_list[q].v[w]#ok
+                var2 = self.cell_list[q].omega[w]*self.i[q,w]/2.#ok
+                RES[1] = (var1-var2) * self.i[q,w]#ok
                 #print('1',q,w,RES[1])
-                RES[2] = 0.5*self.cell_list[q].omega[w]*self.i[q,w]**2.
+                RES[3] = 0.5*self.cell_list[q].omega[w]*self.i[q,w]**2.#ok
                 #print('2',q,w,RES[2])
-                RES[3] = self.h_vap*self.cell_list[q].anode.gamma[w]
+                RES[2] = self.h_vap*self.cell_list[q].anode.gamma[w]#ok
                 #print('3',q,w,RES[3])
                 if q>=1:
-                    RES[4] = -self.a*self.cell_list[q].T[w]-self.cell.mu_p*self.cell_list[q-1].T5[w]
+                    RES[4] = -self.a*self.cell_list[q].T[w]-self.cell.mu_p*self.cell_list[q-1].T3[w]#ok
                 else:
-                    RES[4] = -self.a*self.cell_list[q].T[w]-self.cell.mu_p*self.cell_list[q].T5[w]
+                    RES[4] = -self.a*self.cell_list[q].T[w]-self.cell.mu_p*self.cell_list[q].T3[w]#ok
                 #print('4',q,w,RES[4])
-                x = [self.cell_list[q].T2[w],self.cell_list[q].T3[w],self.cell_list[q].T1[w],self.cell_list[q].T4[w],self.cell_list[q].T5[w]]
+                x = [self.cell_list[q].T1[w],self.cell_list[q].T2[w],self.cell_list[q].T4[w],self.cell_list[q].T3[w],self.cell_list[q].T5[w]]
                 Res = hstack((Res,RES))
                 #print(len(Res),len (self.mat))
                 T_vec = hstack((T_vec,x))
+        #print(len(T_vec))
         th = linalg.tensorsolve(self.mat,Res)
         w = 0
         for q,item in enumerate (self.cell_list):
             for Y in range ((self.cell.cathode.channel.division+1)):
-                self.cell_list[q].T2[Y] = th[w]
-                self.cell_list[q].T3[Y] = th[w+1]
-                self.cell_list[q].T1[Y] = th[w+2]
-                self.cell_list[q].T4[Y] = th[w+3]
+                self.cell_list[q].T1[Y] = th[w]
+                self.cell_list[q].T2[Y] = th[w+1]
+                self.cell_list[q].T4[Y] = th[w+2]
+                self.cell_list[q].T3[Y] = th[w+3]
                 self.cell_list[q].T5[Y] = th[w+4]
                 w = w+5
         #running not validated
