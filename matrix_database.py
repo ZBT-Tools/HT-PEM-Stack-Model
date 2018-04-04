@@ -49,8 +49,8 @@ def element_to_node_func(start,end,element_vector):
     node_vector.append(end)
     return np.asarray(node_vector)
 
-def temperature_matrix(n,mu_p,mu_g,mu_m,a):
-    m = np.full((n*5,n*5),0.)
+def temperature_matrix(n,M,mu_p,mu_g,mu_m,a):
+    m = np.full((M*n*5,M*n*5),0.)
     w = 0
     while w<n*5:
         m[0+w,0+w] = -mu_g
@@ -100,5 +100,3 @@ def c(n,M,d_x):
                 m[l,j-(n)] = 1.
                 m[l,j+(n)] = 1.
     return m/d_x**2.
-
-print(temperature_matrix(5,1,2,3,4))
