@@ -10,8 +10,8 @@ pem_type = True      #True=HT False=NT
 I_t = 6000.          #Target currentdensity                      A/m²
 Fday = 96485.        #Faraday's constant                         C/mol
 R = 8.3143           #ideal gas constant                        J/(kmol)
-N = 3               #knots, elements = N-1
-M = 1               #Number of cell
+N = 50               #knots, elements = N-1
+M = 4               #Number of cell
 Tu = 298.15 
 node_backward = matrix_database.backward_matrix(N)
 element_backward = matrix_database.backward_matrix(N-1)
@@ -442,8 +442,7 @@ class Stack:
         self.Te = full((cell_numb,cell.cathode.channel.division),self.cell.T_cool_in)
         self.g = 529.# coolant flo
         self.h_vap = 45400.# vaporization heat
-        self.a = 4000. # scaled heat transfer factor to the cooland
-        self.mat = matrix_database.temperature_matrix(self.cell.cathode.channel.division+1,self.cell_numb,self.cell.mu_p,self.cell.mu_g,self.cell.mu_m,self.a)
+        self.a = 4000. # scaled heat transfer factor to the coolant
         #print(len(self.mat))
         
     def update(self):
@@ -504,47 +503,103 @@ class Stack:
             self.cell_list[q].T = matrix_database.element_to_node_func(self.cell.T_cool_in,T_out,self.cell_list[q].Te)
     #running, not validated    
         
-    def calc_layer_T(self):#auf set Funktionen verzichtet, greift Parameter direkt zu
-        RES = full(5,0.)
-        Res = []
-        T_vec = []
-        #print(len(self.i[:,0]))
+    def calc_T1(self):
         for q, item in enumerate(self.cell_list):
-            for w in range (self.cell.cathode.channel.division+1):
-                RES[0] = self.h_vap*self.cell_list[q].cathode.gamma[w]#ok
-                #print('0',q,w,RES[0])
-                var1 = self.cell.vtn-self.cell_list[q].v[w]#ok
-                var2 = self.cell_list[q].omega[w]*self.i[q,w]/2.#ok
-                RES[1] = (var1-var2) * self.i[q,w]#ok
-                #print('1',q,w,RES[1])
-                RES[3] = 0.5*self.cell_list[q].omega[w]*self.i[q,w]**2.#ok
-                #print('2',q,w,RES[2])
-                RES[2] = self.h_vap*self.cell_list[q].anode.gamma[w]#ok
-                #print('3',q,w,RES[3])
-                if q>=1:
-                    RES[4] = -self.a*self.cell_list[q].T[w]-self.cell.mu_p*self.cell_list[q-1].T3[w]#ok
-                else:
-                    RES[4] = -self.a*self.cell_list[q].T[w]-self.cell.mu_p*self.cell_list[q].T3[w]#ok
-                #print('4',q,w,RES[4])
-                x = [self.cell_list[q].T1[w],self.cell_list[q].T2[w],self.cell_list[q].T4[w],self.cell_list[q].T3[w],self.cell_list[q].T5[w]]
-                Res = hstack((Res,RES))
-                #print(len(Res),len (self.mat))
-                T_vec = hstack((T_vec,x))
-        #print(len(T_vec))
-        th = linalg.tensorsolve(self.mat,Res)
-        w = 0
-        for q,item in enumerate (self.cell_list):
-            for Y in range ((self.cell.cathode.channel.division+1)):
-                self.cell_list[q].T1[Y] = th[w]
-                self.cell_list[q].T2[Y] = th[w+1]
-                self.cell_list[q].T4[Y] = th[w+2]
-                self.cell_list[q].T3[Y] = th[w+3]
-                self.cell_list[q].T5[Y] = th[w+4]
-                w = w+5
-        #running not validated
-        
-        
+            f2 = (self.cell.vtn - self.cell_list[q].v - self.cell_list[q].omega / 2. * self.cell_list[q].i) * \
+                 self.cell_list[q].i
+            f3 = 0.5 * self.cell_list[q].omega * self.cell_list[q].i ** 2.
+            f4 = self.h_vap*self.cell_list[q].anode.gamma
+            if q >= 1:
+                f5 = -self.cell.mu_p*self.cell_list[q-1].T5-self.a*self.cell_list[q].T
+            else:
+                f5 = -self.cell.mu_p*self.cell_list[q].T5-self.a*self.cell_list[q].T
+            var1 = self.cell.mu_p*(self.cell_list[q].T2*self.cell.mu_p-f5)/(2.*self.cell.mu_p+self.a)
+            var2 = self.cell.mu_g*(f4+var1)/(self.cell.mu_p+self.cell.mu_g)
+            var3 = self.cell.mu_g+self.cell.mu_m-self.cell.mu_g**2./(self.cell.mu_p+self.cell.mu_g)
+            var4 = f2+self.cell.mu_g*self.cell_list[q].T2+self.cell.mu_m*(f3+var2)/var3
+            var5 = self.cell.mu_m + self.cell.mu_g - self.cell.mu_m**2./var3
+            self.cell_list[q].T1 = var4/var5
+            print(self.cell_list[q].T1,'T1')
 
+    def calc_T2(self):
+        for q, item in enumerate(self.cell_list):
+            f1 = self.h_vap * self.cell_list[q].cathode.gamma
+            f2 = (self.cell.vtn - self.cell_list[q].v - self.cell_list[q].omega / 2. * self.cell_list[q].i) * \
+                 self.cell_list[q].i
+            f3 = 0.5 * self.cell_list[q].omega * self.cell_list[q].i ** 2.
+            f4 = self.h_vap * self.cell_list[q].anode.gamma
+            if q >= 1:
+                f5 = -self.cell.mu_p * self.cell_list[q - 1].T5 - self.a * self.cell_list[q].T
+            else:
+                f5 = -self.cell.mu_p * self.cell_list[q].T5 - self.a * self.cell_list[q].T
+            var1 = (-f5*self.cell.mu_p)/(2.*self.cell.mu_p + self.a)#k
+            var2 = self.cell.mu_g*(f4+var1)/(self.cell.mu_p+self.cell.mu_g)#k
+            var3 = self.cell.mu_g + self.cell.mu_m-self.cell.mu_g**2./(self.cell.mu_p+self.cell.mu_g)#k
+            var4 = f2+self.cell.mu_m*(f3+var2)/var3#k
+            var5 = self.cell.mu_g+self.cell.mu_m-self.cell.mu_m**2./var3#k
+            var6 = f1 + self.cell.mu_p*self.cell_list[q].T3 + self.cell.mu_g*var4/var5#k
+            var7 = self.cell.mu_p**2./(2.*self.cell.mu_p + self.a)#k
+            var8 = self.cell.mu_g**2*var7/(self.cell.mu_g+self.cell.mu_p)#k
+            var9 = self.cell.mu_m*var8/var3#k
+            var10 = self.cell.mu_p+self.cell.mu_g-(self.cell.mu_g**2+var9)/var5
+            self.cell_list[q].T2 = var6/var10
+            print(self.cell_list[q].T2,'T2')
+
+    def calc_T3(self):
+        for q, item in enumerate(self.cell_list):
+            print(self.cell_list[q].cathode.gamma,'gammac')
+            f1 = self.h_vap * self.cell_list[q].cathode.gamma  # f1
+            f2 = (self.cell.vtn - self.cell_list[q].v - self.cell_list[q].omega/2.*self.cell_list[q].i)*self.cell_list[q].i
+            f3 = 0.5 * self.cell_list[q].omega * self.cell_list[q].i ** 2.
+            f4 = self.h_vap * self.cell_list[q].anode.gamma
+            if q >= 1:
+                f5 = -self.cell.mu_p*self.cell_list[q-1].T5-self.a*self.cell_list[q].T
+            else:
+                f5 = -self.cell.mu_p*self.cell_list[q].T5-self.a*self.cell_list[q].T
+            var1 = self.cell.mu_p*f5/(2.*self.cell.mu_p + self.a)
+            var2 = self.cell.mu_g*(f4-var1)/(self.cell.mu_p+self.cell.mu_g)
+            var3 = self.cell.mu_g + self.cell.mu_m - self.cell.mu_g**2/(self.cell.mu_p+self.cell.mu_g)
+            var4 = self.cell.mu_m*(f3+var2)/var3
+            var5 = self.cell.mu_g + self.cell.mu_m - self.cell.mu_m**2./(self.cell.mu_g+self.cell.mu_m-self.cell.mu_g**2./(self.cell.mu_p+self.cell.mu_g))
+            var6 = self.cell.mu_g*(f2+var4)/var5
+            var7 = self.cell.mu_p**2./(2.*self.cell.mu_p+self.a)
+            var8 = self.cell.mu_g*var7/(self.cell.mu_p+self.cell.mu_g)
+            var9 = self.cell.mu_m*var8/var3
+            var10 = (self.cell.mu_g**2. + var9*self.cell.mu_g)/(var5)
+            var11 = f5-self.cell.mu_p*(f1+var6)/(self.cell.mu_p + self.cell.mu_g -var10)
+            var12 = -2.*self.cell.mu_p - self.a + self.cell.mu_p**2/(-var10+self.cell.mu_p+self.cell.mu_g)
+            self.cell_list[q].T3 = var11/var12
+            print(self.cell_list[q].T3,'T3')
+    def calc_T4(self):
+        for q, item in enumerate(self.cell_list):
+            f3 = 0.5 * self.cell_list[q].omega * self.cell_list[q].i ** 2.
+            f4 = self.h_vap * self.cell_list[q].anode.gamma
+            if q >= 1:
+                f5 = -self.cell.mu_p * self.cell_list[q - 1].T5 - self.a * self.cell_list[q].T
+            else:
+                f5 = -self.cell.mu_p * self.cell_list[q].T5 - self.a * self.cell_list[q].T
+            var1 = (self.cell.mu_p**2.*self.cell_list[q].T2-self.cell.mu_p*f5)/(2.*self.cell.mu_p+self.a)
+            var2 = self.cell.mu_g*(f4 + var1)/(self.cell.mu_p + self.cell.mu_g)
+            var3 = self.cell.mu_g + self.cell.mu_m - self.cell.mu_g**2./(self.cell.mu_p + self.cell.mu_g)
+            self.cell_list[q].T4 = (f3 + self.cell.mu_m*self.cell_list[q].T1 + var2)/var3
+            print(self.cell_list[q].T4,'T4')
+    def calc_T5(self):
+        for q, item in enumerate(self.cell_list):
+            f4 = self.h_vap * self.cell_list[q].anode.gamma
+            if q >= 1:
+                f5 = -self.cell.mu_p * self.cell_list[q - 1].T5 - self.a * self.cell_list[q].T
+            else:
+                f5 = -self.cell.mu_p * self.cell_list[q].T5 - self.a * self.cell_list[q].T
+            var1 = self.cell.mu_p*(self.cell.mu_p*self.cell_list[q].T2-f5) / (2. * self.cell.mu_p + self.a)
+            self.cell_list[q].T5 =  (f4 + var1 + self.cell.mu_g*self.cell_list[q].T4) / (self.cell.mu_p + self.cell.mu_g)
+            print(self.cell_list[q].T5,'T5')
+
+    def calc_layer_T(self):
+        self.calc_T3()
+        self.calc_T2()
+        self.calc_T1()
+        self.calc_T4()
+        self.calc_T5()
 
 # 4.Layer
 
@@ -558,7 +613,7 @@ class Simulation():
         self.c = matrix_database.c(self.stack.cell.cathode.channel.division+1,self.stack.cell_numb,self.stack.cell.cathode.channel.length/(self.stack.cell.cathode.channel.division+1.))
     
     def update(self):
-        for i in range(2):self.stack.update()
+        for i in range(10):self.stack.update()
         #self.calc_initial_current_density()
         #for i in range(10):
          #   self.stack.update()
@@ -582,7 +637,7 @@ class Simulation():
                 x = fsolve(self.calc_initial_current_density_fsolve,I_t,args=(i,q))
             b.append(x)
         a.append(b)
-        print(a)
+        #print(a)
 
     def calc_sensitivity(self):
         self.s = diag(self.stack.dv)
@@ -609,11 +664,11 @@ class Simulation():
         #print(self.stack.i)
 
 
-channel_anode = Channel(0.67,N-1,20.*10.**3.,3.*10.**5.,320.,False)
+channel_anode = Channel(0.67,N-1,20.*10.**3.,3.*10.**5.,298.15,False)
 anode = Halfcell(channel_anode,1.8,2,2.)
-channel_cathode = Channel(0.67,N-1,20.*10.**3.,3.2*10.**5.,320.,True)
+channel_cathode = Channel(0.67,N-1,20.*10.**3.,3.2*10.**5.,298.15,True)
 cathode = Halfcell(channel_cathode,3.8,3,4.)
-cell = Cell(anode,cathode,0.62*10.**-5.,1200.,50.*10**-6,2300.,5000.,11200.,0.944,40.9,64.,0.8*10.**-3.,320.,pem_type)
+cell = Cell(anode,cathode,0.62*10.**-5.,1200.,50.*10**-6,2300.,5000.,11200.,0.944,40.9,64.,0.8*10.**-3.,293.15,pem_type)
 stack = Stack(cell,M)
 simulation = Simulation(stack,1.*10.**-3.,10.)
 simulation.update()
