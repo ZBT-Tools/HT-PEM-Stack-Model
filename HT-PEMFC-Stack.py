@@ -10,7 +10,7 @@ pem_type = True      #True=HT False=NT
 I_t = 6000.          #Target currentdensity                      A/m²
 Fday = 96485.        #Faraday's constant                         C/mol
 R = 8.3143           #ideal gas constant                        J/(kmol)
-N = 5                #knots, elements = N-1
+N = 50                #knots, elements = N-1
 M = 4              #Number of cell
 Tu = 298.15 
 node_backward = matrix_database.backward_matrix(N)
@@ -452,8 +452,8 @@ class Stack:
             self.cell_list[j].set_i(self.i[j,:])
             self.cell_list[j].update()
 
-        #self.calc_coolant_T()
-        self.calc_coolant_T_fit()
+        self.calc_coolant_T()
+        #self.calc_coolant_T_fit()
         self.calc_layer_T()
         self.stack_v()
         self.stack_dv()       
@@ -620,13 +620,13 @@ class Simulation():
         for i in range(10):
             self.stack.update()
             self.calc_initial_current_density()
-        for i in range(100):
-            self.stack.update()
-            self.calc_sensitivity()
-            self.calc_g()
-            self.calc_n()
-            self.calc_delta()
-            self.calc_i()
+        #for i in range(2):
+         #   self.stack.update()
+          #  self.calc_sensitivity()
+           # self.calc_g()
+           # self.calc_n()
+            #self.calc_delta()
+            #self.calc_i()
 
     def calc_initial_current_density_fsolve(self,x,i,w,v):
             a = self.stack.cell.e0 - x*self.stack.cell_list[i].omega[w]
@@ -640,6 +640,7 @@ class Simulation():
             avv  = sum(self.stack.cell_list[i].v)/(self.stack.cell.cathode.channel.division+1)
             b = []
             for q in range (self.stack.cell.cathode.channel.division+1):
+                #avv = self.stack.cell_list[i].v[q]
                 self.stack.i[i,q] = fsolve(self.calc_initial_current_density_fsolve,I_t,args=(i,q,avv))
 
 
@@ -669,11 +670,11 @@ class Simulation():
         #print(self.stack.i)
 
 
-channel_anode = Channel(0.67,N-1,20.*10.**3.,3.*10.**5.,298.15,False)
+channel_anode = Channel(0.67,N-1,20.*10.**3.,3.*10.**5.,350.,False)
 anode = Halfcell(channel_anode,1.8,2,2.)
-channel_cathode = Channel(0.67,N-1,20.*10.**3.,3.2*10.**5.,298.15,True)
-cathode = Halfcell(channel_cathode,3.8,3,4.)
-cell = Cell(anode,cathode,0.62*10.**-5.,1200.,50.*10**-6,2300.,5000.,11200.,0.944,40.9,64.,0.8*10.**-3.,293.15,pem_type)
+channel_cathode = Channel(0.67,N-1,20.*10.**3.,3.2*10.**5.,350.,True)
+cathode = Halfcell(channel_cathode,1.8,3,4.)
+cell = Cell(anode,cathode,0.62*10.**-5.,1200.,50.*10**-6,2300.,5000.,11200.,0.944,40.9,64.,0.8*10.**-3.,330.,pem_type)
 stack = Stack(cell,M)
 simulation = Simulation(stack,1.*10.**-3.,10.)
 simulation.update()
