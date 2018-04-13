@@ -100,9 +100,3 @@ def c(n,M,d_x):
                 m[l,j-(n)] = 1.
                 m[l,j+(n)] = 1.
     return m/d_x**2.
-
-a = temperature_matrix(1,1,2000.,3000.,2000.,4000.)
-print(a)
-print(np.linalg.inv(a))
-print(np.linalg.pinv(a))
-print(np.linalg.det(a))
