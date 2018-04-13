@@ -10,8 +10,8 @@ pem_type = True      #True=HT False=NT
 I_t = 6000.          #Target currentdensity                      A/m²
 Fday = 96485.        #Faraday's constant                         C/mol
 R = 8.3143           #ideal gas constant                        J/(kmol)
-N = 50               #knots, elements = N-1
-M = 4               #Number of cell
+N = 5                #knots, elements = N-1
+M = 4              #Number of cell
 Tu = 298.15 
 node_backward = matrix_database.backward_matrix(N)
 element_backward = matrix_database.backward_matrix(N-1)
@@ -84,6 +84,8 @@ class Halfcell:
             self.calc_water_flow()#stabel with j=0?
             self.calc_pressure()
             self.calc_con_ic()
+            self.calc_fluid_water()
+            self.calc_cond_rates()
         else:#NT
             self.node_to_element()
             self.calc_reac_flow()
@@ -449,7 +451,9 @@ class Stack:
         for j in range(self.cell_numb):
             self.cell_list[j].set_i(self.i[j,:])
             self.cell_list[j].update()
-        self.calc_coolant_T()
+
+        #self.calc_coolant_T()
+        self.calc_coolant_T_fit()
         self.calc_layer_T()
         self.stack_v()
         self.stack_dv()       
@@ -469,39 +473,33 @@ class Stack:
         self.dv = var
         #running
 
-    def calc_coolant_T(self):#elementwise
-        for q, item in enumerate(self.cell_list):#calc elements
-            for w in range (self.cell.cathode.channel.division):
-                if w is 0 and q is 0:#first cell & first element
-                    var1 = self.cell.mu_p*self.cell.cathode.channel.d_x/(2.*self.g)
-                    var2 = 2.*self.cell_list[0].T2e[0]-2.*self.cell_list[0].T3e[0]
-                    self.cell_list[0].Te[0] = var1*var2+self.cell_list[0].T[0]
-
-                elif w >0 and q is 0:#first cell 
-                    var1 = self.cell.mu_p*self.cell.cathode.channel.d_x/self.g
-                    var2 = 2.*self.cell_list[0].T2e[w]-2.*self.cell_list[0].T3e[w]
-                    self.cell_list[q].Te[w] = var1*var2+self.cell_list[q].Te[w-1]
-                elif w>0 and q>0:#stack after first cell and element
-                    var1 = self.cell.mu_p*self.cell.cathode.channel.d_x/self.g
-                    var2 = self.cell_list[q].T2e[w]+self.cell_list[q-1].T5e[w]-2.*self.cell_list[q].T3e[w]
-                    self.cell_list[q].Te[w] = var1*var2+self.cell_list[q].Te[w-1]
-        
-        for q, item in enumerate(self.cell_list):#calc node bd
-            if q is 0:#first cell last node
-                var1 = self.cell.mu_p*self.cell.cathode.channel.d_x/(2.*self.g)
-                T2 = 0.5*self.cell_list[0].T2e[-1]+0.5*self.cell_list[0].T2[-1]
-                T3 = 0.5*self.cell_list[0].T3e[-1]+0.5*self.cell_list[0].T3[-1]
-                var2 = 2.*T2-2.*T3
-                T_out = var1*var2+self.cell_list[0].T[-2]
+    def calc_coolant_T(self):
+        for q, item in enumerate(self.cell_list):
+            if q==0:
+                for w in range(self.cell.cathode.channel.division+1):
+                    if w ==0:
+                        self.cell_list[q].T[w] = self.cell_list[q].T_cool_in
+                    else:
+                        var1 = self.cell.mu_p/self.g*self.cell.cathode.channel.d_x
+                        var2 =  self.cell_list[q].T2[w] -1 *self.cell_list[q].T3[w]
+                        self.cell_list[q].T[w] = var1*var2+self.cell_list[q].T[w-1]
+                        self.cell_list[q].T[w] = self.cell.cathode.channel.T_in + w / (
+                                    self.cell.cathode.channel.division + 1)
             else:
-                var1 = self.cell.mu_p*self.cell.cathode.channel.d_x/(self.g)
-                T2 = 0.5*self.cell_list[q].T2e[-1]+0.5*self.cell_list[q].T2[-1]
-                T3 = 0.5*self.cell_list[q].T3e[-1]+0.5*self.cell_list[q].T3[-1]
-                T5 = 0.5*self.cell_list[q].T5e[-2]+0.5*self.cell_list[q].T5[-2]
-                var2 = T2+T5-2.*T3
-                T_out = var1*var2+self.cell_list[q].T[-2]
-            self.cell_list[q].T = matrix_database.element_to_node_func(self.cell.T_cool_in,T_out,self.cell_list[q].Te)
-    #running, not validated    
+                for w in range(self.cell.cathode.channel.division+1):
+                    if w ==0:
+                        self.cell_list[q].T[w] = self.cell_list[q].T_cool_in
+                    else:
+                        var1 = self.cell.mu_p / self.g * self.cell.cathode.channel.d_x
+                        var2 = self.cell_list[q].T2[w]+ self.cell_list[q-1].T5[w] - 2 * self.cell_list[q].T3[w]
+                        self.cell_list[q].T[w] = var1 * var2+self.cell_list[q].T[w-1]
+
+
+    def calc_coolant_T_fit(self):
+        for q, item in enumerate(self.cell_list):
+            self.cell_list[q].T = linspace(self.cell.T_cool_in, self.cell.cathode.channel.T_in,
+                                       self.cell.cathode.channel.division + 1)
+
         
     def calc_T1(self):
         for q, item in enumerate(self.cell_list):
@@ -519,7 +517,7 @@ class Stack:
             var4 = f2+self.cell.mu_g*self.cell_list[q].T2+self.cell.mu_m*(f3+var2)/var3
             var5 = self.cell.mu_m + self.cell.mu_g - self.cell.mu_m**2./var3
             self.cell_list[q].T1 = var4/var5
-            print(self.cell_list[q].T1,'T1')
+            #print(self.cell_list[q].T1,'T1')
 
     def calc_T2(self):
         for q, item in enumerate(self.cell_list):
@@ -543,11 +541,11 @@ class Stack:
             var9 = self.cell.mu_m*var8/var3#k
             var10 = self.cell.mu_p+self.cell.mu_g-(self.cell.mu_g**2+var9)/var5
             self.cell_list[q].T2 = var6/var10
-            print(self.cell_list[q].T2,'T2')
+            #print(self.cell_list[q].T2,'T2')
 
     def calc_T3(self):
         for q, item in enumerate(self.cell_list):
-            print(self.cell_list[q].cathode.gamma,'gammac')
+            #print(self.cell_list[q].cathode.gamma,'gammac')
             f1 = self.h_vap * self.cell_list[q].cathode.gamma  # f1
             f2 = (self.cell.vtn - self.cell_list[q].v - self.cell_list[q].omega/2.*self.cell_list[q].i)*self.cell_list[q].i
             f3 = 0.5 * self.cell_list[q].omega * self.cell_list[q].i ** 2.
@@ -569,7 +567,7 @@ class Stack:
             var11 = f5-self.cell.mu_p*(f1+var6)/(self.cell.mu_p + self.cell.mu_g -var10)
             var12 = -2.*self.cell.mu_p - self.a + self.cell.mu_p**2/(-var10+self.cell.mu_p+self.cell.mu_g)
             self.cell_list[q].T3 = var11/var12
-            print(self.cell_list[q].T3,'T3')
+            #print(self.cell_list[q].T3,'T3')
     def calc_T4(self):
         for q, item in enumerate(self.cell_list):
             f3 = 0.5 * self.cell_list[q].omega * self.cell_list[q].i ** 2.
@@ -582,7 +580,7 @@ class Stack:
             var2 = self.cell.mu_g*(f4 + var1)/(self.cell.mu_p + self.cell.mu_g)
             var3 = self.cell.mu_g + self.cell.mu_m - self.cell.mu_g**2./(self.cell.mu_p + self.cell.mu_g)
             self.cell_list[q].T4 = (f3 + self.cell.mu_m*self.cell_list[q].T1 + var2)/var3
-            print(self.cell_list[q].T4,'T4')
+            #print(self.cell_list[q].T4,'T4')
     def calc_T5(self):
         for q, item in enumerate(self.cell_list):
             f4 = self.h_vap * self.cell_list[q].anode.gamma
@@ -592,9 +590,15 @@ class Stack:
                 f5 = -self.cell.mu_p * self.cell_list[q].T5 - self.a * self.cell_list[q].T
             var1 = self.cell.mu_p*(self.cell.mu_p*self.cell_list[q].T2-f5) / (2. * self.cell.mu_p + self.a)
             self.cell_list[q].T5 =  (f4 + var1 + self.cell.mu_g*self.cell_list[q].T4) / (self.cell.mu_p + self.cell.mu_g)
-            print(self.cell_list[q].T5,'T5')
+            #print(self.cell_list[q].T5,'T5')
 
     def calc_layer_T(self):
+        #for q, item in enumerate(self.cell_list):
+            #self.cell_list[q].T1 = full((self.cell.cathode.channel.division+1), 300.)
+            #self.cell_list[q].T2 = full((self.cell.cathode.channel.division+1), 300.)
+            #self.cell_list[q].T3 = full((self.cell.cathode.channel.division+1), 300.)
+            #self.cell_list[q].T4 = full((self.cell.cathode.channel.division+1), 300.)
+            #self.cell_list[q].T5 = full((self.cell.cathode.channel.division+1), 300.)
         self.calc_T3()
         self.calc_T2()
         self.calc_T1()
@@ -613,31 +617,32 @@ class Simulation():
         self.c = matrix_database.c(self.stack.cell.cathode.channel.division+1,self.stack.cell_numb,self.stack.cell.cathode.channel.length/(self.stack.cell.cathode.channel.division+1.))
     
     def update(self):
-        for i in range(10):self.stack.update()
-        #self.calc_initial_current_density()
-        #for i in range(10):
-         #   self.stack.update()
-          #  self.calc_sensitivity()
-           # self.calc_g()
-            #self.calc_n()
-            #self.calc_delta()
-            #self.calc_i()
+        for i in range(10):
+            self.stack.update()
+            self.calc_initial_current_density()
+        for i in range(100):
+            self.stack.update()
+            self.calc_sensitivity()
+            self.calc_g()
+            self.calc_n()
+            self.calc_delta()
+            self.calc_i()
 
-    def calc_initial_current_density_fsolve(self,x,i,q):
-            a = self.stack.cell.e0 - x*self.stack.cell_list[i].omega[q]
-            b = R*self.stack.cell_list[i].T1[q]/(Fday)
-            c = log(x*self.stack.cell.c_ref/(self.stack.cell.i_ref*(self.stack.cell_list[i].cathode.c1[q]-self.stack.cell_list[i].delta*x)))
-            return a+self.stack.cell_list[i].psi[q]-b*c-self.stack.cell_list[i].v[q]
+    def calc_initial_current_density_fsolve(self,x,i,w,v):
+            a = self.stack.cell.e0 - x*self.stack.cell_list[i].omega[w]
+            b = R*self.stack.cell_list[i].T1[w]/(Fday)
+            c = log(x*self.stack.cell.c_ref/(self.stack.cell.i_ref*(self.stack.cell_list[i].cathode.c1[w]-self.stack.cell.delta*x)))
+            return a-b*c-v
 
     def calc_initial_current_density(self):
         a =[]
         for i in range (self.stack.cell_numb):
+            avv  = sum(self.stack.cell_list[i].v)/(self.stack.cell.cathode.channel.division+1)
             b = []
             for q in range (self.stack.cell.cathode.channel.division+1):
-                x = fsolve(self.calc_initial_current_density_fsolve,I_t,args=(i,q))
-            b.append(x)
-        a.append(b)
-        #print(a)
+                self.stack.i[i,q] = fsolve(self.calc_initial_current_density_fsolve,I_t,args=(i,q,avv))
+
+
 
     def calc_sensitivity(self):
         self.s = diag(self.stack.dv)
@@ -686,6 +691,7 @@ print('voltage')
 for i in simulation.stack.cell_list:
     #print(i.v)
     plot(x,i.v)
+ylim(0.,1.28)
 show()
  
     
@@ -754,6 +760,7 @@ print('pc')
 for i in simulation.stack.cell_list:
     #print(i.cathode.p)
     plot(x,i.cathode.p)
+#ylim(3*10**5,3.2*10**5)
 show()
 
 print('pa')
@@ -815,6 +822,19 @@ for i in simulation.stack.cell_list:
     #print(i.anode.c2)
     plot(x,i.anode.c2)
 show()
+
+print('wc')
+for i in simulation.stack.cell_list:
+    # print(i.cathode.w)
+    plot(x, i.cathode.w)
+show()
+
+print('gamma_c')
+for i in simulation.stack.cell_list:
+    #print(i.cathode.gamma)
+    plot(x,i.cathode.gamma)
+show()
+
 if pem_type is False:
     print('wc')
     for i in simulation.stack.cell_list:
