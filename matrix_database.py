@@ -100,3 +100,19 @@ def c(n,M,d_x):
                 m[l,j-(n)] = 1.
                 m[l,j+(n)] = 1.
     return m/d_x**2.
+
+def c_new(n,M,d_x):
+    m = np.full((n*M,n*M),0.)
+    for j in range (n*M):
+        for l in range (n*M):
+            if j==l  and (j>=n and j<M*n-n):
+                m[l,j] = -2.
+                m[l,j-(n)] = 1.
+                m[l,j+(n)] = 1.
+            elif j == l and j<=n:
+                m[l,j] = -1
+                m[l,j+n] = 1
+            elif j==l and j>=M*n-n:
+                m[l,j] = -1
+                m[l,j-n] = 1
+    return m/d_x**2.
