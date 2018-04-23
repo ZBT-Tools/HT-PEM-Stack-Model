@@ -52,7 +52,7 @@ def element_to_node_func(start,end,element_vector):
 def temperature_matrix(n,M,mu_p,mu_g,mu_m,a):
     m = np.full((n*M*5,n*M*5),0.)
     w = 0
-    while w<n*5:
+    while w<(n*M*5):
         m[0+w,0+w] = -mu_g
         m[0+w,1+w] = mu_p+mu_g
         m[0+w,2+w] = -mu_p
