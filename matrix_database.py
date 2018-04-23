@@ -116,3 +116,17 @@ def c_new(n,M,d_x):
                 m[l,j] = -1
                 m[l,j-n] = 1
     return m/d_x**2.
+
+def forward_matrix_reac_flow(n):#element forward
+    m = np.full((n,n),0.)
+    for j in range (n):
+        for i in range (n):
+            if i >= 1 and i<=j: m[j,i] = -1.
+    return m
+
+def backward_matrix_reac_flow(n):#element backward
+    m = np.full((n,n),0.)
+    for j in range (n):
+        for i in range (n):
+            if i < n-1 and i>=j: m[j,i] = -1.
+    return m
