@@ -70,3 +70,6 @@ def temperature_matrix_conv(n, M, mu_p, mu_g, mu_m, a, alpha_1, alpha_2, alpha_3
     m[4, 1] = mu_p
     m[4, 2] = -2. * mu_p - a - alpha_3
     return np.linalg.inv(np.kron(np.eye(n * M), m))
+
+# print(b(2,2,0.5569)*np.diag([1,2,3,4]))
+# print(np.matmul(b(2, 2, 0.5569),np.diag([1,2,3,4])))

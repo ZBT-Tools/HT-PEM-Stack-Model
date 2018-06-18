@@ -1,9 +1,9 @@
 ################################################################################
 ############################Channel#############################################
 # channellength m
-channel_length = 6.7
+channel_length = 0.67
 # number of Nodes
-nodes = 50
+nodes = 10
 # cathode gas channel scaled pressure drop coefficient Pa s /m³
 k_cat = 2.e4
 # cathode gas channel inlet pressure Pa
@@ -11,7 +11,7 @@ p_cat_in = 3.2e5
 # cathode gas channel inlet temperature K
 t_cat_in = 2.98e2
 # cathode phi
-phi_cat = 0.5
+phi_cat = 0
 # cathode flow direction
 flow_dir_cat = True
 # anode gas channel scaled pressure drop coefficient Pa s /m³
@@ -21,13 +21,17 @@ p_ano_in = 3.e5
 # anode gas channel inlet temperature K
 t_ano_in = 2.98e2
 # ano phi
-phi_ano = 0.5
+phi_ano = 0
 # anode flow direction
 flow_dir_ano = False
+# width of the channel m
+channel_width = 1.e-3
+# heigth of the channel m
+channel_heigth = 1.e-3
 ################################################################################
 ############################Halfcell############################################
 # cathode stoichiometry
-stoi_cat = 1.5
+stoi_cat = 3.
 # cathode number of species (3 (N2,O2,H2O))
 spec_numb_cat = 3
 # cathode side reaction, number of valence electrones
@@ -39,7 +43,7 @@ spec_numb_ano = 2
 #  side reaction, number of valence electrones
 val_ano = 2
 # target current density A/m²
-tar_cd = 9000.
+tar_cd = 6000.
 ################################################################################
 ############################Cell################################################
 # fited vapour mass transport coefficient m/s
@@ -72,27 +76,29 @@ mem_thick = 5.e-3
 gde_thick = 1.e-3
 # thickness of the plate m
 plate_thick = 0.5e-3
-# widht of the channel m
-channel_width = 1.e-3
 # environment temperature K
 t_u = 298.15
 ################################################################################
 ############################Stack###############################################
-# number of stack cells (min =!3)
-cell_numb = 10
+# number of stack cells (min =!2)
+cell_numb = 50
 # heated endplates ?( True = y or False = no)
 endplate_adiabat = False
 # Endplate_temperature K
-end_plate_t = 310.
+end_plate_t = 453.15
 # convection coefficient of the stack walls W/(m²K)
 alpha_conv = 0.
 #resistance of the bipolarplates
-resistance = 4.e-3
+resistance = 4.e-2
+# heigth of the manifold channel
+manifold_heigth = 10e-3
+# width of the manifold channel
+manifold_width = 10e-3
+# geometrical pressure loss coefficient
+manifold_kf = 2.67
 ################################################################################
 ############################Simulation##########################################
-#number of initial parameter calculation loops
-n_loop = 20
 # tolerance
 k_tol = 1.e-3
 # max number of iterations
-max_it = 1
+max_it = 100

@@ -24,3 +24,5 @@ class Fluid:
 
 
 water = Fluid(ps, t)
+
+#print(water.calc_psat(273.15))
