@@ -1,141 +1,251 @@
 import input_parameter as i_p
-import channel
-import halfcell
-import cell
-import stack
+import stack as st
 import numpy as np
 import copy
-from scipy.optimize import fsolve, least_squares, root
-import matrix_database as m_d
-import global_functions as g_func
-import time
+import global_parameter as gpar
+import global_functions as gfunc
+import cProfile
+import matplotlib.pyplot as plt
+import os, errno
+np.set_printoptions(threshold=np.nan, linewidth=1000, precision=7, suppress=True)
+
+def do_cprofile(func):
+    def profiled_func(*args, **kwargs):
+        profile = cProfile.Profile()
+        try:
+            profile.enable()
+            result = func(*args, **kwargs)
+            profile.disable()
+            return result
+        finally:
+            profile.print_stats('cumtime')
+    return profiled_func
 
 
 class Simulation:
 
-    def __init__(self, stack, k_it, max_it):
-        self.stack = stack
-        self.k_it = k_it
-        self.max_it = max_it
-        # self.b = m_d.b(i_p.nodes, i_p.cell_numb, self.stack.cell.cathode.channel.d_x)
-        # self.c = m_d.c(i_p.nodes, i_p.cell_numb, self.stack.cell.cathode.channel.d_x)
+    def __init__(self, dict):
+        self.k_it = dict['k_it']
+        self.max_it = dict['max_it']
         self.mdf_criteria_cat_process = []
         self.mdf_criteria_ano_process = []
         self.i_criteria_process = []
-        self.b = m_d.b(self.stack.cell.cathode.channel.nodes,
-                       self.stack.cell_numb,
-                       self.stack.cell.cathode.channel.length
-                       / self.stack.cell.cathode.channel.nodes)
-        self.c = m_d.c(self.stack.cell.cathode.channel.nodes,
-                       self.stack.cell_numb,
-                       self.stack.cell.cathode.channel.length
-                       / self.stack.cell.cathode.channel.nodes)
+        self.t1_criteria_process = []
+        self.t2_criteria_process = []
+        self.t3_criteria_process = []
+        self.t4_criteria_process = []
+        self.t5_criteria_process = []
+        self.i_last_criteria_process = []
+        self.tryarray = []
+        self.v = []
 
+   # @do_cprofile
     def update(self):
-        start_time = time.time()
-        self.stack.update()
-        self.calc_initial_current_density()
-        statement = True
-        counter = 0
-        while statement is True:
-            self.save_old_value()
-            self.calc_i()
-            self.correct_i()
-            self.stack.update()
-            self.calc_convergence_criteria()
-            counter = counter + 1
-            if ((self.i_criteria < self.k_it and counter > 5)
-                and (self.mdf_criteria_ano < self.k_it
-                     and self.mfd_criteria_cat < self.k_it))\
-                    or counter > self.max_it:
-                statement = False
-        print("--- %s seconds ---" % (time.time() - start_time))
+        for q, item in enumerate(i_p.tar_cd):
+            gpar.dict_case['tar_cd'] = i_p.tar_cd[q]
+            self.stack = st.Stack(i_p.stack)
+            statement = True
+            counter = 0
+            while statement is True:
+                self.save_old_value()
+                self.tryarray.append(self.stack.i[0, -1])
+                self.stack.update()
+                self.calc_convergence_criteria()
+                print(counter)
+                counter = counter + 1
+                if ((self.i_criteria < self.k_it and counter > 100)
+                    and (self.mdf_criteria_ano < self.k_it
+                         and self.mfd_criteria_cat < self.k_it))\
+                        or counter > self.max_it:
+                    statement = False
+            self.t_criteria_process = (np.array(self.t1_criteria_process)
+                                       + np.array(self.t2_criteria_process)
+                                       + np.array(self.t3_criteria_process)
+                                       + np.array(self.t4_criteria_process)
+                                       + np.array(self.t5_criteria_process)) * .2
+            self.mdf_criteria_process = (np.array(self.mdf_criteria_ano_process)
+                                         + np.array(self.mdf_criteria_cat_process)) * .5
+            self.output(str(q))
+            #self.v.append(np.average(self.stack.v))
+            self.tryarray = []
+        #plt.plot(i_p.tar_cd,self.v)
+        #plt.ylabel('Voltage [V]')
+        #plt.xlabel('Current Density [A/m²]')
+        #plt.savefig(os.path.join(os.path.dirname(__file__),   'polarization curve' + '.jpg'))
+        #plt.show()
 
-    def calc_initial_current_density_fsolve(self, x, i, w, v):
-        # print(x, v)
-        a = self.stack.cell.e0 - x * self.stack.cell_list[i].omega[w]
-        # print(self.stack.cell_list[i].omega[w])
-        b = self.stack.cell.cathode.r * self.stack.cell_list[i].t1[w] \
-            / self.stack.cell.cathode.f_const
-        # print(self.stack.cell_list[i].t1[w])
-        c = np.log(x * self.stack.cell.c_ref /
-                   (self.stack.cell.i_ref
-                    * (self.stack.cell_list[i].cathode.gas_con[0][w] - self.stack.cell.delta * x)))
-        # print(self.stack.cell_list[i].cathode.c1[w])
-        return a - b * c - v
 
-    def calc_initial_current_density(self):
-        for i in range(self.stack.cell_numb):
-            avv = sum(self.stack.cell_list[i].v) \
-                  / self.stack.cell.cathode.channel.nodes
-            for q in range(self.stack.cell.cathode.channel.nodes):
-                self.stack.i[i, q] = fsolve(self.calc_initial_current_density_fsolve,
-                                            self.stack.cell.cathode.tar_cd, args=(i, q, avv))
-
-    def calc_initial_current_density_bd(self):
-        for i in range(self.stack.cell_numb):
-            avv = sum(self.stack.cell_list[i].v) \
-                  / self.stack.cell.cathode.channel.nodes
-            for q in range(self.stack.cell.cathode.channel.nodes):
-                self.stack.i[i, q] = (least_squares(self.calc_initial_current_density_fsolve,
-                                                    i_p.tar_cd,
-                                                    bounds=(i_p.tar_cd / 3., i_p.tar_cd * 1.5),
-                                                    args=(i, q, avv))).x
 
     def calc_convergence_criteria(self):
         self.mfd_criteria_cat = np.abs(sum(((self.stack.q_x_cat - self.q_x_cat_old)
-                                            / self.stack.q_x_cat) ** 2))
+                                            / self.stack.q_x_cat)**2.))
         self.mdf_criteria_ano = np.abs(sum(((self.stack.q_x_ano - self.q_x_ano_old)
-                                            / self.stack.q_x_ano ** 2)))
+                                            / self.stack.q_x_ano)**2.))
         self.i_criteria = np.abs(sum(((self.stack.i.flatten()
-                                       - self.i_old.flatten())
-                                      / self.stack.i.flatten() ** 2)))
+                                       - self.stack.i_old.flatten())
+                                      / self.stack.i.flatten())**2.))
+        self.i_last_criteria = np.abs((self.stack.i[0, -1] - self.i_last)
+                                      / self.stack.i[0, -1])
+        self.t1_criteria = np.abs(sum(((self.t1_old - self.stack.cell_list[0].t1)
+                                            / self.stack.cell_list[0].t1)**2.))
+        self.t2_criteria = np.abs(sum(((self.t2_old - self.stack.cell_list[0].t2)
+                                       / self.stack.cell_list[0].t2) ** 2.))
+        self.t3_criteria = np.abs(sum(((self.t3_old - self.stack.cell_list[0].t3)
+                                       / self.stack.cell_list[0].t3) ** 2.))
+        self.t4_criteria = np.abs(sum(((self.t4_old - self.stack.cell_list[0].t4)
+                                       / self.stack.cell_list[0].t4) ** 2.))
+        self.t5_criteria = np.abs(sum(((self.t5_old - self.stack.cell_list[0].t5)
+                                       / self.stack.cell_list[0].t5) ** 2.))
+        self.t1_criteria_process.append(self.t1_criteria)
+        self.t2_criteria_process.append(self.t2_criteria)
+        self.t3_criteria_process.append(self.t3_criteria)
+        self.t4_criteria_process.append(self.t4_criteria)
+        self.t5_criteria_process.append(self.t5_criteria)
         self.mdf_criteria_cat_process.append(self.mfd_criteria_cat)
         self.mdf_criteria_ano_process.append(self.mdf_criteria_ano)
         self.i_criteria_process.append(self.i_criteria)
+        self.i_last_criteria_process.append(self.i_last_criteria)
 
     def save_old_value(self):
+        self.t1_old = copy.deepcopy(self.stack.cell_list[0].t1)
+        self.t2_old = copy.deepcopy(self.stack.cell_list[0].t2)
+        self.t3_old = copy.deepcopy(self.stack.cell_list[0].t3)
+        self.t4_old = copy.deepcopy(self.stack.cell_list[0].t4)
+        self.t5_old = copy.deepcopy(self.stack.cell_list[0].t5)
         self.q_x_cat_old = copy.deepcopy(self.stack.q_x_cat)
         self.q_x_ano_old = copy.deepcopy(self.stack.q_x_ano)
-        self.i_old = copy.deepcopy(self.stack.i)
+        self.i_last = copy.deepcopy(self.stack.i[0, -1])
 
-    def calc_n(self):  # electrical coupling on
-        self.n = np.matmul(self.b, self.stack.v) - self.stack.resistance\
-                 * np.matmul(self.c, self.stack.i.flatten(order='C'))
+    def plot_cell_var(self, y_var, y_label, x_label, y_scale, color, title, q, xlim, x_var, y_lim):
+        try:
+            os.makedirs(os.path.join(os.path.dirname(__file__), 'Plots' + q + '/'))
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
+        for l, item in enumerate(self.stack.cell_list):
+            plt.plot(x_var, eval('self.stack.cell_list'+'['+str(l)+']'+'.' + y_var), color=color, marker='.')
 
-    def calc_g(self):
-        self.s = np.diag(self.stack.dv)
-        self.g = self.b*self.s - self.stack.resistance * self.c
-        self.g_inv = np.linalg.inv(self.g)
-
-    def correct_i(self):
-        self.stack.i = self.stack.i / (np.median(self.stack.i) / i_p.tar_cd)
-
-    def calc_i(self):
-        self.calc_n()
-        self.calc_g()
-        i_pre_cor = self.i_old.flatten() - np.matmul(self.g_inv, self.n)
-        self.stack.i = g_func.toarray(i_pre_cor,
-                                      self.stack.cell_numb,
-                                      self.stack.cell.cathode.channel.nodes)
+        plt.xlabel(x_label)
+        plt.ylabel(y_label)
+        plt.yscale(y_scale)
+        plt.autoscale(tight=True, axis='both', enable=True)
+        plt.xlim(xlim[0],xlim[1])
+        if y_lim is not False:
+            plt.ylim(y_lim[0], y_lim[1])
+        plt.tight_layout()
+        plt.grid()
+        plt.savefig(os.path.join(os.path.dirname(__file__), 'Plots' + q + '/' + title + '.jpg'))
+        plt.close()
 
 
-channel_anode = channel.Channel(i_p.channel_length, i_p.nodes, i_p.k_ano,
-                                i_p.p_ano_in, i_p.t_ano_in, i_p.phi_ano,
-                                i_p.flow_dir_ano, i_p.channel_width,
-                                i_p.channel_heigth)
-channel_cathode = channel.Channel(i_p.channel_length, i_p.nodes, i_p.k_cat,
-                                  i_p.p_cat_in, i_p.t_cat_in, i_p.phi_cat,
-                                  i_p.flow_dir_cat, i_p.channel_width,
-                                  i_p.channel_heigth)
-anode = halfcell.Halfcell(channel_anode, i_p.spec_numb_ano,
-                          i_p.val_ano, i_p.tar_cd)
-cathode = halfcell.Halfcell(channel_cathode, i_p.spec_numb_cat,
-                            i_p.val_cat, i_p.tar_cd)
-cell1 = cell.Cell(anode, cathode, i_p.gamma, i_p.alpha, i_p.mem_thick, i_p.mu_p,
-                  i_p.mu_g, i_p.mu_m, i_p.e_o, i_p.c_ref, i_p.i_ref, i_p.delta,
-                  i_p.pem_type, i_p.coolant_channel, i_p.t_cool_in,
-                  i_p.channel_width, i_p.gde_thick, i_p.plate_thick, i_p.t_u)
-stack1 = stack.Stack(cell1, i_p.cell_numb, i_p.end_plate_t, i_p.alpha_conv,
-                     i_p.resistance, i_p.endplate_adiabat, i_p.manifold_heigth,
-                     i_p.manifold_width, i_p.manifold_kf, i_p.stoi_cat, i_p.stoi_ano)
+    def output(self,q):
+        x_node = np.linspace(0., i_p.channel_length,gpar.dict_case['nodes'])
+        x_ele = gfunc.calc_elements(x_node)
+        gfunc.output([self.mdf_criteria_process, self.i_criteria_process, self.t_criteria_process],
+                     'ERR', 'Iteration', 'log', ['k', 'r', 'b'], 'Convergence',
+                     q, 0., len(self.t_criteria_process),
+                     ['Flow Distribution','Current Density','Temperature'])
+        gfunc.output([self.tryarray], 'Current Density [A/m²]', 'Iteration',
+                     'linear', 'k', 'Current_Density_Last_Cell', q, 0.,
+                     len(self.tryarray), False)
+        gfunc.output_x(self.stack.i, x_ele, 'Current Density [A/m²]', 'Channel Location [m]',
+                     'linear', np.full(self.stack.cell_numb, 'k'),
+                     'Current Density', q, False,[0., i_p.channel_length])
+        gfunc.output([self.stack.q_x_cat / (self.stack.q_h_in_cat[-1] / self.stack.cell_numb),
+                      self.stack.q_x_ano / (self.stack.q_h_in_ano[-1] / self.stack.cell_numb)],
+                     'Flow Distribution', 'Cell Number', 'linear', ['k', 'r'],
+                     'Flow Distribution', q , 0., self.stack.cell_numb-1,
+                     ['Cathode', 'Anode'])
+        gfunc.output([self.stack.q_x_cat / (self.stack.q_h_in_cat[-1]
+                      / self.stack.cell_numb) * self.stack.stoi_cat,
+                      self.stack.q_x_ano / (self.stack.q_h_in_ano[-1]
+                      / self.stack.cell_numb) * self.stack.stoi_ano],
+                     'Stoichiometry', 'Cell Number', 'linear', ['k', 'r'],
+                     'Stoichimetry Distribution', q, 0., self.stack.cell_numb-1,
+                     ['Cathode', 'Anode'])
+        self.plot_cell_var('v', 'Voltage [V]', 'Channel Location [m]', 'linear',
+                           'k', 'Cell Voltage', q , [0., i_p.channel_length], x_ele, [0., 1.28])
+        self.plot_cell_var('dv', 'dV/dI', 'Channel Location [m]', 'linear', 'k',
+                           'dvdI', q, [0., i_p.channel_length], x_ele, [-1., 1.])
+        self.plot_cell_var('t1', 'Cathode Temperature [K]', 'Channel Location [m]',
+                           'linear', 'k', 'Cathode Temperature', q, [0., i_p.channel_length],
+                           x_node, False)
+        self.plot_cell_var('t4', 'Anode Temperature [K]', 'Channel Location [m]',
+                           'linear', 'k', 'Anode Temperature', q, [0., i_p.channel_length],
+                           x_node, False)
+        self.plot_cell_var('t2', 'Cathode GDL Temperature [K]', 'Channel Location [m]',
+                           'linear', 'k', 'Cathode GDL Temperature', q, [0., i_p.channel_length],
+                           x_node, False)
+        self.plot_cell_var('cathode.t_gas', 'Air Temperature [K]', 'Channel Location [m]',
+                           'linear', 'k', 'Air Temperature', q, [0., i_p.channel_length],
+                           x_node, False)
+        self.plot_cell_var('t5', 'Anode GDL Temperature [K]', 'Channel Location [m]',
+                           'linear', 'k', 'Anode GDL Temperature', q, [0., i_p.channel_length],
+                           x_node, False)
+        self.plot_cell_var('anode.t_gas', 'Hydrogen Temperature [K]', 'Channel Location [m]',
+                           'linear', 'k', 'Hydrogen Temperature', q, [0., i_p.channel_length],
+                           x_node, False)
+        self.plot_cell_var('t1', 'Coolant Plate Temperature [K]', 'Channel Location [m]',
+                           'linear', 'k', 'Coolant Plate Temperature', q, [0., i_p.channel_length],
+                           x_node, False)
+        self.plot_cell_var('cathode.gas_flow[0]', 'Oxygen Molar Flow [mol/s]', 'Channel Location [m]',
+                           'linear', 'k', 'Oxygen Molar Flow', q, [0., i_p.channel_length],
+                           x_node, False)
+        self.plot_cell_var('cathode.gas_flow[1]', 'Water Molar Flow [mol/s]', 'Channel Location [m]',
+                           'linear', 'k', 'Water Molar Flow Cathode', q, [0., i_p.channel_length],
+                           x_node, False)
+        self.plot_cell_var('cathode.gas_flow[2]', 'Nitrogen Molar Flow [mol/s]', 'Channel Location [m]',
+                           'linear', 'k', 'Nitrogen Molar Flow', q, [0., i_p.channel_length],
+                           x_node, False)
+        self.plot_cell_var('anode.gas_flow[0]', 'Hydrogen Molar Flow [mol/s]', 'Channel Location [m]',
+                           'linear', 'k', 'Hydrogen Molar Flow', q, [0., i_p.channel_length],
+                           x_node, False)
+        self.plot_cell_var('anode.gas_flow[1]', 'Water Molar Flow [mol/s]', 'Channel Location [m]',
+                           'linear', 'k', 'Water Molar Flow Anode', q, [0., i_p.channel_length],
+                           x_node, False)
+        self.plot_cell_var('cathode.gas_con[0]', 'Oxygen  Molar Concentration [mol/m³]', 'Channel Location [m]',
+                           'linear', 'k', 'Oxygen Molar Concentration', q,[0., i_p.channel_length],
+                           x_node, False)
+        self.plot_cell_var('cathode.gas_con[1]', 'Water  Molar Concentration [mol/m³]', 'Channel Location [m]',
+                           'linear', 'k', 'Water Molar Concentration Cathode', q, [0., i_p.channel_length],
+                           x_node, False)
+        #self.plot_cell_var('cathode.gas_con[2]', 'Nitrogen Molar Concentration [mol/m³]', 'Channel Location [m]',
+         #                  'linear', 'k', 'Nitrogen Molar Concentration', q, [0., i_p.channel_length],
+          #                 x_node)
+        self.plot_cell_var('anode.gas_con[1]', 'Water  Molar Concentration [mol/m³]', 'Channel Location [m]',
+                           'linear', 'k', 'Water Molar Concentration Anode', q, [0., i_p.channel_length],
+                           x_node, False)
+        self.plot_cell_var('cathode.w', 'Liquid Water Flow [mol/s]', 'Channel Location [m]',
+                           'linear', 'k', 'Liquid Water Flow Cathode', q, [0., i_p.channel_length],
+                           x_node, False)
+        self.plot_cell_var('cathode.gamma', 'Water Condensation Rate [mol/s]', 'Channel Location [m]',
+                           'linear', 'k', 'Water Condensation Rate Cathode', q, [0., i_p.channel_length],
+                           x_node, False)
+        self.plot_cell_var('cathode.humidity', 'Relative Humidity', 'Channel Location [m]',
+                           'linear', 'k', 'Relative Humidity Cathode', q, [0., i_p.channel_length],
+                           x_node, False)
+        for l, item in enumerate(self.stack.t):
+            if (l > 0 and self.stack.cool_ch_bc is False) or self.stack.cool_ch_bc is True:
+                plt.plot(self.stack.t[l], label=l, marker='.')
+        plt.legend()
+        plt.grid()
+        plt.ylabel(r'Coolant Temperature [$K$]')
+        plt.xlabel('Channel Location [$m$]')
+        #plt.xlim(0,self.stack.cell_list[0].cathode.channel.length)
+        plt.autoscale(tight=True, axis='both', enable=True)
+        plt.savefig(os.path.join(os.path.dirname(__file__), 'Plots' + q + '/' + 'Coolant' + '.jpg'))
+        plt.close()
+
+
+
+
+
+
+
+
+
+
+
+
+Simulation_runs =  Simulation(i_p.simulation)
+Simulation_runs.update()

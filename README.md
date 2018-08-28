@@ -2,4 +2,4 @@
 
 Modeling HT-PEMFC-Stacks based on Python
 
-The main file is HT-PEMFC-Stack, while matrix_database and saturation_pressure_vapour are imports.
+The runfile is simulation.py, inputs can be changed in input_parameter.py

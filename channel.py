@@ -1,19 +1,21 @@
+from global_parameter import dict_case
+
+
 class Channel:
 
-    def __init__(self, length, nodes, k, p_in, t_in, phi, flow_dir, width, heigth):
-        self.length = length
-        self.nodes = nodes
-        self.elements = nodes - 1
-        self.d_x = length / self.elements
-        self.k = k
-        self.p_in = p_in
-        self.t_in = t_in
-        self.phi = phi
-        self.flow_dir = flow_dir
-        self.width = width
-        self.heigth = heigth
+    def __init__(self, dict):
+        self.length = dict['length']
+        self.d_x = self.length / dict_case['elements']
+        self.p_in = dict['p_in']
+        self.t_in = dict['t_in']
+        self.phi = dict['hum_in']
+        self.flow_dir = dict['flow_dir']
+        self.width = dict['width']
+        self.heigth = dict['heigth']
         self.cross_area = self.width * self.heigth
         self.extent = 2 * (self.width + self.heigth)
+        self.plane = self.width * self.length
+        self.plane_dx = self.width * self.d_x
 
     def set_p_in(self, p_in):
         self.p_in = p_in
