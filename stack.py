@@ -6,7 +6,6 @@ import input_parameter as i_p
 import global_functions as g_func
 import global_parameter as g_par
 import cell as cl
-import Temperature_Matrix_Variants as t_mat
 
 
 class Stack:
@@ -227,10 +226,10 @@ class Stack:
         for i, item in enumerate(self.cell_list):
             r_alpha_cat = np.hstack((r_alpha_cat, self.cell_list[i].cathode.r_ht_coef_a))
             r_alpha_ano = np.hstack((r_alpha_ano, self.cell_list[i].anode.r_ht_coef_a))
-        self.r_alpha_cat = r_alpha_cat
-        #self.r_alpha_cat = np.full(self.cell_numb, 1.e50)
-        self.r_alpha_ano = r_alpha_ano
-        #self.r_alpha_ano = np.full(self.cell_numb, 1.e50)
+        #self.r_alpha_cat = r_alpha_cat
+        self.r_alpha_cat = np.full(self.cell_numb, 1.e50)
+        #self.r_alpha_ano = r_alpha_ano
+        self.r_alpha_ano = np.full(self.cell_numb, 1.e50)
 
     def stack_v(self):
         var = []
@@ -598,7 +597,7 @@ class Stack:
 
     def calc_layer_t(self):
         self.I = g_func.calc_nodes(self.i) * self.cell_list[0].cathode.channel.plane_dx
-        temp_mat = t_mat.t_mat_no_bc_col(g_par.dict_case['nodes'],
+        temp_mat = m_d.t_mat_no_bc_col(g_par.dict_case['nodes'],
                                          self.cell_numb,
                                          self.r_g,
                                          self.r_m,

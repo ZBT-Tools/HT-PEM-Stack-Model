@@ -236,14 +236,22 @@ class Simulation:
         plt.savefig(os.path.join(os.path.dirname(__file__), 'Plots' + q + '/' + 'Coolant' + '.jpg'))
         plt.close()
 
-
-
-
-
-
-
-
-
+        x_vecz = np.array([0., i_p.plate_thick, i_p.gde_thick, i_p.mem_thick, i_p.gde_thick])
+        x_vec_e = np.array([i_p.plate_thick, i_p.plate_thick, i_p.gde_thick, i_p.mem_thick, i_p.gde_thick])
+        x = []
+        for l, item in enumerate(self.stack.cell_list):
+            if q is 0:
+                    x.append(x_vecz)
+            else:
+                    x.append(x_vec_e)
+        x = np.cumsum(np.block(x))
+        for w in range(gpar.dict_case['nodes']):
+            t_vec = []
+            for l in self.stack.cell_list:
+                t_vec.append(np.array([l.t3[w], l.t2[w], l.t1[w], l.t4[w], l.t5[w]]))
+            plt.plot(x, np.block(t_vec), marker='o')
+            plt.savefig(os.path.join(os.path.dirname(__file__), 'Plots' + q + '/' + 'Temperature' + str(w) + '.jpg'))
+            plt.close()
 
 
 
