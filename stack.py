@@ -192,8 +192,8 @@ class Stack:
     def update_temperatur_coupling(self):
         self.stack_alpha()
         self.calc_coolant_channel_t()
-        self.calc_gas_channel_t()
         self.calc_layer_t()
+        #self.calc_gas_channel_t()
 
     def set_i(self, i):
         self.i = i
@@ -548,28 +548,25 @@ class Stack:
         self.correct_i_new_no_cp()
         #print(self.i)
 
-    def calc_gas_channel_t(self):
-        for q, item in enumerate(self.cell_list):
-            var1 = 0.5 / (self.r_alpha_cat[q] * self.cell_list[q].cathode.h_flow)
-            var2 = 0.5 / (self.r_alpha_ano[q] * self.cell_list[q].anode.h_flow)
-
-            for w in range(1, g_par.dict_case['nodes']):
-                self.cell_list[q].cathode.t_gas[w] = (var1 * (self.cell_list[q].t2[w]
-                                                              + self.cell_list[q].t2[w-1]
-                                                              - self.cell_list[q].cathode.t_gas[w-1])
-                                                      + self.cell_list[q].cathode.t_gas[w-1])\
-                                                     / (1. + var1)
-            for w in range(g_par.dict_case['nodes']-2, -1, -1):
-                self.cell_list[q].anode.t_gas[w] = (var2
-                                                    * (self.cell_list[q].t5[w]
-                                                      + self.cell_list[q].t5[w+1]
-                                                       - self.cell_list[q].anode.t_gas[w+1])
-                                                   + self.cell_list[q].anode.t_gas[w+1]) / (1. + var2)
-           # print(self.cell_list[q].t5)
-            #print(self.cell_list[q].anode.t_gas)
-
+    #def calc_gas_channel_t(self):
+     #   for q, item in enumerate(self.cell_list):
+            #print(self.cell_list[0].anode.m_reac_flow_delta)
+            #print(self.cell_list[0].anode.m_flow)
+            #for w in range(1, g_par.dict_case['nodes']):
+             #   self.cell_list[q].cathode.t_gas[w] = (self.cell_list[q].cathode.cp_mix[w - 1] * self.cell_list[q].cathode.m_flow[w - 1] * self.cell_list[q].cathode.t_gas[w - 1] \
+              #                                       + (self.cell_list[q].t2e[w-1] - self.cell_list[q].cathode.t_gas[w - 1] * .5) / self.r_alpha_cat[q])\
+               #                                      / (self.cell_list[q].cathode.cp_mix[w] * self.cell_list[q].cathode.m_flow[q] + .5 / self.r_alpha_cat[q])
+                # - self.cell_list[q].anode.cpe[w-1] * self.cell_list[q].anode.m_reac_flow_delta[w-1] * .5 * (self.cell_list[q].anode.t_gas[w] + self.cell_list[q].anode.t_gas[w - 1])\
+            #print(self.cell_list[q].cathode.t_gas)
+           # for w in range(g_par.dict_case['nodes']-2, -1, -1):
+            #    self.cell_list[q].anode.t_gas[w] = (self.cell_list[q].anode.cp_mix[w + 1] * self.cell_list[q].anode.m_flow[w + 1] * self.cell_list[q].anode.t_gas[w + 1] \
+             #                                      + self.cell_list[q].anode.cpe[w] * self.cell_list[q].anode.m_reac_flow_delta[w] * self.cell_list[q].anode.t_gas[w + 1] * .5
+              #                                      + (self.cell_list[q].t5e[w] - self.cell_list[q].anode.t_gas[w+1] * .5) / self.r_alpha_ano[q])\
+               #                                    / (self.cell_list[q].anode.cp_mix[w] * self.cell_list[q].anode.m_flow[w]
+                #                                      - self.cell_list[q].anode.cpe[w] * self.cell_list[q].anode.m_reac_flow_delta[w] * 0.5
+                 #                                     + 0.5 / self.r_alpha_ano[q])
+           # print(self.cell_list[q].anode.t_gas)
     def calc_coolant_channel_t(self):
-       #print(self.r_alpha_col, self.g_cool, self.t,self.cell_list[0].t3)
         for q, item in enumerate(self.cell_list):
             var1 = 0.5/(self.r_alpha_col[q] * self.g_cool)
             for w in range(1, g_par.dict_case['nodes']):
@@ -580,9 +577,9 @@ class Stack:
         if self.cool_ch_bc is True:
             var1 = 0.5 / (self.r_alpha_col[self.cell_numb-1] * self.g_cool)
             for w in range(1,g_par.dict_case['nodes']):
-                self.t[self.cell_numb,w] =(var1 * (self.cell_list[self.cell_numb-1].t5[w]
+                self.t[self.cell_numb, w] = (var1 * (self.cell_list[self.cell_numb-1].t5[w]
                                            + self.cell_list[self.cell_numb-1].t5[w-1]
-                                           - self.t[self.cell_numb,w-1]) + self.t[self.cell_numb,w-1])\
+                                           - self.t[self.cell_numb, w-1]) + self.t[self.cell_numb, w-1])\
                                   / (1.+ var1)
 
     def calc_coolant_channel_t_matrix(self):
@@ -620,7 +617,6 @@ class Stack:
             for w in range(g_par.dict_case['nodes']):
                 if w is 0 or w is g_par.dict_case['nodes']-1: # bc nodes
                     if q is 0:
-                        #print(q,w)
                         r_side.append(g_par.dict_uni['h_vap'] * self.cell_list[q].anode.gamma[w]*0.5
                                       + .5 /self.r_alpha_ano[q] * self.cell_list[q].anode.t_gas[w]
                                       + .5 /self.r_alpha_gp[q] * g_par.dict_case['tu']
@@ -755,4 +751,6 @@ class Stack:
                 self.cell_list[q].t2[w] = t_vec[counter + 3]
                 self.cell_list[q].t3[w] = t_vec[counter + 4]
                 counter = counter + 5
+            self.cell_list[q].t5e = g_func.calc_elements(self.cell_list[q].t5)
+            self.cell_list[q].t2e = g_func.calc_elements(self.cell_list[q].t2)
 

@@ -112,6 +112,11 @@ def calc_nodes_1d (ele_vec):
     ele_vec = (array(a) + array(ele_vec)) *.5
     return hstack((ele_vec[0],ele_vec,ele_vec[-1]))
 
+
+def calc_dif(vec):
+    return vec[:-1]-vec[1:]
+
+
 def output(y_values, y_label, x_label, y_scale, color, title, q, xlim_low, xlim_up, val_label):
     try:
         os.makedirs(os.path.join(os.path.dirname(__file__), 'Plots'+q+'/'))

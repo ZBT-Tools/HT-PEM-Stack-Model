@@ -24,7 +24,6 @@ class Halfcell:
         self.val = dict['val']
         self.type = dict['type']  # Anode is False Cathode is True
         self.gas_con_ref = dict['gas_con_ref']
-        self.act_energy = dict['act_energy']
         self.sym = dict['sym_fac']
         self.thickness_gde = dict['thick_gde']
         self.thickness_plate = dict['plate_thick']
@@ -75,7 +74,6 @@ class Halfcell:
         self.gas_con_ele = global_functions.calc_elements(self.gas_con[0])
         self.mixture = [None] * g_par.dict_case['nodes']
         self.t_gas = np.full(g_par.dict_case['nodes'], self.channel.t_in)
-        self.t_gas_test = np.full(g_par.dict_case['nodes'], self.channel.t_in)
         self.rho = np.full(g_par.dict_case['nodes'], 1.)
         self.visc_mix = np.full(g_par.dict_case['nodes'], 1.e-5)
         self.nu = np.full(g_par.dict_case['nodes'], 0.)
@@ -136,7 +134,6 @@ class Halfcell:
         self.calc_re()
         self.calc_nu()
         self.calc_heat_transfer_coef()
-        self.calc_heat_flow()
         self.calc_pressure_zimmer_lam()
         if self.pem_type is False:  # NT
             self.calc_free_water()
@@ -291,6 +288,7 @@ class Halfcell:
             self.cp[1] = g_fit.water.calc_cp(self.t_gas)
             self.lam[1] = g_fit.water.calc_lambda(self.t_gas, self.p)
             self.visc[1] = g_fit.water.calc_visc(self.t_gas)
+        self.cpe = global_functions.calc_elements(self.cp[0])
 
     def calc_gas_mix_properties(self):
         temp1, temp2 = [], []
@@ -299,6 +297,7 @@ class Halfcell:
             temp2.append(self.mf[q] * self.cp[q])
         self.r_mix = sum(temp1)
         self.cp_mix = sum(temp2)
+        self.cp_mixe = global_functions.calc_elements(self.cp_mix)
         self.visc_mix = global_functions.calc_visc_mix(self.visc, self.mol_f, self.m_m)
         self.lambda_mix = global_functions.calc_lambda_mix(self.lam, self.mol_f, self.visc, self.m_m)
         self.rho = global_functions.calc_rho(self.p, self.r_mix, self.t_gas)
@@ -310,11 +309,8 @@ class Halfcell:
 
     def calc_mass_flow(self):
         self.m_flow = self.u * self.rho * self.channel.cross_area
-
-    def calc_heat_flow(self):
-        self.h_flow = self.cp_mix * self.m_flow #/ self.thickness_plate
-        self.h_flow = np.average(self.h_flow)
-
+        self.m_reac_flow = self.gas_flow[0] * self.m_m[0] * 1.e-3
+        self.m_reac_flow_delta = global_functions.calc_dif(self.m_reac_flow)
     def calc_re(self):
         self.re = global_functions.calc_re(self.rho, self.u, self.dh, self.visc_mix)
 
@@ -347,9 +343,9 @@ class Halfcell:
 
     def calc_cond_rates(self):  # condensation rates of the vapour in the channel
         if self.type is True:
-            self.gamma = np.gradient(self.w, self.channel.d_x)
+            self.gamma = global_functions.calc_nodes_1d(np.ediff1d(self.w))
         else:
-            self.gamma = -np.gradient(self.w, self.channel.d_x)
+            self.gamma = -global_functions.calc_nodes_1d(np.ediff1d(self.w))
 
     def calc_rel_humidity(self):  # relative humidity in the channel
         self.humidity = self.gas_con[1] * g_par.dict_uni['r'] * self.t_gas \

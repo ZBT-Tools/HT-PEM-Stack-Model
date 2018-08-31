@@ -116,14 +116,16 @@ class Simulation:
         self.q_x_ano_old = copy.deepcopy(self.stack.q_x_ano)
         self.i_last = copy.deepcopy(self.stack.i[0, -1])
 
-    def plot_cell_var(self, y_var, y_label, x_label, y_scale, color, title, q, xlim, x_var, y_lim):
+    def plot_cell_var(self, y_var, y_label, x_label,
+                      y_scale, color, title, q, xlim, x_var, y_lim):
         try:
             os.makedirs(os.path.join(os.path.dirname(__file__), 'Plots' + q + '/'))
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
         for l, item in enumerate(self.stack.cell_list):
-            plt.plot(x_var, eval('self.stack.cell_list'+'['+str(l)+']'+'.' + y_var), color=color, marker='.')
+            plt.plot(x_var, eval('self.stack.cell_list'+
+                                 '['+str(l)+']'+'.' + y_var), color=color, marker='.')
 
         plt.xlabel(x_label)
         plt.ylabel(y_label)
@@ -134,12 +136,13 @@ class Simulation:
             plt.ylim(y_lim[0], y_lim[1])
         plt.tight_layout()
         plt.grid()
-        plt.savefig(os.path.join(os.path.dirname(__file__), 'Plots' + q + '/' + title + '.jpg'))
+        plt.savefig(os.path.join(os.path.dirname(__file__),
+                                 'Plots' + q + '/' + title + '.jpg'))
         plt.close()
 
 
     def output(self,q):
-        x_node = np.linspace(0., i_p.channel_length,gpar.dict_case['nodes'])
+        x_node = np.linspace(0., i_p.channel_length, gpar.dict_case['nodes'])
         x_ele = gfunc.calc_elements(x_node)
         gfunc.output([self.mdf_criteria_process, self.i_criteria_process, self.t_criteria_process],
                      'ERR', 'Iteration', 'log', ['k', 'r', 'b'], 'Convergence',
@@ -163,8 +166,9 @@ class Simulation:
                      'Stoichiometry', 'Cell Number', 'linear', ['k', 'r'],
                      'Stoichimetry Distribution', q, 0., self.stack.cell_numb-1,
                      ['Cathode', 'Anode'])
+
         self.plot_cell_var('v', 'Voltage [V]', 'Channel Location [m]', 'linear',
-                           'k', 'Cell Voltage', q , [0., i_p.channel_length], x_ele, [0., 1.28])
+                           'k', 'Cell Voltage', q, [0., i_p.channel_length], x_ele, [0., 1.28])
         self.plot_cell_var('dv', 'dV/dI', 'Channel Location [m]', 'linear', 'k',
                            'dvdI', q, [0., i_p.channel_length], x_ele, [-1., 1.])
         self.plot_cell_var('t1', 'Cathode Temperature [K]', 'Channel Location [m]',
@@ -209,9 +213,6 @@ class Simulation:
         self.plot_cell_var('cathode.gas_con[1]', 'Water  Molar Concentration [mol/m³]', 'Channel Location [m]',
                            'linear', 'k', 'Water Molar Concentration Cathode', q, [0., i_p.channel_length],
                            x_node, False)
-        #self.plot_cell_var('cathode.gas_con[2]', 'Nitrogen Molar Concentration [mol/m³]', 'Channel Location [m]',
-         #                  'linear', 'k', 'Nitrogen Molar Concentration', q, [0., i_p.channel_length],
-          #                 x_node)
         self.plot_cell_var('anode.gas_con[1]', 'Water  Molar Concentration [mol/m³]', 'Channel Location [m]',
                            'linear', 'k', 'Water Molar Concentration Anode', q, [0., i_p.channel_length],
                            x_node, False)
@@ -224,20 +225,24 @@ class Simulation:
         self.plot_cell_var('cathode.humidity', 'Relative Humidity', 'Channel Location [m]',
                            'linear', 'k', 'Relative Humidity Cathode', q, [0., i_p.channel_length],
                            x_node, False)
+
         for l, item in enumerate(self.stack.t):
             if (l > 0 and self.stack.cool_ch_bc is False) or self.stack.cool_ch_bc is True:
-                plt.plot(self.stack.t[l], label=l, marker='.')
+                plt.plot(x_node, self.stack.t[l], label=l, marker='.')
         plt.legend()
         plt.grid()
-        plt.ylabel(r'Coolant Temperature [$K$]')
-        plt.xlabel('Channel Location [$m$]')
-        #plt.xlim(0,self.stack.cell_list[0].cathode.channel.length)
+        plt.ylabel(r'Coolant Temperature [K]')
+        plt.xlabel('Channel Location [m]')
         plt.autoscale(tight=True, axis='both', enable=True)
-        plt.savefig(os.path.join(os.path.dirname(__file__), 'Plots' + q + '/' + 'Coolant' + '.jpg'))
+        plt.xlim(0, self.stack.cell_list[0].cathode.channel.length)
+        plt.savefig(os.path.join(os.path.dirname(__file__),
+                                 'Plots' + q + '/' + 'Coolant' + '.jpg'))
         plt.close()
 
-        x_vecz = np.array([0., i_p.plate_thick, i_p.gde_thick, i_p.mem_thick, i_p.gde_thick])
-        x_vec_e = np.array([i_p.plate_thick, i_p.plate_thick, i_p.gde_thick, i_p.mem_thick, i_p.gde_thick])
+        x_vecz = np.array([0., i_p.plate_thick, i_p.gde_thick,
+                           i_p.mem_thick, i_p.gde_thick])
+        x_vec_e = np.array([i_p.plate_thick, i_p.plate_thick,
+                            i_p.gde_thick, i_p.mem_thick, i_p.gde_thick])
         x = []
         for l, item in enumerate(self.stack.cell_list):
             if q is 0:
@@ -248,12 +253,20 @@ class Simulation:
         for w in range(gpar.dict_case['nodes']):
             t_vec = []
             for l in self.stack.cell_list:
-                t_vec.append(np.array([l.t3[w], l.t2[w], l.t1[w], l.t4[w], l.t5[w]]))
+                t_vec.append(np.array([l.t3[w], l.t2[w],
+                                       l.t1[w], l.t4[w], l.t5[w]]))
             plt.plot(x, np.block(t_vec), marker='o')
-            plt.savefig(os.path.join(os.path.dirname(__file__), 'Plots' + q + '/' + 'Temperature' + str(w) + '.jpg'))
+            plt.xlim(0, x[-1])
+            plt.xlabel('Stack Location [m]')
+            plt.ylabel('Temperature [K]')
+            plt.autoscale(tight=True, axis='both', enable=True)
+            plt.tight_layout()
+            plt.savefig(os.path.join(os.path.dirname(__file__),
+                                     'Plots' + q + '/' + 'Z-Cut-Temperature_'
+                                     + str(w) + '.jpg'))
             plt.close()
 
 
 
-Simulation_runs =  Simulation(i_p.simulation)
+Simulation_runs = Simulation(i_p.simulation)
 Simulation_runs.update()
