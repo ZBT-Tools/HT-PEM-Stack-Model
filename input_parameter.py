@@ -163,7 +163,7 @@ h_vap = 45400.
 # tolerance
 k_tol = 1.e-12
 # max number of iterations
-max_it = 4000
+max_it = 5000
 #############################Dicts##############################################
 ################################################################################
 channel_cat = {'length': channel_length, 'p_in': p_cat_in, 't_in': t_cat_in,

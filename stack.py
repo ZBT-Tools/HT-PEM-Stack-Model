@@ -158,10 +158,10 @@ class Stack:
         for j in range(self.cell_numb):
             self.cell_list[j].set_i(self.i[j, :])
             self.cell_list[j].update()
-        self.update_temperatur_coupling()
+        #self.update_temperatur_coupling()
         self.update_flows()
         self.i_old = copy.deepcopy(self.i)
-        self.update_electrical_coupling()
+        #self.update_electrical_coupling()
 
     def update_flows(self):
         self.sum_header_flows()
@@ -226,7 +226,7 @@ class Stack:
         for i, item in enumerate(self.cell_list):
             r_alpha_cat = np.hstack((r_alpha_cat, self.cell_list[i].cathode.r_ht_coef_a))
             r_alpha_ano = np.hstack((r_alpha_ano, self.cell_list[i].anode.r_ht_coef_a))
-        #self.r_alpha_cat = r_alpha_cat
+        self.r_alpha_cat = r_alpha_cat
         self.r_alpha_cat = np.full(self.cell_numb, 1.e50)
         #self.r_alpha_ano = r_alpha_ano
         self.r_alpha_ano = np.full(self.cell_numb, 1.e50)
@@ -548,15 +548,25 @@ class Stack:
         self.correct_i_new_no_cp()
         #print(self.i)
 
-    #def calc_gas_channel_t(self):
-     #   for q, item in enumerate(self.cell_list):
+    def calc_gas_channel_t(self):
+        for q, item in enumerate(self.cell_list):
             #print(self.cell_list[0].anode.m_reac_flow_delta)
             #print(self.cell_list[0].anode.m_flow)
-            #for w in range(1, g_par.dict_case['nodes']):
-             #   self.cell_list[q].cathode.t_gas[w] = (self.cell_list[q].cathode.cp_mix[w - 1] * self.cell_list[q].cathode.m_flow[w - 1] * self.cell_list[q].cathode.t_gas[w - 1] \
-              #                                       + (self.cell_list[q].t2e[w-1] - self.cell_list[q].cathode.t_gas[w - 1] * .5) / self.r_alpha_cat[q])\
-               #                                      / (self.cell_list[q].cathode.cp_mix[w] * self.cell_list[q].cathode.m_flow[q] + .5 / self.r_alpha_cat[q])
-                # - self.cell_list[q].anode.cpe[w-1] * self.cell_list[q].anode.m_reac_flow_delta[w-1] * .5 * (self.cell_list[q].anode.t_gas[w] + self.cell_list[q].anode.t_gas[w - 1])\
+            print(self.cell_list[q].cathode.t_gas)
+            for w in range(1, g_par.dict_case['nodes']):
+                #self.cell_list[q].cathode.t_gas[w] = (self.cell_list[q].cathode.cp_mix[w - 1] * self.cell_list[q].cathode.m_flow[w - 1] * self.cell_list[q].cathode.t_gas[w - 1] \
+                 #                                    + (self.cell_list[q].t2e[w-1] - self.cell_list[q].cathode.t_gas[w - 1] * .5) / self.r_alpha_cat[q] +)\
+                  #                                   / (self.cell_list[q].cathode.cp_mix[w] * self.cell_list[q].cathode.m_flow[w] + .5 / self.r_alpha_cat[q])
+                self.cell_list[q].cathode.t_gas[w] = (self.cell_list[q].cathode.t_gas[w-1] * self.cell_list[q].cathode.cp_mix[w-1] * self.cell_list[q].cathode.m_flow[w-1]
+                                                      + .5 * self.cell_list[q].cathode.m_vap_water_flow_delta[w-1] * self.cell_list[q].cathode.t_gas[w-1] * self.cell_list[q].cathode.cp[1, w-1]
+                                                      - .5 * self.cell_list[q].cathode.m_reac_flow_delta[w-1] * self.cell_list[q].cathode.t_gas[w-1] * self.cell_list[q].cathode.cp[0, w-1]
+                                                      + 1./self.r_alpha_cat[q] * (self.cell_list[q].t2e[w-1] - self.cell_list[q].cathode.t_gas[w-1] * .5))\
+                                                     / (self.cell_list[q].cathode.cp_mix[w] * self.cell_list[q].cathode.m_flow[w]
+                                                        - .5 * self.cell_list[q].cathode.m_vap_water_flow_delta[w-1] * self.cell_list[q].cathode.cp[1, w]
+                                                        + 0.5 * self.cell_list[q].cathode.m_reac_flow_delta[w-1] * self.cell_list[q].cathode.cp[0, w]
+                                                        + .5 / self.r_alpha_cat[q])
+
+
             #print(self.cell_list[q].cathode.t_gas)
            # for w in range(g_par.dict_case['nodes']-2, -1, -1):
             #    self.cell_list[q].anode.t_gas[w] = (self.cell_list[q].anode.cp_mix[w + 1] * self.cell_list[q].anode.m_flow[w + 1] * self.cell_list[q].anode.t_gas[w + 1] \

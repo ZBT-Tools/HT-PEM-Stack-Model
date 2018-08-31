@@ -189,8 +189,8 @@ class Halfcell:
                 b = self.channel.plane_dx \
                    * np.matmul(self.node_forward, self.j)
                 # crossover
-            self.gas_flow[1,0] = q_0_water
-            self.gas_flow[1,1:] = a + b + q_0_water
+            self.gas_flow[1, 0] = q_0_water
+            self.gas_flow[1, 1:] = a + b + q_0_water
             self.gas_flow[2] = np.full(g_par.dict_case['nodes'],
                                        self.gas_flow[0][0] * self.n2o2ratio)
         else:
@@ -310,7 +310,9 @@ class Halfcell:
     def calc_mass_flow(self):
         self.m_flow = self.u * self.rho * self.channel.cross_area
         self.m_reac_flow = self.gas_flow[0] * self.m_m[0] * 1.e-3
-        self.m_reac_flow_delta = global_functions.calc_dif(self.m_reac_flow)
+        self.m_vap_water_flow = (self.gas_flow[1]-self.w) * self.m_m[1] * 1.e-3
+        self.m_reac_flow_delta = abs(global_functions.calc_dif(self.m_reac_flow))
+        self.m_vap_water_flow_delta = abs(global_functions.calc_dif(self.m_vap_water_flow))
     def calc_re(self):
         self.re = global_functions.calc_re(self.rho, self.u, self.dh, self.visc_mix)
 

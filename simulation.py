@@ -7,7 +7,7 @@ import global_functions as gfunc
 import cProfile
 import matplotlib.pyplot as plt
 import os, errno
-np.set_printoptions(threshold=np.nan, linewidth=1000, precision=7, suppress=True)
+np.set_printoptions(threshold=np.nan, linewidth=1000, precision=9, suppress=True)
 
 def do_cprofile(func):
     def profiled_func(*args, **kwargs):
@@ -224,6 +224,27 @@ class Simulation:
                            x_node, False)
         self.plot_cell_var('cathode.humidity', 'Relative Humidity', 'Channel Location [m]',
                            'linear', 'k', 'Relative Humidity Cathode', q, [0., i_p.channel_length],
+                           x_node, False)
+        self.plot_cell_var('cathode.m_flow', 'Air Massflow [kg/s]', 'Channel Location [m]',
+                           'linear', 'k', 'Air_massflow', q, [0., i_p.channel_length],
+                           x_node, False)
+        self.plot_cell_var('cathode.m_reac_flow', 'Oxygen Massflow [kg/s]', 'Channel Location [m]',
+                           'linear', 'k', 'Oxygen_massflow', q, [0., i_p.channel_length],
+                           x_node, False)
+        self.plot_cell_var('cathode.m_vap_water_flow', 'Vapour Massflow [kg/s]', 'Channel Location [m]',
+                           'linear', 'k', 'Vapour Massflow', q, [0., i_p.channel_length],
+                           x_node, False)
+        self.plot_cell_var('anode.m_flow', 'Hydrogen Massflow [kg/s]', 'Channel Location [m]',
+                           'linear', 'k', 'Hydrogen_massflow', q, [0., i_p.channel_length],
+                           x_node, False)
+        self.plot_cell_var('cathode.cp_mix', 'Cathode Heat Capacity [J/(kgK)]', 'Channel Location [m]',
+                           'linear', 'k', 'Cathode Heat Capacity', q, [0., i_p.channel_length],
+                           x_node, False)
+        self.plot_cell_var('cathode.p', 'Cathode Channel Pressure [Pa]', 'Channel Location [m]',
+                           'linear', 'k', 'Cathode Channel Pressure', q, [0., i_p.channel_length],
+                           x_node, False)
+        self.plot_cell_var('anode.p', 'Anode Channel Pressure [Pa]', 'Channel Location [m]',
+                           'linear', 'k', 'Anode Channel Pressure', q, [0., i_p.channel_length],
                            x_node, False)
 
         for l, item in enumerate(self.stack.t):
