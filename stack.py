@@ -34,11 +34,6 @@ class Stack:
         self.init_param()
 
     def init_func(self):
-        #if self.stoi_ano <= 1.1 or self.stoi_cat <= 1.1:
-         #   g_par.dict_case['tar_cd'] = g_par.dict_case['tar_cd'] * min(self.stoi_cat, self.stoi_ano)
-          #  self.stoi_cat = self.stoi_cat * 1.2 / min(self.stoi_cat, self.stoi_ano)
-           # self.stoi_ano = self.stoi_ano * 1.2 / min(self.stoi_cat, self.stoi_ano)
-            #print('tar_cd:', g_par.dict_case['tar_cd'], self.stoi_ano)
         self.g_cool = self.m_col * self.cp_col
         if self.cool_ch_bc is False:
             self.t = np.full((self.cell_numb, g_par.dict_case['nodes']),
@@ -81,14 +76,10 @@ class Stack:
                       np.full(self.cell_numb, self.stoi_ano))
 
     def init_param(self):
-        #n_col = int(self.cell_list[0].cathode.channel.width
-         #           / self.cell_list[0].cathode.thickness_plate)
-        n_col = 1
         self.d_col = 4. * (self.cell_list[0].cathode.channel.width * self.h_col)\
                      / (2. * (self.h_col + self.cell_list[0].cathode.channel.width))
         self.r_alpha_col = 1./(self.a_cool * np.pi * self.cell_list[0].cathode.channel.d_x * self.d_col)
-        self.r_alpha_col = 1. / (n_col * 1. / self.r_alpha_col)
-        #print(self.r_alpha_col)
+        self.r_alpha_col = 1. / (1. / self.r_alpha_col)
 
     def init_arrays(self):
         x = np.full(g_par.dict_case['nodes']-1, g_par.dict_case['tar_cd'])
