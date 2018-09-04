@@ -21,7 +21,7 @@ class Stack:
         self.stoi_ano = dict['stoi_ano']
         self.alpha_f_conv = g_par.dict_case['conv_coef']
         self.cool_ch_bc = dict['cool_ch_bc']
-        self.d_col = dict['d_col']
+        self.h_col = dict['h_col']
         self.m_col = dict['m_flow_col']
         self.cp_col = dict['cp_col']
         self.alpha_cool = dict['alpha_cool']
@@ -81,9 +81,11 @@ class Stack:
                       np.full(self.cell_numb, self.stoi_ano))
 
     def init_param(self):
-        n_col = int(self.cell_list[0].cathode.channel.width
-                    / self.cell_list[0].cathode.thickness_plate)
-        self.d_col = self.cell_list[0].cathode.thickness_plate / 2.
+        #n_col = int(self.cell_list[0].cathode.channel.width
+         #           / self.cell_list[0].cathode.thickness_plate)
+        n_col = 1
+        self.d_col = 4. * (self.cell_list[0].cathode.channel.width * self.h_col)\
+                     / (2. * (self.h_col + self.cell_list[0].cathode.channel.width))
         self.r_alpha_col = 1./(self.a_cool * np.pi * self.cell_list[0].cathode.channel.d_x * self.d_col)
         self.r_alpha_col = 1. / (n_col * 1. / self.r_alpha_col)
         #print(self.r_alpha_col)
@@ -158,10 +160,10 @@ class Stack:
         for j in range(self.cell_numb):
             self.cell_list[j].set_i(self.i[j, :])
             self.cell_list[j].update()
-        #self.update_temperatur_coupling()
+        self.update_temperatur_coupling()
         self.update_flows()
         self.i_old = copy.deepcopy(self.i)
-        #self.update_electrical_coupling()
+        self.update_electrical_coupling()
 
     def update_flows(self):
         self.sum_header_flows()
@@ -192,7 +194,7 @@ class Stack:
     def update_temperatur_coupling(self):
         self.stack_alpha()
         self.calc_coolant_channel_t()
-        self.calc_layer_t()
+        self.calc_layer_t_orginal()
         #self.calc_gas_channel_t()
 
     def set_i(self, i):
@@ -226,7 +228,7 @@ class Stack:
         for i, item in enumerate(self.cell_list):
             r_alpha_cat = np.hstack((r_alpha_cat, self.cell_list[i].cathode.r_ht_coef_a))
             r_alpha_ano = np.hstack((r_alpha_ano, self.cell_list[i].anode.r_ht_coef_a))
-        self.r_alpha_cat = r_alpha_cat
+        #self.r_alpha_cat = r_alpha_cat
         self.r_alpha_cat = np.full(self.cell_numb, 1.e50)
         #self.r_alpha_ano = r_alpha_ano
         self.r_alpha_ano = np.full(self.cell_numb, 1.e50)
@@ -557,14 +559,20 @@ class Stack:
                 #self.cell_list[q].cathode.t_gas[w] = (self.cell_list[q].cathode.cp_mix[w - 1] * self.cell_list[q].cathode.m_flow[w - 1] * self.cell_list[q].cathode.t_gas[w - 1] \
                  #                                    + (self.cell_list[q].t2e[w-1] - self.cell_list[q].cathode.t_gas[w - 1] * .5) / self.r_alpha_cat[q] +)\
                   #                                   / (self.cell_list[q].cathode.cp_mix[w] * self.cell_list[q].cathode.m_flow[w] + .5 / self.r_alpha_cat[q])
-                self.cell_list[q].cathode.t_gas[w] = (self.cell_list[q].cathode.t_gas[w-1] * self.cell_list[q].cathode.cp_mix[w-1] * self.cell_list[q].cathode.m_flow[w-1]
-                                                      + .5 * self.cell_list[q].cathode.m_vap_water_flow_delta[w-1] * self.cell_list[q].cathode.t_gas[w-1] * self.cell_list[q].cathode.cp[1, w-1]
-                                                      - .5 * self.cell_list[q].cathode.m_reac_flow_delta[w-1] * self.cell_list[q].cathode.t_gas[w-1] * self.cell_list[q].cathode.cp[0, w-1]
+                #self.cell_list[q].cathode.t_gas[w] = (self.cell_list[q].cathode.t_gas[w-1] * self.cell_list[q].cathode.cp_mix[w-1] * self.cell_list[q].cathode.m_flow[w-1]
+                 #                                     + .5 * self.cell_list[q].cathode.m_vap_water_flow_delta[w-1] * self.cell_list[q].cathode.t_gas[w-1] * self.cell_list[q].cathode.cp[1, w-1]
+                  #                                    - .5 * self.cell_list[q].cathode.m_reac_flow_delta[w-1] * self.cell_list[q].cathode.t_gas[w-1] * self.cell_list[q].cathode.cp[0, w-1]
+                   #                                   + 1./self.r_alpha_cat[q] * (self.cell_list[q].t2e[w-1] - self.cell_list[q].cathode.t_gas[w-1] * .5))\
+                    #                                 / (self.cell_list[q].cathode.cp_mix[w] * self.cell_list[q].cathode.m_flow[w]
+                     #                                   - .5 * self.cell_list[q].cathode.m_vap_water_flow_delta[w-1] * self.cell_list[q].cathode.cp[1, w]
+                      #                                  + 0.5 * self.cell_list[q].cathode.m_reac_flow_delta[w-1] * self.cell_list[q].cathode.cp[0, w]
+                       #                                 + .5 / self.r_alpha_cat[q])
+                self.cell_list[q].cathode.t_gas[w] = (self.cell_list[q].cathode.t_gas[w-1] * self.cell_list[q].cathode.cp_mix[w-1] * self.cell_list[q].cathode.m_flow[0]
                                                       + 1./self.r_alpha_cat[q] * (self.cell_list[q].t2e[w-1] - self.cell_list[q].cathode.t_gas[w-1] * .5))\
-                                                     / (self.cell_list[q].cathode.cp_mix[w] * self.cell_list[q].cathode.m_flow[w]
-                                                        - .5 * self.cell_list[q].cathode.m_vap_water_flow_delta[w-1] * self.cell_list[q].cathode.cp[1, w]
-                                                        + 0.5 * self.cell_list[q].cathode.m_reac_flow_delta[w-1] * self.cell_list[q].cathode.cp[0, w]
-                                                        + .5 / self.r_alpha_cat[q])
+                                                     / (self.cell_list[q].cathode.cp_mix[w] * self.cell_list[q].cathode.m_flow[0] + .5 / self.r_alpha_cat[q])
+                print(self.r_alpha_cat)
+                print(self.cell_list[q].cathode.m_flow)
+                print(self.cell_list[q].cathode.cp_mix)
 
 
             #print(self.cell_list[q].cathode.t_gas)
@@ -592,17 +600,165 @@ class Stack:
                                            - self.t[self.cell_numb, w-1]) + self.t[self.cell_numb, w-1])\
                                   / (1.+ var1)
 
-    def calc_coolant_channel_t_matrix(self):
-        for q, item in enumerate(self.cell_list):
-            var1 = 0.5 / (self.r_alpha_col[q] * self.g_cool)
-            self.cool_m2 = m_d.col_mat_m2(g_par.dict_case['nodes'],var1)
-            self.t[q,:] = g_func.calc_medium_temp(self.cell_list[q].t3,
-                                                  self.t[q,:],
-                                                  var1,
-                                                  self.cool_m1,
-                                                  self.cool_m2)
-
     def calc_layer_t(self):
+        self.I = g_func.calc_nodes(self.i) * self.cell_list[0].cathode.channel.plane_dx
+        temp_mat = m_d.t_mat_no_bc_col(g_par.dict_case['nodes'],
+                                         self.cell_numb,
+                                         self.r_g,
+                                         self.r_m,
+                                         self.r_p,
+                                         self.r_gp,
+                                         self.r_gm,
+                                         self.r_pp,
+                                         self.r_alpha_col,
+                                         np.full(self.cell_numb, 1.e50),#self.r_alpha_cat,
+                                         self.r_alpha_ano,
+                                         self.r_alpha_gm,
+                                         self.r_alpha_gp,
+                                         self.r_alpha_pp,
+                                         self.r_alpha_gegm,
+                                         self.r_alpha_gegp,
+                                         self.r_alpha_gepp,
+                                         self.cool_ch_bc)
+        r_side = []
+        for q, item in enumerate(self.cell_list):
+            for w in range(g_par.dict_case['nodes']):
+                if w is 0 or w is g_par.dict_case['nodes']-1: # bc nodes
+                    if q is 0:
+                        r_side.append(g_par.dict_uni['h_vap'] * self.cell_list[q].anode.gamma[w]*0.5
+                                      + .5 /self.r_alpha_ano[q] * self.cell_list[q].anode.t_gas[w]
+                                      + .5 /self.r_alpha_gp[q] * g_par.dict_case['tu']
+                                      + 1./self.r_alpha_gegp[q] * g_par.dict_case['tu'])
+                        r_side.append(self.cell_list[q].omega_a[w] * self.I[q, w] ** 2 * 0.25
+                                      +.5 /self.r_alpha_gm[q] * g_par.dict_case['tu']
+                                      + 1./self.r_alpha_gegm[q] * g_par.dict_case['tu'])
+                        r_side.append((g_par.dict_case['vtn'] - self.cell_list[q].v_th[w] - self.cell_list[q].omega_a[w]
+                                       * self.I[q,w] * 0.5) * self.I[q,w] * 0.5
+                                      +.5/self.r_alpha_gm[q] * g_par.dict_case['tu']
+                                      + 1./self.r_alpha_gegm[q] * g_par.dict_case['tu'])
+                        r_side.append(g_par.dict_uni['h_vap'] * self.cell_list[q].cathode.gamma[w]*0.5
+                                      + .5/self.r_alpha_gp[q]*g_par.dict_case['tu']
+                                      + 1./self.r_alpha_gegp[q] * g_par.dict_case['tu']) #+ 1./self.r_alpha_cat[q]* self.cell_list[q].cathode.t_gas[w] * 0.5
+                        if self.cool_ch_bc is True:
+                            r_side.append(-self.heat_pow * .5
+                                          - .5 / self.r_alpha_pp[q] * g_par.dict_case['tu']
+                                          - 1. / self.r_alpha_gepp[q] * g_par.dict_case['tu']
+                                          -.5 / self.r_alpha_col[q] * self.t[q, w] )
+                        else:
+                            r_side.append(-self.heat_pow * .5
+                                          - .5/self.r_alpha_pp[q] * g_par.dict_case['tu']
+                                          - 1./self.r_alpha_gepp[q] * g_par.dict_case['tu'])
+                    elif q is self.cell_numb-1:
+                        if self.cool_ch_bc is True:
+                            r_side.append(g_par.dict_uni['h_vap'] * self.cell_list[q].anode.gamma[w] * 0.5
+                                          + self.heat_pow * .5
+                                          + .5 / self.r_alpha_ano[q] * self.cell_list[q].anode.t_gas[w]
+                                          + .5 / self.r_alpha_gp[q] * g_par.dict_case['tu']
+                                          + 1. / self.r_alpha_gegp[q] * g_par.dict_case['tu']
+                                          + .5 / self.r_alpha_col[q] * self.t[q+1, w])
+                        else:
+                            r_side.append(g_par.dict_uni['h_vap'] * self.cell_list[q].anode.gamma[w] * 0.5
+                                          + self.heat_pow * .5
+                                          + .5 / self.r_alpha_ano[q] * self.cell_list[q].anode.t_gas[w]
+                                          + .5 / self.r_alpha_gp[q] * g_par.dict_case['tu']
+                                          + 1. / self.r_alpha_gegp[q] * g_par.dict_case['tu'])
+                        r_side.append(self.cell_list[q].omega_a[w] * self.I[q, w] ** 2 * 0.25
+                                      + .5/self.r_alpha_gm[q] * g_par.dict_case['tu']
+                                      + 1./self.r_alpha_gegm[q] * g_par.dict_case['tu'])
+                        r_side.append((g_par.dict_case['vtn'] - self.cell_list[q].v_th[w] - self.cell_list[q].omega_a[w] *
+                                       self.I[q, w] * 0.5) * self.I[q, w] * 0.5
+                                      + .5/self.r_alpha_gm[q] * g_par.dict_case['tu']
+                                      + 1./self.r_alpha_gegm[q] * g_par.dict_case['tu'])
+                        r_side.append(g_par.dict_uni['h_vap']*self.cell_list[q].cathode.gamma[w]*0.5
+                                      + .5/self.r_alpha_gp[q] * g_par.dict_case['tu']
+                                      + 1./self.r_alpha_gegp[q] * g_par.dict_case['tu'])#+ 1./self.r_alpha_cat[q] * self.cell_list[q].cathode.t_gas[w]*0.5
+                        r_side.append(-.5 / self.r_alpha_col[q] * self.t[q, w]
+                                      - .5/self.r_alpha_pp[q] * g_par.dict_case['tu']
+                                      - 1./self.r_alpha_gepp[q] * g_par.dict_case['tu'])
+                    else:
+                        r_side.append(g_par.dict_uni['h_vap']*self.cell_list[q].anode.gamma[w]*0.5
+                                      + .5/self.r_alpha_ano[q] * self.cell_list[q].anode.t_gas[w]
+                                      + .5/self.r_alpha_gp[q] * g_par.dict_case['tu']
+                                      + 1./self.r_alpha_gegp[q] * g_par.dict_case['tu'])
+                        r_side.append(self.cell_list[q].omega_a[w] * self.I[q, w] ** 2 * 0.25
+                                      + .5/self.r_alpha_gm[q] * g_par.dict_case['tu']
+                                      + 1./self.r_alpha_gegm[q] * g_par.dict_case['tu'])
+                        r_side.append((g_par.dict_case['vtn'] - self.cell_list[q].v_th[w] - self.cell_list[q].omega_a[w] *
+                                       self.I[q, w] * 0.5) * self.I[q, w] * 0.5
+                                      +.5/self.r_alpha_gm[q] * g_par.dict_case['tu']
+                                      + 1./self.r_alpha_gegm[q] * g_par.dict_case['tu'])
+                        r_side.append(g_par.dict_uni['h_vap']*self.cell_list[q].cathode.gamma[w]*0.5 #+ 1./self.r_alpha_cat[q]
+                                     # * self.cell_list[q].cathode.t_gas[w] *0.5
+                                      +.5/self.r_alpha_gp[q] * g_par.dict_case['tu']
+                                      + 1./self.r_alpha_gegp[q] * g_par.dict_case['tu'])
+                        r_side.append(-.5 / self.r_alpha_col[q] * self.t[q, w]
+                                      - .5/self.r_alpha_pp[q] * g_par.dict_case['tu']
+                                      - 1. / self.r_alpha_gepp[q] * g_par.dict_case['tu'])
+                else:
+                    if q is 0:
+                        r_side.append(g_par.dict_uni['h_vap']*self.cell_list[q].anode.gamma[w]
+                                      + 1./self.r_alpha_ano[q] * self.cell_list[q].anode.t_gas[w]
+                                      + 1./self.r_alpha_gp[q] * g_par.dict_case['t_u'])
+                        r_side.append(self.cell_list[q].omega_a[w] * self.I[q, w] ** 2 * 0.5
+                                      + 1./self.r_alpha_gm[q] * g_par.dict_case['tu'])
+                        r_side.append((g_par.dict_case['vtn'] - self.cell_list[q].v_th[w] - self.cell_list[q].omega_a[w] *
+                                       self.I[q, w] * 0.5) * self.I[q, w]
+                                      + 1./self.r_alpha_gm[q] * g_par.dict_case['tu'])
+                        r_side.append(g_par.dict_uni['h_vap'] * self.cell_list[q].cathode.gamma[w]
+                          + 1./self.r_alpha_gp[q] * g_par.dict_case['tu'])# + 1./self.r_alpha_cat[q]
+                                     # * self.cell_list[q].cathode.t_gas[w]
+                        if self.cool_ch_bc is True:
+                            r_side.append(-self.heat_pow - 1. / self.r_alpha_pp[q] * g_par.dict_case['tu']
+                                          - self.t[q,w] * 1./self.r_alpha_col[q])
+                        else:
+                            r_side.append(-self.heat_pow - 1./self.r_alpha_pp[q] * g_par.dict_case['tu'])
+                    elif q is self.cell_numb-1:
+                        if self.cool_ch_bc is True:
+                            r_side.append(g_par.dict_uni['h_vap']*self.cell_list[q].anode.gamma[w] + self.heat_pow
+                                          + 1./self.r_alpha_ano[q] * self.cell_list[q].anode.t_gas[w]
+                                          + 1./self.r_alpha_gp[q] * g_par.dict_case['t_u'] + self.t[q+1,w] * 1./self.r_alpha_col[q])
+                        else:
+                            r_side.append(g_par.dict_uni['h_vap'] * self.cell_list[q].anode.gamma[w] + self.heat_pow
+                                          + 1. / self.r_alpha_ano[q] * self.cell_list[q].anode.t_gas[w]
+                                          + 1. / self.r_alpha_gp[q] * g_par.dict_case['t_u'])
+                        r_side.append(self.cell_list[q].omega_a[w] * self.I[q, w] ** 2 * 0.5
+                                      + 1./self.r_alpha_gm[q] * g_par.dict_case['tu'])
+                        r_side.append((g_par.dict_case['vtn'] - self.cell_list[q].v_th[w] - self.cell_list[q].omega_a[w] *
+                                       self.I[q, w] * 0.5) * self.I[q, w]
+                                      + 1./self.r_alpha_gm[q] * g_par.dict_case['tu'])
+                        r_side.append(g_par.dict_uni['h_vap']*self.cell_list[q].cathode.gamma[w]
+                                      + 1./self.r_alpha_gp[q] * g_par.dict_case['tu'])#+ 1./self.r_alpha_cat[q] * self.cell_list[q].cathode.t_gas[w]
+                        r_side.append(-1. / self.r_alpha_col[q] * self.t[q, w]
+                                      - 1./self.r_alpha_pp[q] * g_par.dict_case['tu'])
+                    else:
+                        r_side.append(g_par.dict_uni['h_vap']*self.cell_list[q].anode.gamma[w]
+                                      + 1./self.r_alpha_ano[q] * self.cell_list[q].anode.t_gas[w]
+                                      + 1./self.r_alpha_gp[q] * g_par.dict_case['t_u'])
+                        r_side.append(self.cell_list[q].omega_a[w] * self.I[q, w]**2 * 0.5
+                                      + 1./self.r_alpha_gm[q] * g_par.dict_case['tu'])
+                        r_side.append((g_par.dict_case['vtn'] - self.cell_list[q].v_th[w] - self.cell_list[q].omega_a[w] *
+                                       self.I[q, w] * 0.5) * self.I[q, w]
+                                      + 1./self.r_alpha_gm[q] * g_par.dict_case['tu'])
+                        r_side.append(g_par.dict_uni['h_vap']*self.cell_list[q].cathode.gamma[w]
+                                      + 1. / self.r_alpha_gp[q] * g_par.dict_case['tu'])#+ 1./self.r_alpha_cat[q] * self.cell_list[q].cathode.t_gas[w]
+                        r_side.append(-1. / self.r_alpha_col[q] * self.t[q, w]
+                                      - 1./self.r_alpha_pp[q] * g_par.dict_case['tu'])
+        #t_vec = np.linalg.tensorsolve(np.asarray(temp_mat), r_side)
+        #t_vec = np.linalg.lstsq(np.asarray(temp_mat), r_side, rcond=None)
+        t_vec = np.linalg.solve(np.asarray(temp_mat), r_side)
+        counter = 0
+        for q, item in enumerate(self.cell_list):
+            for w in range(g_par.dict_case['nodes']):
+                self.cell_list[q].t5[w] = t_vec[counter]
+                self.cell_list[q].t4[w] = t_vec[counter + 1]
+                self.cell_list[q].t1[w] = t_vec[counter + 2]
+                self.cell_list[q].t2[w] = t_vec[counter + 3]
+                self.cell_list[q].t3[w] = t_vec[counter + 4]
+                counter = counter + 5
+            self.cell_list[q].t5e = g_func.calc_elements(self.cell_list[q].t5)
+            self.cell_list[q].t2e = g_func.calc_elements(self.cell_list[q].t2)
+
+    def calc_layer_t_orginal(self):
         self.I = g_func.calc_nodes(self.i) * self.cell_list[0].cathode.channel.plane_dx
         temp_mat = m_d.t_mat_no_bc_col(g_par.dict_case['nodes'],
                                          self.cell_numb,
@@ -639,10 +795,8 @@ class Stack:
                                       +.5/self.r_alpha_gm[q] * g_par.dict_case['tu']
                                       + 1./self.r_alpha_gegm[q] * g_par.dict_case['tu'])
                         r_side.append(g_par.dict_uni['h_vap'] * self.cell_list[q].cathode.gamma[w]*0.5
-                                      + 1./self.r_alpha_cat[q]
-                                      * self.cell_list[q].cathode.t_gas[w] * 0.5
                                       + .5/self.r_alpha_gp[q]*g_par.dict_case['tu']
-                                      + 1./self.r_alpha_gegp[q] * g_par.dict_case['tu'])
+                                      + 1./self.r_alpha_gegp[q] * g_par.dict_case['tu'] + 1./self.r_alpha_cat[q]* self.cell_list[q].cathode.t_gas[w] * 0.5)
                         if self.cool_ch_bc is True:
                             r_side.append(-self.heat_pow * .5
                                           - .5 / self.r_alpha_pp[q] * g_par.dict_case['tu']
@@ -674,9 +828,8 @@ class Stack:
                                       + .5/self.r_alpha_gm[q] * g_par.dict_case['tu']
                                       + 1./self.r_alpha_gegm[q] * g_par.dict_case['tu'])
                         r_side.append(g_par.dict_uni['h_vap']*self.cell_list[q].cathode.gamma[w]*0.5
-                                      + 1./self.r_alpha_cat[q] * self.cell_list[q].cathode.t_gas[w]*0.5
                                       + .5/self.r_alpha_gp[q] * g_par.dict_case['tu']
-                                      + 1./self.r_alpha_gegp[q] * g_par.dict_case['tu'])
+                                      + 1./self.r_alpha_gegp[q] * g_par.dict_case['tu'] + 1./self.r_alpha_cat[q] * self.cell_list[q].cathode.t_gas[w]*0.5)
                         r_side.append(-.5 / self.r_alpha_col[q] * self.t[q, w]
                                       - .5/self.r_alpha_pp[q] * g_par.dict_case['tu']
                                       - 1./self.r_alpha_gepp[q] * g_par.dict_case['tu'])
@@ -692,8 +845,8 @@ class Stack:
                                        self.I[q, w] * 0.5) * self.I[q, w] * 0.5
                                       +.5/self.r_alpha_gm[q] * g_par.dict_case['tu']
                                       + 1./self.r_alpha_gegm[q] * g_par.dict_case['tu'])
-                        r_side.append(g_par.dict_uni['h_vap']*self.cell_list[q].cathode.gamma[w]*0.5 + 1./self.r_alpha_cat[q]
-                                      * self.cell_list[q].cathode.t_gas[w] *0.5
+                        r_side.append(g_par.dict_uni['h_vap']*self.cell_list[q].cathode.gamma[w]*0.5
+                                      + 1./self.r_alpha_cat[q] * self.cell_list[q].cathode.t_gas[w] *0.5
                                       +.5/self.r_alpha_gp[q] * g_par.dict_case['tu']
                                       + 1./self.r_alpha_gegp[q] * g_par.dict_case['tu'])
                         r_side.append(-.5 / self.r_alpha_col[q] * self.t[q, w]
@@ -709,8 +862,9 @@ class Stack:
                         r_side.append((g_par.dict_case['vtn'] - self.cell_list[q].v_th[w] - self.cell_list[q].omega_a[w] *
                                        self.I[q, w] * 0.5) * self.I[q, w]
                                       + 1./self.r_alpha_gm[q] * g_par.dict_case['tu'])
-                        r_side.append(g_par.dict_uni['h_vap'] * self.cell_list[q].cathode.gamma[w] + 1./self.r_alpha_cat[q]
-                                      * self.cell_list[q].cathode.t_gas[w] + 1./self.r_alpha_gp[q] * g_par.dict_case['tu'])
+                        r_side.append(g_par.dict_uni['h_vap'] * self.cell_list[q].cathode.gamma[w]
+                          + 1./self.r_alpha_gp[q] * g_par.dict_case['tu'] + 1./self.r_alpha_cat[q]
+                                      * self.cell_list[q].cathode.t_gas[w])
                         if self.cool_ch_bc is True:
                             r_side.append(-self.heat_pow - 1. / self.r_alpha_pp[q] * g_par.dict_case['tu']
                                           - self.t[q,w] * 1./self.r_alpha_col[q])
@@ -731,8 +885,8 @@ class Stack:
                                        self.I[q, w] * 0.5) * self.I[q, w]
                                       + 1./self.r_alpha_gm[q] * g_par.dict_case['tu'])
                         r_side.append(g_par.dict_uni['h_vap']*self.cell_list[q].cathode.gamma[w]
-                                      + 1./self.r_alpha_cat[q] * self.cell_list[q].cathode.t_gas[w]
-                                      + 1./self.r_alpha_gp[q] * g_par.dict_case['tu'])
+                                      + 1./self.r_alpha_gp[q] * g_par.dict_case['tu']
+                                      + 1./self.r_alpha_cat[q] * self.cell_list[q].cathode.t_gas[w])
                         r_side.append(-1. / self.r_alpha_col[q] * self.t[q, w]
                                       - 1./self.r_alpha_pp[q] * g_par.dict_case['tu'])
                     else:
@@ -745,8 +899,8 @@ class Stack:
                                        self.I[q, w] * 0.5) * self.I[q, w]
                                       + 1./self.r_alpha_gm[q] * g_par.dict_case['tu'])
                         r_side.append(g_par.dict_uni['h_vap']*self.cell_list[q].cathode.gamma[w]
-                                      + 1./self.r_alpha_cat[q] * self.cell_list[q].cathode.t_gas[w]
-                                      + 1. / self.r_alpha_gp[q] * g_par.dict_case['tu'])
+                                      + 1. / self.r_alpha_gp[q] * g_par.dict_case['tu']
+                                      + 1./self.r_alpha_cat[q] * self.cell_list[q].cathode.t_gas[w])
                         r_side.append(-1. / self.r_alpha_col[q] * self.t[q, w]
                                       - 1./self.r_alpha_pp[q] * g_par.dict_case['tu'])
         #t_vec = np.linalg.tensorsolve(np.asarray(temp_mat), r_side)
@@ -762,5 +916,4 @@ class Stack:
                 self.cell_list[q].t3[w] = t_vec[counter + 4]
                 counter = counter + 5
             self.cell_list[q].t5e = g_func.calc_elements(self.cell_list[q].t5)
-            self.cell_list[q].t2e = g_func.calc_elements(self.cell_list[q].t2)
-
+            self.cell_list[q].t2e = g_func.calc_elements(self.cell_list[q].t2) #np.full(g_par.dict_case['nodes'], 350.)

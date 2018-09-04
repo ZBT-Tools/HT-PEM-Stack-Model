@@ -313,6 +313,7 @@ class Halfcell:
         self.m_vap_water_flow = (self.gas_flow[1]-self.w) * self.m_m[1] * 1.e-3
         self.m_reac_flow_delta = abs(global_functions.calc_dif(self.m_reac_flow))
         self.m_vap_water_flow_delta = abs(global_functions.calc_dif(self.m_vap_water_flow))
+
     def calc_re(self):
         self.re = global_functions.calc_re(self.rho, self.u, self.dh, self.visc_mix)
 

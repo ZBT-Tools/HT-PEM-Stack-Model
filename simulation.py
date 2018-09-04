@@ -166,6 +166,7 @@ class Simulation:
                      'Stoichiometry', 'Cell Number', 'linear', ['k', 'r'],
                      'Stoichimetry Distribution', q, 0., self.stack.cell_numb-1,
                      ['Cathode', 'Anode'])
+        np.savetxt('cat_flow.csv', np.flipud(self.stack.q_x_cat / (self.stack.q_h_in_cat[-1] / self.stack.cell_numb)))
 
         self.plot_cell_var('v', 'Voltage [V]', 'Channel Location [m]', 'linear',
                            'k', 'Cell Voltage', q, [0., i_p.channel_length], x_ele, [0., 1.28])
@@ -246,6 +247,7 @@ class Simulation:
         self.plot_cell_var('anode.p', 'Anode Channel Pressure [Pa]', 'Channel Location [m]',
                            'linear', 'k', 'Anode Channel Pressure', q, [0., i_p.channel_length],
                            x_node, False)
+
 
         for l, item in enumerate(self.stack.t):
             if (l > 0 and self.stack.cool_ch_bc is False) or self.stack.cool_ch_bc is True:

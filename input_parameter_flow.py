@@ -2,15 +2,15 @@ from numpy import array, linspace
 ################################################################################
 ############################Channel#############################################
 # channel length [m]
-channel_length = 0.67
+channel_length = 0.65
 # number of Nodes
 nodes = 10
 # cathode gas channel scaled pressure drop coefficient [Pa s /m^3]
 k_cat = 2.e4
 # cathode gas channel inlet pressure [Pa]
-p_cat_in = 3.2e5
+p_cat_in = 1.e5
 # cathode gas channel inlet temperature [K]
-t_cat_in = 350.15
+t_cat_in = 298.15
 # cathode phi
 phi_cat = 0.
 # cathode flow direction
@@ -26,15 +26,15 @@ phi_ano = 0.
 # anode flow direction
 flow_dir_ano = False
 # width of the channel [m]
-channel_width = 1.e-2
+channel_width = 1.e-3
 # height of the channel [m]
-channel_height = 1.e-3
+channel_height = 4.e-3
 ################################################################################
 ############################Halfcell############################################
 # oxygen concentration at the inlet [mol/m³]
 o2_con_in = 0.21
 # cathode stoichiometry
-stoi_cat = 1.3
+stoi_cat = 2.
 # minimum stoichiometry (do not set it smaller 1.1)
 stoi_min = 1.1
 # cathode number of species (3 (N2,O2,H2O))
@@ -42,14 +42,14 @@ spec_numb_cat = 3
 # cathode side reaction, number of valence electrons
 val_cat = 4.
 # anode stoichiometry
-stoi_ano = 1.3
+stoi_ano = 5.
 # anode number of species (2 (H2,H2O))
 spec_numb_ano = 2
 # side reaction, number of valence electrons
 val_ano = 2.
 # target current density [A/m^2]
 # tar_cd = linspace(1000.,16000., 10)
-tar_cd = [6000.]
+tar_cd = [2000.]
 # gas reference concentration cathode [mol/m^3]
 gas_con_ref_cat = 7.36e0
 # gas reference concentration anode [mol/m^3}
@@ -67,7 +67,7 @@ m_h2o = 18.
 # molar mass nitrogen [g/mol]
 m_n2 = 28.
 # cell init temperature [K]
-t_hcell_init = 353.15
+t_hcell_init = 298.15
 # cathode layer proton conductivity [Ohm^-1m^-1]
 cat_prot_con = 3.e0
 # anode layer proton conductivity [Ohm^-1m^-1]
@@ -95,7 +95,7 @@ ano_tafel_slope = 0.03
 ################################################################################
 ############################Cell################################################
 # cell width [m]
-cell_width = 0.01
+cell_width = 0.001
 # cell length [m]
 cell_length = 1.e-1
 # fitted vapour mass transport coefficient [m/s]
@@ -127,21 +127,21 @@ mem_thick = 50.e-6
 # thickness of the gde [m]
 gde_thick = 250.e-6
 # thickness of the plate [m]
-plate_thick = 5.e-3
+plate_thick = 1.725e-3
 # environment temperature [K]
 t_u = 298.15
-# height coolant channel [m]
-h_col_ch = plate_thick/ 2.
+# diameter coolant channel [m]
+d_col = plate_thick/2.
 # cp value coolant [J/(kgK)]
 cp_col = 4000.
 # mass flow coolant [kg/s]
-m_col = 1.e-3
+m_col = 0.5e-4
 # convection coefficient coolant [W/(m^2K)]
 a_col = 4000.
 ################################################################################
 ############################Stack###############################################
 # number of stack cells (min =!2)
-cell_numb = 3
+cell_numb = 40
 # boundary condition cooling channel (no cooling channel at the endplates = False)
 cooling_bc = True
 # endplate heating power [W]
@@ -151,19 +151,19 @@ alpha_conv = 0.5e-10
 # resistivity of the bipolarplates [Ohm/m]
 resistivity = 8.e-4
 # height of the manifold channel [m]
-manifold_height = 10.e-3
+manifold_height = 5.5e-3
 # width of the manifold channel [m]
-manifold_width = 10.e-3
+manifold_width = 7.5e-3
 # geometrical pressure loss coefficient
-manifold_kf = 0.27
+manifold_kf = 0.075
 # latent heat of vaporization [J/mol]
 h_vap = 45400.
 ################################################################################
 ############################Simulation##########################################
 # tolerance
-k_tol = 1.e-12
+k_tol = 1.e-15
 # max number of iterations
-max_it = 1000
+max_it = 20
 #############################Dicts##############################################
 ################################################################################
 channel_cat = {'length': channel_length, 'p_in': p_cat_in, 't_in': t_cat_in,
@@ -196,5 +196,5 @@ stack = {'cell_numb': cell_numb, 'heat_power': heat_power,
          'plate_res': resistivity, 'heigth': manifold_height,
          'width': manifold_width, 'dis_dis_fac': manifold_kf,
          'stoi_cat': stoi_cat, 'stoi_ano': stoi_ano,'cool_ch_bc': cooling_bc,
-         'h_col': h_col_ch, 'm_flow_col': m_col, 'cp_col': cp_col, 'alpha_cool': a_col}
+         'd_col': d_col, 'm_flow_col': m_col, 'cp_col': cp_col, 'alpha_cool': a_col}
 simulation = {'max_it': max_it, 'k_it': k_tol}
