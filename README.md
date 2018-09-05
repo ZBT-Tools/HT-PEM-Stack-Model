@@ -9,8 +9,6 @@ The reduced dimensional PEM-stack-model provides a solution for fast, high and l
 
 -Matplotlib
 
--copy
-
 
 # How to use this repository?
 The Program is devided into the class Python scripts:
