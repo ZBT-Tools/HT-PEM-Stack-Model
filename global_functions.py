@@ -1,6 +1,6 @@
 # Global functions:
 from copy import copy
-from numpy import reshape, full, sqrt, log, array, exp, matmul, array, hstack, delete, vstack, zeros
+from numpy import reshape, full, sqrt, log, array, exp, matmul, array, hstack, delete, concatenate
 from matplotlib import pyplot as plt
 import os, errno
 
@@ -91,11 +91,13 @@ def calc_lambda_mix(lambdax, mol_f, visc, mol_w):
 def calc_medium_temp(t_layer, t_medium, coef, m1, m2):
     return coef/(coef + 1.) * matmul(m1,t_layer) + 1./coef * matmul(m2,t_medium)
 
+
 def calc_elements(node_vec):
     node_vec = list(node_vec)
     a = copy(node_vec)
     node_vec.pop(0), a.pop(-1)
     return (array(a) + array(node_vec)) *.5
+
 
 def calc_nodes(ele_vec):
     a = copy(ele_vec)
@@ -104,6 +106,16 @@ def calc_nodes(ele_vec):
     mat = (a + ele_vec) * 0.5
     mat = hstack([mat[:, [0]], mat, mat[:, [-1]]])
     return mat
+
+
+def iepolate_nodes(ele_vec):
+    ele_vec = array(ele_vec)
+    re_array = array((ele_vec[:, :-1] + ele_vec[:, 1:]) * .5)
+    first_node = array([2. * re_array[:, 0] - re_array[:, 1]])
+    last_node = array([2. * re_array[:, -1] - re_array[:, -2]])
+    re_array = concatenate((first_node.T, re_array, last_node.T), axis=1)
+    return re_array
+
 
 def calc_nodes_1d (ele_vec):
     ele_vec = list(ele_vec)
@@ -154,10 +166,10 @@ def output_x(y_values,x_values, y_label, x_label, y_scale, color, title, q, val_
             raise
     if val_label is not False:
         for l, item in enumerate(y_values):
-            plt.plot(x_values, y_values[l], color=plt.cm.coolwarm(l/len(y_values-1)), marker='.', label=val_label[l])
+            plt.plot(x_values, y_values[l], color=plt.cm.coolwarm(l/len(y_values)), marker='.', label=val_label[l])
     else:
         for l, item in enumerate(y_values):
-            plt.plot(x_values, y_values[l], color=plt.cm.coolwarm(l/len(y_values-1)), marker='.')
+            plt.plot(x_values, y_values[l], color=plt.cm.coolwarm(l/len(y_values)), marker='.')
 
     plt.xlabel(x_label)
     plt.ylabel(y_label)

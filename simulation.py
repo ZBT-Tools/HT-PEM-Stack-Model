@@ -127,11 +127,12 @@ class Simulation:
                 raise
         for l, item in enumerate(self.stack.cell_list):
             plt.plot(x_var, eval('self.stack.cell_list'+
-                                 '['+str(l)+']'+'.' + y_var), color=plt.cm.coolwarm(l/(self.stack.cell_numb-1)), marker='.')
+                                 '['+str(l)+']'+'.' + y_var), color=plt.cm.coolwarm(l/(self.stack.cell_numb)), marker='.')
 
-        plt.xlabel(x_label)
-        plt.ylabel(y_label)
+        plt.xlabel(x_label, fontsize=16)
+        plt.ylabel(y_label, fontsize=16)
         plt.yscale(y_scale)
+        plt.tick_params(labelsize=14)
         plt.autoscale(tight=True, axis='both', enable=True)
         plt.xlim(xlim[0], xlim[1])
         if y_lim is not False:
@@ -150,10 +151,10 @@ class Simulation:
                      'ERR', 'Iteration', 'log', ['k', 'r', 'b'], 'Convergence',
                      q, 0., len(self.t_criteria_process),
                      ['Flow Distribution','Current Density','Temperature'])
-        gfunc.output([self.tryarray], 'Current Density [A/m²]', 'Iteration',
+        gfunc.output([self.tryarray], 'Current Density $[A/m²]$', 'Iteration',
                      'linear', 'k', 'Current_Density_Last_Cell', q, 0.,
                      len(self.tryarray), False)
-        gfunc.output_x(self.stack.i, x_ele, 'Current Density [A/m²]', 'Channel Location [m]',
+        gfunc.output_x(self.stack.i, x_ele, 'Current Density $[A/m²]$', 'Channel Location $[m]$',
                      'linear', np.full(self.stack.cell_numb, 'k'),
                      'Current Density', q, False,[0., i_p.channel_length])
         if self.stack.cell_numb >1:
@@ -171,100 +172,103 @@ class Simulation:
                          ['Cathode', 'Anode'])
             #np.savetxt('cat_flow.csv', np.flipud(self.stack.q_x_cat / (self.stack.q_h_in_cat[-1] / self.stack.cell_numb)))
 
-        self.plot_cell_var('v', 'Voltage [V]', 'Channel Location [m]', 'linear',
+        self.plot_cell_var('v', 'Voltage $[V]$', 'Channel Location $[m]$', 'linear',
                            'k', 'Cell Voltage', q, [0., i_p.channel_length], x_ele, [0., 1.28])
-        self.plot_cell_var('dv', 'dV/dI [V/A]', 'Channel Location [m]', 'linear', 'k',
+        self.plot_cell_var('dv', 'dV/dI $[V/A]$', 'Channel Location $[m]$', 'linear', 'k',
                            'dvdI', q, [0., i_p.channel_length], x_ele, [-1., 1.])
-        self.plot_cell_var('t1', 'Cathode Temperature [K]', 'Channel Location [m]',
+        self.plot_cell_var('t1', 'Cathode Temperature $[K]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Cathode Temperature', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('t4', 'Anode Temperature [K]', 'Channel Location [m]',
+        self.plot_cell_var('t4', 'Anode Temperature $[K]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Anode Temperature', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('t2', 'Cathode GDL Temperature [K]', 'Channel Location [m]',
+        self.plot_cell_var('t2', 'Cathode GDL Temperature $[K]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Cathode GDL Temperature', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('cathode.t_gas', 'Cathode Channel Temperature [K]', 'Channel Location [m]',
+        self.plot_cell_var('cathode.t_gas', 'Cathode Channel Temperature $[K]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Cathode_Channel_Temperature', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('t5', 'Anode GDL Temperature [K]', 'Channel Location [m]',
+        self.plot_cell_var('t5', 'Anode GDL Temperature $[K]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Anode GDL Temperature', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('anode.t_gas', 'Hydrogen Temperature [K]', 'Channel Location [m]',
+        self.plot_cell_var('anode.t_gas', 'Hydrogen Temperature $[K]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Hydrogen Temperature', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('t1', 'Coolant Plate Temperature [K]', 'Channel Location [m]',
+        self.plot_cell_var('t1', 'Coolant Plate Temperature $[K]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Coolant Plate Temperature', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('cathode.gas_flow[0]', 'Oxygen Molar Flow [mol/s]', 'Channel Location [m]',
+        self.plot_cell_var('cathode.gas_flow[0]*1.e3', 'Oxygen Molar Flow $[mmol/s]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Oxygen Molar Flow', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('cathode.gas_flow[1]', 'Water Molar Flow [mol/s]', 'Channel Location [m]',
+        self.plot_cell_var('cathode.gas_flow[1]*1.e3', 'Water Molar Flow $[mmol/s]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Water Molar Flow Cathode', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('cathode.gas_flow[2]', 'Nitrogen Molar Flow [mol/s]', 'Channel Location [m]',
+        self.plot_cell_var('cathode.gas_flow[2]*1.e3', 'Nitrogen Molar Flow $[mmol/s]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Nitrogen Molar Flow', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('anode.gas_flow[0]', 'Hydrogen Molar Flow [mol/s]', 'Channel Location [m]',
+        self.plot_cell_var('anode.gas_flow[0]*1.e3', 'Hydrogen Molar Flow $[mmol/s]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Hydrogen Molar Flow', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('anode.gas_flow[1]', 'Water Molar Flow [mol/s]', 'Channel Location [m]',
+        self.plot_cell_var('anode.gas_flow[1]*1.e3', 'Water Molar Flow $[mmol/s]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Water Molar Flow Anode', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('cathode.gas_con[0]', 'Oxygen  Molar Concentration [mol/m³]', 'Channel Location [m]',
-                           'linear', 'k', 'Oxygen Molar Concentration', q,[0., i_p.channel_length],
+        self.plot_cell_var('cathode.mol_f[0]', 'Oxygen  Molar Fraction', 'Channel Location $[m]$',
+                           'linear', 'k', 'Oxygen_Molar_Fraction', q,[0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('cathode.gas_con[1]', 'Water  Molar Concentration [mol/m³]', 'Channel Location [m]',
-                           'linear', 'k', 'Water Molar Concentration Cathode', q, [0., i_p.channel_length],
+        self.plot_cell_var('cathode.mol_f[1]', 'Gas Water  Molar Fraction', 'Channel Location $[m]$',
+                           'linear', 'k', 'Water Molar Fraction Cathode', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('anode.gas_con[1]', 'Water  Molar Concentration [mol/m³]', 'Channel Location [m]',
-                           'linear', 'k', 'Water Molar Concentration Anode', q, [0., i_p.channel_length],
+        self.plot_cell_var('anode.mol_f[0]', 'Hydrogen Molar Fraction', 'Channel Location $[m]$',
+                           'linear', 'k', 'Hydrogen_Molar_Fraction_Anode', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('cathode.w', 'Liquid Water Flow [mol/s]', 'Channel Location [m]',
+        self.plot_cell_var('anode.mol_f[1]', 'Gas Water  Molar Fraction', 'Channel Location $[m]$',
+                           'linear', 'k', 'Water_Molar_Fraction_Anode', q, [0., i_p.channel_length],
+                           x_node, False)
+        self.plot_cell_var('cathode.w*1e3', 'Liquid Water Flow $[mmol/s]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Liquid Water Flow Cathode', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('cathode.gamma', 'Water Condensation Rate [mol/s]', 'Channel Location [m]',
+        self.plot_cell_var('cathode.gamma*1e3', 'Water Condensation Rate $[mmol/s]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Water Condensation Rate Cathode', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('cathode.humidity', 'Relative Humidity', 'Channel Location [m]',
+        self.plot_cell_var('cathode.humidity', 'Relative Humidity', 'Channel Location $[m]$',
                            'linear', 'k', 'Relative Humidity Cathode', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('cathode.m_flow', 'Cathode Channel Massflow [kg/s]', 'Channel Location [m]',
+        self.plot_cell_var('cathode.m_flow*1e6', 'Cathode Channel Gas Massflow $[mg/s]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Cathode_Channel_Massflow', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('cathode.m_full_flow', 'Cathode Massflow [kg/s]', 'Channel Location [m]',
-                           'linear', 'k', 'Cathode Massflow', q, [0., i_p.channel_length],
+        self.plot_cell_var('cathode.m_full_flow*1e6', 'Cathode Channel Massflow $[mg/s]$', 'Channel Location $[m]$',
+                           'linear', 'k', 'Cathode_Channel_Massflow', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('cathode.g_full', 'Cathode Capacity Flow [W/K]', 'Channel Location [m]',
+        self.plot_cell_var('cathode.g_full*1e3', 'Cathode Capacity Flow $[mW/K]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Cathode Capacity Flow', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('cathode.m_reac_flow', 'Oxygen Massflow [kg/s]', 'Channel Location [m]',
+        self.plot_cell_var('cathode.m_reac_flow*1e6', 'Oxygen Massflow $[mg/s]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Oxygen_massflow', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('cathode.m_vap_water_flow', 'Vapour Massflow [kg/s]', 'Channel Location [m]',
+        self.plot_cell_var('cathode.m_vap_water_flow*1e6', 'Vapour Massflow $[mg/s]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Vapour Massflow', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('anode.m_flow', 'Hydrogen Massflow [kg/s]', 'Channel Location [m]',
+        self.plot_cell_var('anode.m_flow*1e6', 'Hydrogen Massflow $[mg/s]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Hydrogen_massflow', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('cathode.cp_full', 'Cathode Heat Capacity [J/(kgK)]', 'Channel Location [m]',
+        self.plot_cell_var('cathode.cp_full', 'Cathode Heat Capacity $[J/(kgK)]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Cathode Heat Capacity', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('cathode.p', 'Cathode Channel Pressure [Pa]', 'Channel Location [m]',
+        self.plot_cell_var('cathode.p', 'Cathode Channel Pressure $[Pa]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Cathode Channel Pressure', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('anode.p', 'Anode Channel Pressure [Pa]', 'Channel Location [m]',
+        self.plot_cell_var('anode.p', 'Anode Channel Pressure $[Pa]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Anode Channel Pressure', q, [0., i_p.channel_length],
                            x_node, False)
 
         for l, item in enumerate(self.stack.t):
             if (l > 0 and self.stack.cool_ch_bc is False) or self.stack.cool_ch_bc is True:
                 plt.plot(x_node, self.stack.t[l], label=l, marker='.',
-                         color=plt.cm.coolwarm((l)/(self.stack.cell_numb-1)))
+                         color=plt.cm.coolwarm((l)/(self.stack.cell_numb)))
         #plt.legend()
         plt.grid()
-        plt.ylabel(r'Coolant Temperature [K]')
-        plt.xlabel('Channel Location [m]')
+        plt.ylabel(r'Coolant Temperature $[K]$')
+        plt.xlabel('Channel Location $[m]$')
         plt.autoscale(tight=True, axis='both', enable=True)
         plt.xlim(0, self.stack.cell_list[0].cathode.channel.length)
         plt.savefig(os.path.join(os.path.dirname(__file__),
@@ -289,8 +293,8 @@ class Simulation:
                                        l.t1[w], l.t4[w], l.t5[w]]))
             plt.plot(x, np.block(t_vec), marker='o', color='k')
             plt.xlim(0, x[-1])
-            plt.xlabel('Stack Location [m]')
-            plt.ylabel('Temperature [K]')
+            plt.xlabel('Stack Location $[m]$')
+            plt.ylabel('Temperature $[K]$')
             plt.autoscale(tight=True, axis='both', enable=True)
             plt.tight_layout()
             plt.savefig(os.path.join(os.path.dirname(__file__),

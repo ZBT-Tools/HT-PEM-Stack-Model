@@ -117,9 +117,9 @@ class Stack:
         self.r_alpha_gp = np.full(self.cell_numb, 0.)
         self.r_alpha_pp = np.full(self.cell_numb, 0.)
         self.r_alpha_gm = np.full(self.cell_numb, 0.)
-        self.r_alpha_gegm = np.full(self.cell_numb, 0.)
-        self.r_alpha_gegp = np.full(self.cell_numb, 0.)
-        self.r_alpha_gepp = np.full(self.cell_numb, 0.)
+        self.r_alpha_gegm = np.full(self.cell_numb, 1.e50)
+        self.r_alpha_gegp = np.full(self.cell_numb, 1.e50)
+        self.r_alpha_gepp = np.full(self.cell_numb, 1.e50)
         self.cool_m1 = m_d.col_mat_m1(g_par.dict_case['nodes'])
         fac = 1.
         for q, item in enumerate(self.cell_list):
@@ -612,7 +612,10 @@ class Stack:
                                   / (1. + var1)
 
     def calc_layer_t(self):
-        self.I = g_func.calc_nodes(self.i) * self.cell_list[0].cathode.channel.plane_dx
+        #self.I = g_func.calc_nodes(self.i) * self.cell_list[0].cathode.channel.plane_dx
+        #print(self.I)
+        self.I = g_func.iepolate_nodes(self.i) * self.cell_list[0].cathode.channel.plane_dx
+        #print(self.I)
         temp_mat = m_d.t_mat_no_bc_col(g_par.dict_case['nodes'],
                                          self.cell_numb,
                                          self.r_g,
@@ -632,7 +635,7 @@ class Stack:
                                          self.r_alpha_gepp,
                                          self.cool_ch_bc)
         r_side = []
-        if self.cell_numb >1:
+        if self.cell_numb > 1:
             for q, item in enumerate(self.cell_list):
                 for w in range(g_par.dict_case['nodes']):
                     if w is 0 or w is g_par.dict_case['nodes']-1: # bc nodes
@@ -756,45 +759,57 @@ class Stack:
         else:
             for q, item in enumerate(self.cell_list):
                 for w in range(g_par.dict_case['nodes']):
+                    #print(w)
                     if w is 0 or w is g_par.dict_case['nodes']-1:
                         r_side.append(self.heat_pow * 0.5
                                       + .5 / self.r_alpha_ano[q] * self.cell_list[q].anode.t_gas[w]
                                       + .5 / self.r_alpha_gp[q] * g_par.dict_case['tu']
                                       + 1. / self.r_alpha_gegp[q] * g_par.dict_case['tu']
                                       + .5 / self.r_alpha_col[q] * self.t[q+1, w])
+                        #print(r_side[-1],'ano_gdl 0.5')
                         r_side.append(self.cell_list[q].omega_a[w] * self.I[q, w] ** 2 * 0.25
                                       + .5 / self.r_alpha_gm[q] * g_par.dict_case['tu']
                                       + 1. / self.r_alpha_gegm[q] * g_par.dict_case['tu'])
+                        #print(r_side[-1], 'ano 0.5')
                         r_side.append((g_par.dict_case['vtn'] - self.cell_list[q].v_th[w] - self.cell_list[q].omega_a[w]
                                        * self.I[q, w] * 0.5) * self.I[q, w] * 0.5
                                       + .5 / self.r_alpha_gm[q] * g_par.dict_case['tu']
                                       + 1. / self.r_alpha_gegm[q] * g_par.dict_case['tu'])
+                        #print(r_side[-1], 'cat 0.5')
                         r_side.append(+ .5 / self.r_alpha_gp[q] * g_par.dict_case['tu']
                                       + 1. / self.r_alpha_gegp[q] * g_par.dict_case['tu']
                                       + 1. / self.r_alpha_cat[q] * self.cell_list[q].cathode.t_gas[w] * 0.5
                                       + 0.5 * self.cell_list[q].cathode.gamma[w] * g_par.dict_uni['h_vap'])
+                        #print(r_side[-1], 'cat_gdl 0.5')
                         r_side.append(-self.heat_pow * .5 - .5 / self.r_alpha_pp[q] * g_par.dict_case['tu']
                                       - 1. / self.r_alpha_gepp[q] * g_par.dict_case['tu']
                                       - .5 / self.r_alpha_col[q] * self.t[q, w])
+                        #print(r_side[-1], 'cat_plate 0.5')
                     else:
-                        r_side.append(1. / self.r_alpha_ano[q] * self.cell_list[q].anode.t_gas[w]
+                        r_side.append(self.heat_pow +
+                                      1. / self.r_alpha_ano[q] * self.cell_list[q].anode.t_gas[w]
                                       + 1. / self.r_alpha_gp[q] * g_par.dict_case['tu']
                                       + 1. / self.r_alpha_gegp[q] * g_par.dict_case['tu']
                                       + 1. / self.r_alpha_col[q] * self.t[q+1, w])
-                        r_side.append(self.cell_list[q].omega_a[w] * self.I[q, w] ** 2.
+                        #print(r_side[-1], 'ano_gdl')
+                        r_side.append(self.cell_list[q].omega_a[w] * self.I[q, w] ** 2. * 0.5
                                       + 1. / self.r_alpha_gm[q] * g_par.dict_case['tu']
                                       + 1. / self.r_alpha_gegm[q] * g_par.dict_case['tu'])
+                       # print(r_side[-1], 'ano')
                         r_side.append((g_par.dict_case['vtn'] - self.cell_list[q].v_th[w] - self.cell_list[q].omega_a[w]
-                                       * self.I[q, w]) * self.I[q, w]
+                                       * self.I[q, w]*.5) * self.I[q, w]
                                       + 1. / self.r_alpha_gm[q] * g_par.dict_case['tu']
                                       + 1. / self.r_alpha_gegm[q] * g_par.dict_case['tu'])
+                       # print(r_side[-1], 'cat')
                         r_side.append(+ 1. / self.r_alpha_gp[q] * g_par.dict_case['tu']
                                       + 1. / self.r_alpha_gegp[q] * g_par.dict_case['tu']
                                       + 1. / self.r_alpha_cat[q] * self.cell_list[q].cathode.t_gas[w] * 1.
                                       + 1. * self.cell_list[q].cathode.gamma[w] * g_par.dict_uni['h_vap'])
+                       # print(r_side[-1], 'cat_gdl')
                         r_side.append(-self.heat_pow * 1. - 1. / self.r_alpha_pp[q] * g_par.dict_case['tu']
                                       - 1. / self.r_alpha_gepp[q] * g_par.dict_case['tu']
                                       - 1. / self.r_alpha_col[q] * self.t[q, w])
+                       # print(r_side[-1], 'cat_plate')
 
 
         #t_vec = np.linalg.tensorsolve(np.asarray(temp_mat), r_side)

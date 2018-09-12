@@ -36,7 +36,7 @@ channel_fri_fac = 0.1
 # oxygen concentration at the inlet [mol/m³]
 o2_con_in = 0.21
 # cathode stoichiometry
-stoi_cat = 1.2
+stoi_cat = 1.3
 # minimum stoichiometry (do not set it smaller 1.1)
 stoi_min = 1.1
 # cathode number of species (3 [N2,O2,H2O])
@@ -69,7 +69,7 @@ m_h2o = 18.
 # molar mass nitrogen [g/mol]
 m_n2 = 28.
 # cell init temperature [K]
-t_hcell_init = 373.15
+t_hcell_init = t_cat_in
 # cathode layer proton conductivity [Ohm^-1m^-1]
 cat_prot_con = 3.e0
 # anode layer proton conductivity [Ohm^-1m^-1]
@@ -143,7 +143,7 @@ a_col = 4000.
 ################################################################################
 ############################Stack###############################################
 # number of stack cells (min =!2)
-cell_numb = 10
+cell_numb = 1
 # boundary condition cooling channel (no cooling channel at the endplates = False)
 cooling_bc = True
 # endplate heating power [W]
@@ -151,7 +151,7 @@ heat_power = 0.#5.e0
 # convection coefficient of the stack walls [W/(m^2K)]
 alpha_conv = 0.5e-10
 # resistivity of the bipolarplates [Ohm/m]
-resistivity = 8.e-4
+resistivity = 8.e-1
 # height of the manifold channel [m]
 manifold_height = 10.e-3
 # width of the manifold channel [m]
@@ -163,9 +163,9 @@ h_vap = 45400.
 ################################################################################
 ############################Simulation##########################################
 # tolerance
-k_tol = 1.e-20
+k_tol = 1.e-12
 # max number of iterations
-max_it = 5000
+max_it = 5
 # gas channel relaxations factor
 channel_fac = 0.5
 #############################Dicts##############################################
