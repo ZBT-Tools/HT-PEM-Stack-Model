@@ -59,9 +59,11 @@ class Cell:
         self.fac_res_basic = 0.03
         self.t1 = self.cathode.t1
         self.t2 = self.cathode.t2
+        self.t2e = g_func.calc_elements(self.cathode.t2)
         self.t3 = self.cathode.t3
         self.t4 = self.anode.t1
         self.t5 = self.anode.t2
+        self.t5e = g_func.calc_elements(self.anode.t2)
         self.ko = 6.2
         self.ho = -52300.
 
@@ -180,14 +182,10 @@ class Cell:
         # correction not implemented
 
     def calc_voltage(self):  # nodewise
-        #print(len(self.i), len(self.cathode.gde_dif_los), len(self.cathode.cat_dif_los), len(self.cathode.act_ov))
-        #print(len(self.i), len(self.anode.gde_dif_los), len(self.anode.cat_dif_los), len(self.anode.act_ov))
-        #print(len(self.omega_ele))
         self.v = g_par.dict_case['e_0'] - self.omega_ele * self.i \
                  - self.cathode.gde_dif_los - self.anode.gde_dif_los\
                  - self.cathode.cat_dif_los - self.anode.cat_dif_los\
                  - self.cathode.act_ov - self.anode.act_ov
-        #self.v[-1] = 0.1
         self.v_th = g_func.calc_nodes_1d(self.v)
 
     def calc_dvdi(self):  # nodewise

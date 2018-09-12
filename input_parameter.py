@@ -1,4 +1,4 @@
-from numpy import array, linspace
+from numpy import array
 ################################################################################
 ############################Channel#############################################
 # channel length [m]
@@ -10,13 +10,11 @@ k_cat = 2.e4
 # cathode gas channel inlet pressure [Pa]
 p_cat_in = 3.2e5
 # cathode gas channel inlet temperature [K]
-t_cat_in = 350.15
+t_cat_in = 433.15
 # cathode phi
 phi_cat = 0.
 # cathode flow direction
 flow_dir_cat = True
-# anode gas channel scaled pressure drop coefficient [Pa s /m^3]
-k_ano = 2.e4
 # anode gas channel inlet pressure [Pa]
 p_ano_in = 3.e5
 # anode gas channel inlet temperature [K]
@@ -29,15 +27,19 @@ flow_dir_ano = False
 channel_width = 1.e-2
 # height of the channel [m]
 channel_height = 1.e-3
+# number of channel bends
+channel_bends = 10
+#bend friction factor [0-1]
+channel_fri_fac = 0.1
 ################################################################################
 ############################Halfcell############################################
 # oxygen concentration at the inlet [mol/m³]
 o2_con_in = 0.21
 # cathode stoichiometry
-stoi_cat = 1.3
+stoi_cat = 1.2
 # minimum stoichiometry (do not set it smaller 1.1)
 stoi_min = 1.1
-# cathode number of species (3 (N2,O2,H2O))
+# cathode number of species (3 [N2,O2,H2O])
 spec_numb_cat = 3
 # cathode side reaction, number of valence electrons
 val_cat = 4.
@@ -67,7 +69,7 @@ m_h2o = 18.
 # molar mass nitrogen [g/mol]
 m_n2 = 28.
 # cell init temperature [K]
-t_hcell_init = 353.15
+t_hcell_init = 373.15
 # cathode layer proton conductivity [Ohm^-1m^-1]
 cat_prot_con = 3.e0
 # anode layer proton conductivity [Ohm^-1m^-1]
@@ -141,7 +143,7 @@ a_col = 4000.
 ################################################################################
 ############################Stack###############################################
 # number of stack cells (min =!2)
-cell_numb = 3
+cell_numb = 10
 # boundary condition cooling channel (no cooling channel at the endplates = False)
 cooling_bc = True
 # endplate heating power [W]
@@ -161,23 +163,27 @@ h_vap = 45400.
 ################################################################################
 ############################Simulation##########################################
 # tolerance
-k_tol = 1.e-12
+k_tol = 1.e-20
 # max number of iterations
-max_it = 1000
+max_it = 5000
+# gas channel relaxations factor
+channel_fac = 0.5
 #############################Dicts##############################################
 ################################################################################
 channel_cat = {'length': channel_length, 'p_in': p_cat_in, 't_in': t_cat_in,
                'hum_in': phi_cat, 'flow_dir': flow_dir_cat, 'width': channel_width,
-               'heigth': channel_height}
+               'heigth': channel_height, 'numb_bends': channel_bends,
+               'bend_fri_fac': channel_fri_fac}
 channel_ano = {'length': channel_length, 'p_in': p_ano_in, 't_in': t_ano_in,
                'hum_in': phi_ano, 'flow_dir': flow_dir_ano, 'width': channel_width,
-               'heigth': channel_height}
+               'heigth': channel_height, 'numb_bends': channel_bends,
+               'bend_fri_fac': channel_fri_fac}
 cathode = {'spec_numb': spec_numb_cat, 'val': val_cat, 'type': True,
            'gas_con_ref': gas_con_ref_cat,
            'sym_fac': sym_cat, 'thick_gde': gde_thick,
            'plate_thick': plate_thick, 'm_mass': array([m_o2, m_h2o, m_n2]),
            't_init': t_hcell_init, 'tafel_slope': cat_tafel_slope,
-           'prot_con':cat_prot_con, 'vol_ex_cd': cat_vol_ex_cd,
+           'prot_con': cat_prot_con, 'vol_ex_cd': cat_vol_ex_cd,
            'dif_coef_cat':cat_layer_dif_coef, 'dif_coef_gdl': cat_gdl_dif_coef,
            'cat_thick':cat_layer_thick}
 anode = {'spec_numb': spec_numb_ano, 'val': val_ano, 'type': False,

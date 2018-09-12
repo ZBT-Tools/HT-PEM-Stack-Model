@@ -50,6 +50,8 @@ class Simulation:
                 self.save_old_value()
                 self.tryarray.append(self.stack.i[0, -1])
                 self.stack.update()
+                if self.stack.break_programm is True:
+                    break
                 self.calc_convergence_criteria()
                 print(counter)
                 counter = counter + 1
@@ -125,13 +127,13 @@ class Simulation:
                 raise
         for l, item in enumerate(self.stack.cell_list):
             plt.plot(x_var, eval('self.stack.cell_list'+
-                                 '['+str(l)+']'+'.' + y_var), color=color, marker='.')
+                                 '['+str(l)+']'+'.' + y_var), color=plt.cm.coolwarm(l/(self.stack.cell_numb-1)), marker='.')
 
         plt.xlabel(x_label)
         plt.ylabel(y_label)
         plt.yscale(y_scale)
         plt.autoscale(tight=True, axis='both', enable=True)
-        plt.xlim(xlim[0],xlim[1])
+        plt.xlim(xlim[0], xlim[1])
         if y_lim is not False:
             plt.ylim(y_lim[0], y_lim[1])
         plt.tight_layout()
@@ -154,23 +156,24 @@ class Simulation:
         gfunc.output_x(self.stack.i, x_ele, 'Current Density [A/m²]', 'Channel Location [m]',
                      'linear', np.full(self.stack.cell_numb, 'k'),
                      'Current Density', q, False,[0., i_p.channel_length])
-        gfunc.output([self.stack.q_x_cat / (self.stack.q_h_in_cat[-1] / self.stack.cell_numb),
-                      self.stack.q_x_ano / (self.stack.q_h_in_ano[-1] / self.stack.cell_numb)],
-                     'Flow Distribution', 'Cell Number', 'linear', ['k', 'r'],
-                     'Flow Distribution', q , 0., self.stack.cell_numb-1,
-                     ['Cathode', 'Anode'])
-        gfunc.output([self.stack.q_x_cat / (self.stack.q_h_in_cat[-1]
-                      / self.stack.cell_numb) * self.stack.stoi_cat,
-                      self.stack.q_x_ano / (self.stack.q_h_in_ano[-1]
-                      / self.stack.cell_numb) * self.stack.stoi_ano],
-                     'Stoichiometry', 'Cell Number', 'linear', ['k', 'r'],
-                     'Stoichimetry Distribution', q, 0., self.stack.cell_numb-1,
-                     ['Cathode', 'Anode'])
-        np.savetxt('cat_flow.csv', np.flipud(self.stack.q_x_cat / (self.stack.q_h_in_cat[-1] / self.stack.cell_numb)))
+        if self.stack.cell_numb >1:
+            gfunc.output([self.stack.q_x_cat / (self.stack.q_h_in_cat[-1] / self.stack.cell_numb),
+                          self.stack.q_x_ano / (self.stack.q_h_in_ano[-1] / self.stack.cell_numb)],
+                         'Flow Distribution', 'Cell Number', 'linear', ['k', 'r'],
+                         'Flow Distribution', q , 0., self.stack.cell_numb-1,
+                         ['Cathode', 'Anode'])
+            gfunc.output([self.stack.q_x_cat / (self.stack.q_h_in_cat[-1]
+                          / self.stack.cell_numb) * self.stack.stoi_cat,
+                          self.stack.q_x_ano / (self.stack.q_h_in_ano[-1]
+                          / self.stack.cell_numb) * self.stack.stoi_ano],
+                         'Stoichiometry', 'Cell Number', 'linear', ['k', 'r'],
+                         'Stoichimetry Distribution', q, 0., self.stack.cell_numb-1,
+                         ['Cathode', 'Anode'])
+            #np.savetxt('cat_flow.csv', np.flipud(self.stack.q_x_cat / (self.stack.q_h_in_cat[-1] / self.stack.cell_numb)))
 
         self.plot_cell_var('v', 'Voltage [V]', 'Channel Location [m]', 'linear',
                            'k', 'Cell Voltage', q, [0., i_p.channel_length], x_ele, [0., 1.28])
-        self.plot_cell_var('dv', 'dV/dI', 'Channel Location [m]', 'linear', 'k',
+        self.plot_cell_var('dv', 'dV/dI [V/A]', 'Channel Location [m]', 'linear', 'k',
                            'dvdI', q, [0., i_p.channel_length], x_ele, [-1., 1.])
         self.plot_cell_var('t1', 'Cathode Temperature [K]', 'Channel Location [m]',
                            'linear', 'k', 'Cathode Temperature', q, [0., i_p.channel_length],
@@ -181,8 +184,8 @@ class Simulation:
         self.plot_cell_var('t2', 'Cathode GDL Temperature [K]', 'Channel Location [m]',
                            'linear', 'k', 'Cathode GDL Temperature', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('cathode.t_gas', 'Air Temperature [K]', 'Channel Location [m]',
-                           'linear', 'k', 'Air Temperature', q, [0., i_p.channel_length],
+        self.plot_cell_var('cathode.t_gas', 'Cathode Channel Temperature [K]', 'Channel Location [m]',
+                           'linear', 'k', 'Cathode_Channel_Temperature', q, [0., i_p.channel_length],
                            x_node, False)
         self.plot_cell_var('t5', 'Anode GDL Temperature [K]', 'Channel Location [m]',
                            'linear', 'k', 'Anode GDL Temperature', q, [0., i_p.channel_length],
@@ -226,8 +229,14 @@ class Simulation:
         self.plot_cell_var('cathode.humidity', 'Relative Humidity', 'Channel Location [m]',
                            'linear', 'k', 'Relative Humidity Cathode', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('cathode.m_flow', 'Air Massflow [kg/s]', 'Channel Location [m]',
-                           'linear', 'k', 'Air_massflow', q, [0., i_p.channel_length],
+        self.plot_cell_var('cathode.m_flow', 'Cathode Channel Massflow [kg/s]', 'Channel Location [m]',
+                           'linear', 'k', 'Cathode_Channel_Massflow', q, [0., i_p.channel_length],
+                           x_node, False)
+        self.plot_cell_var('cathode.m_full_flow', 'Cathode Massflow [kg/s]', 'Channel Location [m]',
+                           'linear', 'k', 'Cathode Massflow', q, [0., i_p.channel_length],
+                           x_node, False)
+        self.plot_cell_var('cathode.g_full', 'Cathode Capacity Flow [W/K]', 'Channel Location [m]',
+                           'linear', 'k', 'Cathode Capacity Flow', q, [0., i_p.channel_length],
                            x_node, False)
         self.plot_cell_var('cathode.m_reac_flow', 'Oxygen Massflow [kg/s]', 'Channel Location [m]',
                            'linear', 'k', 'Oxygen_massflow', q, [0., i_p.channel_length],
@@ -238,7 +247,7 @@ class Simulation:
         self.plot_cell_var('anode.m_flow', 'Hydrogen Massflow [kg/s]', 'Channel Location [m]',
                            'linear', 'k', 'Hydrogen_massflow', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('cathode.cp_mix', 'Cathode Heat Capacity [J/(kgK)]', 'Channel Location [m]',
+        self.plot_cell_var('cathode.cp_full', 'Cathode Heat Capacity [J/(kgK)]', 'Channel Location [m]',
                            'linear', 'k', 'Cathode Heat Capacity', q, [0., i_p.channel_length],
                            x_node, False)
         self.plot_cell_var('cathode.p', 'Cathode Channel Pressure [Pa]', 'Channel Location [m]',
@@ -248,11 +257,11 @@ class Simulation:
                            'linear', 'k', 'Anode Channel Pressure', q, [0., i_p.channel_length],
                            x_node, False)
 
-
         for l, item in enumerate(self.stack.t):
             if (l > 0 and self.stack.cool_ch_bc is False) or self.stack.cool_ch_bc is True:
-                plt.plot(x_node, self.stack.t[l], label=l, marker='.')
-        plt.legend()
+                plt.plot(x_node, self.stack.t[l], label=l, marker='.',
+                         color=plt.cm.coolwarm((l)/(self.stack.cell_numb-1)))
+        #plt.legend()
         plt.grid()
         plt.ylabel(r'Coolant Temperature [K]')
         plt.xlabel('Channel Location [m]')
@@ -278,7 +287,7 @@ class Simulation:
             for l in self.stack.cell_list:
                 t_vec.append(np.array([l.t3[w], l.t2[w],
                                        l.t1[w], l.t4[w], l.t5[w]]))
-            plt.plot(x, np.block(t_vec), marker='o')
+            plt.plot(x, np.block(t_vec), marker='o', color='k')
             plt.xlim(0, x[-1])
             plt.xlabel('Stack Location [m]')
             plt.ylabel('Temperature [K]')

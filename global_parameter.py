@@ -1,7 +1,7 @@
 ##global parameter
 ## universal parameter
 import input_parameter as i_p
-dict_uni = {'r': 8.3144598, 'f': 96485.33289, 'h_vap': i_p.h_vap}
+dict_uni = {'r': 8.3144598, 'f': 96485.33289, 'h_vap': i_p.h_vap,'cp_liq': 4182.}
 ##
 dict_case = {'tu': i_p.t_u, 'tar_cd': i_p.tar_cd[0], 'nodes': i_p.nodes,
              'elements': i_p.nodes-1, 'vap_m_t_coef': i_p.gamma,

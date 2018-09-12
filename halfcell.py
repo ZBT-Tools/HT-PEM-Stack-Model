@@ -1,3 +1,4 @@
+import copy
 import matrix_database
 import global_functions
 import saturation_pressure_vapour as p_sat
@@ -46,6 +47,7 @@ class Halfcell:
         self.i_theta = np.sqrt(2. * self.vol_ex_cd * self.proton_conductivity
                                * self.tafel_slope)
         self.index_cat = g_par.dict_case['nodes']-1
+        self.p_drop_bends = 0.
 
     def init_arrays(self):
         self.zero_ele = np.full(g_par.dict_case['nodes']-1, 1.e-50)
@@ -91,6 +93,7 @@ class Halfcell:
             self.r_el[q] = g_par.dict_uni['r'] / self.m_m[q] * 1.e3
 
     def update(self):
+        self.calc_t_gas_e()
         #print(self.i)
         self.calc_reac_flow()
         self.calc_water_flow()
@@ -131,9 +134,11 @@ class Halfcell:
         self.calc_rel_humidity()
         self.calc_flow_velocity()
         self.calc_mass_flow()
+        self.calc_m_mix_properties()
         self.calc_re()
         self.calc_nu()
         self.calc_heat_transfer_coef()
+        self.calc_pressure_drop_bends()
         self.calc_pressure_zimmer_lam()
         if self.pem_type is False:  # NT
             self.calc_free_water()
@@ -154,6 +159,10 @@ class Halfcell:
     def set_t(self, var):
         for l, item in enumerate(var):
             exec('self.t%d = var[l]' % (l + 1))
+
+    def calc_t_gas_e(self):
+        self.t_gas_copy = copy.deepcopy(self.t_gas)
+        self.t_gas_e = global_functions.calc_elements(self.t_gas_copy)
 
     #@jit
     def calc_reac_flow(self):
@@ -215,6 +224,11 @@ class Halfcell:
                     self.gas_flow[1, -self.index_cat - 1:] = self.gas_flow[1, self.index_cat]
                     break
 
+    def calc_pressure_drop_bends(self):
+        self.p_drop_bends = self.channel.bend_fri_fac * np.average(self.rho)\
+                            * np.average(self.u)**2. * .5 * self.channel.bend_numb\
+                            /(g_par.dict_case['nodes']-1)
+
     def calc_pressure_zimmer_lam(self):
         self.rho_ele = global_functions.calc_elements(self.rho)
         self.u_ele = global_functions.calc_elements(self.u)
@@ -224,21 +238,21 @@ class Halfcell:
             self.p[0] = self.channel.p_in
             self.p[1:] = self.channel.p_in + 32. / self.dh\
                          * np.matmul(-mat, self.rho_ele * self.u_ele ** 2. / self.re_ele) \
-                         * self.channel.d_x
+                         * self.channel.d_x - self.p_drop_bends
         else:
             mat = self.node_backward
             self.p[-1] = self.channel.p_in
             self.p[:-1] = self.channel.p_in + 32. / self.dh\
                      * np.matmul(-mat, self.rho_ele * self.u_ele**2. /self.re_ele)\
-                     * self.channel.d_x
+                     * self.channel.d_x - self.p_drop_bends
 
     def calc_con(self):  # Gas concentrations in the channel [moles/mÂ³]
         for w in range(g_par.dict_case['nodes']):
-            id_lw = self.p[w] / (g_par.dict_uni['r'] * self.t_gas[w])
+            id_lw = self.p[w] / (g_par.dict_uni['r'] * self.t2[w])
             var4 = np.sum(self.gas_flow[:, w])
             var2 = self.gas_flow[1][w] / var4
             self.gas_con[1][w] = id_lw * var2
-            a = p_sat.water.calc_psat(self.t_gas[w])
+            a = p_sat.water.calc_psat(self.t2[w])
             e = g_par.dict_uni['r'] * self.t_gas[w]
             if self.gas_con[1][w] >= a / e:  # saturated
                 if self.type is True:
@@ -310,9 +324,17 @@ class Halfcell:
     def calc_mass_flow(self):
         self.m_flow = self.u * self.rho * self.channel.cross_area
         self.m_reac_flow = self.gas_flow[0] * self.m_m[0] * 1.e-3
+        self.m_liq_water = self.w * self.m_m[1] * 1.e-3
         self.m_vap_water_flow = (self.gas_flow[1]-self.w) * self.m_m[1] * 1.e-3
         self.m_reac_flow_delta = abs(global_functions.calc_dif(self.m_reac_flow))
         self.m_vap_water_flow_delta = abs(global_functions.calc_dif(self.m_vap_water_flow))
+
+    def calc_m_mix_properties(self):
+        self.m_full_flow = self.m_flow + self.m_liq_water
+        self.cp_full = (self.m_flow * self.cp_mix
+                        + self.m_liq_water * g_par.dict_uni['cp_liq'])\
+                       / self.m_full_flow
+        self.g_full = self.m_full_flow * self.cp_full
 
     def calc_re(self):
         self.re = global_functions.calc_re(self.rho, self.u, self.dh, self.visc_mix)
