@@ -335,6 +335,7 @@ class Halfcell:
                         + self.m_liq_water * g_par.dict_uni['cp_liq'])\
                        / self.m_full_flow
         self.g_full = self.m_full_flow * self.cp_full
+        self.g_full_e = global_functions.calc_elements(self.g_full)
 
     def calc_re(self):
         self.re = global_functions.calc_re(self.rho, self.u, self.dh, self.visc_mix)

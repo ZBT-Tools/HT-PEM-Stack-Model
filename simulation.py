@@ -144,7 +144,7 @@ class Simulation:
         plt.close()
 
 
-    def output(self,q):
+    def output(self, q):
         x_node = np.linspace(0., i_p.channel_length, gpar.dict_case['nodes'])
         x_ele = gfunc.calc_elements(x_node)
         gfunc.output([self.mdf_criteria_process, self.i_criteria_process, self.t_criteria_process],

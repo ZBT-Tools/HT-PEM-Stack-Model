@@ -223,10 +223,10 @@ class Stack:
         for i, item in enumerate(self.cell_list):
             r_alpha_cat = np.hstack((r_alpha_cat, self.cell_list[i].cathode.r_ht_coef_a))
             r_alpha_ano = np.hstack((r_alpha_ano, self.cell_list[i].anode.r_ht_coef_a))
-        #self.r_alpha_cat = r_alpha_cat
-        self.r_alpha_cat = np.full(self.cell_numb, 1.e50)
-        #self.r_alpha_ano = r_alpha_ano
-        self.r_alpha_ano = np.full(self.cell_numb, 1.e50)
+        self.r_alpha_cat = r_alpha_cat
+        #self.r_alpha_cat = np.full(self.cell_numb, 1.e50)
+        self.r_alpha_ano = r_alpha_ano
+        #self.r_alpha_ano = np.full(self.cell_numb, 1.e50)
 
     def stack_v(self):
         var = []
@@ -558,58 +558,40 @@ class Stack:
 
     def calc_gas_channel_t(self):
         for q, item in enumerate(self.cell_list):
-            #t_gas = np.full(g_par.dict_case['nodes'], 0.)
-            #t_gas[0] = self.cell_list[q].cathode.channel.t_in
-            #for w in range(1, g_par.dict_case['nodes']):
-             #    self.cell_list[q].cathode.t_gas[w] = (self.cell_list[q].cathode.g_full[w - 1] *
-              #                                       self.cell_list[q].cathode.t_gas[w - 1]
-               #                                      + self.cell_list[q].cathode.gamma[w] * g_par.dict_uni['h_vap']
-                #                                     + 1. / self.r_alpha_cat[q] * (self.cell_list[q].t2e[w - 1] -
-                #                                                                   self.cell_list[q].cathode.t_gas[
-                 #                                                                      w - 1] * 0.5)
-                  #                                   + self.cell_list[q].anode.cpe[w - 1] *
-                   #                                  self.cell_list[q].anode.m_reac_flow_delta[w - 1] *
-                    #                                 self.cell_list[q].anode.t_gas_e[w - 1]) \
-                     #                               / (self.cell_list[q].cathode.g_full[w] + .5 / self.r_alpha_cat[q])
-            self.cell_list[q].cathode.t_gas = self.cell_list[q].cathode.t2
-
-                #self.cell_list[q].cathode.t_gas = self.cell_list[q].cathode.t_gas * (1-i_p.channel_fac) + self.cell_list[q].cathode.t_gas_copy * i_p.channel_fac
-
-
-            #print(self.cell_list[q].cathode.t_gas)
-            #for w in range(g_par.dict_case['nodes']-2, -1, -1):
-             #   #implizit
-              #  self.cell_list[q].anode.t_gas[w] = (self.cell_list[q].anode.g_full[w + 1] * self.cell_list[q].anode.t_gas[w + 1]
-               #                                     - self.cell_list[q].anode.cpe[w] * self.cell_list[q].anode.m_reac_flow_delta[w] * self.cell_list[q].anode.t_gas[w + 1] * .5
-                #                                    + (self.cell_list[q].t5e[w] - self.cell_list[q].anode.t_gas[w + 1] *.5) / self.r_alpha_ano[q]
-                 #                                   + self.cell_list[q].anode.gamma[w] * g_par.dict_uni['h_vap'])\
-                  #                                 / (self.cell_list[q].anode.g_full[w]
-                   #                                   + self.cell_list[q].anode.cpe[w] * self.cell_list[q].anode.m_reac_flow_delta[w] * 0.5
-                    #                                  + 0.5 /self.r_alpha_ano[q])
-                #explezit#
-               # self.cell_list[q].anode.t_gas[w] = (self.cell_list[q].anode.g_full[w + 1] * self.cell_list[q].anode.t_gas_copy[w + 1]
-                #                                    - self.cell_list[q].anode.cpe[w] * self.cell_list[q].anode.m_reac_flow_delta[w] * self.cell_list[q].anode.t_gas_e[w]
-                 #                                   + (self.cell_list[q].t5e[w] - self.cell_list[q].anode.t_gas_e[w]) / self.r_alpha_ano[q]
-                  #                                  + self.cell_list[q].anode.gamma[w] * g_par.dict_uni['h_vap'])\
-                   #                                / (self.cell_list[q].anode.g_full[w])
-            #self.cell_list[q].anode.t_gas = self.cell_list[q].anode.t_gas * i_p.channel_fac + t_gas * (1. - i_p.channel_fac)
-            self.cell_list[q].anode.t_gas = self.cell_list[q].anode.t2
+            t_gas = np.full(g_par.dict_case['nodes'], 0.)
+            t_gas[0] = self.cell_list[q].cathode.channel.t_in
+            for w in range(1, g_par.dict_case['nodes']):
+                self.cell_list[q].cathode.t_gas[w] = (self.cell_list[q].cathode.t_gas[w-1]
+                                                      - self.cell_list[q].t2e[w-1])\
+                                                     * np.exp(-1./(self.r_alpha_cat[q]
+                                                                   * self.cell_list[q].cathode.g_full_e[w-1]))\
+                                                     + self.cell_list[q].t2e[w-1]\
+                                                     + self.cell_list[q].anode.cpe[w - 1]\
+                                                     * self.cell_list[q].anode.m_reac_flow_delta[w - 1]\
+                                                     * self.cell_list[q].anode.t_gas_e[w - 1]
+            for w in range(g_par.dict_case['nodes']-2, -1, -1):
+                self.cell_list[q].anode.t_gas[w] = (self.cell_list[q].anode.t_gas[w+1]
+                                                    - self.cell_list[q].t5e[w])\
+                                                   * np.exp(-1./(self.r_alpha_ano[q]
+                                                                 * self.cell_list[q].anode.g_full_e[w]))\
+                                                   + self.cell_list[q].t5e[w]\
+                                                   - self.cell_list[q].anode.cpe[w]\
+                                                   * self.cell_list[q].anode.m_reac_flow_delta[w]\
+                                                   * self.cell_list[q].anode.t_gas_e[w]
 
     def calc_coolant_channel_t(self):
         for q, item in enumerate(self.cell_list):
-            var1 = 0.5/(self.r_alpha_col[q] * self.g_cool)
+            var1 = 1./(self.r_alpha_col[q]* self.g_cool)
             for w in range(1, g_par.dict_case['nodes']):
-                self.t[q,w] = (var1 * (self.cell_list[q].t3[w]
-                                       + self.cell_list[q].t3[w-1]
-                                       - self.t[q,w-1]) + self.t[q,w-1])\
-                              / (1.+ var1)
+                self.t[q, w] = (self.t[q, w-1] - self.cell_list[q].t3e[w-1])\
+                              * np.exp(-1. * var1) + self.cell_list[q].t3e[w-1]
         if self.cool_ch_bc is True:
             var1 = 0.5 / (self.r_alpha_col[self.cell_numb-1] * self.g_cool)
             for w in range(1,g_par.dict_case['nodes']):
-                self.t[self.cell_numb, w] = (var1 * (self.cell_list[self.cell_numb-1].t5[w]
-                                           + self.cell_list[self.cell_numb-1].t5[w-1]
-                                           - self.t[self.cell_numb, w-1]) + self.t[self.cell_numb, w-1])\
-                                  / (1. + var1)
+                self.t[self.cell_numb, w] = (self.t[self.cell_numb, w-1]
+                                             - self.cell_list[q].t5e[w-1])\
+                                            * np.exp(-1. * var1)\
+                                            + self.cell_list[q].t5e[w-1]
 
     def calc_layer_t(self):
         #self.I = g_func.calc_nodes(self.i) * self.cell_list[0].cathode.channel.plane_dx
@@ -824,5 +806,3 @@ class Stack:
                 self.cell_list[q].t2[w] = t_vec[counter + 3]
                 self.cell_list[q].t3[w] = t_vec[counter + 4]
                 counter = counter + 5
-            self.cell_list[q].t5e = g_func.calc_elements(self.cell_list[q].t5)
-            self.cell_list[q].t2e = g_func.calc_elements(self.cell_list[q].t2)

@@ -36,7 +36,7 @@ channel_fri_fac = 0.1
 # oxygen concentration at the inlet [mol/m³]
 o2_con_in = 0.21
 # cathode stoichiometry
-stoi_cat = 1.3
+stoi_cat = 3.
 # minimum stoichiometry (do not set it smaller 1.1)
 stoi_min = 1.1
 # cathode number of species (3 [N2,O2,H2O])
@@ -44,7 +44,7 @@ spec_numb_cat = 3
 # cathode side reaction, number of valence electrons
 val_cat = 4.
 # anode stoichiometry
-stoi_ano = 1.3
+stoi_ano = 3.
 # anode number of species (2 (H2,H2O))
 spec_numb_ano = 2
 # side reaction, number of valence electrons
@@ -165,7 +165,7 @@ h_vap = 45400.
 # tolerance
 k_tol = 1.e-12
 # max number of iterations
-max_it = 5
+max_it = 5000
 # gas channel relaxations factor
 channel_fac = 0.5
 #############################Dicts##############################################

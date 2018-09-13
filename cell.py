@@ -81,6 +81,7 @@ class Cell:
 
     def update(self):
         self.t0 = 0.5 * self.anode.t1 + 0.5 * self.cathode.t1
+        self.calc_temperature_elements()
         if g_par.dict_case['pem_type'] is False:
             self.cathode.set_pem_type(False)
             self.cathode.set_i(self.i)
@@ -117,6 +118,11 @@ class Cell:
     def set_i(self, i):
         self.i = i
         self.i_n = g_func.calc_nodes_1d(self.i)
+
+    def calc_temperature_elements(self):
+        self.t2e = g_func.calc_elements(self.t2)
+        self.t3e = g_func.calc_elements(self.t3)
+        self.t5e = g_func.calc_elements(self.t5)
 
     def calc_mem_block_1(self):
         self.zeta_plus = self.cathode.free_water + self.anode.free_water + \
