@@ -267,8 +267,9 @@ class Simulation:
                          color=plt.cm.coolwarm((l)/(self.stack.cell_numb)))
         #plt.legend()
         plt.grid()
-        plt.ylabel(r'Coolant Temperature $[K]$')
-        plt.xlabel('Channel Location $[m]$')
+        plt.ylabel(r'Coolant Temperature $[K]$', fontsize=16)
+        plt.xlabel('Channel Location $[m]$', fontsize=16)
+        plt.tick_params(labelsize=14)
         plt.autoscale(tight=True, axis='both', enable=True)
         plt.xlim(0, self.stack.cell_list[0].cathode.channel.length)
         plt.savefig(os.path.join(os.path.dirname(__file__),

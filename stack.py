@@ -594,10 +594,7 @@ class Stack:
                                             + self.cell_list[q].t5e[w-1]
 
     def calc_layer_t(self):
-        #self.I = g_func.calc_nodes(self.i) * self.cell_list[0].cathode.channel.plane_dx
-        #print(self.I)
         self.I = g_func.iepolate_nodes(self.i) * self.cell_list[0].cathode.channel.plane_dx
-        #print(self.I)
         temp_mat = m_d.t_mat_no_bc_col(g_par.dict_case['nodes'],
                                          self.cell_numb,
                                          self.r_g,

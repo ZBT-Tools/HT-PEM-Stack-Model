@@ -1,6 +1,6 @@
 # Global functions:
 from copy import copy
-from numpy import reshape, full, sqrt, log, array, exp, matmul, array, hstack, delete, concatenate
+from numpy import reshape, full, sqrt, log, array, exp, matmul, array, hstack, delete, concatenate, maximum
 from matplotlib import pyplot as plt
 import os, errno
 
@@ -128,6 +128,16 @@ def calc_nodes_1d (ele_vec):
 def calc_dif(vec):
     return vec[:-1] - vec[1:]
 
+def calc_ie_dx(vec1, vec2):
+    vec1 = array(vec1)
+    vec2 = array(vec2)
+    diff1 = vec1[1:] - vec1[:-1]
+    diff2 = vec2[1:] - vec2[:-1] #maximum(vec2[1:] - vec2[:-1], full(len(vec1)-1, -1.))
+    res_vec = diff1 / diff2
+    print(res_vec)
+    res_vec = (res_vec[:-1] + res_vec[1:]) * .5
+    return concatenate(([2. * res_vec[0] - res_vec[1]], res_vec, [2. * res_vec[-1] - res_vec[-2]]))
+
 def calc_fw_eh(t):
     return (t-273.15) * 4182.
 
@@ -171,9 +181,10 @@ def output_x(y_values,x_values, y_label, x_label, y_scale, color, title, q, val_
         for l, item in enumerate(y_values):
             plt.plot(x_values, y_values[l], color=plt.cm.coolwarm(l/len(y_values)), marker='.')
 
-    plt.xlabel(x_label)
-    plt.ylabel(y_label)
+    plt.xlabel(x_label, fontsize=16)
+    plt.ylabel(y_label, fontsize=16)
     plt.yscale(y_scale)
+    plt.tick_params(labelsize=14)
     plt.autoscale(tight=True, axis='both', enable=True)
     plt.xlim(lim[0],lim[1])
     plt.tight_layout()
