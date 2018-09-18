@@ -1,14 +1,12 @@
-from numpy import array
+from numpy import array, linspace
 ################################################################################
 ############################Channel#############################################
 # channel length [m]
-channel_length = 0.67
+channel_length = 0.2322
 # number of Nodes
 nodes = 10
-# cathode gas channel scaled pressure drop coefficient [Pa s /m^3]
-k_cat = 2.e4
 # cathode gas channel inlet pressure [Pa]
-p_cat_in = 3.2e5
+p_cat_in = 1.e5
 # cathode gas channel inlet temperature [K]
 t_cat_in = 433.15
 # cathode phi
@@ -16,7 +14,7 @@ phi_cat = 0.
 # cathode flow direction
 flow_dir_cat = True
 # anode gas channel inlet pressure [Pa]
-p_ano_in = 3.e5
+p_ano_in = 1.e5
 # anode gas channel inlet temperature [K]
 t_ano_in = t_cat_in
 # ano phi
@@ -24,11 +22,11 @@ phi_ano = 0.
 # anode flow direction
 flow_dir_ano = False
 # width of the channel [m]
-channel_width = 1.e-2
+channel_width = 1.e-3
 # height of the channel [m]
 channel_height = 1.e-3
 # number of channel bends
-channel_bends = 10
+channel_bends = 48
 #bend friction factor [0-1]
 channel_fri_fac = 0.1
 ################################################################################
@@ -44,16 +42,17 @@ spec_numb_cat = 3
 # cathode side reaction, number of valence electrons
 val_cat = 4.
 # anode stoichiometry
-stoi_ano = 3.
+stoi_ano = 1.34
 # anode number of species (2 (H2,H2O))
 spec_numb_ano = 2
 # side reaction, number of valence electrons
 val_ano = 2.
 # target current density [A/m^2]
-# tar_cd = linspace(1000.,16000., 10)
-tar_cd = [6000.]
+#tar_cd = linspace(1000.,7000., 7)
+tar_cd = array([1111.11, 3333.33, 4444.44, 5555.55, 6666.66])
+#tar_cd = [7000.]
 # gas reference concentration cathode [mol/m^3]
-gas_con_ref_cat = 7.36e0
+gas_con_ref_cat = 4.e0
 # gas reference concentration anode [mol/m^3}
 gas_con_ref_ano = 3.68e1
 # symmetry factor cathode
@@ -75,7 +74,7 @@ cat_prot_con = 3.e0
 # anode layer proton conductivity [Ohm^-1m^-1]
 ano_prot_con = 3.e0
 # cathode volumetric exchange current density [A/m^3]
-cat_vol_ex_cd = 0.817e3
+cat_vol_ex_cd = 5.5e3
 # anode volumetric exchange current density [A/m^3]
 ano_vol_ex_cd = 0.817e9
 # cathode layer diffusion coefficient [m^2/s]
@@ -96,6 +95,10 @@ cat_tafel_slope = 0.03
 ano_tafel_slope = 0.03
 ################################################################################
 ############################Cell################################################
+# membrane basic res
+r_mem0 = 0.51
+#membran temp res acl
+r_memm = 0.0007
 # cell width [m]
 cell_width = 0.01
 # cell length [m]
@@ -117,7 +120,7 @@ k_m = .26e0
 # thermal conductivity of the membrane in plane  [W/(mK)]
 ki_m = .26e0
 # fitted open circuit voltage [V]
-e_o = 1.18
+e_o = 1.
 # thermoneutral voltage for ORR [V]
 vtn = 1.28
 # pem-type (True = HT-PEM, False = NT-PEM)
@@ -137,7 +140,7 @@ h_col_ch = plate_thick/ 2.
 # cp value coolant [J/(kgK)]
 cp_col = 4000.
 # mass flow coolant [kg/s]
-m_col = 1.e-3
+m_col = 1.e-6
 # convection coefficient coolant [W/(m^2K)]
 a_col = 4000.
 ################################################################################
@@ -149,13 +152,13 @@ cooling_bc = True
 # endplate heating power [W]
 heat_power = 0.#5.e0
 # convection coefficient of the stack walls [W/(m^2K)]
-alpha_conv = 0.5e-10
+alpha_conv = 0.5e-1
 # resistivity of the bipolarplates [Ohm/m]
 resistivity = 8.e-1
 # height of the manifold channel [m]
-manifold_height = 10.e-3
+manifold_height = 2.01e-2
 # width of the manifold channel [m]
-manifold_width = 10.e-3
+manifold_width = 2.01e-2
 # geometrical pressure loss coefficient
 manifold_kf = 0.27
 # latent heat of vaporization [J/mol]
@@ -197,7 +200,8 @@ anode = {'spec_numb': spec_numb_ano, 'val': val_ano, 'type': False,
 cell = {'mem_thick': mem_thick, 'plate_h_con': k_p, 'gde_h_con': k_g,
         'mem_h_con': k_m,'t_coolant_in': t_cool_in
         ,'width': cell_width,'length': cell_length, 'plate_hi_con': ki_p,
-        'gde_hi_con': ki_g, 'mem_hi_con': ki_m}
+        'gde_hi_con': ki_g, 'mem_hi_con': ki_m, 'mem_bas_r': r_mem0,
+        'mem_acl_r': r_memm}
 stack = {'cell_numb': cell_numb, 'heat_power': heat_power,
          'plate_res': resistivity, 'heigth': manifold_height,
          'width': manifold_width, 'dis_dis_fac': manifold_kf,

@@ -102,6 +102,7 @@ class Halfcell:
         self.calc_voltage_losses_parameter()
         #print(self.gas_con_ele,'g_con')
         self.calc_activation_losses()
+        #self.calc_activation_losses_tafel()
         #print(self.act_ov, 'act_ov')
         #print(self.act_dov, 'act_dov')
         self.calc_transport_losses_catalyst_layer()
@@ -399,6 +400,9 @@ class Halfcell:
                + np.pi * self.i_hat/(2. + self.i_hat)
         self.var = 1. - self.i / (self.i_lim * self.gas_con_ele / self.gas_con_ref)
 
+    def calc_activation_losses_tafel(self):
+        self.act_ov = g_par.dict_uni['r'] * global_functions.calc_elements(self.t2) / (g_par.dict_uni['f'] * 0.54) * np.log10(self.i * self.gas_con_ref / (self.vol_ex_cd * self.thickness_cat * self.gas_con_ele))
+        self.act_dov = g_par.dict_uni['r'] * global_functions.calc_elements(self.t2) / (g_par.dict_uni['f'] * 0.54) /(self.i * self.gas_con_ref / (self.vol_ex_cd * self.thickness_cat * self.gas_con_ele))
 
     def calc_activation_losses(self):
         self.act_ov = self.tafel_slope\

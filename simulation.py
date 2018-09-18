@@ -42,6 +42,7 @@ class Simulation:
    # @do_cprofile
     def update(self):
         for q, item in enumerate(i_p.tar_cd):
+            print(q)
             gpar.dict_case['tar_cd'] = i_p.tar_cd[q]
             self.stack = st.Stack(i_p.stack)
             statement = True
@@ -53,7 +54,8 @@ class Simulation:
                 if self.stack.break_programm is True:
                     break
                 self.calc_convergence_criteria()
-                print(counter)
+                if len(i_p.tar_cd) < 1:
+                    print(counter)
                 counter = counter + 1
                 if ((self.i_criteria < self.k_it and counter > 100)
                     and (self.mdf_criteria_ano < self.k_it
@@ -67,16 +69,24 @@ class Simulation:
                                        + np.array(self.t5_criteria_process)) * .2
             self.mdf_criteria_process = (np.array(self.mdf_criteria_ano_process)
                                          + np.array(self.mdf_criteria_cat_process)) * .5
+            self.v.append(np.average(self.stack.v))
             self.output(str(q))
-            #self.v.append(np.average(self.stack.v))
             self.tryarray = []
-        #plt.plot(i_p.tar_cd,self.v)
-        #plt.ylabel('Voltage [V]')
-        #plt.xlabel('Current Density [A/m²]')
-        #plt.savefig(os.path.join(os.path.dirname(__file__),   'polarization curve' + '.jpg'))
-        #plt.show()
-
-
+        if len(i_p.tar_cd) > 1:
+            comp_i = np.array([1111.11,3333.33,4444.44,5555.55,6666.66])
+            comp_v = np.array([0.675,0.582,0.5465,0.51325,0.48125])
+            plt.plot(i_p.tar_cd * 1.e-4, self.v, marker='.', color='k', label='Simulation')
+            plt.plot(comp_i*1e-4, comp_v, marker='^', color='r', label='Measurement')
+            plt.ylabel('Voltage $[V]$', fontsize=16)
+            plt.xlabel('Current Density $[A/cm²]$', fontsize=16)
+            plt.tick_params(labelsize=14)
+            plt.grid()
+            plt.legend()
+            plt.autoscale(tight=True, axis='both', enable=True)
+            plt.ylim(0. ,1.)
+            plt.tight_layout()
+            plt.savefig(os.path.join(os.path.dirname(__file__), 'Polarization_curve' + '.jpg'))
+            plt.close()
 
     def calc_convergence_criteria(self):
         self.mfd_criteria_cat = np.abs(sum(((self.stack.q_x_cat - self.q_x_cat_old)
@@ -271,6 +281,7 @@ class Simulation:
         plt.xlabel('Channel Location $[m]$', fontsize=16)
         plt.tick_params(labelsize=14)
         plt.autoscale(tight=True, axis='both', enable=True)
+        plt.tight_layout()
         plt.xlim(0, self.stack.cell_list[0].cathode.channel.length)
         plt.savefig(os.path.join(os.path.dirname(__file__),
                                  'Plots' + q + '/' + 'Coolant' + '.jpg'))
@@ -294,8 +305,9 @@ class Simulation:
                                        l.t1[w], l.t4[w], l.t5[w]]))
             plt.plot(x, np.block(t_vec), marker='o', color='k')
             plt.xlim(0, x[-1])
-            plt.xlabel('Stack Location $[m]$')
-            plt.ylabel('Temperature $[K]$')
+            plt.xlabel('Stack Location $[m]$', fontsize=16)
+            plt.ylabel('Temperature $[K]$', fontsize=16)
+            plt.tick_params(labelsize=14)
             plt.autoscale(tight=True, axis='both', enable=True)
             plt.tight_layout()
             plt.savefig(os.path.join(os.path.dirname(__file__),

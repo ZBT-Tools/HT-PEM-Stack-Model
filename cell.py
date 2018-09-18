@@ -20,6 +20,8 @@ class Cell:
         self.t_cool_in = dict['t_coolant_in']
         self.width = dict['width']
         self.length = dict['length']
+        self.mem_bas_r = dict['mem_bas_r']
+        self.mem_acl_r = dict['mem_acl_r']
         self.init_param()
         self.init_arrays()
         self.init_func()
@@ -162,7 +164,7 @@ class Cell:
                    * np.log(self.m_pos1 / self.m_pos0)
 
     def calc_mem_resistivity(self):  # nodewise
-        self.omega = (0.4025 - 0.0007 * self.t0) * 1.e-4
+        self.omega = (self.mem_bas_r - self.mem_acl_r * self.t0) * 1.e-4
         self.omega_a = self.omega / self.cathode.channel.plane_dx
         self.omega_ele = g_func.calc_elements(self.omega)
 
