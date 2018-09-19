@@ -1,6 +1,6 @@
 # Global functions:
 from copy import copy
-from numpy import reshape, full, sqrt, log, array, exp, matmul, array, hstack, delete, vstack, zeros
+from numpy import reshape, full, sqrt, log, array, exp, matmul, array, hstack, delete, concatenate, maximum
 from matplotlib import pyplot as plt
 import os, errno
 
@@ -91,11 +91,13 @@ def calc_lambda_mix(lambdax, mol_f, visc, mol_w):
 def calc_medium_temp(t_layer, t_medium, coef, m1, m2):
     return coef/(coef + 1.) * matmul(m1,t_layer) + 1./coef * matmul(m2,t_medium)
 
+
 def calc_elements(node_vec):
     node_vec = list(node_vec)
     a = copy(node_vec)
     node_vec.pop(0), a.pop(-1)
     return (array(a) + array(node_vec)) *.5
+
 
 def calc_nodes(ele_vec):
     a = copy(ele_vec)
@@ -104,6 +106,16 @@ def calc_nodes(ele_vec):
     mat = (a + ele_vec) * 0.5
     mat = hstack([mat[:, [0]], mat, mat[:, [-1]]])
     return mat
+
+
+def iepolate_nodes(ele_vec):
+    ele_vec = array(ele_vec)
+    re_array = array((ele_vec[:, :-1] + ele_vec[:, 1:]) * .5)
+    first_node = array([2. * re_array[:, 0] - re_array[:, 1]])
+    last_node = array([2. * re_array[:, -1] - re_array[:, -2]])
+    re_array = concatenate((first_node.T, re_array, last_node.T), axis=1)
+    return re_array
+
 
 def calc_nodes_1d (ele_vec):
     ele_vec = list(ele_vec)
@@ -114,7 +126,20 @@ def calc_nodes_1d (ele_vec):
 
 
 def calc_dif(vec):
-    return vec[:-1]-vec[1:]
+    return vec[:-1] - vec[1:]
+
+def calc_ie_dx(vec1, vec2):
+    vec1 = array(vec1)
+    vec2 = array(vec2)
+    diff1 = vec1[1:] - vec1[:-1]
+    diff2 = vec2[1:] - vec2[:-1] #maximum(vec2[1:] - vec2[:-1], full(len(vec1)-1, -1.))
+    res_vec = diff1 / diff2
+    print(res_vec)
+    res_vec = (res_vec[:-1] + res_vec[1:]) * .5
+    return concatenate(([2. * res_vec[0] - res_vec[1]], res_vec, [2. * res_vec[-1] - res_vec[-2]]))
+
+def calc_fw_eh(t):
+    return (t-273.15) * 4182.
 
 
 def output(y_values, y_label, x_label, y_scale, color, title, q, xlim_low, xlim_up, val_label):
@@ -151,14 +176,15 @@ def output_x(y_values,x_values, y_label, x_label, y_scale, color, title, q, val_
             raise
     if val_label is not False:
         for l, item in enumerate(y_values):
-            plt.plot(x_values, y_values[l],color=color[l], marker='.', label=val_label[l])
+            plt.plot(x_values, y_values[l], color=plt.cm.coolwarm(l/len(y_values)), marker='.', label=val_label[l])
     else:
         for l, item in enumerate(y_values):
-            plt.plot(x_values, y_values[l], color=color[l], marker='.')
+            plt.plot(x_values, y_values[l], color=plt.cm.coolwarm(l/len(y_values)), marker='.')
 
-    plt.xlabel(x_label)
-    plt.ylabel(y_label)
+    plt.xlabel(x_label, fontsize=16)
+    plt.ylabel(y_label, fontsize=16)
     plt.yscale(y_scale)
+    plt.tick_params(labelsize=14)
     plt.autoscale(tight=True, axis='both', enable=True)
     plt.xlim(lim[0],lim[1])
     plt.tight_layout()
@@ -167,4 +193,3 @@ def output_x(y_values,x_values, y_label, x_label, y_scale, color, title, q, val_
         plt.legend()
     plt.savefig(os.path.join(os.path.dirname(__file__), 'Plots'+q+'/'+title+'.jpg'))
     plt.close()
-

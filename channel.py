@@ -12,6 +12,8 @@ class Channel:
         self.flow_dir = dict['flow_dir']
         self.width = dict['width']
         self.heigth = dict['heigth']
+        self.bend_numb = dict['numb_bends']
+        self.bend_fri_fac = dict['bend_fri_fac']
         self.cross_area = self.width * self.heigth
         self.extent = 2 * (self.width + self.heigth)
         self.plane = self.width * self.length

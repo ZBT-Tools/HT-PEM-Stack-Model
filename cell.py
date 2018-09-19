@@ -20,6 +20,8 @@ class Cell:
         self.t_cool_in = dict['t_coolant_in']
         self.width = dict['width']
         self.length = dict['length']
+        self.mem_bas_r = dict['mem_bas_r']
+        self.mem_acl_r = dict['mem_acl_r']
         self.init_param()
         self.init_arrays()
         self.init_func()
@@ -59,9 +61,11 @@ class Cell:
         self.fac_res_basic = 0.03
         self.t1 = self.cathode.t1
         self.t2 = self.cathode.t2
+        self.t2e = g_func.calc_elements(self.cathode.t2)
         self.t3 = self.cathode.t3
         self.t4 = self.anode.t1
         self.t5 = self.anode.t2
+        self.t5e = g_func.calc_elements(self.anode.t2)
         self.ko = 6.2
         self.ho = -52300.
 
@@ -79,6 +83,7 @@ class Cell:
 
     def update(self):
         self.t0 = 0.5 * self.anode.t1 + 0.5 * self.cathode.t1
+        self.calc_temperature_elements()
         if g_par.dict_case['pem_type'] is False:
             self.cathode.set_pem_type(False)
             self.cathode.set_i(self.i)
@@ -115,6 +120,11 @@ class Cell:
     def set_i(self, i):
         self.i = i
         self.i_n = g_func.calc_nodes_1d(self.i)
+
+    def calc_temperature_elements(self):
+        self.t2e = g_func.calc_elements(self.t2)
+        self.t3e = g_func.calc_elements(self.t3)
+        self.t5e = g_func.calc_elements(self.t5)
 
     def calc_mem_block_1(self):
         self.zeta_plus = self.cathode.free_water + self.anode.free_water + \
@@ -154,7 +164,7 @@ class Cell:
                    * np.log(self.m_pos1 / self.m_pos0)
 
     def calc_mem_resistivity(self):  # nodewise
-        self.omega = (0.4025 - 0.0007 * self.t0) * 1.e-4
+        self.omega = (self.mem_bas_r - self.mem_acl_r * self.t0) * 1.e-4
         self.omega_a = self.omega / self.cathode.channel.plane_dx
         self.omega_ele = g_func.calc_elements(self.omega)
 
@@ -180,14 +190,10 @@ class Cell:
         # correction not implemented
 
     def calc_voltage(self):  # nodewise
-        #print(len(self.i), len(self.cathode.gde_dif_los), len(self.cathode.cat_dif_los), len(self.cathode.act_ov))
-        #print(len(self.i), len(self.anode.gde_dif_los), len(self.anode.cat_dif_los), len(self.anode.act_ov))
-        #print(len(self.omega_ele))
         self.v = g_par.dict_case['e_0'] - self.omega_ele * self.i \
                  - self.cathode.gde_dif_los - self.anode.gde_dif_los\
                  - self.cathode.cat_dif_los - self.anode.cat_dif_los\
                  - self.cathode.act_ov - self.anode.act_ov
-        #self.v[-1] = 0.1
         self.v_th = g_func.calc_nodes_1d(self.v)
 
     def calc_dvdi(self):  # nodewise

@@ -42,6 +42,7 @@ class Simulation:
    # @do_cprofile
     def update(self):
         for q, item in enumerate(i_p.tar_cd):
+            print(q)
             gpar.dict_case['tar_cd'] = i_p.tar_cd[q]
             self.stack = st.Stack(i_p.stack)
             statement = True
@@ -50,8 +51,11 @@ class Simulation:
                 self.save_old_value()
                 self.tryarray.append(self.stack.i[0, -1])
                 self.stack.update()
+                if self.stack.break_programm is True:
+                    break
                 self.calc_convergence_criteria()
-                print(counter)
+                if len(i_p.tar_cd) < 1:
+                    print(counter)
                 counter = counter + 1
                 if ((self.i_criteria < self.k_it and counter > 100)
                     and (self.mdf_criteria_ano < self.k_it
@@ -65,16 +69,25 @@ class Simulation:
                                        + np.array(self.t5_criteria_process)) * .2
             self.mdf_criteria_process = (np.array(self.mdf_criteria_ano_process)
                                          + np.array(self.mdf_criteria_cat_process)) * .5
+            self.v.append(np.average(self.stack.v))
             self.output(str(q))
-            #self.v.append(np.average(self.stack.v))
             self.tryarray = []
-        #plt.plot(i_p.tar_cd,self.v)
-        #plt.ylabel('Voltage [V]')
-        #plt.xlabel('Current Density [A/m²]')
-        #plt.savefig(os.path.join(os.path.dirname(__file__),   'polarization curve' + '.jpg'))
-        #plt.show()
-
-
+        if len(i_p.tar_cd) > 1:
+            comp_i = np.array([1111.11,3333.33,4444.44,5555.55,6666.66])
+            comp_v = np.array([0.675,0.582,0.5465,0.51325,0.48125])
+            plt.plot(i_p.tar_cd * 1.e-4, self.v, marker='.', color='k', label='Simulation')
+            plt.plot(comp_i*1e-4, comp_v, marker='^', color='r', label='Measurement')
+            plt.ylabel('Voltage $[V]$', fontsize=16)
+            plt.xlabel('Current Density $[A/cm²]$', fontsize=16)
+            plt.tick_params(labelsize=14)
+            plt.grid()
+            plt.legend()
+            plt.autoscale(tight=True, axis='both', enable=True)
+            plt.ylim(0. ,1.)
+            plt.tight_layout()
+            plt.savefig(os.path.join(os.path.dirname(__file__), 'Polarization_curve' + '.jpg'))
+            plt.close()
+            print(self.v)
 
     def calc_convergence_criteria(self):
         self.mfd_criteria_cat = np.abs(sum(((self.stack.q_x_cat - self.q_x_cat_old)
@@ -125,13 +138,14 @@ class Simulation:
                 raise
         for l, item in enumerate(self.stack.cell_list):
             plt.plot(x_var, eval('self.stack.cell_list'+
-                                 '['+str(l)+']'+'.' + y_var), color=color, marker='.')
+                                 '['+str(l)+']'+'.' + y_var), color=plt.cm.coolwarm(l/(self.stack.cell_numb)), marker='.')
 
-        plt.xlabel(x_label)
-        plt.ylabel(y_label)
+        plt.xlabel(x_label, fontsize=16)
+        plt.ylabel(y_label, fontsize=16)
         plt.yscale(y_scale)
+        plt.tick_params(labelsize=14)
         plt.autoscale(tight=True, axis='both', enable=True)
-        plt.xlim(xlim[0],xlim[1])
+        plt.xlim(xlim[0], xlim[1])
         if y_lim is not False:
             plt.ylim(y_lim[0], y_lim[1])
         plt.tight_layout()
@@ -140,128 +154,171 @@ class Simulation:
                                  'Plots' + q + '/' + title + '.jpg'))
         plt.close()
 
-
-    def output(self,q):
+    def output(self, q):
         x_node = np.linspace(0., i_p.channel_length, gpar.dict_case['nodes'])
         x_ele = gfunc.calc_elements(x_node)
         gfunc.output([self.mdf_criteria_process, self.i_criteria_process, self.t_criteria_process],
                      'ERR', 'Iteration', 'log', ['k', 'r', 'b'], 'Convergence',
                      q, 0., len(self.t_criteria_process),
                      ['Flow Distribution','Current Density','Temperature'])
-        gfunc.output([self.tryarray], 'Current Density [A/m²]', 'Iteration',
+        gfunc.output([self.tryarray], 'Current Density $[A/m²]$', 'Iteration',
                      'linear', 'k', 'Current_Density_Last_Cell', q, 0.,
                      len(self.tryarray), False)
-        gfunc.output_x(self.stack.i, x_ele, 'Current Density [A/m²]', 'Channel Location [m]',
+        gfunc.output_x(self.stack.i, x_ele, 'Current Density $[A/m²]$', 'Channel Location $[m]$',
                      'linear', np.full(self.stack.cell_numb, 'k'),
                      'Current Density', q, False,[0., i_p.channel_length])
-        gfunc.output([self.stack.q_x_cat / (self.stack.q_h_in_cat[-1] / self.stack.cell_numb),
-                      self.stack.q_x_ano / (self.stack.q_h_in_ano[-1] / self.stack.cell_numb)],
-                     'Flow Distribution', 'Cell Number', 'linear', ['k', 'r'],
-                     'Flow Distribution', q , 0., self.stack.cell_numb-1,
-                     ['Cathode', 'Anode'])
-        gfunc.output([self.stack.q_x_cat / (self.stack.q_h_in_cat[-1]
-                      / self.stack.cell_numb) * self.stack.stoi_cat,
-                      self.stack.q_x_ano / (self.stack.q_h_in_ano[-1]
-                      / self.stack.cell_numb) * self.stack.stoi_ano],
-                     'Stoichiometry', 'Cell Number', 'linear', ['k', 'r'],
-                     'Stoichimetry Distribution', q, 0., self.stack.cell_numb-1,
-                     ['Cathode', 'Anode'])
-        np.savetxt('cat_flow.csv', np.flipud(self.stack.q_x_cat / (self.stack.q_h_in_cat[-1] / self.stack.cell_numb)))
+        if self.stack.cell_numb >1:
+            gfunc.output([self.stack.q_x_cat / (self.stack.q_h_in_cat[-1] / self.stack.cell_numb),
+                          self.stack.q_x_ano / (self.stack.q_h_in_ano[-1] / self.stack.cell_numb)],
+                         'Flow Distribution', 'Cell Number', 'linear', ['k', 'r'],
+                         'Flow Distribution', q , 0., self.stack.cell_numb-1,
+                         ['Cathode', 'Anode'])
+            gfunc.output([self.stack.q_x_cat / (self.stack.q_h_in_cat[-1]
+                          / self.stack.cell_numb) * self.stack.stoi_cat,
+                          self.stack.q_x_ano / (self.stack.q_h_in_ano[-1]
+                          / self.stack.cell_numb) * self.stack.stoi_ano],
+                         'Stoichiometry', 'Cell Number', 'linear', ['k', 'r'],
+                         'Stoichimetry Distribution', q, 0., self.stack.cell_numb-1,
+                         ['Cathode', 'Anode'])
+            #np.savetxt('cat_flow.csv', np.flipud(self.stack.q_x_cat / (self.stack.q_h_in_cat[-1] / self.stack.cell_numb)))
 
-        self.plot_cell_var('v', 'Voltage [V]', 'Channel Location [m]', 'linear',
+        self.plot_cell_var('v', 'Voltage $[V]$', 'Channel Location $[m]$', 'linear',
                            'k', 'Cell Voltage', q, [0., i_p.channel_length], x_ele, [0., 1.28])
-        self.plot_cell_var('dv', 'dV/dI', 'Channel Location [m]', 'linear', 'k',
+        self.plot_cell_var('dv', 'dV/dI $[V/A]$', 'Channel Location $[m]$', 'linear', 'k',
                            'dvdI', q, [0., i_p.channel_length], x_ele, [-1., 1.])
-        self.plot_cell_var('t1', 'Cathode Temperature [K]', 'Channel Location [m]',
+        self.plot_cell_var('t1', 'Cathode Temperature $[K]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Cathode Temperature', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('t4', 'Anode Temperature [K]', 'Channel Location [m]',
+        self.plot_cell_var('t4', 'Anode Temperature $[K]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Anode Temperature', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('t2', 'Cathode GDL Temperature [K]', 'Channel Location [m]',
+        self.plot_cell_var('t2', 'Cathode GDL Temperature $[K]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Cathode GDL Temperature', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('cathode.t_gas', 'Air Temperature [K]', 'Channel Location [m]',
-                           'linear', 'k', 'Air Temperature', q, [0., i_p.channel_length],
+        self.plot_cell_var('cathode.t_gas', 'Cathode Channel Temperature $[K]$', 'Channel Location $[m]$',
+                           'linear', 'k', 'Cathode_Channel_Temperature', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('t5', 'Anode GDL Temperature [K]', 'Channel Location [m]',
+        self.plot_cell_var('t5', 'Anode GDL Temperature $[K]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Anode GDL Temperature', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('anode.t_gas', 'Hydrogen Temperature [K]', 'Channel Location [m]',
+        self.plot_cell_var('anode.t_gas', 'Hydrogen Temperature $[K]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Hydrogen Temperature', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('t1', 'Coolant Plate Temperature [K]', 'Channel Location [m]',
+        self.plot_cell_var('t1', 'Coolant Plate Temperature $[K]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Coolant Plate Temperature', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('cathode.gas_flow[0]', 'Oxygen Molar Flow [mol/s]', 'Channel Location [m]',
+        self.plot_cell_var('cathode.gas_flow[0]*1.e3', 'Oxygen Molar Flow $[mmol/s]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Oxygen Molar Flow', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('cathode.gas_flow[1]', 'Water Molar Flow [mol/s]', 'Channel Location [m]',
+        self.plot_cell_var('cathode.gas_flow[1]*1.e3', 'Water Molar Flow $[mmol/s]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Water Molar Flow Cathode', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('cathode.gas_flow[2]', 'Nitrogen Molar Flow [mol/s]', 'Channel Location [m]',
+        self.plot_cell_var('cathode.gas_flow[2]*1.e3', 'Nitrogen Molar Flow $[mmol/s]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Nitrogen Molar Flow', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('anode.gas_flow[0]', 'Hydrogen Molar Flow [mol/s]', 'Channel Location [m]',
+        self.plot_cell_var('anode.gas_flow[0]*1.e3', 'Hydrogen Molar Flow $[mmol/s]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Hydrogen Molar Flow', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('anode.gas_flow[1]', 'Water Molar Flow [mol/s]', 'Channel Location [m]',
+        self.plot_cell_var('anode.gas_flow[1]*1.e3', 'Water Molar Flow $[mmol/s]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Water Molar Flow Anode', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('cathode.gas_con[0]', 'Oxygen  Molar Concentration [mol/m³]', 'Channel Location [m]',
-                           'linear', 'k', 'Oxygen Molar Concentration', q,[0., i_p.channel_length],
+        self.plot_cell_var('cathode.mol_f[0]', 'Oxygen  Molar Fraction', 'Channel Location $[m]$',
+                           'linear', 'k', 'Oxygen_Molar_Fraction', q,[0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('cathode.gas_con[1]', 'Water  Molar Concentration [mol/m³]', 'Channel Location [m]',
-                           'linear', 'k', 'Water Molar Concentration Cathode', q, [0., i_p.channel_length],
+        self.plot_cell_var('cathode.mol_f[1]', 'Gas Water  Molar Fraction', 'Channel Location $[m]$',
+                           'linear', 'k', 'Water Molar Fraction Cathode', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('anode.gas_con[1]', 'Water  Molar Concentration [mol/m³]', 'Channel Location [m]',
-                           'linear', 'k', 'Water Molar Concentration Anode', q, [0., i_p.channel_length],
+        self.plot_cell_var('anode.mol_f[0]', 'Hydrogen Molar Fraction', 'Channel Location $[m]$',
+                           'linear', 'k', 'Hydrogen_Molar_Fraction_Anode', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('cathode.w', 'Liquid Water Flow [mol/s]', 'Channel Location [m]',
+        self.plot_cell_var('anode.mol_f[1]', 'Gas Water  Molar Fraction', 'Channel Location $[m]$',
+                           'linear', 'k', 'Water_Molar_Fraction_Anode', q, [0., i_p.channel_length],
+                           x_node, False)
+        self.plot_cell_var('cathode.w*1e3', 'Liquid Water Flow $[mmol/s]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Liquid Water Flow Cathode', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('cathode.gamma', 'Water Condensation Rate [mol/s]', 'Channel Location [m]',
+        self.plot_cell_var('cathode.gamma*1e3', 'Water Condensation Rate $[mmol/s]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Water Condensation Rate Cathode', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('cathode.humidity', 'Relative Humidity', 'Channel Location [m]',
+        self.plot_cell_var('cathode.humidity', 'Relative Humidity', 'Channel Location $[m]$',
                            'linear', 'k', 'Relative Humidity Cathode', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('cathode.m_flow', 'Air Massflow [kg/s]', 'Channel Location [m]',
-                           'linear', 'k', 'Air_massflow', q, [0., i_p.channel_length],
+        self.plot_cell_var('cathode.m_flow*1e6', 'Cathode Channel Gas Massflow $[mg/s]$', 'Channel Location $[m]$',
+                           'linear', 'k', 'Cathode_Channel_Massflow', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('cathode.m_reac_flow', 'Oxygen Massflow [kg/s]', 'Channel Location [m]',
+        self.plot_cell_var('cathode.m_full_flow*1e6', 'Cathode Channel Massflow $[mg/s]$', 'Channel Location $[m]$',
+                           'linear', 'k', 'Cathode_Channel_Massflow', q, [0., i_p.channel_length],
+                           x_node, False)
+        self.plot_cell_var('cathode.g_full*1e3', 'Cathode Capacity Flow $[mW/K]$', 'Channel Location $[m]$',
+                           'linear', 'k', 'Cathode Capacity Flow', q, [0., i_p.channel_length],
+                           x_node, False)
+        self.plot_cell_var('cathode.m_reac_flow*1e6', 'Oxygen Massflow $[mg/s]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Oxygen_massflow', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('cathode.m_vap_water_flow', 'Vapour Massflow [kg/s]', 'Channel Location [m]',
+        self.plot_cell_var('cathode.m_vap_water_flow*1e6', 'Vapour Massflow $[mg/s]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Vapour Massflow', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('anode.m_flow', 'Hydrogen Massflow [kg/s]', 'Channel Location [m]',
+        self.plot_cell_var('anode.m_flow*1e6', 'Hydrogen Massflow $[mg/s]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Hydrogen_massflow', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('cathode.cp_mix', 'Cathode Heat Capacity [J/(kgK)]', 'Channel Location [m]',
+        self.plot_cell_var('cathode.cp_full', 'Cathode Heat Capacity $[J/(kgK)]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Cathode Heat Capacity', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('cathode.p', 'Cathode Channel Pressure [Pa]', 'Channel Location [m]',
+        self.plot_cell_var('cathode.p', 'Cathode Channel Pressure $[Pa]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Cathode Channel Pressure', q, [0., i_p.channel_length],
                            x_node, False)
-        self.plot_cell_var('anode.p', 'Anode Channel Pressure [Pa]', 'Channel Location [m]',
+        self.plot_cell_var('anode.p', 'Anode Channel Pressure $[Pa]$', 'Channel Location $[m]$',
                            'linear', 'k', 'Anode Channel Pressure', q, [0., i_p.channel_length],
                            x_node, False)
-
-
+        ### Full-Temperature-Plot-Single-Cell
+        if self.stack.cell_numb is 1:
+            for l, item in enumerate(self.stack.t):
+                if (l > 0 and self.stack.cool_ch_bc is False) or self.stack.cool_ch_bc is True:
+                    if l is 0 :
+                        color_c = 1./9.
+                        label_c = 'Cat_Coolant_Channel'
+                    else:
+                        color_c = 8./9.
+                        label_c = 'Ano_Coolant_Channel'
+                plt.plot(x_node, self.stack.t[l]-273.15, label=label_c, marker='.',
+                             color=plt.cm.coolwarm(color_c))
+            plt.plot(x_node, self.stack.cell_list[0].t1-273.15, label='Cat_Gde_Membrane', color=plt.cm.coolwarm(4./9.), marker='^')
+            plt.plot(x_node, self.stack.cell_list[0].t2-273.15, label='Cat_Gde_Plate', color=plt.cm.coolwarm(3./9.), marker='^')
+            plt.plot(x_node, self.stack.cell_list[0].t3-273.15, label='Cat_Plate_Plate', color=plt.cm.coolwarm(0./9.), marker='^')
+            plt.plot(x_node, self.stack.cell_list[0].t4-273.15, label='Ano_Gde_Membrane', color=plt.cm.coolwarm(5./9.), marker='^')
+            plt.plot(x_node, self.stack.cell_list[0].t5-273.15, label='Ano_Gde_Plate', color=plt.cm.coolwarm(6./9.), marker='^')
+            plt.plot(x_node, self.stack.cell_list[0].cathode.t_gas-273.15, label='Cat_Channel', color=plt.cm.coolwarm(2./9.), marker='+')
+            plt.plot(x_node, self.stack.cell_list[0].anode.t_gas-273.15, label='Ano_Channel', color=plt.cm.coolwarm(7./9.), marker='+')
+            plt.legend(loc='best')
+            plt.grid()
+            plt.ylabel(r'Temperature $[°C]$', fontsize=16)
+            plt.xlabel('Channel Location $[m]$', fontsize=16)
+            plt.tick_params(labelsize=14)
+            plt.autoscale(tight=True, axis='both', enable=True)
+            plt.tight_layout()
+            plt.xlim(0, self.stack.cell_list[0].cathode.channel.length)
+            plt.ylim(i_p.t_cat_in-273.15,max(self.stack.cell_list[0].t1-273.15)+3.)
+            plt.savefig(os.path.join(os.path.dirname(__file__),
+                                     'Plots' + q + '/' + 'Coolant1' + '.jpg'), dpi=900)
+            plt.close()
+        ### Coolant-Channel-Temperature-Plot
         for l, item in enumerate(self.stack.t):
             if (l > 0 and self.stack.cool_ch_bc is False) or self.stack.cool_ch_bc is True:
-                plt.plot(x_node, self.stack.t[l], label=l, marker='.')
-        plt.legend()
+                plt.plot(x_node, self.stack.t[l], label=l, marker='.',
+                         color=plt.cm.coolwarm((l)/(self.stack.cell_numb)))
+
+        #plt.legend()
         plt.grid()
-        plt.ylabel(r'Coolant Temperature [K]')
-        plt.xlabel('Channel Location [m]')
+        plt.ylabel(r'Coolant Temperature $[K]$', fontsize=16)
+        plt.xlabel('Channel Location $[m]$', fontsize=16)
+        plt.tick_params(labelsize=14)
         plt.autoscale(tight=True, axis='both', enable=True)
+        plt.tight_layout()
         plt.xlim(0, self.stack.cell_list[0].cathode.channel.length)
         plt.savefig(os.path.join(os.path.dirname(__file__),
                                  'Plots' + q + '/' + 'Coolant' + '.jpg'))
         plt.close()
-
+        ### Z-Axis-Temperature Plot
         x_vecz = np.array([0., i_p.plate_thick, i_p.gde_thick,
                            i_p.mem_thick, i_p.gde_thick])
         x_vec_e = np.array([i_p.plate_thick, i_p.plate_thick,
@@ -278,10 +335,11 @@ class Simulation:
             for l in self.stack.cell_list:
                 t_vec.append(np.array([l.t3[w], l.t2[w],
                                        l.t1[w], l.t4[w], l.t5[w]]))
-            plt.plot(x, np.block(t_vec), marker='o')
+            plt.plot(x, np.block(t_vec), marker='o', color='k')
             plt.xlim(0, x[-1])
-            plt.xlabel('Stack Location [m]')
-            plt.ylabel('Temperature [K]')
+            plt.xlabel('Stack Location $[m]$', fontsize=16)
+            plt.ylabel('Temperature $[K]$', fontsize=16)
+            plt.tick_params(labelsize=14)
             plt.autoscale(tight=True, axis='both', enable=True)
             plt.tight_layout()
             plt.savefig(os.path.join(os.path.dirname(__file__),

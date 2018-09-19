@@ -1,3 +1,4 @@
+import copy
 import matrix_database
 import global_functions
 import saturation_pressure_vapour as p_sat
@@ -46,6 +47,7 @@ class Halfcell:
         self.i_theta = np.sqrt(2. * self.vol_ex_cd * self.proton_conductivity
                                * self.tafel_slope)
         self.index_cat = g_par.dict_case['nodes']-1
+        self.p_drop_bends = 0.
 
     def init_arrays(self):
         self.zero_ele = np.full(g_par.dict_case['nodes']-1, 1.e-50)
@@ -91,18 +93,24 @@ class Halfcell:
             self.r_el[q] = g_par.dict_uni['r'] / self.m_m[q] * 1.e3
 
     def update(self):
+        self.calc_t_gas_e()
         #print(self.i)
         self.calc_reac_flow()
         self.calc_water_flow()
         #print(self.gas_flow,'g_flow')
         self.calc_con()
+        #print(self.i)
+        #print(self.gas_con[0],'gas_con')
+        #print(self.gas_con_ele, 'gas_con_ele')
+        self.calc_voltage_losses_parameter()
         #print(self.gas_con_ele,'g_con')
         self.calc_activation_losses()
+        #self.calc_activation_losses_tafel()
         #print(self.act_ov, 'act_ov')
-        #print(self.act_dov, 'act_ov_dv')
+        #print(self.act_dov, 'act_dov')
         self.calc_transport_losses_catalyst_layer()
-        #print(self.cat_dif_los,'cat_dif_los')
-        #print(self.cat_dif_los_dv,'cat_dif_los_dv')
+        #print(self.cat_dif_los, 'cat_dif_los')
+        #print(self.cat_dif_los_dv, 'cat_dif_los_dv')
         self.calc_transport_losses_diffusion_layer()
         #print(self.gde_dif_los, 'gde_dif_los')
         #print(self.gde_dif_los_dv, 'gde_dif_los_dv')
@@ -131,9 +139,11 @@ class Halfcell:
         self.calc_rel_humidity()
         self.calc_flow_velocity()
         self.calc_mass_flow()
+        self.calc_m_mix_properties()
         self.calc_re()
         self.calc_nu()
         self.calc_heat_transfer_coef()
+        self.calc_pressure_drop_bends()
         self.calc_pressure_zimmer_lam()
         if self.pem_type is False:  # NT
             self.calc_free_water()
@@ -154,6 +164,10 @@ class Halfcell:
     def set_t(self, var):
         for l, item in enumerate(var):
             exec('self.t%d = var[l]' % (l + 1))
+
+    def calc_t_gas_e(self):
+        self.t_gas_copy = copy.deepcopy(self.t_gas)
+        self.t_gas_e = global_functions.calc_elements(self.t_gas_copy)
 
     #@jit
     def calc_reac_flow(self):
@@ -215,6 +229,11 @@ class Halfcell:
                     self.gas_flow[1, -self.index_cat - 1:] = self.gas_flow[1, self.index_cat]
                     break
 
+    def calc_pressure_drop_bends(self):
+        self.p_drop_bends = self.channel.bend_fri_fac * np.average(self.rho)\
+                            * np.average(self.u)**2. * .5 * self.channel.bend_numb\
+                            /(g_par.dict_case['nodes']-1)
+
     def calc_pressure_zimmer_lam(self):
         self.rho_ele = global_functions.calc_elements(self.rho)
         self.u_ele = global_functions.calc_elements(self.u)
@@ -224,21 +243,21 @@ class Halfcell:
             self.p[0] = self.channel.p_in
             self.p[1:] = self.channel.p_in + 32. / self.dh\
                          * np.matmul(-mat, self.rho_ele * self.u_ele ** 2. / self.re_ele) \
-                         * self.channel.d_x
+                         * self.channel.d_x - self.p_drop_bends
         else:
             mat = self.node_backward
             self.p[-1] = self.channel.p_in
             self.p[:-1] = self.channel.p_in + 32. / self.dh\
                      * np.matmul(-mat, self.rho_ele * self.u_ele**2. /self.re_ele)\
-                     * self.channel.d_x
+                     * self.channel.d_x - self.p_drop_bends
 
     def calc_con(self):  # Gas concentrations in the channel [moles/mÂ³]
         for w in range(g_par.dict_case['nodes']):
-            id_lw = self.p[w] / (g_par.dict_uni['r'] * self.t_gas[w])
+            id_lw = self.p[w] / (g_par.dict_uni['r'] * self.t2[w])
             var4 = np.sum(self.gas_flow[:, w])
             var2 = self.gas_flow[1][w] / var4
             self.gas_con[1][w] = id_lw * var2
-            a = p_sat.water.calc_psat(self.t_gas[w])
+            a = p_sat.water.calc_psat(self.t2[w])
             e = g_par.dict_uni['r'] * self.t_gas[w]
             if self.gas_con[1][w] >= a / e:  # saturated
                 if self.type is True:
@@ -310,9 +329,18 @@ class Halfcell:
     def calc_mass_flow(self):
         self.m_flow = self.u * self.rho * self.channel.cross_area
         self.m_reac_flow = self.gas_flow[0] * self.m_m[0] * 1.e-3
+        self.m_liq_water = self.w * self.m_m[1] * 1.e-3
         self.m_vap_water_flow = (self.gas_flow[1]-self.w) * self.m_m[1] * 1.e-3
         self.m_reac_flow_delta = abs(global_functions.calc_dif(self.m_reac_flow))
         self.m_vap_water_flow_delta = abs(global_functions.calc_dif(self.m_vap_water_flow))
+
+    def calc_m_mix_properties(self):
+        self.m_full_flow = self.m_flow + self.m_liq_water
+        self.cp_full = (self.m_flow * self.cp_mix
+                        + self.m_liq_water * g_par.dict_uni['cp_liq'])\
+                       / self.m_full_flow
+        self.g_full = self.m_full_flow * self.cp_full
+        self.g_full_e = global_functions.calc_elements(self.g_full)
 
     def calc_re(self):
         self.re = global_functions.calc_re(self.rho, self.u, self.dh, self.visc_mix)
@@ -362,10 +390,27 @@ class Halfcell:
     def sum_flows(self):
         self.q_sum = sum(self.gas_flow) - self.w
 
-    def calc_activation_losses(self):
+    def calc_voltage_losses_parameter(self):
         self.i_star = self.proton_conductivity\
                       * self.tafel_slope\
                       / self.thickness_cat
+        self.i_lim = 4. * g_par.dict_uni['f'] * self.gas_con[0]\
+                     * self.dif_coef_gdl / self.thickness_gde
+        self.i_lim = self.i_lim[:-1]
+        #print(self.i_lim,'i_lim')
+        #print(self.i, 'i')
+        self.i_hat = self.i / self.i_star
+        short_save= np.sqrt(2. * self.i_hat)
+        self.beta = short_save / (1. + np.sqrt(1.12 * self.i_hat)
+                                      * np.exp(short_save))\
+                   + np.pi * self.i_hat/(2. + self.i_hat)
+        self.var = 1. - self.i / (self.i_lim * self.gas_con_ele / self.gas_con_ref)
+
+    def calc_activation_losses_tafel(self):
+        self.act_ov = g_par.dict_uni['r'] * global_functions.calc_elements(self.t2) / (g_par.dict_uni['f'] * 0.54) * np.log10(self.i * self.gas_con_ref / (self.vol_ex_cd * self.thickness_cat * self.gas_con_ele))
+        self.act_dov = g_par.dict_uni['r'] * global_functions.calc_elements(self.t2) / (g_par.dict_uni['f'] * 0.54) /(self.i * self.gas_con_ref / (self.vol_ex_cd * self.thickness_cat * self.gas_con_ele))
+
+    def calc_activation_losses(self):
         self.act_ov = self.tafel_slope\
                       * np.arcsinh((self.i/self.i_theta)**2.
                                    /(2. * (self.gas_con_ele / self.gas_con_ref)
@@ -386,59 +431,14 @@ class Halfcell:
 
 
     def calc_transport_losses_catalyst_layer(self):
-        self.i_lim = 4. * g_par.dict_uni['f'] * self.gas_con[0]\
-                     * self.dif_coef_gdl / self.thickness_gde
-        self.i_lim = self.i_lim[:-1]
-        i_hat = self.i / self.i_star
-        beta = np.sqrt(2. * i_hat) / (1. + np.sqrt(1.12 * i_hat)
-                                      * np.exp(2. * i_hat))\
-               + np.pi * i_hat/(2. + i_hat)
-        self.var = 1. - self.i/(self.i_lim * self.gas_con_ele / self.gas_con_ref)
         self.cat_dif_los = ((self.proton_conductivity * self.tafel_slope**2.)
-                            / (4. * g_par.dict_uni['f'] * self.thickness_cat
+                            / (4. * g_par.dict_uni['f'] * self.dif_coef_cat
                                * self.gas_con_ele)
                             * (self.i / self.i_star
                                - np.log10(1. + self.i**2.
-                                          / (self.i_star**2. * beta**2.))))\
+                                          / (self.i_star**2. * self.beta**2.))))\
                            / self.var
-        self.cat_dif_los_dv = -1./.4 * self.tafel_slope**2.\
-                              * self.proton_conductivity\
-                              * ((self.i**2. * (2. * np.sqrt(2.)
-                                                * (2.11660104885167
-                                                   * np.sqrt(self.i / self.i_star)
-                                                   * np.exp(2. * self.i / self.i_star)
-                                                   / self.i_star
-                                                   + 0.529150262212918
-                                                   * np.exp(2. * self.i / self.i_star)
-                                                   / (self.i_star
-                                                     * np.sqrt(self.i / self.i_star)))
-                                                * np.sqrt(self.i / self.i_star)
-                                                / (1.05830052442584
-                                                   * np.sqrt(self.i / self.i_star)
-                                                   * np.exp(2. * self.i / self.i_star) + 1.) ** 2.
-                                                - 2. * np.pi / (self.i_star
-                                                                * (self.i / self.i_star + 2.))
-                                                + 2. * np.pi * self.i
-                                                / (self.i_star ** 2. * (self.i / self.i_star + 2.)**2.)
-                                                - np.sqrt(2.)
-                                                / ((1.05830052442584 * np.sqrt(self.i / self.i_star)
-                                                    * np.exp(2.*self.i / self.i_star) + 1.)
-                                                   * self.i_star * np.sqrt(self.i / self.i_star)))
-                                  / (self.i_star**2. * (np.pi * self.i / (self.i_star * (self.i / self.i_star + 2.))
-                                                        + np.sqrt(2.) * np.sqrt(self.i / self.i_star)
-                                                        / (1.05830052442584 * np.sqrt(self.i / self.i_star)
-                                                           * np.exp(2. * self.i/self.i_star) + 1.))**3.)
-                                  + 2. * self.i/(self.i_star**2. *(np.pi*self.i
-                                                                  / (self.i_star*(self.i/self.i_star + 2.))
-                                                                  + np.sqrt(2.) * np.sqrt(self.i/self.i_star)
-                                                                  /(1.05830052442584 * np.sqrt(self.i/self.i_star)
-                                                                    * np.exp(2.*self.i/self.i_star) + 1.))**2.))
-                                 /(self.i**2. / (self.i_star**2. * (np.pi * self.i/(self.i_star*(self.i/self.i_star + 2.))
-                                                                + np.sqrt(2.) * np.sqrt(self.i / self.i_star)
-                                                                /(1.05830052442584 * np.sqrt(self.i / self.i_star)
-                                                                  * np.exp(2.*self.i / self.i_star) + 1.))**2.) + 1.)
-                                 - 1. / self.i_star)/(self.gas_con_ele * self.thickness_cat * g_par.dict_uni['f'])\
-                              - self.gas_con_ref / (self.gas_con_ele * self.i_lim)
+        self.cat_dif_los_dv = 1/4*self.tafel_slope**2*self.proton_conductivity*((self.i**2*(2*np.sqrt(2)*(0.529150262212918*np.sqrt(2)*np.exp(np.sqrt(2)*np.sqrt(self.i/self.i_star))/self.i_star + 0.529150262212918*np.exp(np.sqrt(2)*np.sqrt(self.i/self.i_star))/(self.i_star*np.sqrt(self.i/self.i_star)))*np.sqrt(self.i/self.i_star)/(1.05830052442584*np.sqrt(self.i/self.i_star)*np.exp(np.sqrt(2)*np.sqrt(self.i/self.i_star)) + 1)**2 - 2*np.pi/(self.i_star*(self.i/self.i_star + 2)) + 2*np.pi*self.i/(self.i_star**2*(self.i/self.i_star + 2)**2) - np.sqrt(2)/((1.05830052442584*np.sqrt(self.i/self.i_star)*np.exp(np.sqrt(2)*np.sqrt(self.i/self.i_star)) + 1)*self.i_star*np.sqrt(self.i/self.i_star)))/(self.i_star**2*(np.pi*self.i/(self.i_star*(self.i/self.i_star + 2)) + np.sqrt(2)*np.sqrt(self.i/self.i_star)/(1.05830052442584*np.sqrt(self.i/self.i_star)*np.exp(np.sqrt(2)*np.sqrt(self.i/self.i_star)) + 1))**3) + 2*self.i/(self.i_star**2*(np.pi*self.i/(self.i_star*(self.i/self.i_star + 2)) + np.sqrt(2)*np.sqrt(self.i/self.i_star)/(1.05830052442584*np.sqrt(self.i/self.i_star)*np.exp(np.sqrt(2)*np.sqrt(self.i/self.i_star)) + 1))**2))/(self.i**2/(self.i_star**2*(np.pi*self.i/(self.i_star*(self.i/self.i_star + 2)) + np.sqrt(2)*np.sqrt(self.i/self.i_star)/(1.05830052442584*np.sqrt(self.i/self.i_star)*np.exp(np.sqrt(2)*np.sqrt(self.i/self.i_star)) + 1))**2) + 1) - 1/self.i_star)/(self.gas_con_ele*self.dif_coef_cat*g_par.dict_uni['f']*(self.gas_con_ref*self.i/(self.gas_con_ele*self.i_lim) - 1)) + 1/4*self.tafel_slope**2*self.gas_con_ref*self.proton_conductivity*(self.i/self.i_star - np.log(self.i**2/(self.i_star**2*(np.pi*self.i/(self.i_star*(self.i/self.i_star + 2)) + np.sqrt(2)*np.sqrt(self.i/self.i_star)/(1.05830052442584*np.sqrt(self.i/self.i_star)*np.exp(np.sqrt(2)*np.sqrt(self.i/self.i_star)) + 1))**2) + 1))/(self.gas_con_ele**2*self.dif_coef_cat*g_par.dict_uni['f']*self.i_lim*(self.gas_con_ref*self.i/(self.gas_con_ele*self.i_lim) - 1)**2)
 
     def calc_transport_losses_diffusion_layer(self):
         self.gde_dif_los = -self.tafel_slope * np.log10(self.var)
