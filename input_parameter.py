@@ -49,9 +49,9 @@ spec_numb_ano = 2
 val_ano = 2.
 # target current density [A/m^2]
 #tar_cd = linspace(1000.,16000., 20)
-#tar_cd = array([1111.11,2222.22, 3333.33, 4444.44, 5555.55, 6666.66,8888.88,9999.99,11111.111,12222.22])
+tar_cd = array([1111.11,2222.22, 3333.33, 4444.44, 5555.55, 6666.66,8888.88,9999.99,11111.111,12222.22])
 #tar_cd = array([1111.11,2222.22, 3333.33, 4444.44, 5555.55, 6666.66])
-tar_cd = [4000.]
+#tar_cd = [8000.]
 # gas reference concentration cathode [mol/m^3]
 gas_con_ref_cat = 4.e0
 # gas reference concentration anode [mol/m^3}
@@ -147,7 +147,7 @@ a_col = 4000.
 ################################################################################
 ############################Stack###############################################
 # number of stack cells (min =!2)
-cell_numb = 10
+cell_numb = 3
 # boundary condition cooling channel (no cooling channel at the endplates = False)
 cooling_bc = True
 # endplate heating power [W]
@@ -155,13 +155,13 @@ heat_power = 0.#5.e0
 # convection coefficient of the stack walls [W/(m^2K)]
 alpha_conv = 0.5e-1
 # resistivity of the bipolarplates [Ohm/m]
-resistivity = 8.e-1
+resistivity = 2.e-6
 # height of the manifold channel [m]
 manifold_height = 2.01e-2
 # width of the manifold channel [m]
 manifold_width = 2.01e-2
 # geometrical pressure loss coefficient
-manifold_kf = 1000.
+manifold_kf = 200000.
 # latent heat of vaporization [J/mol]
 h_vap = 45400.
 ################################################################################
@@ -169,7 +169,7 @@ h_vap = 45400.
 # tolerance
 k_tol = 1.e-12
 # max number of iterations
-max_it = 5000
+max_it = 10
 # gas channel relaxations factor
 channel_fac = 0.5
 #############################Dicts##############################################

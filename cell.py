@@ -194,6 +194,14 @@ class Cell:
                  - self.cathode.gde_dif_los - self.anode.gde_dif_los\
                  - self.cathode.cat_dif_los - self.anode.cat_dif_los\
                  - self.cathode.act_ov - self.anode.act_ov
+        #print(self.omega_ele * self.i,'ohm_v')
+        #print(self.cathode.gde_dif_los, 'cgdl_dif')
+        #print(self.anode.gde_dif_los,'agdL_diff')
+        #print(self.cathode.cat_dif_los, 'ccl_diff')
+        #print(self.anode.cat_dif_los,'acl_diff')
+        #print(self.cathode.act_ov, 'cat_act')
+        #print(self.anode.act_ov, 'ano_act')
+
         self.v_th = g_func.calc_nodes_1d(self.v)
 
     def calc_dvdi(self):  # nodewise

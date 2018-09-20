@@ -21,7 +21,7 @@ def b(n, M, d_x):
     return block_diag(*b) / d_x ** 2.
 
 
-def c(n, M, d_x):
+def c(n, M):
     m = np.full((n * M, n * M), 0.)
     for j in range(n * M):
         for l in range(n * M):
@@ -35,7 +35,7 @@ def c(n, M, d_x):
             elif j is l and j >= M * n - n:
                 m[l, j] = 1
                 m[l, j - n] = -1
-    return m / d_x ** 2.
+    return m
 
 
 def forward_matrix_reac_flow(n):

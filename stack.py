@@ -83,8 +83,8 @@ class Stack:
         self.break_programm = False
 
     def init_arrays(self):
-        #x = np.full(g_par.dict_case['nodes']-1, g_par.dict_case['tar_cd'])
-        x = np.linspace(g_par.dict_case['tar_cd']*1.5,g_par.dict_case['tar_cd']*0.5, g_par.dict_case['nodes']-1)
+        x = np.full(g_par.dict_case['nodes']-1, g_par.dict_case['tar_cd'])
+        #x = np.linspace(g_par.dict_case['tar_cd']*1.5,g_par.dict_case['tar_cd']*0.5, g_par.dict_case['nodes']-1)
         y = []
         for q in range(self.cell_numb): y.append(x)
         self.i = np.array(y)
@@ -109,8 +109,7 @@ class Stack:
                        self.cell_list[0].cathode.channel.d_x)
         if self.cell_numb >=3:
             self.c = m_d.c(g_par.dict_case['nodes'] - 1,
-                           self.cell_numb,
-                           self.cell_list[0].cathode.channel.d_x)
+                           self.cell_numb)
         self.stack_r()
         self.stack_resistance()
         self.zero = np.full(self.cell_numb, 0.)
@@ -185,9 +184,9 @@ class Stack:
         self.stack_v()
         self.stack_dv()
         self.calc_i()
+        #print(self.i)
 
     def update_temperatur_coupling(self):
-        self.calc_I()
         self.stack_alpha()
         self.calc_coolant_channel_t()
         self.calc_gas_channel_t()
@@ -201,6 +200,8 @@ class Stack:
         for q, item in enumerate(self.cell_list):
                d_p.append(self.cell_list[q].cathode.thickness_plate)
         self.resistance = self.resistivity / np.average(d_p)
+        #print(self.resistance)
+        #self.resistance = 4.e-4
 
     def stack_r(self):
         r_p, r_g, r_m = [], [], []
@@ -530,9 +531,10 @@ class Stack:
         self.i = self.i / (np.average(self.i) / g_par.dict_case['tar_cd'])
 
     def correct_i_new(self):
-        self.i[int(self.cell_numb/2)-1, -1] = g_par.dict_case['nodes']\
+        self.i[int(self.cell_numb/2)-1, -1] = np.minimum(g_par.dict_case['nodes']\
                         * g_par.dict_case['tar_cd']\
-                        - np.sum(self.i[int(self.cell_numb/2) - 1]) + self.i[int(self.cell_numb/2) -1, -1]
+                        - np.sum(self.i[int(self.cell_numb/2) - 1]) + self.i[int(self.cell_numb/2) -1, -1],
+                                                         g_par.dict_case['tar_cd'] * 1.5)
 
     def correct_i_new_no_cp(self):
         for q, item in enumerate (self.cell_list):
@@ -550,8 +552,8 @@ class Stack:
         self.i = g_func.toarray(i_pre_cor,
                                 self.cell_numb,
                                 g_par.dict_case['nodes']-1)
-        self.correct_i_new()
-        #print(self.i)
+        self.correct_i_new_no_cp()
+        print(self.i)
 
     def calc_I(self):
         self.I = g_func.calc_nodes(self.i) * self.cell_list[0].cathode.channel.plane_dx

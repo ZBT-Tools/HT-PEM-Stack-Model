@@ -30,6 +30,8 @@ class Simulation:
         self.mdf_criteria_cat_process = []
         self.mdf_criteria_ano_process = []
         self.i_criteria_process = []
+        self.t_criteria_process = []
+        self.mdf_criteria_process = []
         self.t1_criteria_process = []
         self.t2_criteria_process = []
         self.t3_criteria_process = []
@@ -161,6 +163,16 @@ class Simulation:
                      'ERR', 'Iteration', 'log', ['k', 'r', 'b'], 'Convergence',
                      q, 0., len(self.t_criteria_process),
                      ['Flow Distribution','Current Density','Temperature'])
+        self.mdf_criteria_process = []
+        self.mdf_criteria_ano_process = []
+        self.mdf_criteria_cat_process = []
+        self.t_criteria_process = []
+        self.t1_criteria_process = []
+        self.t2_criteria_process = []
+        self.t3_criteria_process = []
+        self.t4_criteria_process = []
+        self.t5_criteria_process = []
+        self.i_criteria_process = []
         gfunc.output([self.tryarray], 'Current Density $[A/m²]$', 'Iteration',
                      'linear', 'k', 'Current_Density_Last_Cell', q, 0.,
                      len(self.tryarray), False)
