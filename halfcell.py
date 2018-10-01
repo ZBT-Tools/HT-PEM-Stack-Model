@@ -24,7 +24,6 @@ class Halfcell:
         self.spec_numb = dict['spec_numb']
         self.val = dict['val']
         self.type = dict['type']  # Anode is False Cathode is True
-        self.gas_con_ref = dict['gas_con_ref']
         self.sym = dict['sym_fac']
         self.thickness_gde = dict['thick_gde']
         self.thickness_plate = dict['plate_thick']
@@ -41,6 +40,7 @@ class Halfcell:
         self.init_func()
 
     def init_param(self):
+        self.break_programm = False
         self.pem_type = False
         self.j = []
         self.re = []
@@ -94,66 +94,53 @@ class Halfcell:
 
     def update(self):
         self.calc_t_gas_e()
-        #print(self.i)
         self.calc_reac_flow()
         self.calc_water_flow()
-        #print(self.gas_flow,'g_flow')
         self.calc_con()
-        #print(self.i)
-        #print(self.gas_con[0],'gas_con')
-        #print(self.gas_con_ele, 'gas_con_ele')
         self.calc_voltage_losses_parameter()
-        #print(self.gas_con_ele,'g_con')
-        self.calc_activation_losses()
-        #self.calc_activation_losses_tafel()
-        #print(self.act_ov, 'act_ov')
-        #print(self.act_dov, 'act_dov')
-        self.calc_transport_losses_catalyst_layer()
-        #print(self.cat_dif_los, 'cat_dif_los')
-        #print(self.cat_dif_los_dv, 'cat_dif_los_dv')
-        self.calc_transport_losses_diffusion_layer()
-        #print(self.gde_dif_los, 'gde_dif_los')
-        #print(self.gde_dif_los_dv, 'gde_dif_los_dv')
-        #if self.type is True:
-            #plt.plot(self.gde_dif_los_dv)
-            #self.cat_dif_los[-1] = 2.*self.cat_dif_los[-2]-self.cat_dif_los[-3]
-            #self.cat_dif_los_dv[-1] = 2. * self.cat_dif_los_dv[-2] - self.cat_dif_los_dv[-3]
-            #self.gde_dif_los[-1] = 2. * self.gde_dif_los[-2] - self.gde_dif_los[-3]
-            #self.gde_dif_los_dv[-1] = 2. * self.gde_dif_los_dv[-2] - self.gde_dif_los_dv[-3]
-            #self.cat_dif_los_dv[-1] = self.cat_dif_los_dv[-2]
-            #self.cat_dif_los[-1] = self.cat_dif_los[-2]
-            #self.gde_dif_los_dv[-1] = 0. #self.gde_dif_los_dv[-2]
-            #self.gde_dif_los[-1] = self.gde_dif_los[-2]
-            #plt.plot(self.gde_dif_los, color='k')
-         #   plt.plot(self.cat_dif_los, color='r')
-            #plt.plot(self.gde_dif_los_dv, color='y')
-            #plt.show()
-           # print(self.gde_dif_los_dv, 'gde_dif_los_dv')
-        self.calc_fluid_water()
-        self.sum_flows()
-        self.calc_cond_rates()
-        self.calc_mass_fraction()
-        self.calc_mol_fraction()
-        self.calc_gas_properties()
-        self.calc_gas_mix_properties()
-        self.calc_rel_humidity()
-        self.calc_flow_velocity()
-        self.calc_mass_flow()
-        self.calc_m_mix_properties()
-        self.calc_re()
-        self.calc_nu()
-        self.calc_heat_transfer_coef()
-        self.calc_pressure_drop_bends()
-        self.calc_pressure_zimmer_lam()
-        if self.pem_type is False:  # NT
-            self.calc_free_water()
+        if self.break_programm is False:
+            self.calc_activation_losses()
+            self.calc_transport_losses_catalyst_layer()
+            self.calc_transport_losses_diffusion_layer()
+            #if self.type is True:
+                #plt.plot(self.gde_dif_los_dv)
+                #self.cat_dif_los[-1] = 2.*self.cat_dif_los[-2]-self.cat_dif_los[-3]
+                #self.cat_dif_los_dv[-1] = 2. * self.cat_dif_los_dv[-2] - self.cat_dif_los_dv[-3]
+                #self.gde_dif_los[-1] = 2. * self.gde_dif_los[-2] - self.gde_dif_los[-3]
+                #self.gde_dif_los_dv[-1] = 2. * self.gde_dif_los_dv[-2] - self.gde_dif_los_dv[-3]
+                #self.cat_dif_los_dv[-1] = self.cat_dif_los_dv[-2]
+                #self.cat_dif_los[-1] = self.cat_dif_los[-2]
+                #self.gde_dif_los_dv[-1] = 0. #self.gde_dif_los_dv[-2]
+                #self.gde_dif_los[-1] = self.gde_dif_los[-2]
+                #plt.plot(self.gde_dif_los, color='k')
+             #   plt.plot(self.cat_dif_los, color='r')
+                #plt.plot(self.gde_dif_los_dv, color='y')
+                #plt.show()
+               # print(self.gde_dif_los_dv, 'gde_dif_los_dv')
+            self.calc_fluid_water()
+            self.sum_flows()
+            self.calc_cond_rates()
+            self.calc_mass_fraction()
+            self.calc_mol_fraction()
+            self.calc_gas_properties()
+            self.calc_gas_mix_properties()
+            self.calc_rel_humidity()
+            self.calc_flow_velocity()
+            self.calc_mass_flow()
+            self.calc_m_mix_properties()
+            self.calc_re()
+            self.calc_nu()
+            self.calc_heat_transfer_coef()
+            self.calc_pressure_drop_bends()
+            self.calc_pressure_zimmer_lam()
+            if self.pem_type is False:  # NT
+                self.calc_free_water()
 
     def set_i(self, i):
         self.i = i
 
     def set_j(self, j):
         self.j = j[1:]
-        #print(self.j)
 
     def set_stoi(self, stoi):
         self.stoi = stoi
@@ -169,7 +156,6 @@ class Halfcell:
         self.t_gas_copy = copy.deepcopy(self.t_gas)
         self.t_gas_e = global_functions.calc_elements(self.t_gas_copy)
 
-    #@jit
     def calc_reac_flow(self):
         var1 = self.stoi * g_par.dict_case['tar_cd']\
                * self.channel.plane / (self.val * g_par.dict_uni['f'])
@@ -394,36 +380,47 @@ class Halfcell:
         self.i_star = self.proton_conductivity\
                       * self.tafel_slope\
                       / self.thickness_cat
-        self.i_lim = 4. * g_par.dict_uni['f'] * self.gas_con[0]\
+        self.i_lim = 4. * g_par.dict_uni['f'] * self.gas_con[0, :-1]\
                      * self.dif_coef_gdl / self.thickness_gde
-        self.i_lim = self.i_lim[:-1]
-        #print(self.i_lim,'i_lim')
-        #print(self.i, 'i')
+        if min(self.i_lim) <= min(self.i):
+            print('Program termination, caused by inf gde diffusion voltage loss!')
+            self.break_programm = True
+
         self.i_hat = self.i / self.i_star
-        short_save= np.sqrt(2. * self.i_hat)
+        short_save = np.sqrt(2. * self.i_hat)
         self.beta = short_save / (1. + np.sqrt(1.12 * self.i_hat)
                                       * np.exp(short_save))\
                    + np.pi * self.i_hat/(2. + self.i_hat)
-        self.var = 1. - self.i / (self.i_lim * self.gas_con_ele / self.gas_con_ref)
+        self.var = 1. - self.i / (self.i_lim * self.gas_con_ele / self.gas_con[0, :-1])
+        self.i_square = self.i ** 2.
 
     def calc_activation_losses_tafel(self):
-        self.act_ov = g_par.dict_uni['r'] * global_functions.calc_elements(self.t2) / (g_par.dict_uni['f'] * 0.54) * np.log10(self.i * self.gas_con_ref / (self.vol_ex_cd * self.thickness_cat * self.gas_con_ele))
-        self.act_dov = g_par.dict_uni['r'] * global_functions.calc_elements(self.t2) / (g_par.dict_uni['f'] * 0.54) /(self.i * self.gas_con_ref / (self.vol_ex_cd * self.thickness_cat * self.gas_con_ele))
+        self.act_ov = g_par.dict_uni['r'] * global_functions.calc_elements(self.t2)\
+                      / (g_par.dict_uni['f'] * 0.54)\
+                      * np.log10(self.i * self.gas_con[0, :-1]
+                                 / (self.vol_ex_cd
+                                    * self.thickness_cat
+                                    * self.gas_con_ele))
+        self.act_dov = g_par.dict_uni['r'] * global_functions.calc_elements(self.t2)\
+                       / (g_par.dict_uni['f'] * 0.54)\
+                       /(self.i * self.gas_con[0, :-1] /
+                         (self.vol_ex_cd
+                          * self.thickness_cat
+                          * self.gas_con_ele))
 
     def calc_activation_losses(self):
         self.act_ov = self.tafel_slope\
                       * np.arcsinh((self.i/self.i_theta)**2.
-                                   /(2. * (self.gas_con_ele / self.gas_con_ref)
+                                   /(2. * (self.gas_con_ele / self.gas_con[0, :-1])
                                      * (1. - np.exp(-self.i / (2. * self.i_star)))))
-        #print(len(self.act_ov), self.type)
         self.act_dov = -.25 * self.tafel_slope *\
-                       (4. * self.gas_con_ref * self.i / (self.gas_con_ele * self.i_theta**2
+                       (4. * self.gas_con[0, :-1] * self.i / (self.gas_con_ele * self.i_theta**2
                                                           * (np.exp(-0.5 * self.i * self.i_star) - 1.))
-                        + self.gas_con_ref * self.i**2.
+                        + self.gas_con[0, :-1] * self.i_square
                         * np.exp(-0.5 * self.i / self.i_star)
                         / (self.gas_con_ele * self.i_star * self.i_theta**2.
                            * (np.exp(-.5 * self.i / self.i_star) - 1.)**2.))\
-                       / np.sqrt(0.25 * self.gas_con_ref**2. *
+                       / np.sqrt(0.25 * self.gas_con[0, :-1]**2. *
                                  self.i**4. / (self.gas_con_ele**2.
                                                * self.i_theta**4. *
                                                (np.exp(-0.5 * self.i / self.i_star)
@@ -435,17 +432,36 @@ class Halfcell:
                             / (4. * g_par.dict_uni['f'] * self.dif_coef_cat
                                * self.gas_con_ele)
                             * (self.i / self.i_star
-                               - np.log10(1. + self.i**2.
+                               - np.log10(1. + self.i_square
                                           / (self.i_star**2. * self.beta**2.))))\
                            / self.var
-        self.cat_dif_los_dv = 1/4*self.tafel_slope**2*self.proton_conductivity*((self.i**2*(2*np.sqrt(2)*(0.529150262212918*np.sqrt(2)*np.exp(np.sqrt(2)*np.sqrt(self.i/self.i_star))/self.i_star + 0.529150262212918*np.exp(np.sqrt(2)*np.sqrt(self.i/self.i_star))/(self.i_star*np.sqrt(self.i/self.i_star)))*np.sqrt(self.i/self.i_star)/(1.05830052442584*np.sqrt(self.i/self.i_star)*np.exp(np.sqrt(2)*np.sqrt(self.i/self.i_star)) + 1)**2 - 2*np.pi/(self.i_star*(self.i/self.i_star + 2)) + 2*np.pi*self.i/(self.i_star**2*(self.i/self.i_star + 2)**2) - np.sqrt(2)/((1.05830052442584*np.sqrt(self.i/self.i_star)*np.exp(np.sqrt(2)*np.sqrt(self.i/self.i_star)) + 1)*self.i_star*np.sqrt(self.i/self.i_star)))/(self.i_star**2*(np.pi*self.i/(self.i_star*(self.i/self.i_star + 2)) + np.sqrt(2)*np.sqrt(self.i/self.i_star)/(1.05830052442584*np.sqrt(self.i/self.i_star)*np.exp(np.sqrt(2)*np.sqrt(self.i/self.i_star)) + 1))**3) + 2*self.i/(self.i_star**2*(np.pi*self.i/(self.i_star*(self.i/self.i_star + 2)) + np.sqrt(2)*np.sqrt(self.i/self.i_star)/(1.05830052442584*np.sqrt(self.i/self.i_star)*np.exp(np.sqrt(2)*np.sqrt(self.i/self.i_star)) + 1))**2))/(self.i**2/(self.i_star**2*(np.pi*self.i/(self.i_star*(self.i/self.i_star + 2)) + np.sqrt(2)*np.sqrt(self.i/self.i_star)/(1.05830052442584*np.sqrt(self.i/self.i_star)*np.exp(np.sqrt(2)*np.sqrt(self.i/self.i_star)) + 1))**2) + 1) - 1/self.i_star)/(self.gas_con_ele*self.dif_coef_cat*g_par.dict_uni['f']*(self.gas_con_ref*self.i/(self.gas_con_ele*self.i_lim) - 1)) + 1/4*self.tafel_slope**2*self.gas_con_ref*self.proton_conductivity*(self.i/self.i_star - np.log(self.i**2/(self.i_star**2*(np.pi*self.i/(self.i_star*(self.i/self.i_star + 2)) + np.sqrt(2)*np.sqrt(self.i/self.i_star)/(1.05830052442584*np.sqrt(self.i/self.i_star)*np.exp(np.sqrt(2)*np.sqrt(self.i/self.i_star)) + 1))**2) + 1))/(self.gas_con_ele**2*self.dif_coef_cat*g_par.dict_uni['f']*self.i_lim*(self.gas_con_ref*self.i/(self.gas_con_ele*self.i_lim) - 1)**2)
+        sqrt2 = np.sqrt(2.)
+        exp1 = np.exp(sqrt2 * np.sqrt(self.i / self.i_star))
+        term1 = 1.05830052442584 * np.sqrt(self.i / self.i_star) * exp1
+        term2 = np.sqrt(self.i / self.i_star)
+        term3 = self.i / self.i_star
+        term4  = np.pi*self.i / (self.i_star * (term3 + 2))
+        term5  = self.gas_con[0, :-1] * self.i / (self.gas_con_ele * self.i_lim)
+        self.cat_dif_los_dv = 0.25 * self.tafel_slope**2. * self.proton_conductivity\
+                              * ((self.i_square * (2. * sqrt2 * (0.529150262212918 * sqrt2 * exp1 / self.i_star
+                                                                 + 0.529150262212918 * exp1 /(self.i_star*np.sqrt(term3)))
+                                                   * term2/(term1 + 1)**2 - 2*np.pi/(self.i_star*(term3+2))
+                                                   + 2 * np.pi * self.i/(self.i_star**2*(term3 + 2)**2)
+                                                   - sqrt2/((term1 + 1)*self.i_star*np.sqrt(term3)))
+                                  /(self.i_star**2*(term4 + sqrt2*term2/(term1 + 1))**3)
+                                  + 2*self.i/(self.i_star**2*(term4 + sqrt2*term2/(term1 + 1))**2))
+                                 /(self.i_square/(self.i_star**2*(term4 + sqrt2*term2/(term1 + 1))**2) + 1)
+                                 - 1/self.i_star)/(self.gas_con_ele*self.dif_coef_cat*g_par.dict_uni['f']*(term5 - 1))\
+                              + 1/4*self.tafel_slope**2*self.gas_con[0, :-1]*self.proton_conductivity\
+                              * (term3 - np.log(self.i_square/(self.i_star**2*(term4 + sqrt2*term2/(term1 + 1))**2) + 1))\
+                              /(self.gas_con_ele**2*self.dif_coef_cat*g_par.dict_uni['f']*self.i_lim*(term5 - 1)**2)
 
     def calc_transport_losses_diffusion_layer(self):
         self.gde_dif_los = -self.tafel_slope * np.log10(self.var)
         self.gde_dif_los_dv = - self.tafel_slope\
-                              * self.gas_con_ref\
+                              * self.gas_con[0, :-1]\
                               /(self.gas_con_ele * self.i_lim
-                                * (self.gas_con_ref *
+                                * (self.gas_con[0, :-1] *
                                    self.i / (self.gas_con_ele * self.i_lim) - 1))
 
 

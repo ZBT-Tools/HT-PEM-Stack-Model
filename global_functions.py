@@ -128,6 +128,11 @@ def calc_nodes_1d (ele_vec):
 def calc_dif(vec):
     return vec[:-1] - vec[1:]
 
+
+def calc_mat_vert_dif(mat):
+    return -mat[1:, :]+mat[:-1, :]
+
+
 def calc_ie_dx(vec1, vec2):
     vec1 = array(vec1)
     vec2 = array(vec2)

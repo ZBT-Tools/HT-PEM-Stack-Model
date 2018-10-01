@@ -8,4 +8,4 @@ dict_case = {'tu': i_p.t_u, 'tar_cd': i_p.tar_cd[0], 'nodes': i_p.nodes,
              'mol_con_m': i_p.alpha, 'e_0': i_p.e_o, 't_u':i_p.t_u,
              'vtn': i_p.vtn, 'pem_type': i_p.pem_type,
              'conv_coef': i_p.alpha_conv, 'header_p_in_cat': i_p.p_cat_in,
-             'header_p_in_ano':i_p.p_ano_in}
+             'header_p_in_ano':i_p.p_ano_in, 'plate_resistivity': i_p.resistivity}

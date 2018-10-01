@@ -68,6 +68,7 @@ class Cell:
         self.t5e = g_func.calc_elements(self.anode.t2)
         self.ko = 6.2
         self.ho = -52300.
+        self.break_programm = False
 
     def init_arrays(self):
         self.j = np.full(g_par.dict_case['nodes'], 0.)
@@ -95,13 +96,16 @@ class Cell:
             self.anode.set_j(self.j)
             self.anode.set_t([self.t4, self.t5])
             self.anode.update()
-            self.calc_mem_block_1()
-            self.calc_cross_over_water_flux()
-            self.calc_mem_block_2()
-            self.calc_con_overpotential()
-            self.calc_mem_resistivity()
-            self.calc_voltage()
-            self.calc_dvdi()
+            if self.anode.break_programm is True or self.cathode.break_programm is True:
+                self.break_programm = True
+            else:
+                self.calc_mem_block_1()
+                self.calc_cross_over_water_flux()
+                self.calc_mem_block_2()
+                self.calc_con_overpotential()
+                self.calc_mem_resistivity()
+                self.calc_voltage()
+                self.calc_dvdi()
         else:
             self.cathode.set_pem_type(True)
             self.cathode.set_i(self.i)
@@ -111,11 +115,18 @@ class Cell:
             self.anode.set_i(self.i)
             self.anode.set_t([self.t4, self.t5])
             self.anode.update()
-            self.psi = np.full(g_par.dict_case['nodes'], 0.)
-            self.calc_mem_resistivity()
-            self.calc_voltage()
-            #print(self.v,'v')
-            self.calc_dvdi()
+            if self.anode.break_programm is True or self.cathode.break_programm is True:
+                self.break_programm = True
+            else:
+                self.calc_mem_resistivity()
+                self.calc_voltage()
+                self.calc_dvdi()
+                self.psi = np.full(g_par.dict_case['nodes'], 0.)
+                self.calc_mem_resistivity()
+                self.calc_voltage()
+                #print(self.v,'v')
+                self.calc_dvdi()
+                self.calc_resistance()
 
     def set_i(self, i):
         self.i = i
@@ -190,10 +201,14 @@ class Cell:
         # correction not implemented
 
     def calc_voltage(self):  # nodewise
-        self.v = g_par.dict_case['e_0'] - self.omega_ele * self.i \
-                 - self.cathode.gde_dif_los - self.anode.gde_dif_los\
-                 - self.cathode.cat_dif_los - self.anode.cat_dif_los\
-                 - self.cathode.act_ov - self.anode.act_ov
+        self.v_los = + self.omega_ele * self.i\
+                     + self.cathode.act_ov + self.anode.act_ov\
+                     + self.cathode.gde_dif_los + self.anode.gde_dif_los\
+                     + self.cathode.cat_dif_los + self.anode.cat_dif_los
+        self.v = g_par.dict_case['e_0'] - self.v_los
+        ####überspannungen, zellspannungen
+
+
         #print(self.omega_ele * self.i,'ohm_v')
         #print(self.cathode.gde_dif_los, 'cgdl_dif')
         #print(self.anode.gde_dif_los,'agdL_diff')
@@ -205,8 +220,15 @@ class Cell:
         self.v_th = g_func.calc_nodes_1d(self.v)
 
     def calc_dvdi(self):  # nodewise
-        self.dv = - self.omega_ele \
-                  - self.cathode.gde_dif_los - self.anode.gde_dif_los\
-                  - self.cathode.cat_dif_los_dv - self.anode.cat_dif_los_dv\
-                  - self.cathode.act_dov - self.anode.act_dov
+        self.dv = self.omega_ele \
+                + self.cathode.gde_dif_los + self.anode.gde_dif_los\
+                + self.cathode.cat_dif_los_dv + self.anode.cat_dif_los_dv\
+                + self.cathode.act_dov + self.anode.act_dov
+        self.dv = -self.dv
+
+    def calc_resistance(self):
+        self.resistance = self.v_los / self.i +\
+                          2. * g_par.dict_case['plate_resistivity']\
+                          * self.cathode.thickness_plate
+
 

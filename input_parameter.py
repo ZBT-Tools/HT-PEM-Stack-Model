@@ -4,7 +4,7 @@ from numpy import array, linspace
 # channel length [m]
 channel_length = 0.2322
 # number of Nodes
-nodes = 10
+nodes = 5
 # cathode gas channel inlet pressure [Pa]
 p_cat_in = 1.e5
 # cathode gas channel inlet temperature [K]
@@ -34,7 +34,7 @@ channel_fri_fac = 0.1
 # oxygen concentration at the inlet [mol/m³]
 o2_con_in = 0.21
 # cathode stoichiometry
-stoi_cat = 3.
+stoi_cat = 2.5
 # minimum stoichiometry (do not set it smaller 1.1)
 stoi_min = 1.1
 # cathode number of species (3 [N2,O2,H2O])
@@ -48,10 +48,10 @@ spec_numb_ano = 2
 # side reaction, number of valence electrons
 val_ano = 2.
 # target current density [A/m^2]
-#tar_cd = linspace(1000.,16000., 20)
-tar_cd = array([1111.11,2222.22, 3333.33, 4444.44, 5555.55, 6666.66,8888.88,9999.99,11111.111,12222.22])
-#tar_cd = array([1111.11,2222.22, 3333.33, 4444.44, 5555.55, 6666.66])
-#tar_cd = [8000.]
+#tar_cd = linspace(1.e-3, 10., 10)
+#tar_cd = array([1111.11,2222.22, 3333.33, 4444.44, 5555.55, 6666.66,8888.88,9999.99,11111.111,12222.22])
+#tar_cd = array([1111.11,2222.22, 3333.33, 4444.44, 5555.55, 6666.66,7000.,8000.,8500.,9000.])
+tar_cd = array([6000.])
 # gas reference concentration cathode [mol/m^3]
 gas_con_ref_cat = 4.e0
 # gas reference concentration anode [mol/m^3}
@@ -161,7 +161,7 @@ manifold_height = 2.01e-2
 # width of the manifold channel [m]
 manifold_width = 2.01e-2
 # geometrical pressure loss coefficient
-manifold_kf = 200000.
+manifold_kf = 1.e6
 # latent heat of vaporization [J/mol]
 h_vap = 45400.
 ################################################################################
@@ -169,7 +169,7 @@ h_vap = 45400.
 # tolerance
 k_tol = 1.e-12
 # max number of iterations
-max_it = 10
+max_it = 100
 # gas channel relaxations factor
 channel_fac = 0.5
 #############################Dicts##############################################
@@ -204,8 +204,8 @@ cell = {'mem_thick': mem_thick, 'plate_h_con': k_p, 'gde_h_con': k_g,
         'gde_hi_con': ki_g, 'mem_hi_con': ki_m, 'mem_bas_r': r_mem0,
         'mem_acl_r': r_memm}
 stack = {'cell_numb': cell_numb, 'heat_power': heat_power,
-         'plate_res': resistivity, 'heigth': manifold_height,
-         'width': manifold_width, 'dis_dis_fac': manifold_kf,
+         'heigth': manifold_height, 'width': manifold_width,
+         'dis_dis_fac': manifold_kf,
          'stoi_cat': stoi_cat, 'stoi_ano': stoi_ano,'cool_ch_bc': cooling_bc,
          'h_col': h_col_ch, 'm_flow_col': m_col, 'cp_col': cp_col, 'alpha_cool': a_col}
 simulation = {'max_it': max_it, 'k_it': k_tol}

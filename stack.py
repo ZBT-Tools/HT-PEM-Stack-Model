@@ -13,7 +13,6 @@ class Stack:
     def __init__(self, dict):
         self.cell_numb = dict['cell_numb']
         self.heat_pow = dict['heat_power']
-        self.resistivity = dict['plate_res']
         self.heigth = dict['heigth']
         self.width = dict['width']
         self.kf = dict['dis_dis_fac']
@@ -84,7 +83,7 @@ class Stack:
 
     def init_arrays(self):
         x = np.full(g_par.dict_case['nodes']-1, g_par.dict_case['tar_cd'])
-        #x = np.linspace(g_par.dict_case['tar_cd']*1.5,g_par.dict_case['tar_cd']*0.5, g_par.dict_case['nodes']-1)
+        #x = np.linspace(g_par.dict_case['tar_cd']*1.1,g_par.dict_case['tar_cd']*0.9, g_par.dict_case['nodes']-1)
         y = []
         for q in range(self.cell_numb): y.append(x)
         self.i = np.array(y)
@@ -153,11 +152,15 @@ class Stack:
         for j in range(self.cell_numb):
             self.cell_list[j].set_i(self.i[j, :])
             self.cell_list[j].update()
-        self.update_temperatur_coupling()
-        if self.cell_numb > 1:
-            self.update_flows()
-        self.i_old = copy.deepcopy(self.i)
-        self.update_electrical_coupling()
+            if self.cell_list[j].break_programm is True:
+                self.break_programm = True
+                break
+        if self.break_programm is False:
+            self.update_temperatur_coupling()
+            if self.cell_numb > 1:
+                self.update_flows()
+            self.i_old = copy.deepcopy(self.i)
+            self.update_electrical_coupling()
 
     def update_flows(self):
         self.sum_header_flows()
@@ -182,9 +185,10 @@ class Stack:
 
     def update_electrical_coupling(self):
         self.stack_v()
+        self.stack_v_los()
         self.stack_dv()
-        self.calc_i()
-        #print(self.i)
+        #self.calc_i()
+        self.calc_i_v_interface()
 
     def update_temperatur_coupling(self):
         self.stack_alpha()
@@ -199,9 +203,7 @@ class Stack:
         d_p = []
         for q, item in enumerate(self.cell_list):
                d_p.append(self.cell_list[q].cathode.thickness_plate)
-        self.resistance = self.resistivity / np.average(d_p)
-        #print(self.resistance)
-        #self.resistance = 4.e-4
+        self.resistance = g_par.dict_case['plate_resistivity'] * np.average(d_p)
 
     def stack_r(self):
         r_p, r_g, r_m = [], [], []
@@ -236,6 +238,18 @@ class Stack:
             var = np.hstack((var, self.cell_list[i].v))
         self.v = var
         # running
+
+    def stack_v_los(self):
+        var = []
+        for i, item in enumerate(self.cell_list):
+            var = np.hstack((var, self.cell_list[i].v_los))
+        self.v_los = var
+
+    def stack_c_r(self):
+        var = []
+        for i, item in enumerate(self.cell_list):
+            var = np.hstack((var, self.cell_list[i].resistance))
+        self.stack_cell_r = var
 
     def stack_dv(self):
         var = []
@@ -512,52 +526,51 @@ class Stack:
            # self.stoi_ano = self.stoi_ano * stoi_fac
            # self.stoi_cat = self.new_stoi_cat * stoi_fac
 
-    def calc_n(self):
-        self.n = np.matmul(self.b, self.v) - self.resistance\
-                 * np.matmul(self.c, self.i.flatten(order='C'))
-
-    def calc_n_no_cp(self):
-        self.n = np.matmul(self.b, self.v)
-
-    def calc_g(self):
-        self.s = np.diag(self.dv)
-        self.g = self.b * self.s - self.resistance * self.c
-
-    def calc_g_no_cp(self):
-        self.s = np.diag(self.dv)
-        self.g = self.b * self.s
-
-    def correct_i(self):
-        self.i = self.i / (np.average(self.i) / g_par.dict_case['tar_cd'])
-
-    def correct_i_new(self):
-        self.i[int(self.cell_numb/2)-1, -1] = np.minimum(g_par.dict_case['nodes']\
-                        * g_par.dict_case['tar_cd']\
-                        - np.sum(self.i[int(self.cell_numb/2) - 1]) + self.i[int(self.cell_numb/2) -1, -1],
-                                                         g_par.dict_case['tar_cd'] * 1.5)
-
-    def correct_i_new_no_cp(self):
-        for q, item in enumerate (self.cell_list):
-            self.i[q, -1] = (g_par.dict_case['nodes']-1) * g_par.dict_case['tar_cd']\
-                            - np.sum(self.i[q]) + self.i[q, -1]
-
     def calc_i(self):
-        if self.cell_numb is 1:
-            self.calc_n_no_cp()
-            self.calc_g_no_cp()
-        else:
-            self.calc_n()
-            self.calc_g()
-        i_pre_cor = self.i_old.flatten() - np.linalg.tensorsolve(self.g, self.n)
-        self.i = g_func.toarray(i_pre_cor,
-                                self.cell_numb,
-                                g_par.dict_case['nodes']-1)
-        self.correct_i_new_no_cp()
-        print(self.i)
+        self.stack_c_r()
+        r_cell_ele = (.5 * (self.stack_cell_r[:-(g_par.dict_case['nodes']-1)]
+                            + self.stack_cell_r[(g_par.dict_case['nodes']-1):]))
+        r_mat = m_d.electrical_mat(g_par.dict_case['nodes']-1,
+                                   self.cell_numb,
+                                   self.stack_cell_r,
+                                   r_cell_ele,
+                                   g_par.dict_case['plate_resistivity']
+                                   * self.cell_list[0].cathode.channel.d_x * 0.5)
+        self.v_plate = np.sum(self.v_los)/(g_par.dict_case['nodes']-1)
+        self.neuman_vec = np.hstack((-2.*self.v_plate / self.stack_cell_r[:g_par.dict_case['nodes']-1],
+                                     np.full((self.cell_numb-1)*(g_par.dict_case['nodes']-1), 0.)))
+        self.v_neu = np.array(np.linalg.tensorsolve(r_mat, self.neuman_vec))
+        self.v_neu = np.hstack((np.full((g_par.dict_case['nodes']-1), self.v_plate),
+                                self.v_neu[0],
+                                np.full((g_par.dict_case['nodes']-1),0.)))
+        self.v_dif = self.v_neu[:-(g_par.dict_case['nodes']-1)] - self.v_neu[(g_par.dict_case['nodes']-1):]
+        self.r_vec_1d = np.hstack((self.stack_cell_r[:g_par.dict_case['nodes']-1]*.5,
+                                   r_cell_ele,self.stack_cell_r[-g_par.dict_case['nodes']+1:]*.5))
+        self.i_vec = self.v_dif /self.r_vec_1d
+        self.i_ele_vec = .5 * (self.i_vec[:-(g_par.dict_case['nodes']-1)]
+                          + self.i_vec[(g_par.dict_case['nodes']-1):])
+        self.i = g_func.toarray(self.i_ele_vec, self.cell_numb, g_par.dict_case['nodes']-1)
+        self.i = self.i / np.average(self.i) * g_par.dict_case['tar_cd']
 
-    def calc_I(self):
-        self.I = g_func.calc_nodes(self.i) * self.cell_list[0].cathode.channel.plane_dx
-        self.I_channel = self.i * self.cell_list[0].cathode.channel.plane_dx
+    def calc_i_v_interface(self):
+        self.stack_c_r()
+        r_mat = m_d.electrical_mat_interface_v(g_par.dict_case['nodes']-1,
+                                   self.cell_numb,
+                                   self.stack_cell_r,
+                                   g_par.dict_case['plate_resistivity']
+                                   * self.cell_list[0].cathode.channel.d_x * 0.5)
+        self.v_plate = np.sum(self.v_los) / (g_par.dict_case['nodes']-1)
+        self.neuman_vec = np.hstack((-self.v_plate / self.stack_cell_r[:g_par.dict_case['nodes']-1],
+                                     np.full((self.cell_numb-2)*(g_par.dict_case['nodes']-1), 0.)))
+        self.v_neu = np.array(np.linalg.tensorsolve(r_mat, self.neuman_vec))
+        self.v_neu = np.hstack((np.full((g_par.dict_case['nodes']-1), self.v_plate),
+                                self.v_neu[0],
+                                np.full((g_par.dict_case['nodes']-1), 0.)))
+        self.v_dif = self.v_neu[:-(g_par.dict_case['nodes'] - 1)]\
+                     - self.v_neu[(g_par.dict_case['nodes'] - 1):]
+        self.i_vec = self.v_dif / self.stack_cell_r
+        self.i = g_func.toarray(self.i_vec, self.cell_numb, g_par.dict_case['nodes']-1)
+        self.i = self.i / np.average(self.i) * g_par.dict_case['tar_cd']
 
     def calc_gas_channel_t(self):
         for q, item in enumerate(self.cell_list):

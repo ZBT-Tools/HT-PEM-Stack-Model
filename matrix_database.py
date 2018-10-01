@@ -1,6 +1,7 @@
 from scipy.linalg import block_diag
 import numpy as np
-from scipy import sparse
+from scipy import sparse, matrix
+np.set_printoptions(threshold=np.nan, linewidth=1000, precision=9, suppress=True)
 
 
 def b(n, M, d_x):
@@ -58,6 +59,7 @@ def col_mat_m2(nodes,var):
     vec = np.hstack(([0], np.tile([1], nodes-1)))
     vec2 = np.full(nodes, -var)
     return np.asarray(mat + sparse.spdiags(vec, 0, nodes, nodes) + sparse.spdiags(vec2, -1, nodes, nodes))
+
 
 
 def t_mat_no_bc_col(nodes, cells, r_g, r_m, r_p, r_gp, r_gm, r_pp,
@@ -187,3 +189,37 @@ def t_mat_no_bc_col(nodes, cells, r_g, r_m, r_p, r_gp, r_gm, r_pp,
                   + sparse.spdiags(node_r_stack_r_side, [5], cells * nodes * 5, cells * nodes * 5) \
                   + sparse.spdiags(node_r_stack_l_side, [-5], cells * nodes * 5, cells * nodes * 5)
     return m_final
+
+def electrical_mat(nodes, cells, r_cell, r_cell_ele, r_x):
+    c_x_cell = np.hstack((np.full((nodes-1), 1./r_x), [0.]))
+    c_x_stack = np.tile(c_x_cell, cells)
+    c_x_stack_r = np.hstack(([0], c_x_stack))
+    c_x_inner_stack = np.tile(np.hstack(([-1./r_x], np.full((nodes-2), -2./r_x), [-1./r_x])), cells)
+    c_cell_stack_r = np.hstack((np.full(nodes, 0.), 1./r_cell_ele))
+    c_cell_new_up = -2./r_cell[:nodes] - 1./r_cell_ele[:nodes]
+    c_cell_new_low = -2. / r_cell[-nodes:] - 1./r_cell_ele[-nodes:]
+    c_cell_mid = -1./r_cell_ele[nodes:] - 1./r_cell_ele[:-nodes]
+    c_cell_new = np.hstack((c_cell_new_up, c_cell_mid, c_cell_new_low))
+    array = sparse.spdiags(c_x_inner_stack + c_cell_new, [0], cells * nodes, cells * nodes) \
+            + sparse.spdiags(c_cell_stack_r, [+nodes], cells * nodes, cells * nodes)\
+            + sparse.spdiags(1./r_cell_ele, [-nodes], cells * nodes, cells * nodes)\
+            + sparse.spdiags(c_x_stack_r, [1], cells*nodes, cells*nodes)\
+            + sparse.spdiags(c_x_stack, [-1], cells * nodes, cells * nodes)
+    return array.todense()
+
+def electrical_mat_interface_v(nodes, cells, r_cell, r_x):
+    cells = cells - 1
+    c_x_cell = np.hstack((np.full((nodes-1), 1./r_x), [0.]))
+    c_x_stack = np.tile(c_x_cell, cells)
+    c_x_stack_r = np.hstack(([0], c_x_stack))
+    c_x_inner_stack = np.tile(np.hstack(([-1./r_x], np.full((nodes-2), -2./r_x), [-1./r_x])), cells)
+    c_cell_stack_r = np.hstack((np.full(nodes, 0.), 1./r_cell))
+    array = sparse.spdiags(c_x_inner_stack- 1./r_cell[:-nodes] - 1./r_cell[nodes:], [0], cells * nodes, cells * nodes) \
+            + sparse.spdiags(c_x_stack_r, [1], cells*nodes, cells*nodes)\
+            + sparse.spdiags(c_x_stack, [-1], cells * nodes, cells * nodes) \
+            + sparse.spdiags(c_cell_stack_r, [+nodes], cells * nodes, cells * nodes)\
+            + sparse.spdiags(1./r_cell, [-nodes], cells * nodes, cells * nodes)
+    return array.todense()
+
+
+

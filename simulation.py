@@ -64,21 +64,26 @@ class Simulation:
                          and self.mfd_criteria_cat < self.k_it))\
                         or counter > self.max_it:
                     statement = False
-            self.t_criteria_process = (np.array(self.t1_criteria_process)
-                                       + np.array(self.t2_criteria_process)
-                                       + np.array(self.t3_criteria_process)
-                                       + np.array(self.t4_criteria_process)
-                                       + np.array(self.t5_criteria_process)) * .2
-            self.mdf_criteria_process = (np.array(self.mdf_criteria_ano_process)
-                                         + np.array(self.mdf_criteria_cat_process)) * .5
-            self.v.append(np.average(self.stack.v))
-            self.output(str(q))
-            self.tryarray = []
+            if self.stack.break_programm is False:
+                self.t_criteria_process = (np.array(self.t1_criteria_process)
+                                           + np.array(self.t2_criteria_process)
+                                           + np.array(self.t3_criteria_process)
+                                           + np.array(self.t4_criteria_process)
+                                           + np.array(self.t5_criteria_process)) * .2
+                self.mdf_criteria_process = (np.array(self.mdf_criteria_ano_process)
+                                             + np.array(self.mdf_criteria_cat_process)) * .5
+                self.v.append(np.average(self.stack.v))
+                self.output(str(q))
+                self.tryarray = []
+            else:
+                i_p.tar_cd = i_p.tar_cd[0:-q]
+                print(i_p.tar_cd, self.v)
+                break
         if len(i_p.tar_cd) > 1:
-            comp_i = np.array([1111.11,3333.33,4444.44,5555.55,6666.66])
-            comp_v = np.array([0.675,0.582,0.5465,0.51325,0.48125])
+            #comp_i = np.array([1111.11,3333.33,4444.44,5555.55,6666.66])
+            #comp_v = np.array([0.675,0.582,0.5465,0.51325,0.48125])
             plt.plot(i_p.tar_cd * 1.e-4, self.v, marker='.', color='k', label='Simulation')
-            plt.plot(comp_i*1e-4, comp_v, marker='^', color='r', label='Measurement')
+            #plt.plot(comp_i*1e-4, comp_v, marker='^', color='r', label='Measurement')
             plt.ylabel('Voltage $[V]$', fontsize=16)
             plt.xlabel('Current Density $[A/cm²]$', fontsize=16)
             plt.tick_params(labelsize=14)
