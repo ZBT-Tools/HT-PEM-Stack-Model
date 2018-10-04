@@ -1,6 +1,6 @@
 import numpy as np
 # Database:
-## 1bar
+## 1 bar
 # oxygen:
 oxygen_cp_1 = [ -8.66817221e-19,   4.73115002e-15,  -1.15709215e-11,
               1.66145697e-08, -1.50422620e-05,   8.23507193e-03,
@@ -9,8 +9,8 @@ oxygen_visc_1 = [1.18758866e-26,  -6.48183635e-23,   1.55753837e-19,
                  -2.18596122e-16,  2.02541399e-13,  -1.38130567e-10,
                  1.02085148e-07,  -1.50063345e-06]
 oxygen_lambda_1 = [-1.58986421e-22, 8.03802084e-19, -1.67882604e-15,
-                  1.84325862e-12, -1.11449899e-09, 3.57769046e-07, 2.11463976e-05,
-                  8.31514294e-03]
+                  1.84325862e-12, -1.11449899e-09, 3.57769046e-07,
+                   2.11463976e-05, 8.31514294e-03]
 # hydrogen
 hydrogen_cp_1 = [  2.75575856e-17,  -1.58350769e-13,   3.93319791e-10,
                  -5.48239691e-07, 4.61978745e-04,  -2.32058478e-01,
@@ -41,7 +41,7 @@ water_visc_1 = [1.45183739e-25, -7.27081451e-22,  1.55686360e-18,
 water_lambda_1 = [-7.69988150e-22, 3.81045861e-18, -7.88736102e-15,
                  8.77358057e-12, -5.61460795e-09, 2.11880777e-06,
                  -3.22515696e-04, 2.21293426e-02]
-## 10bar
+## 10 bar
 oxygen_cp_2 = [-8.66817221e-19, 4.73115002e-15, -1.15709215e-11,
                1.66145697e-08, -1.50422620e-05, 8.23507193e-03,
                -2.12067742e+00, 1.10964386e+03]
@@ -82,24 +82,24 @@ water_lambda_2 = [ -9.94179604e-21, 4.66529326e-17, -9.19773736e-14,
 
 class Gas():
 
-    def __init__(self, cp1, visc1, lambda1, lambda2):
-        self.cp1 = cp1
-        self.visc1 = visc1
+    def __init__(self, cp, visc, lambda1, lambda2):
+        self.cp = cp
+        self.visc = visc
         self.lambda1 = lambda1
         self.lambda2 = lambda2
 
     def calc_cp(self, t):
-        cp1 = np.polyval(self.cp1, t)
-        return cp1
+        cp = np.polyval(self.cp, t)
+        return cp
 
     def calc_visc(self, t):
-        visc1 = np.polyval(self.visc1, t)
-        return visc1
+        visc = np.polyval(self.visc, t)
+        return visc
 
     def calc_lambda(self, t, p):
         lambda1 = np.polyval(self.lambda1, t)
         lambda2 = np.polyval(self.lambda2, t)
-        return lambda1 + (p-1.e5)/(9.e5)*(lambda2-lambda1)
+        return lambda1 + (p-1.e5)/9.e5*(lambda2-lambda1)
 
 oxygen = Gas(oxygen_cp_1, oxygen_visc_1, oxygen_lambda_1, oxygen_lambda_2)
 water = Gas(water_cp_1, water_visc_1, water_lambda_1, water_lambda_2)

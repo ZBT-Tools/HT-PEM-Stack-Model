@@ -3,19 +3,19 @@ from global_parameter import dict_case
 
 class Channel:
 
-    def __init__(self, dict):
-        self.length = dict['length']
+    def __init__(self, dict_ch):
+        self.length = dict_ch['length']
         self.d_x = self.length / dict_case['elements']
-        self.p_in = dict['p_in']
-        self.t_in = dict['t_in']
-        self.phi = dict['hum_in']
-        self.flow_dir = dict['flow_dir']
-        self.width = dict['width']
-        self.heigth = dict['heigth']
-        self.bend_numb = dict['numb_bends']
-        self.bend_fri_fac = dict['bend_fri_fac']
-        self.cross_area = self.width * self.heigth
-        self.extent = 2 * (self.width + self.heigth)
+        self.p_in = dict_ch['p_in']
+        self.t_in = dict_ch['t_in']
+        self.phi = dict_ch['hum_in']
+        self.flow_dir = dict_ch['flow_dir']
+        self.width = dict_ch['width']
+        self.height = dict_ch['height']
+        self.bend_numb = dict_ch['numb_bends']
+        self.bend_fri_fac = dict_ch['bend_fri_fac']
+        self.cross_area = self.width * self.height
+        self.extent = 2 * (self.width + self.height)
         self.plane = self.width * self.length
         self.plane_dx = self.width * self.d_x
 

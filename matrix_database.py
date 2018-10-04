@@ -39,11 +39,11 @@ def c(n, M):
     return m
 
 
-def forward_matrix_reac_flow(n):
+def for_mat_reac_flow(n):
     return np.tril(np.full((n, n), 1.))
 
 
-def backward_matrix_reac_flow(n):
+def back_mat_reac_flow(n):
     return np.triu(np.full((n,n), 1.))
 
 

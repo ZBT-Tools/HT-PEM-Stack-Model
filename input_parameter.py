@@ -1,10 +1,10 @@
-from numpy import array, linspace
+import numpy as np
 ################################################################################
 ############################Channel#############################################
 # channel length [m]
 channel_length = 0.2322
 # number of Nodes
-nodes = 5
+nodes = 10
 # cathode gas channel inlet pressure [Pa]
 p_cat_in = 1.e5
 # cathode gas channel inlet temperature [K]
@@ -34,9 +34,9 @@ channel_fri_fac = 0.1
 # oxygen concentration at the inlet [mol/m³]
 o2_con_in = 0.21
 # cathode stoichiometry
-stoi_cat = 2.5
+stoi_cat = 1.5
 # minimum stoichiometry (do not set it smaller 1.1)
-stoi_min = 1.1
+stoi_min = 1.0
 # cathode number of species (3 [N2,O2,H2O])
 spec_numb_cat = 3
 # cathode side reaction, number of valence electrons
@@ -51,15 +51,11 @@ val_ano = 2.
 #tar_cd = linspace(1.e-3, 10., 10)
 #tar_cd = array([1111.11,2222.22, 3333.33, 4444.44, 5555.55, 6666.66,8888.88,9999.99,11111.111,12222.22])
 #tar_cd = array([1111.11,2222.22, 3333.33, 4444.44, 5555.55, 6666.66,7000.,8000.,8500.,9000.])
-tar_cd = array([6000.])
+tar_cd = np.array([6000.])
 # gas reference concentration cathode [mol/m^3]
 gas_con_ref_cat = 4.e0
 # gas reference concentration anode [mol/m^3}
 gas_con_ref_ano = 3.68e1
-# symmetry factor cathode
-sym_cat = 1.
-# symmetry factor anode
-sym_ano = 1.
 # molar mass oxygen [g/mol]
 m_o2 = 32.
 # molar mass hydrogen [g/mol]
@@ -169,42 +165,40 @@ h_vap = 45400.
 # tolerance
 k_tol = 1.e-12
 # max number of iterations
-max_it = 100
+max_it = 60
 # gas channel relaxations factor
 channel_fac = 0.5
 #############################Dicts##############################################
 ################################################################################
 channel_cat = {'length': channel_length, 'p_in': p_cat_in, 't_in': t_cat_in,
                'hum_in': phi_cat, 'flow_dir': flow_dir_cat, 'width': channel_width,
-               'heigth': channel_height, 'numb_bends': channel_bends,
+               'height': channel_height, 'numb_bends': channel_bends,
                'bend_fri_fac': channel_fri_fac}
 channel_ano = {'length': channel_length, 'p_in': p_ano_in, 't_in': t_ano_in,
                'hum_in': phi_ano, 'flow_dir': flow_dir_ano, 'width': channel_width,
-               'heigth': channel_height, 'numb_bends': channel_bends,
+               'height': channel_height, 'numb_bends': channel_bends,
                'bend_fri_fac': channel_fri_fac}
 cathode = {'spec_numb': spec_numb_cat, 'val': val_cat, 'type': True,
-           'gas_con_ref': gas_con_ref_cat,
-           'sym_fac': sym_cat, 'thick_gde': gde_thick,
-           'plate_thick': plate_thick, 'm_mass': array([m_o2, m_h2o, m_n2]),
+           'gas_con_ref': gas_con_ref_cat, 'thick_gde': gde_thick,
+           'plate_thick': plate_thick, 'm_mass': np.array([m_o2, m_h2o, m_n2]),
            't_init': t_hcell_init, 'tafel_slope': cat_tafel_slope,
            'prot_con': cat_prot_con, 'vol_ex_cd': cat_vol_ex_cd,
            'dif_coef_cat':cat_layer_dif_coef, 'dif_coef_gdl': cat_gdl_dif_coef,
            'cat_thick':cat_layer_thick}
 anode = {'spec_numb': spec_numb_ano, 'val': val_ano, 'type': False,
-         'gas_con_ref': gas_con_ref_ano,
-         'sym_fac': sym_ano, 'thick_gde': gde_thick,
-         'plate_thick': plate_thick, 'm_mass': array([m_h2, m_h2o]),
+         'gas_con_ref': gas_con_ref_ano, 'thick_gde': gde_thick,
+         'plate_thick': plate_thick, 'm_mass': np.array([m_h2, m_h2o]),
          't_init': t_hcell_init, 'tafel_slope': ano_tafel_slope,
          'prot_con':ano_prot_con, 'vol_ex_cd': ano_vol_ex_cd,
          'dif_coef_cat':ano_layer_dif_coef, 'dif_coef_gdl': ano_gdl_dif_coef,
          'cat_thick':ano_layer_thick}
 cell = {'mem_thick': mem_thick, 'plate_h_con': k_p, 'gde_h_con': k_g,
-        'mem_h_con': k_m,'t_coolant_in': t_cool_in
+        'mem_h_con': k_m,'t_cool_in': t_cool_in
         ,'width': cell_width,'length': cell_length, 'plate_hi_con': ki_p,
         'gde_hi_con': ki_g, 'mem_hi_con': ki_m, 'mem_bas_r': r_mem0,
         'mem_acl_r': r_memm}
 stack = {'cell_numb': cell_numb, 'heat_power': heat_power,
-         'heigth': manifold_height, 'width': manifold_width,
+         'height': manifold_height, 'width': manifold_width,
          'dis_dis_fac': manifold_kf,
          'stoi_cat': stoi_cat, 'stoi_ano': stoi_ano,'cool_ch_bc': cooling_bc,
          'h_col': h_col_ch, 'm_flow_col': m_col, 'cp_col': cp_col, 'alpha_cool': a_col}
