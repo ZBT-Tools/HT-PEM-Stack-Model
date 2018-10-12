@@ -1,4 +1,4 @@
-# HT-PEM-Stack-Model
+# PEMFC-Model
 The reduced dimensional PEM-stack-model provides a solution for fast, high and low temperature polymer electrolyte fuel cells, simulations. The program was written using the Python distribution Anaconda 3.6. 
 
 
