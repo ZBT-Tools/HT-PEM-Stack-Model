@@ -2,7 +2,7 @@
 
 """Electrochemistry"""
 # target current density [A/m^2]
-target_current_density = [6000.]
+target_current_density = [10.,100.,500.,1000.,2000.,3000.,4000.,5000.,6000.,7000.]
 # open circuit volatage [V]
 open_circuit_voltage = 1.0
 # cathode stoichiometry

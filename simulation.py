@@ -143,8 +143,8 @@ class Simulation:
         if len(oper_con.target_current_density) > 1:
             # comp_i = np.array([1111.11,3333.33,4444.44,5555.55,6666.66])
             # comp_v = np.array([0.675,0.582,0.5465,0.51325,0.48125])
-            plt.plot(oper_con.target_current_density * 1.e-4, self.v,
-                     marker='.', color='k', label='Simulation')
+            plt.plot(np.asarray(oper_con.target_current_density) * 1.e-4,
+                     self.v, marker='.', color='k', label='Simulation')
             # plt.plot(comp_i*1e-4, comp_v, marker='^',
             #  color='r', label='Measurement')
             plt.ylabel('Voltage $[V]$', fontsize=16)
