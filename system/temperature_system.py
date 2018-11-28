@@ -68,9 +68,6 @@ class TemperatureSystem:
         # Initialize temperature matrix arrays
         stack_mat_cell = []
         stack_k_node_side = []
-        stack_k_up_cell = []
-        stack_k_down_cell_n = []
-        stack_k_down_cell_else = []
         stack_k_mid_cell = []
         for q in range(self.cell_num):
             k_node = np.array([-self.k_layer[1, 2, q],
@@ -126,8 +123,6 @@ class TemperatureSystem:
             k_node_side = np.hstack((*np.tile(-k_node, self.elements-1),
                                      np.full(layer, 0.)))
 
-
-
             stack_mat_cell.append(g_func.stack_mat(mat, self.elements))
             stack_k_mid_cell.append(k_node_mid)
             stack_k_node_side.append(k_node_side)
@@ -149,7 +144,6 @@ class TemperatureSystem:
                                             * self.elements * 5),
                                    np.tile(k_node_n, self.elements - 1)))
         stack_mat_cell = g_func.change_concrete_4d_too_3d(stack_mat_cell)
-        stack_k_node_side = g_func.change_concrete_4d_too_3d(stack_k_node_side)
         stack_k_node_mid = g_func.change_concrete_4d_too_3d(stack_k_mid_cell)
         self.stack_mat = sp_l.block_diag(*stack_mat_cell)\
             + np.diag(stack_k_node_mid)\
@@ -214,7 +208,7 @@ class TemperatureSystem:
                     + self.t_layer[q][1, w-1]
             for w in range(self.elements - 1, -1, -1):
                 self.t_gas[1, q, w] = \
-                    (self.t_gas[1, q, w + 1] - self.t_layer[q][ -1, w]) \
+                    (self.t_gas[1, q, w + 1] - self.t_layer[q][-1, w]) \
                     * np.exp(-self.k_gas_ch[1, q, w] / (self.g_gas[1, q, w])) \
                     + self.t_layer[q][-1, w]
 

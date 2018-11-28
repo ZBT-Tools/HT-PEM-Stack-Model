@@ -5,7 +5,7 @@ import system.cell as cl
 import data.cell_dict as c_dict
 import system.manifold as m_fold
 import data.manifold_dict as m_fold_dict
-import system.electrical_coupling_plate as el_cpl
+import system.electrical_coupling as el_cpl
 import data.electrical_coupling_dict as el_cpl_dict
 import system.temperature_system as therm_cpl
 import data.temperature_system_dict as therm_dict
