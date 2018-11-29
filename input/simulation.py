@@ -1,9 +1,9 @@
 """ This file contains the simulation settings"""
 
 """Simulation Settings"""
-# nodes
-nodes = 10
-# critical tolerance
-critical_tolerance = 1.e-12
+# partition of the flow channel in elements along the x-axis
+elements = 10
+# convergence criteria of the simulation
+convergence_criteria = 1.e-12
 # maximal number of iterations
-max_it = 100
+maximal_number_iteration = 100

@@ -388,14 +388,14 @@ class Simulation:
                            [0., ch_dict.cathode_channel['length']], x_node,
                            False)
         # Z-Axis-Temperature Plot
-        x_vecz = np.array([0., geo.plate_thickness, geo.gdl_thickness,
-                           geo.membrane_thickness, geo.gdl_thickness])
-        x_vec_e = np.array([geo.plate_thickness, geo.plate_thickness,
-                            geo.gdl_thickness, geo.membrane_thickness,
-                            geo.gdl_thickness])
-        x_vec_l = np.array([geo.plate_thickness, geo.plate_thickness,
-                            geo.gdl_thickness, geo.membrane_thickness,
-                            geo.gdl_thickness, geo.plate_thickness])
+        x_vecz = np.array([0., geo.bipolar_plate_thickness, geo.gas_diffusion_layer_thickness,
+                           geo.membrane_thickness, geo.gas_diffusion_layer_thickness])
+        x_vec_e = np.array([geo.bipolar_plate_thickness, geo.bipolar_plate_thickness,
+                            geo.gas_diffusion_layer_thickness, geo.membrane_thickness,
+                            geo.gas_diffusion_layer_thickness])
+        x_vec_l = np.array([geo.bipolar_plate_thickness, geo.bipolar_plate_thickness,
+                            geo.gas_diffusion_layer_thickness, geo.membrane_thickness,
+                            geo.gas_diffusion_layer_thickness, geo.bipolar_plate_thickness])
         x = []
         for l in range(self.stack.cell_num):
             if l is 0:

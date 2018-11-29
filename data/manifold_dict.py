@@ -10,18 +10,18 @@ m_fold_const_cathode = {'cell_num': op_con.cell_number,
                         'header_height': geo.manifold_height,
                         'kf': phy_prop.manifold_pressure_loss_coefficient,
                         'cell_height': np.full(op_con.cell_number,
-                                               2. * (geo.plate_thickness
-                                                     + geo.gdl_thickness
-                                                     + geo.electrode_thickness)
+                                               2. * (geo.bipolar_plate_thickness
+                                                     + geo.gas_diffusion_layer_thickness
+                                                     + geo.catalyst_layer_thickness)
                                                + geo.membrane_thickness),
                         'cell_ch_length': np.full(op_con.cell_number,
                                                   geo.channel_length),
                         'cell_ch_ca': np.full(op_con.cell_number,
                                               geo.channel_width
                                               * geo.channel_height),
-                        'p_out': op_con.p_cathode_basic}
+                        'p_out': op_con.p_manifold_cathode_out}
 m_fold_const_anode = copy.copy(m_fold_const_cathode)
-m_fold_const_anode['p_out'] = op_con.p_anode_basic
+m_fold_const_anode['p_out'] = op_con.p_manifold_anode_out
 
 
 def dict_manifold_dyn(mol_flow, cell_t, cell_cp,

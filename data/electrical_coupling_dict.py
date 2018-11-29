@@ -3,8 +3,8 @@ import input.geometry as geo
 import input.simulation as sim
 
 electrical_coupling_dict_const = {'cell_num': op_con.cell_number,
-                                  'd_x': geo.channel_length / (sim.nodes - 1),
-                                  'th_plate': geo.plate_thickness,
+                                  'd_x': geo.channel_length / (sim.elements),
+                                  'th_plate': geo.bipolar_plate_thickness,
                                   'w_ch': geo.channel_width}
 
 
