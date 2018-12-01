@@ -8,22 +8,22 @@ np.set_printoptions(linewidth=10000, threshold=None, precision=2)
 
 class TemperatureSystem:
 
-    def __init__(self, t_sys_const_dict):
+    def __init__(self, temp_sys_const_dict):
         # Handover
-        self.cell_num = t_sys_const_dict['cell_num']
-        self.nodes = t_sys_const_dict['nodes']
+        self.cell_num = temp_sys_const_dict['cell_num']
+        self.nodes = temp_sys_const_dict['nodes']
         self.elements = self.nodes - 1
-        self.cool_ch_bc = t_sys_const_dict['cool_ch_bc']
-        self.t_gas_in = t_sys_const_dict['t_gas_in']
-        self.t_cool_in = t_sys_const_dict['t_cool_in']
-        self.t_layer_init = t_sys_const_dict['t_layer_init']
-        self.g_cool = t_sys_const_dict['g_cool']
-        self.heat_pow = t_sys_const_dict['heat_pow']
-        self.k_cool_ch = t_sys_const_dict['k_cool_ch']
-        self.k_layer = t_sys_const_dict['k_layer']
-        self.k_alpha_env = t_sys_const_dict['k_alpha_env']
+        self.cool_ch_bc = temp_sys_const_dict['cool_ch_bc']
+        self.temp_gas_in = temp_sys_const_dict['temp_gas_in']
+        self.temp_cool_in = temp_sys_const_dict['temp_cool_in']
+        self.temp_layer_init = temp_sys_const_dict['temp_layer_init']
+        self.g_cool = temp_sys_const_dict['g_cool']
+        self.heat_pow = temp_sys_const_dict['heat_pow']
+        self.k_cool_ch = temp_sys_const_dict['k_cool_ch']
+        self.k_layer = temp_sys_const_dict['k_layer']
+        self.k_alpha_env = temp_sys_const_dict['k_alpha_env']
         # Variable
-        self.t_env = g_par.dict_case['t_u']
+        self.temp_env = g_par.dict_case['t_u']
         self.v_tn = g_par.dict_case['vtn']
         self.const_var = - self.k_cool_ch / self.g_cool
         self.layer = 5
@@ -31,31 +31,32 @@ class TemperatureSystem:
         self.mat = None
         self.zero = np.full(5, .0)
         self.k_gas_ch = np.full((2, self.cell_num, self.elements), 0.)
-        self.t_layer_1d =\
+        self.temp_layer_1d =\
             np.full(self.elements * (5 * (self.cell_num - 1) + 6), 0.)
-        self.r_side = np.full(self.elements * (5 * (self.cell_num - 1) + 6), 0.)
-        t_layer_else = np.full((5, self.elements), self.t_layer_init)
-        t_layer_n = np.full((6, self.elements), self.t_layer_init)
-        self.t_layer = []
+        self.rhs = np.full(self.elements * (5 * (self.cell_num - 1) + 6), 0.)
+        temp_layer_else = np.full((5, self.elements), self.temp_layer_init)
+        temp_layer_n = np.full((6, self.elements), self.temp_layer_init)
+        self.temp_layer = []
         for q in range(self.cell_num):
             if q is not self.cell_num-1:
-                self.t_layer.append(t_layer_else)
+                self.temp_layer.append(temp_layer_else)
             else:
-                self.t_layer.append(t_layer_n)
-        self.t_layer = np.asarray(self.t_layer)
-        self.t_gas = np.full((2, self.cell_num, self.nodes), self.t_gas_in[0])
+                self.temp_layer.append(temp_layer_n)
+        self.temp_layer = np.asarray(self.temp_layer)
+        self.temp_gas = np.full((2, self.cell_num, self.nodes),
+                                self.temp_gas_in[0])
         self.q_cat_mem = np.full((self.cell_num, self.elements), 0.)
         self.q_ano_mem = np.full((self.cell_num, self.elements), 0.)
         self.q_cool = np.full(self.cell_num, 0.)
         self.q_sum = np.full((self.cell_num, self.elements), 0.)
         if self.cool_ch_bc is True:
-            self.t_cool = np.full((self.cell_num + 1, self.nodes),
-                                  self.t_cool_in)
-            self.t_cool_ele = np.full((self.cell_num + 1, self.elements), 0.)
+            self.temp_cool = np.full((self.cell_num + 1, self.nodes),
+                                     self.temp_cool_in)
+            self.temp_cool_ele = np.full((self.cell_num + 1, self.elements), 0.)
         else:
-            self.t_cool = np.full((self.cell_num, self.nodes),
-                                  self.t_cool_in)
-            self.t_cool_ele = np.full((self.cell_num, self.elements), 0.)
+            self.temp_cool = np.full((self.cell_num, self.nodes),
+                                     self.temp_cool_in)
+            self.temp_cool_ele = np.full((self.cell_num, self.elements), 0.)
         self.g_gas = np.full((2, self.cell_num, self.elements), 0.)
         self.k_gas_ch = np.full((2, self.cell_num, self.elements), 0.)
         self.m_reac_flow_delta = np.full((self.cell_num, self.nodes), 0.)
@@ -194,36 +195,36 @@ class TemperatureSystem:
 
     def update_t_layer(self):
         self.update_matrix()
-        self.update_right_side()
+        self.update_rhs()
         self.solve_system()
         self.sort_results()
 
     def update_gas_channel(self):
         for q in range(self.cell_num):
             for w in range(1, self.nodes):
-                self.t_gas[0, q, w] = \
-                    (self.t_gas[0, q, w - 1] - self.t_layer[q][1, w-1])\
+                self.temp_gas[0, q, w] = \
+                    (self.temp_gas[0, q, w - 1] - self.temp_layer[q][1, w - 1])\
                     * np.exp(-self.k_gas_ch[0, q, w-1]
                              / self.g_gas[0, q, w - 1])\
-                    + self.t_layer[q][1, w-1]
+                    + self.temp_layer[q][1, w - 1]
             for w in range(self.elements - 1, -1, -1):
-                self.t_gas[1, q, w] = \
-                    (self.t_gas[1, q, w + 1] - self.t_layer[q][-1, w]) \
+                self.temp_gas[1, q, w] = \
+                    (self.temp_gas[1, q, w + 1] - self.temp_layer[q][-1, w]) \
                     * np.exp(-self.k_gas_ch[1, q, w] / (self.g_gas[1, q, w])) \
-                    + self.t_layer[q][-1, w]
+                    + self.temp_layer[q][-1, w]
 
     def update_coolant_channel(self):
         for q in range(self.cell_num):
             for w in range(1, self.nodes):
-                self.t_cool[q, w] =\
-                    (self.t_cool[q, w - 1] - self.t_layer[q][0, w-1])\
-                    * np.exp(self.const_var) + self.t_layer[q][0, w-1]
+                self.temp_cool[q, w] =\
+                    (self.temp_cool[q, w - 1] - self.temp_layer[q][0, w - 1])\
+                    * np.exp(self.const_var) + self.temp_layer[q][0, w - 1]
         if self.cool_ch_bc is True:
             for w in range(1, self.nodes):
-                self.t_cool[-1, w] = \
-                    (self.t_cool[-1, w - 1] - self.t_layer[-1][-1, w - 1])\
-                    * np.exp(self.const_var) + self.t_layer[-1][-1, w-1]
-        self.t_cool_ele = g_func.calc_elements_2d(self.t_cool)
+                self.temp_cool[-1, w] = \
+                    (self.temp_cool[-1, w - 1] - self.temp_layer[-1][-1, w - 1])\
+                    * np.exp(self.const_var) + self.temp_layer[-1][-1, w - 1]
+        self.temp_cool_ele = g_func.calc_elements_2d(self.temp_cool)
 
     def update_matrix(self):
         dyn_vec = np.full(self.elements*(5 * (self.cell_num-1) + 6), 0.)
@@ -236,52 +237,52 @@ class TemperatureSystem:
             for w in range(self.elements):
                 dyn_vec[ct + 1] = self.k_gas_ch[0, q, w]
                 dyn_vec[ct + 4] = self.k_gas_ch[1, q, w]
-                ct = ct + cr
+                ct += cr
         self.mat = self.stack_mat + np.diag(dyn_vec)
 
-    def update_right_side(self):
-        self.r_side = np.full(self.elements * (5 * (self.cell_num - 1) + 6), 0.)
+    def update_rhs(self):
+        self.rhs = np.full(self.elements * (5 * (self.cell_num - 1) + 6), 0.)
         s = self
-        s.r_s = self.r_side
+        s.r_s = self.rhs
         ct = 0
         for q in range(self.cell_num):
             for w in range(self.elements):
-                s.r_s[ct] -= s.t_env * s.k_alpha_env[0, 2, q]
+                s.r_s[ct] -= s.temp_env * s.k_alpha_env[0, 2, q]
                 s.r_s[ct + 1] += \
-                    s.t_env * s.k_alpha_env[0, 1, q]\
-                    + s.t_gas[0, q, w] * s.k_gas_ch[0, q, w]\
-                    + w_vap.water.calc_h_vap(self.t_gas[0, q, w])\
+                    s.temp_env * s.k_alpha_env[0, 1, q] \
+                    + s.temp_gas[0, q, w] * s.k_gas_ch[0, q, w] \
+                    + w_vap.water.calc_h_vap(self.temp_gas[0, q, w]) \
                     * s.gamma[0, q, w]
-                s.r_s[ct + 2] += s.t_env * s.k_alpha_env[0, 0, q]\
+                s.r_s[ct + 2] += s.temp_env * s.k_alpha_env[0, 0, q] \
                     + (s.v_tn - g_par.dict_case['e_0'] + self.v_los[0, q, w]
                        + .5 * s.omega[q, w] * s.i[q, w]) * s.i[q, w]
-                s.r_s[ct + 3] += s.t_env * s.k_alpha_env[0, 0, q]\
+                s.r_s[ct + 3] += s.temp_env * s.k_alpha_env[0, 0, q]\
                     + (self.v_los[1, q, w] + s.omega[q, w] * s.i[q, w] * .5)\
                     * self.i[q, w]
-                s.r_s[ct + 4] += s.t_env * s.k_alpha_env[0, 1, q]\
-                    + s.t_gas[1, q, w] * s.k_gas_ch[1, q, w]\
-                    + w_vap.water.calc_h_vap(self.t_gas[1, q, w])\
-                                 * s.gamma[1, q, w]
+                s.r_s[ct + 4] += s.temp_env * s.k_alpha_env[0, 1, q] \
+                    + s.temp_gas[1, q, w] * s.k_gas_ch[1, q, w] \
+                    + w_vap.water.calc_h_vap(self.temp_gas[1, q, w]) \
+                    * s.gamma[1, q, w]
                 if q is 0:
-                    s.r_s[ct] -=\
-                        s.heat_pow + 0.5 * s.t_env * s.k_alpha_env[0, 2, q]
+                    s.r_s[ct] -= \
+                        s.heat_pow + 0.5 * s.temp_env * s.k_alpha_env[0, 2, q]
                     if s.cool_ch_bc is True:
-                        s.r_s[ct] -= s.k_cool_ch * s.t_cool_ele[0, w]
+                        s.r_s[ct] -= s.k_cool_ch * s.temp_cool_ele[0, w]
                     cr = 5
                 elif 0 < q < self.cell_num-1:
-                    s.r_s[ct] -= s.k_cool_ch * s.t_cool_ele[q, w]
+                    s.r_s[ct] -= s.k_cool_ch * s.temp_cool_ele[q, w]
                     cr = 5
                 else:
-                    s.r_s[ct] -= s.k_cool_ch * s.t_cool_ele[q, w]
-                    s.r_s[ct + 5] -=\
-                        s.heat_pow + .5 * s.t_env * s.k_alpha_env[0, 2, q]
+                    s.r_s[ct] -= s.k_cool_ch * s.temp_cool_ele[q, w]
+                    s.r_s[ct + 5] -= \
+                        s.heat_pow + .5 * s.temp_env * s.k_alpha_env[0, 2, q]
                     if s.cool_ch_bc is True:
-                        s.r_s[ct + 5] -= s.k_cool_ch * s.t_cool_ele[-1, w]
+                        s.r_s[ct + 5] -= s.k_cool_ch * s.temp_cool_ele[-1, w]
                     cr = 6
                 ct += cr
 
     def solve_system(self):
-        self.t_layer_1d = np.linalg.tensorsolve(self.mat, self.r_side)
+        self.temp_layer_1d = np.linalg.tensorsolve(self.mat, self.rhs)
 
     def sort_results(self):
         ct = 0
@@ -291,5 +292,5 @@ class TemperatureSystem:
             else:
                 cr = 6
             for w in range(self.elements):
-                self.t_layer[q][:, w] = self.t_layer_1d[ct: ct + cr]
-                ct = ct + cr
+                self.temp_layer[q][:, w] = self.temp_layer_1d[ct: ct + cr]
+                ct += cr

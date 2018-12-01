@@ -8,7 +8,7 @@ class ElectricalCoupling:
     def __init__(self, dict_electrical_coupling_const):
         # Handover
         self.cell_num = dict_electrical_coupling_const['cell_num']
-        self.d_x = dict_electrical_coupling_const['d_x']
+        self.dx = dict_electrical_coupling_const['d_x']
         self.th_plate = dict_electrical_coupling_const['th_plate']
         self.w_ch = dict_electrical_coupling_const['w_ch']
         # Variables
@@ -16,14 +16,14 @@ class ElectricalCoupling:
         self.elements = self.nodes - 1
         self.v_end_plate = 0.
         c_x = self.w_ch * self.th_plate\
-            / (self.d_x * g_par.dict_case['plate_resistivity'])
+            / (self.dx * g_par.dict_case['plate_resistivity'])
         # Arrays
         self.v_los = []
         self.cell_c = []
         self.cell_c_mid = []
         self.cell_r = np.full((self.cell_num, self.elements), 0.)
         self.mat = np.full((self.elements, self.cell_num+1), 0.)
-        self.r_side = np.full((self.cell_num + 1) * self.elements, 0.)
+        self.rhs = np.full((self.cell_num + 1) * self.elements, 0.)
         self.i_ca = np.full((self.cell_num, self.elements), 0.)
         c_x_cell = np.hstack(([c_x],
                               np.full(self.elements - 2, 2. * c_x), [c_x]))
@@ -57,12 +57,12 @@ class ElectricalCoupling:
     def update_right_side(self):
         self.v_end_plate = np.sum(self.v_los) / self.elements
         i_end = self.v_end_plate * self.cell_c[:self.elements]
-        self.r_side = np.hstack((-i_end,
-                                 np.full((self.cell_num-2)
+        self.rhs = np.hstack((-i_end,
+                              np.full((self.cell_num-2)
                                          * self.elements, 0.)))
 
     def calc_i(self):
-        v_new = np.linalg.tensorsolve(self.mat, self.r_side)
+        v_new = np.linalg.tensorsolve(self.mat, self.rhs)
         v_new = np.hstack((np.full(self.elements, self.v_end_plate),
                            v_new, np.full(self.elements, 0.)))
         v_dif = v_new[:-self.elements] - v_new[self.elements:]

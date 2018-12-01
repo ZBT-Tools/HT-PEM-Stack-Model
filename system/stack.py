@@ -86,8 +86,8 @@ class Stack:
         self.p_ano = copy.deepcopy(self.zero)
         self.r_cat = copy.deepcopy(self.zero)
         self.r_ano = copy.deepcopy(self.zero)
-        self.t_gas_cat = copy.deepcopy(self.zero)
-        self.t_gas_ano = copy.deepcopy(self.zero)
+        self.temp_gas_cat = copy.deepcopy(self.zero)
+        self.temp_gas_ano = copy.deepcopy(self.zero)
         self.k_alpha_env = np.full((2, 3, self.cell_num), -1.e50)
         self.gamma = np.full((2, self.cell_num, nodes), 0.)
         self.omega = np.full((self.cell_num, nodes), 0.)
@@ -113,19 +113,19 @@ class Stack:
         fac = extent_flow / self.cells[0].cathode.channel.extent
         for q, item in enumerate(self.cells):
             self.k_alpha_env[0, 1, q] =\
-                .5 * self.alpha_env * item.cathode.channel.d_x\
+                .5 * self.alpha_env * item.cathode.channel.dx\
                 * (item.cathode.th_plate + item.cathode.th_gde) / fac
             self.k_alpha_env[0, 0, q] =\
-                .5 * (self.alpha_env * item.cathode.channel.d_x
+                .5 * (self.alpha_env * item.cathode.channel.dx
                       * (item.cathode.th_plate + item.th_mem)) / fac
             self.k_alpha_env[0, 2, q] = \
-                self.alpha_env * item.cathode.channel.d_x\
+                self.alpha_env * item.cathode.channel.dx\
                 * item.cathode.th_plate / fac
         # Initialize the thermal coupling
-        therm_dict.t_sys_const_dict['k_layer'] = self.k_layer
-        therm_dict.t_sys_const_dict['k_alpha_env'] = self.k_alpha_env
+        therm_dict.temp_sys_const_dict['k_layer'] = self.k_layer
+        therm_dict.temp_sys_const_dict['k_alpha_env'] = self.k_alpha_env
         self.temp_cpl_stack = therm_cpl.\
-            TemperatureSystem(therm_dict.t_sys_const_dict)
+            TemperatureSystem(therm_dict.temp_sys_const_dict)
 
     def update(self):
         for j in range(self.cell_num):
@@ -144,13 +144,13 @@ class Stack:
 
     def update_flows(self):
         self.manifold[0].update_values(
-            m_fold_dict.dict_manifold_dyn(self.q_sum_cat, self.t_gas_cat,
+            m_fold_dict.dict_manifold_dyn(self.q_sum_cat, self.temp_gas_cat,
                                           self.cp_cat, self.visc_cat,
                                           self.p_cat, self.r_cat,
                                           self.m_sum_cat))
         self.manifold[1].update_values(
             m_fold_dict.dict_manifold_dyn(self.q_sum_ano[::-1],
-                                          self.t_gas_ano[::-1],
+                                          self.temp_gas_ano[::-1],
                                           self.cp_ano[::-1],
                                           self.visc_ano[::-1],
                                           self.p_ano[::-1],
@@ -174,12 +174,13 @@ class Stack:
     def update_temperature_coupling(self):
         self.i = self.i_ca * self.cells[0].cathode.channel.plane_dx
         self.temp_cpl_stack.update_values(
-            therm_dict.t_sys_dyn_dict(self.k_alpha_ch, self.gamma, self.omega,
-                                      [self.v_los_cat, self.v_los_ano],
-                                      self.m_reac_flow_delta, self.g_gas,
-                                      self.cp_h2, self.i))
+            therm_dict.temp_sys_dyn_dict(self.k_alpha_ch, self.gamma,
+                                         self.omega,
+                                         [self.v_los_cat, self.v_los_ano],
+                                          self.m_reac_flow_delta, self.g_gas,
+                                          self.cp_h2, self.i))
         self.temp_cpl_stack.update()
-        self.set_t()
+        self.set_temp()
 
     def stack_constant_properties(self):
         k_p, k_g, k_m = [], [], []
@@ -209,8 +210,8 @@ class Stack:
         p_ano_in, p_ano_out = [], []
         r_cat_in, r_cat_out = [], []
         r_ano_in, r_ano_out = [], []
-        t_gas_cat_in, t_gas_cat_out = [], []
-        t_gas_ano_in, t_gas_ano_out = [], []
+        temp_gas_cat_in, temp_gas_cat_out = [], []
+        temp_gas_ano_in, temp_gas_ano_out = [], []
         gamma_cat, gamma_ano = [], []
         m_sum_cat_in, m_sum_cat_out = [], []
         m_sum_ano_in, m_sum_ano_out = [], []
@@ -261,10 +262,10 @@ class Stack:
             visc_cat_out = np.hstack((visc_cat_out, item.cathode.visc_mix[-1]))
             visc_ano_in = np.hstack((visc_ano_in, item.anode.visc_mix[0]))
             visc_ano_out = np.hstack((visc_ano_out, item.anode.visc_mix[-1]))
-            t_gas_cat_in = np.hstack((t_gas_cat_in, item.cathode.t_gas[0]))
-            t_gas_cat_out = np.hstack((t_gas_cat_out, item.cathode.t_gas[-1]))
-            t_gas_ano_in = np.hstack((t_gas_ano_in, item.anode.t_gas[0]))
-            t_gas_ano_out = np.hstack((t_gas_ano_out, item.anode.t_gas[-1]))
+            temp_gas_cat_in = np.hstack((temp_gas_cat_in, item.cathode.temp_gas[0]))
+            temp_gas_cat_out = np.hstack((temp_gas_cat_out, item.cathode.temp_gas[-1]))
+            temp_gas_ano_in = np.hstack((temp_gas_ano_in, item.anode.temp_gas[0]))
+            temp_gas_ano_out = np.hstack((temp_gas_ano_out, item.anode.temp_gas[-1]))
         self.k_alpha_ch = np.array([k_alpha_cat, k_alpha_ano])
         self.omega = np.array(omega)
         self.gamma = np.array([gamma_cat, gamma_ano])
@@ -285,8 +286,8 @@ class Stack:
         self.p_ano = np.array([p_ano_in, p_ano_out])
         self.r_cat = np.array([r_cat_in, r_cat_out])
         self.r_ano = np.array([r_ano_in, r_ano_out])
-        self.t_gas_cat = np.array([t_gas_cat_in, t_gas_cat_out])
-        self.t_gas_ano = np.array([t_gas_ano_in, t_gas_ano_out])
+        self.temp_gas_cat = np.array([temp_gas_cat_in, temp_gas_cat_out])
+        self.temp_gas_ano = np.array([temp_gas_ano_in, temp_gas_ano_out])
         self.v_alarm = np.array(v_alarm)
 
     def set_stoi(self, stoi_cat, stoi_ano):
@@ -299,8 +300,8 @@ class Stack:
             item.cathode.channel.p_in = p_cat[w]
             item.anode.channel.p_in = p_ano[w]
 
-    def set_t(self):
+    def set_temp(self):
         for w, item in enumerate(self.cells):
-            item.t = self.temp_cpl_stack.t_layer[w][0:5, :]
-            item.cathode.t_gas = self.temp_cpl_stack.t_gas[0, w]
-            item.anode.t_gas = self.temp_cpl_stack.t_gas[1, w]
+            item.temp = self.temp_cpl_stack.temp_layer[w][0:5, :]
+            item.cathode.temp_gas = self.temp_cpl_stack.temp_gas[0, w]
+            item.anode.temp_gas = self.temp_cpl_stack.temp_gas[1, w]

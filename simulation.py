@@ -40,7 +40,7 @@ class Simulation:
         self.stack = None
         self.path_plot = None
         self.path_csv_data = None
-        self.t_old = None
+        self.temp_old = None
         cell_num = st_dict.stack['cell_numb']
         nodes = gpar.dict_case['nodes']
         # Arrays
@@ -55,7 +55,7 @@ class Simulation:
         self.t4_criteria_process = []
         self.t5_criteria_process = []
         self.i_criteria = []
-        self.t_criteria = []
+        self.temp_criteria = []
         self.tryarray = []
         self.v = []
         self.mol_flow = np.full((5, cell_num, nodes), 0.)
@@ -98,10 +98,10 @@ class Simulation:
         self.m_flow_anode = np.full((cell_num, nodes), 0.)
         self.cp_full_cathode = np.full((cell_num, nodes), 0.)
         self.cp_full_anode = np.full((cell_num, nodes), 0.)
-        self.t_layer = []
-        self.t_gas_anode = np.full((cell_num, nodes), 0.)
-        self.t_gas_cathode = np.full((cell_num, nodes), 0.)
-        self.t_coolant = np.full((cell_num, nodes), 0.)
+        self.temp_layer = []
+        self.temp_gas_anode = np.full((cell_num, nodes), 0.)
+        self.temp_gas_cathode = np.full((cell_num, nodes), 0.)
+        self.temp_coolant = np.full((cell_num, nodes), 0.)
         self.stoi_cathode = np.full(cell_num, 0.)
         self.stoi_anode = np.full(cell_num, 0.)
 
@@ -124,7 +124,7 @@ class Simulation:
                     print(counter)
                 counter = counter + 1
                 if ((self.i_criteria < self.k_it
-                    and self.t_criteria < self.k_it) and counter > 10)\
+                     and self.temp_criteria < self.k_it) and counter > 10)\
                         or counter > self.max_it:
                     statement = False
             if self.stack.break_program is False:
@@ -163,17 +163,17 @@ class Simulation:
         self.i_criteria = np.abs(sum(((self.stack.i_ca.flatten()
                                        - self.stack.i_old.flatten())
                                       / self.stack.i_ca.flatten()) ** 2.))
-        self.t_criteria =\
-            np.abs(np.sum(((self.t_old
-                            - self.stack.temp_cpl_stack.t_layer[0][0, 0]))
-                          / self.stack.temp_cpl_stack.t_layer[0][0, 0]))
-        self.t_criteria_process.append(self.t_criteria)
+        self.temp_criteria =\
+            np.abs(np.sum(((self.temp_old
+                            - self.stack.temp_cpl_stack.temp_layer[0][0, 0]))
+                          / self.stack.temp_cpl_stack.temp_layer[0][0, 0]))
+        self.t_criteria_process.append(self.temp_criteria)
         self.mdf_criteria_cat_process.append(self.stack.cathode_mfd_criteria)
         self.mdf_criteria_ano_process.append(self.stack.anode_mfd_criteria)
         self.i_criteria_process.append(self.i_criteria)
 
     def save_old_value(self):
-        self.t_old = self.stack.temp_cpl_stack.t_layer[0][0, 0]
+        self.temp_old = self.stack.temp_cpl_stack.temp_layer[0][0, 0]
 
     def plot_cell_var(self, y_var, y_label, x_label,
                       y_scale, title, xlim, x_var, y_lim):
@@ -231,42 +231,42 @@ class Simulation:
                            'linear', 'Cell Voltage',
                            [0., ch_dict.cathode_channel['length']], x_ele,
                            [0., 1.28])
-        gfunc.output_x(self.stack.temp_cpl_stack.t_cool, x_node,
+        gfunc.output_x(self.stack.temp_cpl_stack.temp_cool, x_node,
                        'Coolant Temperature [K]', 'Channel Location $[m]$',
                        'linear', 'Coolant Temperature', False,
                        [0., ch_dict.cathode_channel['length']], self.path_plot)
-        self.plot_cell_var('t[-1]',
+        self.plot_cell_var('temp[-1]',
                            'Anode Plate - GDE Temperature $[K]$',
                            'Channel Location $[m]$', 'linear',
                            'Anode Plate - GDE Temperature',
                            [0., ch_dict.cathode_channel['length']], x_ele,
                            False)
-        self.plot_cell_var('t[-2]', 'Anode GDE - Membrane Temperature $[K]$',
+        self.plot_cell_var('temp[-2]', 'Anode GDE - Membrane Temperature $[K]$',
                            'Channel Location $[m]$', 'linear',
                            'Anode GDE - Membrane Temperature',
                            [0., ch_dict.cathode_channel['length']], x_ele,
                            False)
-        self.plot_cell_var('t[2]', 'Membrane - Cathode GDE Temperature $[K]$',
+        self.plot_cell_var('temp[2]', 'Membrane - Cathode GDE Temperature $[K]$',
                            'Channel Location $[m]$', 'linear',
                            'Cathode GDL Temperature',
                            [0., ch_dict.cathode_channel['length']], x_ele,
                            False)
-        self.plot_cell_var('cathode.t_gas', 'Cathode Channel Temperature $[K]$',
+        self.plot_cell_var('cathode.temp_gas', 'Cathode Channel Temperature $[K]$',
                            'Channel Location $[m]$', 'linear',
                            'Cathode_Channel_Temperature',
                            [0., ch_dict.cathode_channel['length']], x_node,
                            False)
-        self.plot_cell_var('t[1]', 'Cathode GDE - Plate Temperature $[K]$',
+        self.plot_cell_var('temp[1]', 'Cathode GDE - Plate Temperature $[K]$',
                            'Channel Location $[m]$', 'linear',
                            'Cathode GDE - Plate Temperature',
                            [0., ch_dict.cathode_channel['length']], x_ele,
                            False)
-        self.plot_cell_var('anode.t_gas', 'Hydrogen Temperature $[K]$',
+        self.plot_cell_var('anode.temp_gas', 'Hydrogen Temperature $[K]$',
                            'Channel Location $[m]$', 'linear',
                            'Hydrogen Temperature',
                            [0., ch_dict.cathode_channel['length']], x_node,
                            False)
-        self.plot_cell_var('t[0]',
+        self.plot_cell_var('temp[0]',
                            'Cathode Plate- Anode Plate Temperature $[K]$',
                            'Channel Location $[m]$', 'linear',
                            'Coolant Plate Temperature',
@@ -405,7 +405,7 @@ class Simulation:
             else:
                 x.append(x_vec_l)
         x = np.cumsum(np.block(x))
-        t = self.stack.temp_cpl_stack.t_layer
+        t = self.stack.temp_cpl_stack.temp_layer
         for w in range(gpar.dict_case['nodes']-1):
             t_vec = []
             for l in range(self.stack.cell_num):
@@ -503,25 +503,25 @@ class Simulation:
             self.cp_full_anode[w] = item.anode.cp_full
             self.m_flow_cathode[w] = item.cathode.m_full_flow
             self.m_flow_anode[w] = item.anode.m_full_flow
-            self.t_gas_cathode[w] = item.cathode.t_gas
-            self.t_gas_anode[w] = item.anode.t_gas
+            self.temp_gas_cathode[w] = item.cathode.temp_gas
+            self.temp_gas_anode[w] = item.anode.temp_gas
             self.stoi_cathode[w] = item.cathode.stoi
             self.stoi_anode[w] = item.anode.stoi
             for q in range(5):
-                self.t_layer.append(self.stack.temp_cpl_stack.t_layer[w][q, :])
+                self.temp_layer.append(self.stack.temp_cpl_stack.temp_layer[w][q, :])
         np.savetxt(self.path_csv_data + 'Temperature Layer.csv',
-                   self.t_layer, delimiter=self.delimiter,
+                   self.temp_layer, delimiter=self.delimiter,
                    fmt=self.csv_format)
         np.savetxt(self.path_csv_data + 'Coolant Temperature.csv',
-                   self.t_coolant, delimiter=self.delimiter,
+                   self.temp_coolant, delimiter=self.delimiter,
                    fmt=self.csv_format)
         np.savetxt(self.path_csv_data + 'Current Density.csv', self.stack.i_ca,
                    delimiter=self.delimiter, fmt=self.csv_format)
         np.savetxt(self.path_csv_data + 'Cathode Gas Temperature.csv',
-                   self.t_gas_cathode, delimiter=self.delimiter,
+                   self.temp_gas_cathode, delimiter=self.delimiter,
                    fmt=self.csv_format)
         np.savetxt(self.path_csv_data + 'Anode Gas Temperature.csv',
-                   self.t_gas_anode, delimiter=self.delimiter,
+                   self.temp_gas_anode, delimiter=self.delimiter,
                    fmt=self.csv_format)
         np.savetxt(self.path_csv_data + 'Cathode Channel Average Velocity.csv',
                    self.u_cathode, delimiter=self.delimiter,
@@ -539,7 +539,7 @@ class Simulation:
         np.savetxt(self.path_csv_data + 'Cathode Water Molar Flow.csv',
                    self.mol_flow[1], delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Nitrogen Molar Flow.csv',
+        np.savetxt(self.path_csv_data + 'Cathode Nitrogen Molar Flow.csv',
                    self.mol_flow[2], delimiter=self.delimiter,
                    fmt=self.csv_format)
         np.savetxt(self.path_csv_data + 'Hydrogen Molar Flow.csv',

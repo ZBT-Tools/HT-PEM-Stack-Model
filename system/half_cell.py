@@ -47,7 +47,7 @@ class HalfCell:
         self.stoi = 0.
         self.i_theta = np.sqrt(2. * self.vol_ex_cd * self.prot_con
                                * self.tafel_slope)
-        self.dh = 4. * self.channel.cross_area / self.channel.extent
+        self.d_h = 4. * self.channel.cross_area / self.channel.extent
         self.index_cat = g_par.dict_case['nodes'] - 1
         self.p_drop_bends = 0.
         self.i_star = self.prot_con * self.tafel_slope / self.th_cat
@@ -90,7 +90,7 @@ class HalfCell:
         self.gas_con = np.full((self.spec_num, nodes), 0.)
         self.gas_con_ele = np.full((nodes-1), 0.)
         self.mixture = [None] * nodes
-        self.t_gas = np.full(nodes, self.channel.t_in)
+        self.temp_gas = np.full(nodes, self.channel.temp_in)
         self.rho = np.full(nodes, 1.)
         self.visc_mix = np.full(nodes, 1.e-5)
         self.Nu = np.full(nodes, 0.)
@@ -101,7 +101,7 @@ class HalfCell:
         self.cp = np.full((self.spec_num, nodes), 0.)
         self.lambda_gas = np.full((self.spec_num, nodes), 0.)
         self.visc = np.full((self.spec_num, nodes), 0.)
-        self.t_gas_ele = np.full((nodes-1), 0.)
+        self.temp_gas_ele = np.full((nodes - 1), 0.)
         self.cp_ele = np.full((nodes-1), 0.)
         self.cp_mix = np.full(nodes, 0.)
         self.ht_coef = np.full(nodes, 0.)
@@ -110,9 +110,9 @@ class HalfCell:
         self.lambda_mix = np.full(nodes, 0.)
         self.Pr = np.full(nodes, 0.)
         if self.type is True:
-            self.t_nodes = np.full((3, nodes), 0.)
+            self.temp_nodes = np.full((3, nodes), 0.)
         else:
-            self.t_nodes = np.full((2, nodes-1), 0.)
+            self.temp_nodes = np.full((2, nodes - 1), 0.)
             # 1 catalyst layer, 2 channel layer, 3 coolant plate layer
         for q, item in enumerate(self.mol_mass):
             self.r_el[q] = g_par.dict_uni['R'] / item
@@ -159,15 +159,15 @@ class HalfCell:
     def set_pem_type(self, pem_type):
         self.pem_type = pem_type
 
-    def set_t(self, var):
+    def set_temp(self, var):
         var = g_func.calc_nodes_2_d(np.array(var))
         if self.type is True:
-            self.t = np.array([var[0], var[1], var[2]])
+            self.temp = np.array([var[0], var[1], var[2]])
         else:
-            self.t = np.array([var[0], var[1]])
+            self.temp = np.array([var[0], var[1]])
 
     def calc_t_gas_e(self):
-        self.t_gas_ele = g_func.calc_elements_1_d(self.t_gas)
+        self.temp_gas_ele = g_func.calc_elements_1_d(self.temp_gas)
 
     def calc_reac_flow(self):
         """Calculates the reactant molar flow [mol/s]
@@ -226,7 +226,7 @@ class HalfCell:
             -self.mol_flow
             -self.index_cat
         """
-        sat_p = p_sat.water.calc_p_sat(self.channel.t_in)
+        sat_p = p_sat.water.calc_p_sat(self.channel.temp_in)
         plane_dx = self.channel.plane_dx
         b = 0.
         if self.type is True:
@@ -315,24 +315,24 @@ class HalfCell:
         if self.type is True:
             mat = self.node_fwd
             self.p[0] = p_in
-            self.p[1:] = p_in + 32. / self.dh\
-                * np.matmul(-mat, rho_ele * u_ele ** 2. / Re_ele)\
-                * self.channel.d_x - self.p_drop_bends
+            self.p[1:] = p_in + 32. / self.d_h \
+                         * np.matmul(-mat, rho_ele * u_ele ** 2. / Re_ele) \
+                         * self.channel.dx - self.p_drop_bends
         else:
             mat = self.node_bwd
             self.p[-1] = p_in
-            self.p[:-1] = p_in + 32. / self.dh \
-                * np.matmul(-mat, rho_ele * u_ele ** 2. / Re_ele) \
-                * self.channel.d_x - self.p_drop_bends
+            self.p[:-1] = p_in + 32. / self.d_h \
+                          * np.matmul(-mat, rho_ele * u_ele ** 2. / Re_ele) \
+                          * self.channel.dx - self.p_drop_bends
 
     def calc_con(self):
         for w in range(g_par.dict_case['nodes']):
-            id_lw = self.p[w] / (g_par.dict_uni['R'] * self.t[1, w])
+            id_lw = self.p[w] / (g_par.dict_uni['R'] * self.temp[1, w])
             var4 = np.sum(self.mol_flow[:, w])
             var2 = self.mol_flow[1][w] / var4
             self.gas_con[1][w] = id_lw * var2
-            a = p_sat.water.calc_p_sat(self.t[1, w])
-            e = g_par.dict_uni['R'] * self.t_gas[w]
+            a = p_sat.water.calc_p_sat(self.temp[1, w])
+            e = g_par.dict_uni['R'] * self.temp_gas[w]
             if self.gas_con[1][w] >= a / e:  # saturated
                 b = self.mol_flow[0][w] + self.mol_flow[2][w]
                 c = self.mol_flow[0][w] / b
@@ -361,19 +361,19 @@ class HalfCell:
 
     def calc_gas_properties(self):
         if self.type is True:
-            self.cp[0] = g_fit.oxygen.calc_cp(self.t_gas)
-            self.lambda_gas[0] = g_fit.oxygen.calc_lambda(self.t_gas, self.p)
-            self.visc[0] = g_fit.oxygen.calc_visc(self.t_gas)
+            self.cp[0] = g_fit.oxygen.calc_cp(self.temp_gas)
+            self.lambda_gas[0] = g_fit.oxygen.calc_lambda(self.temp_gas, self.p)
+            self.visc[0] = g_fit.oxygen.calc_visc(self.temp_gas)
         else:
-            self.cp[0] = g_fit.hydrogen.calc_cp(self.t_gas)
-            self.lambda_gas[0] = g_fit.hydrogen.calc_lambda(self.t_gas, self.p)
-            self.visc[0] = g_fit.hydrogen.calc_visc(self.t_gas)
-        self.cp[1] = g_fit.water.calc_cp(self.t_gas)
-        self.cp[2] = g_fit.nitrogen.calc_cp(self.t_gas)
-        self.lambda_gas[1] = g_fit.water.calc_lambda(self.t_gas, self.p)
-        self.lambda_gas[2] = g_fit.nitrogen.calc_lambda(self.t_gas, self.p)
-        self.visc[1] = g_fit.water.calc_visc(self.t_gas)
-        self.visc[2] = g_fit.nitrogen.calc_visc(self.t_gas)
+            self.cp[0] = g_fit.hydrogen.calc_cp(self.temp_gas)
+            self.lambda_gas[0] = g_fit.hydrogen.calc_lambda(self.temp_gas, self.p)
+            self.visc[0] = g_fit.hydrogen.calc_visc(self.temp_gas)
+        self.cp[1] = g_fit.water.calc_cp(self.temp_gas)
+        self.cp[2] = g_fit.nitrogen.calc_cp(self.temp_gas)
+        self.lambda_gas[1] = g_fit.water.calc_lambda(self.temp_gas, self.p)
+        self.lambda_gas[2] = g_fit.nitrogen.calc_lambda(self.temp_gas, self.p)
+        self.visc[1] = g_fit.water.calc_visc(self.temp_gas)
+        self.visc[2] = g_fit.nitrogen.calc_visc(self.temp_gas)
         self.cp_ele = g_func.calc_elements_1_d(self.cp[0])
 
     def calc_gas_mix_properties(self):
@@ -389,7 +389,7 @@ class HalfCell:
                                              self.mol_mass)
         self.lambda_mix = g_func.calc_lambda_mix(self.lambda_gas, self.mol_f,
                                                  self.visc, self.mol_mass)
-        self.rho = g_func.calc_rho(self.p, self.r_mix, self.t_gas)
+        self.rho = g_func.calc_rho(self.p, self.r_mix, self.temp_gas)
         self.Pr = self.visc_mix * self.cp_mix / self.lambda_mix
         # print(self.mass_f,'mass_f')
         # print(self.mol_f, 'mol_f')
@@ -401,7 +401,7 @@ class HalfCell:
         # print(self.Pr, 'Pr')
 
     def calc_flow_velocity(self):
-        self.u = self.q_gas * g_par.dict_uni['R'] * self.t_gas \
+        self.u = self.q_gas * g_par.dict_uni['R'] * self.temp_gas \
                  / (self.p * self.channel.cross_area)
         # print(self.u, 'u')
 
@@ -431,7 +431,7 @@ class HalfCell:
         # print(self.g_full, 'g_full')
 
     def calc_re(self):
-        self.Re = g_func.calc_Re(self.rho, self.u, self.dh, self.visc_mix)
+        self.Re = g_func.calc_Re(self.rho, self.u, self.d_h, self.visc_mix)
         # print(self.Re, 'Re')
 
     def calc_nu(self):
@@ -439,8 +439,8 @@ class HalfCell:
         # print(self.Nu, 'Nu')
 
     def calc_heat_transfer_coef(self):
-        self.ht_coef = self.lambda_mix * self.Nu / self.dh
-        self.k_ht_coef_ca = self.ht_coef * np.pi * self.channel.d_x * self.dh
+        self.ht_coef = self.lambda_mix * self.Nu / self.d_h
+        self.k_ht_coef_ca = self.ht_coef * np.pi * self.channel.dx * self.d_h
 
     def calc_fluid_water(self):  # fluid water in the channel
         self.w = self.mol_flow[1] - self.gas_con[1] / self.gas_con[0] \
@@ -456,7 +456,7 @@ class HalfCell:
 
     def calc_rel_humidity(self):  # relative humidity in the channel
         self.humidity = self.gas_con[1] * g_par.dict_uni['R'] \
-                        * self.t_gas / p_sat.water.calc_p_sat(self.t_gas)
+                        * self.temp_gas / p_sat.water.calc_p_sat(self.temp_gas)
         # print(self.humidity, 'humidity')
 
     def calc_free_water(self):  # membrane free water content

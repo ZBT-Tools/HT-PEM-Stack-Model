@@ -15,7 +15,7 @@ class Cell:
         self.lambda_p = [dict_cell['plate_h_con'], dict_cell['plate_hi_con']]
         self.lambda_g = [dict_cell['gde_h_con'], dict_cell['gde_hi_con']]
         self.lambda_m = [dict_cell['mem_h_con'], dict_cell['mem_hi_con']]
-        self.t_cool_in = dict_cell['t_cool_in']
+        self.temp_cool_in = dict_cell['t_cool_in']
         self.mem_bas_r = dict_cell['mem_bas_r']
         self.mem_acl_r = dict_cell['mem_acl_r']
         # Scalar variables
@@ -41,20 +41,19 @@ class Cell:
         self.k_m = self.lambda_m[0] * self.cathode.channel.plane_dx\
             / self.th_mem
         self.k_pp = self.cathode.channel.width * self.lambda_p[1]\
-            * self.cathode.th_plate / self.cathode.channel.d_x
+            * self.cathode.th_plate / self.cathode.channel.dx
         self.k_gp = (self.cathode.channel.width
                      * (self.lambda_p[1] * self.cathode.th_plate
                         + self.lambda_g[1] * self.cathode.th_gde))\
-            / (2. * self.cathode.channel.d_x)
+            / (2. * self.cathode.channel.dx)
         self.k_gm = (self.cathode.channel.width
                      * (self.lambda_m[1] * self.th_mem
                         + self.lambda_g[1] * self.cathode.th_gde))\
-            / (2. * self.cathode.channel.d_x)
+            / (2. * self.cathode.channel.dx)
         self.height = self.th_mem\
             + 2. * self.cathode.th_plate\
             + 2. * self.cathode.th_gde
         nodes = g_par.dict_case['nodes']
-        self.t_mem = np.full(nodes, 0.)
         self.j = np.full(nodes, 0.)
         self.m_a = np.full(nodes, 0.)
         self.m_c = np.full(nodes, 0.)
@@ -65,8 +64,8 @@ class Cell:
         self.omega_ca = np.full(nodes, 0.)
         self.con_ov = np.full(nodes, 0.)
         self.v_los = np.full(nodes - 1, 0.)
-        self.t = np.full((5, nodes-1), dict_cell['t_init'])
-        self.t_membrane = np.full(nodes, 0.)
+        self.temp = np.full((5, nodes - 1), dict_cell['t_init'])
+        self.temp_mem = np.full(nodes, 0.)
         self.i_ca = np.full((nodes - 1), 0.)
         self.i_nodes = np.full(nodes, 0.)
         self.zeta_plus = np.full(nodes, 0.)
@@ -80,7 +79,7 @@ class Cell:
         self.resistance = np.full((nodes - 1), 0.)
 
     def update(self):
-        self.t_membrane = .5 * (self.t[2] + self.t[1])
+        self.temp_mem = .5 * (self.temp[2] + self.temp[1])
         if g_par.dict_case['pem_type'] is False:
             self.cathode.set_pem_type(False)
             self.anode.set_pem_type(False)
@@ -88,8 +87,8 @@ class Cell:
             self.anode.set_j(self.j)
         self.cathode.set_i(self.i_ca)
         self.anode.set_i(self.i_ca)
-        self.cathode.set_t([self.t[2], self.t[3], self.t[4]])
-        self.anode.set_t([self.t[0], self.t[1]])
+        self.cathode.set_temp([self.temp[2], self.temp[3], self.temp[4]])
+        self.anode.set_temp([self.temp[0], self.temp[1]])
         self.cathode.update()
         self.anode.update()
         if self.anode.break_program is True\
@@ -125,20 +124,20 @@ class Cell:
                                  * vap_coef
                                  * g_par.dict_case['mol_con_m']
                                  * g_par.dict_uni['F'])) \
-                                 / (1. + g_func.dw(self.t_membrane)
+                                 / (1. + g_func.dw(self.temp_mem)
                                 * self.zeta_plus / (self.th_mem * vap_coef))
         self.m_c = 0.5 * (self.zeta_plus + self.zeta_negative)
         self.m_a = 0.5 * (self.zeta_plus - self.zeta_negative)
 
     def calc_cross_over_water_flux(self):
         self.j = self.i_nodes / g_par.dict_uni['F'] + g_par.dict_case[
-            'mol_con_m'] * g_func.dw(self.t_membrane) * (
+            'mol_con_m'] * g_func.dw(self.temp_mem) * (
                              self.m_a ** 2. - self.m_c ** 2.) / (
                              2. * self.th_mem)
 
     def calc_mem_block_2(self):
         self.ke = self.ko * np.exp(-self.ho / g_par.dict_uni['R'] * (
-                    1. / self.t_membrane - 1. / g_par.dict_case['t_u']))
+                1. / self.temp_mem - 1. / g_par.dict_case['t_u']))
         a = self.m_c ** 2.
         b = self.m_a ** 2. - self.m_c ** 2.
         self.m_0 = np.sqrt(a - b)  # z = 0
@@ -149,12 +148,12 @@ class Cell:
             (self.ke * self.m_1 * 0.5) ** 2. + self.ke * self.m_1)
 
     def calc_con_ov(self):
-        self.con_ov = g_par.dict_uni['R'] * self.t_membrane * np.log(
+        self.con_ov = g_par.dict_uni['R'] * self.temp_mem * np.log(
             self.m_pos_1 / self.m_pos_0) / g_par.dict_uni['F']
 
     def calc_mem_resistivity(self):
         self.omega_ca = (self.mem_bas_r
-                         - self.mem_acl_r * self.t_membrane) * 1.e-4
+                         - self.mem_acl_r * self.temp_mem) * 1.e-4
         self.omega = self.omega_ca / self.cathode.channel.plane_dx
 
     def calc_membrane_losses(self):
@@ -162,7 +161,7 @@ class Cell:
 
     def calc_mem_resistivity_gling(self):
         lambda_x = np.full(g_par.dict_case['nodes'], 0.)
-        res_t = np.exp(self.fac_m * 1.e3 / self.t_membrane + self.fac_n)
+        res_t = np.exp(self.fac_m * 1.e3 / self.temp_mem + self.fac_n)
         r_avg = (self.cathode.humidity + self.anode.humidity) * 0.5
         for q in range(g_par.dict_case['nodes']):
             if r_avg[q] > 0:
