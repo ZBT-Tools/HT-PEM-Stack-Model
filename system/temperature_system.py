@@ -2,6 +2,7 @@ import numpy as np
 import scipy.linalg as sp_l
 import data.global_parameter as g_par
 import system.global_functions as g_func
+import data.water_vaporization_enthalpy as w_vap
 np.set_printoptions(linewidth=10000, threshold=None, precision=2)
 
 
@@ -23,7 +24,6 @@ class TemperatureSystem:
         self.k_alpha_env = t_sys_const_dict['k_alpha_env']
         # Variable
         self.t_env = g_par.dict_case['t_u']
-        self.h_vap = g_par.dict_uni['h_vap']
         self.v_tn = g_par.dict_case['vtn']
         self.const_var = - self.k_cool_ch / self.g_cool
         self.layer = 5
@@ -250,7 +250,8 @@ class TemperatureSystem:
                 s.r_s[ct + 1] += \
                     s.t_env * s.k_alpha_env[0, 1, q]\
                     + s.t_gas[0, q, w] * s.k_gas_ch[0, q, w]\
-                    + s.h_vap * s.gamma[0, q, w]
+                    + w_vap.water.calc_h_vap(self.t_gas[0, q, w])\
+                    * s.gamma[0, q, w]
                 s.r_s[ct + 2] += s.t_env * s.k_alpha_env[0, 0, q]\
                     + (s.v_tn - g_par.dict_case['e_0'] + self.v_los[0, q, w]
                        + .5 * s.omega[q, w] * s.i[q, w]) * s.i[q, w]
@@ -259,7 +260,8 @@ class TemperatureSystem:
                     * self.i[q, w]
                 s.r_s[ct + 4] += s.t_env * s.k_alpha_env[0, 1, q]\
                     + s.t_gas[1, q, w] * s.k_gas_ch[1, q, w]\
-                    + s.h_vap * s.gamma[1, q, w]
+                    + w_vap.water.calc_h_vap(self.t_gas[1, q, w])\
+                                 * s.gamma[1, q, w]
                 if q is 0:
                     s.r_s[ct] -=\
                         s.heat_pow + 0.5 * s.t_env * s.k_alpha_env[0, 2, q]

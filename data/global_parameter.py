@@ -4,7 +4,6 @@ import input.simulation as sim
 import numpy as np
 
 dict_uni = {'R': 8.314459848, 'F': 96485.3328959,
-            'h_vap': phy_prop.enthalpy_vaporization,
             'cp_liq': phy_prop.heat_capacity_coolant}
 dict_case = {'tar_cd': np.array(op_cond.target_current_density),
              'nodes': sim.elements + 1, 'elements': sim.elements,

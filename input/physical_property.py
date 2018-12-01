@@ -55,8 +55,6 @@ heat_capacity_coolant = 4.e3
 convection_coefficient_coolant_channel = 4.e3
 # convection coefficient between the stack walls and the environment [W/(Km^2)]
 convection_coefficient_stack_environment = 5.e0
-# latent heat of vaporization [J/mol]
-enthalpy_vaporization = 45.4e3
 
 """Fluid Mechanic Settings"""
 # geometrical pressure loss coefficient of the manifold header

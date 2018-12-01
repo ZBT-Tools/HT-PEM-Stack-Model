@@ -1,6 +1,6 @@
 import input.physical_property as phy_prop
 import input.geometry as geo
-import numpy as np
+
 
 cathode = {'type': True, 'th_gdl': geo.gas_diffusion_layer_thickness,
            'th_plate': geo.bipolar_plate_thickness,
