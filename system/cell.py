@@ -175,8 +175,8 @@ class Cell:
         c = 0.0004702
         d = 1.144
         e = 8.
-        res_lama = a + b * lambda_x + c * np.exp(d * (lambda_x - e))
-        res = res_lama * res_t / 0.01415
+        res_lambda = a + b * lambda_x + c * np.exp(d * (lambda_x - e))
+        res = res_lambda * res_t / 0.01415
         rp = self.th_mem / res
         self.omega_gling = 1.e4 * (self.fac_res_basic
                                    + rp * self.fac_res_fit)
