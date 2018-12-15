@@ -523,7 +523,8 @@ class Simulation:
                     t_vec.append(np.array([t[l][0, w], t[l][1, w], t[l][2, w],
                                            t[l][3, w], t[l][4, w], t[l][5, w]]))
             plt.plot(x, np.block(t_vec),
-                     color=plt.cm.coolwarm((w + 1.e-20)/self.stack.cell_numb))
+                     color=plt.cm.coolwarm((w + 1.e-20)
+                                           / g_par.dict_case['nodes'] - 1))
         plt.xlim(0, x[-1])
         plt.xlabel('Stack Location $[m]$', fontsize=16)
         plt.ylabel('Temperature $[K]$', fontsize=16)
