@@ -213,6 +213,7 @@ class Cell:
         """
         Calculates the membrane resitace for NT-PEMFC according to Goßling
         """
+
         lambda_x = np.full(g_par.dict_case['nodes'], 0.)
         res_t = np.exp(self.fac_m * 1.e3 / self.temp_mem + self.fac_n)
         r_avg = (self.cathode.humidity + self.anode.humidity) * 0.5

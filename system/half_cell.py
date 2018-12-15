@@ -865,7 +865,8 @@ class HalfCell:
             self.gdl_diff_loss[np.argwhere(nan_list)[0, 0]:] = 1.e50
 
     def calc_electrode_loss(self):
-        """Calculates the full volatege losses of the electrode
+        """
+        Calculates the full volatege losses of the electrode
 
             Access to:
             -self.act_loss

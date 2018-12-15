@@ -3,7 +3,7 @@ import scipy.linalg as sp_l
 import data.global_parameter as g_par
 import system.global_functions as g_func
 import data.water_vaporization_enthalpy as w_vap
-import scipy.signal as sp_s
+
 
 np.set_printoptions(linewidth=10000, threshold=None, precision=2)
 
@@ -95,7 +95,7 @@ class TemperatureSystem:
         pr_ch = self.visc_cool * self.cp_cool / self.lambda_cool
         # prandtl number
         d_h_cool = 2. * self.ch_width * self.th_cool \
-                   / (self.th_cool + self.ch_width)
+            / (self.th_cool + self.ch_width)
         # hydraulic diameter of the coolant channel
         u_ch = self.m_flow_cool / (self.ch_width * self.th_cool * self.rho_cool)
         # velocity of the coolant flow
@@ -105,15 +105,15 @@ class TemperatureSystem:
         nu_1 = 3.66
         nu_2 = 1.66 * np.sqrt(re_ch * pr_ch * d_h_cool / self.ch_length)
         nu_3 = (2. / (1. + 22. * pr_ch)) ** (1. / 6.) \
-               * np.sqrt(re_ch * pr_ch * d_h_cool / self.ch_length)
+            * np.sqrt(re_ch * pr_ch * d_h_cool / self.ch_length)
         nu_lam = (nu_1 ** 3. + 0.7 ** 3. + (nu_2 - 0.7) ** 3.
                   + nu_3 ** 3.) ** (1. / 3.)
         # laminar nusselt number
         zeta = (1.8 * np.log(re_ch) - 1.5) ** -2.
         nu_turb = zeta / 8. * re_ch * pr_ch \
-                  / (1. + 12.7 * np.sqrt(zeta / 8.)
-                     * (pr_ch ** 2. / 3.) - 1.) \
-                  * (1. + (d_h_cool / self.ch_length) ** 2. / 3.)
+            / (1. + 12.7 * np.sqrt(zeta / 8.)
+                * (pr_ch ** 2. / 3.) - 1.) \
+            * (1. + (d_h_cool / self.ch_length) ** 2. / 3.)
         if re_ch <= 2300.:
             nu_ch = nu_lam
         elif 2300. < re_ch < 1.e4:
@@ -340,7 +340,7 @@ class TemperatureSystem:
         Updates the dynamic parameters
 
             Access to:
-            -dict_temp_sy_dyn
+            -dict_temp_sys_dyn
 
             Manipulate:
             -self.g_fluid
@@ -538,13 +538,26 @@ class TemperatureSystem:
                 else:
                     s.r_s[ct] -= s.k_cool * s.temp_cool_ele[q, w]
                     s.r_s[ct + 5] -= s.heat_pow \
-                                     - .5 * s.k_alpha_env[0, 2, 0] * s.temp_env
+                        - .5 * s.k_alpha_env[0, 2, 0] * s.temp_env
                     if s.cool_ch_bc is True:
                         s.r_s[ct + 5] -= s.k_cool * s.temp_cool_ele[-1, w]
                     cr = 6
                 ct += cr
 
     def update_matrix(self):
+        """
+        Updates the thermal conductance matrix
+
+            Access to:
+            -self.elements
+            -self.cell_numb
+            -self.k_gas_ch
+            -self.mat_const
+
+            Manipulate:
+            -self.mat_dyn
+        """
+
         dyn_vec = np.full(self.elements * (5 * (self.cell_numb - 1) + 6), 0.)
         ct = 0
         for q in range(self.cell_numb):
@@ -559,9 +572,33 @@ class TemperatureSystem:
         self.mat_dyn = self.mat_const + np.diag(dyn_vec)
 
     def solve_system(self):
+        """
+        Solves the layer temperatures.
+
+            Access to:
+            -self.mat_dyn
+            -self.rhs
+
+            Manipulate:
+            -self.temp_layer_vec
+        """
+
         self.temp_layer_vec = np.linalg.tensorsolve(self.mat_dyn, self.rhs)
 
     def sort_results(self):
+        """
+        Sorts the temperatures in the 1-d-array self.temp_layer_vec
+        to the 3-d-list self.temp_layer
+
+            Access to:
+            -self.cell_numb
+            -self.elements
+            -self.temp_layer_vec
+
+            Manipulate:
+            -self.temp_layer
+        """
+
         ct = 0
         for q in range(self.cell_numb):
             if q is not self.cell_numb - 1:
@@ -571,5 +608,3 @@ class TemperatureSystem:
             for w in range(self.elements):
                 self.temp_layer[q][:, w] = self.temp_layer_vec[ct: ct + cr]
                 ct += cr
-
-

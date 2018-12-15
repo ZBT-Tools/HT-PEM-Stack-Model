@@ -102,7 +102,9 @@ class Stack:
         self.temp_fluid_ano = np.zeros(self.cell_numb)
         # inlet and outlet temperature of the anode channel fluid
         self.k_alpha_env = np.full((2, 3, self.cell_numb), 0.)
-        # convection heat conductivity between to the environment
+        # convection conductance to the environment
+        self.k_alpha_ch = None
+        # convection conductance between the channel and the fluid
         self.cond_rate = np.full((2, self.cell_numb, nodes), 0.)
         # molar condensation rate
         self.omega = np.full((self.cell_numb, nodes), 0.)
@@ -297,13 +299,13 @@ class Stack:
             visc_ano_in = np.hstack((visc_ano_in, item.anode.visc_gas[0]))
             visc_ano_out = np.hstack((visc_ano_out, item.anode.visc_gas[-1]))
             temp_fluid_cat_in = np.hstack((temp_fluid_cat_in,
-                                         item.cathode.temp_fluid[0]))
+                                           item.cathode.temp_fluid[0]))
             temp_fluid_cat_out = np.hstack((temp_fluid_cat_out,
-                                          item.cathode.temp_fluid[-1]))
+                                            item.cathode.temp_fluid[-1]))
             temp_fluid_ano_in = np.hstack((temp_fluid_ano_in,
-                                         item.anode.temp_fluid[0]))
+                                           item.anode.temp_fluid[0]))
             temp_fluid_ano_out = np.hstack((temp_fluid_ano_out,
-                                          item.anode.temp_fluid[-1]))
+                                            item.anode.temp_fluid[-1]))
         self.k_alpha_ch = np.array([k_alpha_cat, k_alpha_ano])
         self.omega = np.array(omega)
         self.cond_rate = np.array([cond_rate_cat, cond_rate_ano])
@@ -368,4 +370,3 @@ class Stack:
             item.temp = self.temp_cpl_stack.temp_layer[w][0:5, :]
             item.cathode.temp_fluid = self.temp_cpl_stack.temp_fluid[0, w]
             item.anode.temp_fluid = self.temp_cpl_stack.temp_fluid[1, w]
-

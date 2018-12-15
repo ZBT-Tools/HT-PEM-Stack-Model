@@ -5,7 +5,7 @@ import input.simulation as sim
 
 dict_electrical_coupling =\
     {
-        'cell_num': op_con.cell_number,
+        'cell_numb': op_con.cell_number,
         'dx': geo.channel_length / float(sim.elements),
         'th_bpp': geo.bipolar_plate_thickness,
         'channel_width': geo.channel_width
