@@ -2,7 +2,7 @@
 
 """Gas Channel Geometry"""
 # channel length [m]
-channel_length = 0.3
+channel_length = 0.23
 # channel width [m]
 channel_width = 1.e-3
 # channel height [m]

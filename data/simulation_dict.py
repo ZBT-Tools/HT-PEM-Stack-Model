@@ -1,2 +1,7 @@
 import input.simulation as sim
-simulation = {'max_it': sim.maximal_number_iteration, 'k_it': sim.convergence_criteria}
+
+
+simulation = {
+    'maximal_iteration': sim.maximal_number_iteration,
+    'iteration_criteria': sim.convergence_criteria
+             }

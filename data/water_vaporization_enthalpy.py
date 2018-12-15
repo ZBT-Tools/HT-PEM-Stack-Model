@@ -1,26 +1,20 @@
 import numpy as np
 
 
-t_data = np.array(
-    [0.01, 2., 4., 10., 14., 18., 20., 25., 30., 34., 40., 44., 50., 54.,
-     60., 70., 80., 90., 96., 100., 110., 120., 140., 160., 180., 200.,
-     220., 240., 260., 280., 300., 320., 340., 360., 373.946]) + 273.15
-h_vap_data = np.array(
-    [45054., 44970., 44883., 44627., 44456., 44287., 44200., 43988., 43774.,
-     43602., 43345., 43172., 42911., 42738., 42475., 42030., 41579., 41120.,
-     40839., 40650., 40167., 39671., 38630., 37508., 36286., 34944., 33462.,
-     31804., 29934., 27798., 25304., 22310., 18507., 12967., 0.])
+vaporization_enthalpy_param =\
+    (-2.01107201e-18, 8.92669752e-15, -1.76751771e-11,
+     2.05547260e-08, -1.55445645e-05,  7.98692642e-03,
+     -2.82333561e+00,  6.77951176e+02, -1.05826022e+05,
+     9.69666280e+06, -3.95999179e+08)
 
 
 class Fluid:
 
-    def __init__(self, h_vap, t):
-        self.h_vap = h_vap
-        self.t = t
-        self.h_vap_fit = np.polyfit(self.t, self.h_vap, 10)
+    def __init__(self, h_vap_param):
+        self.h_vap_param = h_vap_param
 
     def calc_h_vap(self, t_in):
-        return np.polyval(self.h_vap_fit, t_in)
+        return np.polyval(self.h_vap_param, t_in)
 
 
-water = Fluid(h_vap_data, t_data)
+water = Fluid(vaporization_enthalpy_param)

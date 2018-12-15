@@ -8,17 +8,17 @@ class ElectricalCoupling:
     def __init__(self, dict_electrical_coupling_const):
         # Handover
         self.cell_num = dict_electrical_coupling_const['cell_num']
-        self.dx = dict_electrical_coupling_const['d_x']
-        self.th_plate = dict_electrical_coupling_const['th_plate']
-        self.w_ch = dict_electrical_coupling_const['w_ch']
+        self.dx = dict_electrical_coupling_const['dx']
+        self.th_plate = dict_electrical_coupling_const['th_bpp']
+        self.w_ch = dict_electrical_coupling_const['channel_width']
         # Variables
         self.nodes = g_par.dict_case['nodes']
         self.elements = self.nodes - 1
         self.v_end_plate = 0.
         c_x = self.w_ch * self.th_plate\
-            / (self.dx * g_par.dict_case['plate_resistivity'])
+            / (self.dx * g_par.dict_case['bpp_resistivity'])
         # Arrays
-        self.v_los = []
+        self.v_loss = []
         self.cell_c = []
         self.cell_c_mid = []
         self.cell_r = np.full((self.cell_num, self.elements), 0.)
@@ -36,7 +36,7 @@ class ElectricalCoupling:
 
     def update_values(self, dict_electrical_coupling_dyn):
         self.cell_r = dict_electrical_coupling_dyn['r_cell']
-        self.v_los = dict_electrical_coupling_dyn['v_los']
+        self.v_loss = dict_electrical_coupling_dyn['v_loss']
         self.cell_c = self.w_ch * self.th_plate / self.cell_r
         self.cell_c_mid = np.hstack((self.cell_c[:-self.elements]
                                      + self.cell_c[self.elements:]))
@@ -55,11 +55,10 @@ class ElectricalCoupling:
                       -self.elements)
 
     def update_right_side(self):
-        self.v_end_plate = np.sum(self.v_los) / self.elements
+        self.v_end_plate = np.sum(self.v_loss) / self.elements
         i_end = self.v_end_plate * self.cell_c[:self.elements]
         self.rhs = np.hstack((-i_end,
-                              np.full((self.cell_num-2)
-                                         * self.elements, 0.)))
+                              np.full((self.cell_num-2) * self.elements, 0.)))
 
     def calc_i(self):
         v_new = np.linalg.tensorsolve(self.mat, self.rhs)

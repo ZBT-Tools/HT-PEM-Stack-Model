@@ -1,27 +1,19 @@
 import numpy as np
-p_sat_data = np.array((0.006112, 0.008718, 0.01227, 0.01704, 0.02337, 0.03166,
-                       0.04241, 0.07375, 0.12335, 0.1992, 0.3116, 0.47367,
-                       0.7011, 1.0133, 1.4327, 1.9854, 2.701, 3.614, 4.760,
-                       6.181, 7.92, 10.027, 12.551, 15.549, 19.077, 23.198,
-                       27.976, 33.478, 39.776, 46.934, 55.058, 64.202, 74.641,
-                       85.927, 98.7, 112.89, 128.63, 146.05, 165.35, 186.75,
-                       210.54, 221.20)) * 1.e5
-t_data = np.array(
-    [0.01, 5., 10., 15., 20., 25., 30., 40., 50., 60., 70., 80., 90., 100.,
-     110., 120., 130., 140., 150., 160., 170., 180., 190., 200., 210., 220.,
-     230., 240., 250., 260., 270., 280., 290., 300., 310., 320., 330., 340.,
-     350., 360., 370., 374.15]) + 273.15
+
+# build a common class structure with the water vap ent and the gas properties
+p_saturation_param = \
+    (-4.66691122e-18, 2.19146750e-14, -4.56208833e-11, 5.54957241e-08,
+     -4.37186346e-05, 2.33207549e-02, -8.53414571e+00, 2.11600925e+03,
+     -3.40245294e+05, 3.20415279e+07, -1.34211567e+09)
 
 
 class Fluid:
 
-    def __init__(self, p_sat, t):
-        self.p_sat = p_sat
-        self.t = t
-        self.ps_fit = np.polyfit(self.t, self.p_sat, 10)
+    def __init__(self, p_sat_param):
+        self.p_sat_param = p_sat_param
 
     def calc_p_sat(self, t_in):
-        return np.polyval(self.ps_fit, t_in)
+        return np.polyval(self.p_sat_param, t_in)
 
 
-water = Fluid(p_sat_data, t_data)
+water = Fluid(p_saturation_param)

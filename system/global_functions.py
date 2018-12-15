@@ -196,3 +196,7 @@ def output_x(y_values, x_values, y_label, x_label,
         plt.legend()
     plt.savefig(os.path.join(path + title + '.jpg'))
     plt.close()
+
+
+def calc_fluid_temp_out(temp_in, temp_wall, g, k):
+    return (temp_in * (g - .5 * k) + temp_wall * k) / (g + k * .5)

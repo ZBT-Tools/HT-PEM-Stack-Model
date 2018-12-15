@@ -9,157 +9,210 @@ class Cell:
 
     def __init__(self, dict_cell):
         # Handover
-        self.anode = h_c.HalfCell(hc_dict.anode)
-        self.cathode = h_c.HalfCell(hc_dict.cathode)
+        self.anode = h_c.HalfCell(hc_dict.dict_anode)
+        # anode - object of the class HalfCell
+        self.cathode = h_c.HalfCell(hc_dict.dict_cathode)
+        # cathode - object of the class HalfCell
         self.th_mem = dict_cell['th_mem']
-        self.lambda_p = [dict_cell['plate_h_con'], dict_cell['plate_hi_con']]
-        self.lambda_g = [dict_cell['gde_h_con'], dict_cell['gde_hi_con']]
-        self.lambda_m = [dict_cell['mem_h_con'], dict_cell['mem_hi_con']]
-        self.temp_cool_in = dict_cell['t_cool_in']
-        self.mem_bas_r = dict_cell['mem_bas_r']
+        # thickness membrane
+        self.lambda_bpp = [dict_cell['lambda_z_bpp'], dict_cell['lambda_x_bpp']]
+        # heat conductivity of the bipolar plate
+        self.lambda_gde = [dict_cell['lambda_z_gde'], dict_cell['lambda_x_gde']]
+        # heat conductivity of the gas diffusion layer
+        self.lambda_mem = [dict_cell['lambda_z_mem'], dict_cell['lambda_x_mem']]
+        # heat conductivity of the membrane
+        self.temp_cool_in = dict_cell['temp_cool_in']
+        # coolant inlet temperature
+        self.mem_base_r = dict_cell['mem_base_r']
+        # basic electrical resistance of the membrane
         self.mem_acl_r = dict_cell['mem_acl_r']
-        # Scalar variables
-        self.v_alarm = False
+        # thermal related electrical resistance gain of the membrane
+
+        """membrane resistance parameter (Goßling)"""
         self.fac_res_fit = 0.5913
         self.fac_res_basic = 0.03
-        self.ko = 6.2
-        self.ho = -52300.
-        self.break_program = False
         self.res_25 = 101249.82 * self.th_mem \
-                      + 36.24 * self.th_mem\
-                      + 2805.83 * self.th_mem + 0.021
+            + 36.24 * self.th_mem\
+            + 2805.83 * self.th_mem + 0.021
         self.res_65 = 3842453.95 * self.th_mem\
-                      - 0.2775 * self.th_mem\
-                      + 2.181 * self.th_mem + 0.029
+            - 0.2775 * self.th_mem\
+            + 2.181 * self.th_mem + 0.029
         self.fac_m = (np.log10(self.res_65) - np.log10(self.res_25)) / (
                     (1000. / (65. + 273.15)) - (1000. / 25. + 273.15))
         self.fac_n = np.log10(self.res_65) - self.fac_m * 1000. / (65. + 273.15)
-        self.k_p = self.lambda_p[0] * self.cathode.channel.plane_dx\
-            / self.cathode.th_plate
-        self.k_g = self.lambda_g[0] * self.cathode.channel.plane_dx\
+
+        """heat conductivity along and through the cell layers"""
+        self.k_bpp_z = self.lambda_bpp[0] * self.cathode.channel.act_area_dx \
+            / self.cathode.th_bpp
+        # heat conductivity through the bipolar plate
+        self.k_gde_z = self.lambda_gde[0] * self.cathode.channel.act_area_dx \
             / self.cathode.th_gde
-        self.k_m = self.lambda_m[0] * self.cathode.channel.plane_dx\
+        # heat conductivity through the gas diffusion electrode
+        self.k_mem_z = self.lambda_mem[0] * self.cathode.channel.act_area_dx \
             / self.th_mem
-        self.k_pp = self.cathode.channel.width * self.lambda_p[1]\
-            * self.cathode.th_plate / self.cathode.channel.dx
+        # heat conductivity through the membrane
+        self.k_bpp_x = self.cathode.channel.width * self.lambda_bpp[1] \
+            * self.cathode.th_bpp / self.cathode.channel.dx
+        # heat conductivity along the bipolar plate
         self.k_gp = (self.cathode.channel.width
-                     * (self.lambda_p[1] * self.cathode.th_plate
-                        + self.lambda_g[1] * self.cathode.th_gde))\
+                     * (self.lambda_bpp[1] * self.cathode.th_bpp
+                        + self.lambda_gde[1] * self.cathode.th_gde))\
             / (2. * self.cathode.channel.dx)
+        # heat conductivity alon the bipolar plate and gas diffusion electrode
         self.k_gm = (self.cathode.channel.width
-                     * (self.lambda_m[1] * self.th_mem
-                        + self.lambda_g[1] * self.cathode.th_gde))\
+                     * (self.lambda_mem[1] * self.th_mem
+                        + self.lambda_gde[1] * self.cathode.th_gde))\
             / (2. * self.cathode.channel.dx)
+        # heat conductivity alon the gas diffusion electrode and membrane
+
+        """boolean alarms"""
+        self.v_alarm = False
+        # True if :voltage loss > cell voltage
+        self.break_program = False
+        # True if the program aborts because of some critical impact
+
+        """general parameter"""
         self.height = self.th_mem\
-            + 2. * self.cathode.th_plate\
+            + 2. * self.cathode.th_bpp\
             + 2. * self.cathode.th_gde
+        # height of the cell
         nodes = g_par.dict_case['nodes']
-        self.j = np.full(nodes, 0.)
-        self.m_a = np.full(nodes, 0.)
-        self.m_c = np.full(nodes, 0.)
-        self.m_0 = np.full(nodes, 0.)
-        self.m_1 = np.full(nodes, 0.)
-        self.m_pos_0 = np.full(nodes, 0.)
-        self.m_pos_1 = np.full(nodes, 0.)
-        self.omega_ca = np.full(nodes, 0.)
-        self.con_ov = np.full(nodes, 0.)
-        self.v_los = np.full(nodes - 1, 0.)
-        self.temp = np.full((5, nodes - 1), dict_cell['t_init'])
-        self.temp_mem = np.full(nodes, 0.)
+        # number of nodes along the channel
+        self.w_cross_flow = np.zeros(nodes)
+        # water cross flux through the membrane
+        self.omega_ca = np.zeros(nodes)
+        # area specific membrane resistance
+        self.v_loss = np.full(nodes - 1, 0.)
+        # voltage loss
+        self.temp = np.full((5, nodes - 1), dict_cell['temp_init'])
+        # layer temperature
+        self.temp_mem = np.zeros(nodes)
+        # membrane temperature
         self.i_ca = np.full((nodes - 1), 0.)
-        self.i_nodes = np.full(nodes, 0.)
-        self.zeta_plus = np.full(nodes, 0.)
-        self.zeta_negative = np.full(nodes, 0.)
-        self.ke = np.full(nodes, 0.)
-        self.omega_ca = np.full((nodes - 1), 0.)
+        # current density
         self.omega = np.full(nodes-1, 0.)
-        self.mem_ov = np.full((nodes - 1), 0.)
-        self.omega_gling = np.full(nodes, 0.)
+        # membrane resistance
+        self.mem_loss = np.full((nodes - 1), 0.)#
+        # voltage loss at the membrane
         self.v = np.full((nodes - 1), 0.)
+        # cell voltage
         self.resistance = np.full((nodes - 1), 0.)
+        # cell resistance
 
     def update(self):
+        """
+        This function coordinates the program sequence
+        """
+
         self.temp_mem = .5 * (self.temp[2] + self.temp[1])
         if g_par.dict_case['pem_type'] is False:
             self.cathode.set_pem_type(False)
             self.anode.set_pem_type(False)
-            self.cathode.set_j(self.j)
-            self.anode.set_j(self.j)
-        self.cathode.set_i(self.i_ca)
-        self.anode.set_i(self.i_ca)
-        self.cathode.set_temp([self.temp[2], self.temp[3], self.temp[4]])
-        self.anode.set_temp([self.temp[0], self.temp[1]])
+            self.cathode.set_water_cross_flux(self.w_cross_flow)
+            self.anode.set_water_cross_flux(self.w_cross_flow)
+        self.cathode.set_current_density(self.i_ca)
+        self.anode.set_current_density(self.i_ca)
+        self.cathode.set_layer_temperature([self.temp[2],
+                                            self.temp[3],
+                                            self.temp[4]])
+        self.anode.set_layer_temperature([self.temp[0], self.temp[1]])
         self.cathode.update()
         self.anode.update()
         if self.anode.break_program is True\
                 or self.cathode.break_program is True:
             self.break_program = True
         else:
-            self.calc_mem_resistivity()
-            self.calc_membrane_losses()
             if g_par.dict_case['pem_type'] is False:
-                self.calc_mem_block_1()
-                self.calc_cross_over_water_flux()
-                self.calc_mem_block_2()
-                self.calc_con_ov()
+                self.calc_cross_water_flux()
+                self.calc_mem_resistivity_springer()
+            else:
+                self.calc_mem_resistivity_kvesic()
+            self.calc_membrane_loss()
             self.calc_voltage()
             self.calc_resistance()
 
-    def set_i(self, i_ca):
+    def set_current_density(self, i_ca):
+        """
+        This function sets the current density.
+        The current density can be obtained
+        from the electrical coupling.
+
+            Manipulate:
+            - self.i_ca, scalar
+        """
+
         self.i_ca = i_ca
-        self.i_nodes = g_func.calc_nodes_1_d(self.i_ca)
 
-    def calc_mem_block_1(self):
-        vap_coef = g_par.dict_case['vap_m_t_coef']
-        self.zeta_plus = self.cathode.free_water\
-                         + self.anode.free_water\
-                         + self.i_nodes / (2.
-                                           * vap_coef
-                                           * g_par.dict_case['mol_con_m']
-                                           * g_par.dict_uni['F'])
-        self.zeta_negative = (self.cathode.free_water
-                              - self.anode.free_water
-                              + 5. * self.i_nodes
-                              / (2.
-                                 * vap_coef
-                                 * g_par.dict_case['mol_con_m']
+    def calc_cross_water_flux(self):
+        """
+        Calculates the water cross flux through the membrane
+        according to (Springer, 1991).
+
+            Access to:
+            -g_par.dict_case['vap_m_t_coef']
+            -self.cathode.free_w
+            -self.anode.free_w
+            -g_par.dict_case['mol_con_m']
+            -g_par.dict_uni['F']
+            -self.i_ca
+            -self.temp_mem
+            -self.th_mem
+
+            Manipulate:
+            -self.w_cross_flow
+        """
+
+        vap_coeff = g_par.dict_case['vap_m_temp_coeff']
+        humidity = [self.cathode.humidity, self.anode.humidity]
+        humidity_ele = np.array([g_func.calc_elements_1_d(humidity[0]),
+                                 g_func.calc_elements_1_d(humidity[1])])
+        a = 0.043 + 17.81 * humidity_ele
+        b = -39.85 * humidity_ele ** 2. + 36. * humidity_ele ** 3.
+        free_w_content = a + b
+        zeta_plus = free_w_content[0] + free_w_content[1] \
+            + self.i_ca / (2. * vap_coeff
+                           * g_par.dict_case['mol_con_m']
+                           * g_par.dict_uni['F'])
+        zeta_negative =\
+            (free_w_content[0]
+             - free_w_content[1]
+             + 5. * self.i_ca / (2. * vap_coeff * g_par.dict_case['mol_con_m']
                                  * g_par.dict_uni['F'])) \
-                                 / (1. + g_func.dw(self.temp_mem)
-                                * self.zeta_plus / (self.th_mem * vap_coef))
-        self.m_c = 0.5 * (self.zeta_plus + self.zeta_negative)
-        self.m_a = 0.5 * (self.zeta_plus - self.zeta_negative)
+            / (1. + g_func.dw(self.temp_mem) * zeta_plus
+               / (self.th_mem * vap_coeff))
+        m_c = 0.5 * (zeta_plus + zeta_negative)
+        m_a = 0.5 * (zeta_plus - zeta_negative)
+        self.w_cross_flow =\
+            self.i_ca / g_par.dict_uni['F'] + g_par.dict_case['mol_con_m']\
+            * g_func.dw(self.temp_mem) * (m_a ** 2. - m_c ** 2.)\
+            / (2. * self.th_mem)
+        self.w_cross_flow = np.hstack(([0], self.w_cross_flow))
 
-    def calc_cross_over_water_flux(self):
-        self.j = self.i_nodes / g_par.dict_uni['F'] + g_par.dict_case[
-            'mol_con_m'] * g_func.dw(self.temp_mem) * (
-                             self.m_a ** 2. - self.m_c ** 2.) / (
-                             2. * self.th_mem)
+    def calc_mem_resistivity_kvesic(self):
+        """
+        Calculates the membrane resistivity and resistance
+        according to (Kvesic, 2013).
 
-    def calc_mem_block_2(self):
-        self.ke = self.ko * np.exp(-self.ho / g_par.dict_uni['R'] * (
-                1. / self.temp_mem - 1. / g_par.dict_case['t_u']))
-        a = self.m_c ** 2.
-        b = self.m_a ** 2. - self.m_c ** 2.
-        self.m_0 = np.sqrt(a - b)  # z = 0
-        self.m_1 = np.sqrt(a)  # z = 1
-        self.m_pos_0 = -self.ke * self.m_0 * 0.5 + np.sqrt(
-            (self.ke * self.m_0 * 0.5) ** 2. + self.ke * self.m_0)
-        self.m_pos_1 = -self.ke * self.m_1 * 0.5 + np.sqrt(
-            (self.ke * self.m_1 * 0.5) ** 2. + self.ke * self.m_1)
+            Access to:
+            -self.mem_base_r
+            -self.mem_acl_r
+            -self.temp_mem
+            -self.omega_ca
+            -self.cathode.channel.act_area_dx
 
-    def calc_con_ov(self):
-        self.con_ov = g_par.dict_uni['R'] * self.temp_mem * np.log(
-            self.m_pos_1 / self.m_pos_0) / g_par.dict_uni['F']
+            Manipulate:
+            -self.omega_ca
+            -self.omega
+        """
 
-    def calc_mem_resistivity(self):
-        self.omega_ca = (self.mem_bas_r
+        self.omega_ca = (self.mem_base_r
                          - self.mem_acl_r * self.temp_mem) * 1.e-4
-        self.omega = self.omega_ca / self.cathode.channel.plane_dx
+        self.omega = self.omega_ca / self.cathode.channel.act_area_dx
 
-    def calc_membrane_losses(self):
-        self.mem_ov = self.omega_ca * self.i_ca
-
-    def calc_mem_resistivity_gling(self):
+    def calc_mem_resistivity_gossling(self):
+        """
+        Calculates the membrane resitace for NT-PEMFC according to Goßling
+        """
         lambda_x = np.full(g_par.dict_case['nodes'], 0.)
         res_t = np.exp(self.fac_m * 1.e3 / self.temp_mem + self.fac_n)
         r_avg = (self.cathode.humidity + self.anode.humidity) * 0.5
@@ -178,16 +231,91 @@ class Cell:
         res_lambda = a + b * lambda_x + c * np.exp(d * (lambda_x - e))
         res = res_lambda * res_t / 0.01415
         rp = self.th_mem / res
-        self.omega_gling = 1.e4 * (self.fac_res_basic
-                                   + rp * self.fac_res_fit)
+        self.omega_ca = 1.e-4 * (self.fac_res_basic
+                                 + rp * self.fac_res_fit)
+        self.omega = self.omega_ca / self.cathode.channel.act_area_dx
+
+    def calc_mem_resistivity_springer(self):
+        """
+        Calculates the membrane resistivity
+        for NT-PEMFC according to (Springer, 1991).
+
+            Access to:
+            -self.cathode.humidity
+            -self.anode.humidity
+            -self.temp_mem
+            -self.th_mem
+            -self.cathode.channel.act_area_dx
+
+            Manipulate:
+            -self.omega_ca
+            -self.omega
+        """
+
+        humidity = (self.cathode.humidity + self.anode.humidity) * 0.5
+        humidity_ele = g_func.calc_elements_1_d(humidity)
+        a = 0.043 + 17.81 * humidity_ele
+        b = -39.85 * humidity_ele ** 2. + 36. * humidity_ele ** 3.
+        free_water_content = a + b
+        mem_el_con = 0.005139 * free_water_content - 0.00326
+        mem_el_con_temp =\
+            np.exp(1268 * (0.0033 - 1. / self.temp_mem)) * mem_el_con
+        self.omega_ca = self.th_mem / mem_el_con_temp * 1.e-4
+        self.omega = self.omega_ca / self.cathode.channel.act_area_dx
+
+    def calc_membrane_loss(self):
+        """
+        Calculates the voltage loss at the membrane.
+
+            Access to:
+            -self.omega_ca
+            -self.i_ca
+
+            Manipulate:
+            -self.mem_los
+        """
+
+        self.mem_loss = self.omega_ca * self.i_ca
 
     def calc_voltage(self):
-        self.v_los = self.mem_ov + self.cathode.v_los + self.anode.v_los
-        if any(self.v_los) >= g_par.dict_case['e_0']:
+        """
+            Calculates the cell voltage loss.
+            Calculates the cell voltage
+            If the cell voltage loss is larger than the
+            open circuit cell voltage, the cell voltage is set to zero.
+
+
+            Access to:
+            -self.mem_loss
+            -self.cathode.v_loss
+            -self.anode.v_loss
+            -g_par.dict_case['e_0']
+
+            Manipulate:
+            -self.v_loss
+            -self.v
+            -self.v_alarm
+        """
+
+        self.v_loss = self.mem_loss + self.cathode.v_loss + self.anode.v_loss
+        if any(self.v_loss) >= g_par.dict_case['e_0']:
             self.v_alarm = True
-        self.v_los = np.minimum(self.v_los, g_par.dict_case['e_0'])
-        self.v = g_par.dict_case['e_0'] - self.v_los
+        self.v_loss = np.minimum(self.v_loss, g_par.dict_case['e_0'])
+        self.v = g_par.dict_case['e_0'] - self.v_loss
 
     def calc_resistance(self):
-        self.resistance = self.v_los / self.i_ca + 2.\
-            * g_par.dict_case['plate_resistivity'] * self.cathode.th_plate
+        """
+            Calculates the electrical resistance of the element in z-direction
+
+            Access to:
+            -self.v_loss
+            -self.i_ca
+            -self.cathode.th_bpp
+            -g_par.dict_case['plate_resistivity']
+
+            Manipulate:
+            -self.resistance
+        """
+
+        self.resistance = self.v_loss / self.i_ca + 2. \
+            * g_par.dict_case['bpp_resistivity'] * self.cathode.th_bpp

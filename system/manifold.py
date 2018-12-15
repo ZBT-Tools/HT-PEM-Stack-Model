@@ -1,7 +1,6 @@
 import numpy as np
 import data.global_parameter as g_par
 import system.global_functions as g_func
-import system.matrix_database as m_d
 import copy as copy
 
 
@@ -13,13 +12,13 @@ class Manifold:
         self.head_height = dict_manifold_const['header_height']
         self.kf = dict_manifold_const['kf']
         self.cell_height = dict_manifold_const['cell_height']
-        self.cell_ch_length = dict_manifold_const['cell_ch_length']
-        self.cell_ch_ca = dict_manifold_const['cell_ch_ca']
+        self.cell_ch_length = dict_manifold_const['cell_channel_length']
+        self.cell_ch_ca = dict_manifold_const['cell_channel_cross_area']
         self.head_p = np.full((2, self.cell_num), dict_manifold_const['p_out'])
         self.head_stoi = 1.5
         self.cell_mass_flow = None
         self.cell_mol_flow = None
-        self.cell_t = None
+        self.cell_temp = None
         self.cell_cp = None
         self.cell_visc = None
         self.cell_p = None
@@ -33,11 +32,11 @@ class Manifold:
         self.cell_ref_p_drop_cor = 0.
         self.p_cor_fac = 0.
         # Initialize arrays
-        self.fwd_mat = m_d.fwd_mat_reac_flow(self.cell_num)
+        self.fwd_mat = np.tril(np.full((self.cell_num, self.cell_num), 1.))
         self.fwd_mat_ele = self.fwd_mat[:-1, :-1]
         self.head_mol_flow = np.full((2, self.cell_num), 0.)
         self.head_mass_flow = np.full((2, self.cell_num), 0.)
-        self.head_t = np.full((2, self.cell_num), 0.)
+        self.head_temp = np.full((2, self.cell_num), 0.)
         self.head_u = np.full((2, self.cell_num), 0.)
         self.head_cp = np.full((2, self.cell_num), 0.)
         self.head_r = np.full((2, self.cell_num), 0.)
@@ -52,7 +51,7 @@ class Manifold:
     def update_values(self, dict_manifold_dyn):
         self.cell_mass_flow = dict_manifold_dyn['mass_flow']
         self.cell_mol_flow = dict_manifold_dyn['mol_flow']
-        self.cell_t = dict_manifold_dyn['cell_t']
+        self.cell_temp = dict_manifold_dyn['cell_temp']
         self.cell_cp = dict_manifold_dyn['cell_cp']
         self.cell_visc = dict_manifold_dyn['cell_visc']
         self.cell_p = dict_manifold_dyn['cell_p']
@@ -130,7 +129,8 @@ class Manifold:
                                     * self.cell_cp[1]) / self.head_mass_flow[1]
 
     def calc_header_temperature(self):
-        """ This function mixes up the given cell outlet temperatures
+        """
+        This function mixes up the given cell outlet temperatures
             to the total header outlet temperatures over the z-axis
             The given cell inlet temperatures
             are used as the header inlet temperatures
@@ -145,14 +145,15 @@ class Manifold:
             - self.head_t, 2-D-array, [head inlet/outlet][cell number]
         """
 
-        self.head_t[0] = self.cell_t[0]
-        self.head_t[1] = np.matmul(self.fwd_mat,
-                                   self.cell_mass_flow[1] * self.cell_cp[1] *
-                                   self.cell_t[1]) / (
+        self.head_temp[0] = self.cell_temp[0]
+        self.head_temp[1] = np.matmul(self.fwd_mat,
+                                      self.cell_mass_flow[1] * self.cell_cp[1] *
+                                      self.cell_temp[1]) / (
                                    self.head_cp[1] * self.head_mass_flow[1])
 
     def calc_header_velocity(self):
-        """ This function calculates the header inlet and outlet
+        """
+        This function calculates the header inlet and outlet
             velocities over the z-axis
             -Based on the ideal gas law
 
@@ -169,7 +170,7 @@ class Manifold:
 
         for q in range(2):
             self.head_u[q] = self.head_mol_flow[q]\
-                             * g_par.dict_uni['R'] * self.head_t[q]\
+                             * g_par.dict_uni['R'] * self.head_temp[q]\
                              / (self.cross_area * self.head_p[q])
 
     def calc_header_gas_constant(self):
@@ -208,7 +209,7 @@ class Manifold:
         for q in range(2):
             self.head_density[q] = g_func.calc_rho(self.head_p[q],
                                                    self.head_r[q],
-                                                   self.head_t[q])
+                                                   self.head_temp[q])
 
     def calc_header_reynolds_numb(self):
         """ This function calculates the header gas Reynolds number
@@ -398,7 +399,8 @@ class Manifold:
                                                     * self.p_cor_fac)
 
     def calc_new_cell_stoi(self):
-        """ This function calculates the new inlet stoichiometries
+        """
+        This function calculates the new inlet stoichiometries
 
             Access to:
             -self.head_stoi, stoichiometry at the header inlet
@@ -413,7 +415,8 @@ class Manifold:
             / self.head_mol_flow[0, -1]
 
     def calc_criteria(self):
-        """This function calculates the convergence
+        """
+        This function calculates the convergence
 
             Access to:
             -self.cell_mol_flow, 2-D-array, [cell inlet/outlet][cell number]

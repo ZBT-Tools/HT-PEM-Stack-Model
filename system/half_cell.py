@@ -1,5 +1,4 @@
 import warnings
-import system.matrix_database as m_d
 import system.global_functions as g_func
 import data.saturation_pressure_vapour as p_sat
 import data.gas_properties_fit as g_fit
@@ -9,168 +8,291 @@ import system.channel as ch
 import data.channel_dict as ch_dict
 import input.physical_property as phy_prop
 
+
 warnings.filterwarnings("ignore")
 
 
 class HalfCell:
 
     def __init__(self, dict_hc):
-        # Handover
-        # Check if the object is an anode or a cathode
-        if dict_hc['type'] is True:
-            self.channel = ch.Channel(ch_dict.cathode_channel)
-            self.o2_con_in = phy_prop.oxygen_inlet_concentration
-            self.n2o2ratio = (1. - self.o2_con_in) / self.o2_con_in
-            self.spec_num = 3
-            self.val_num = 4.
-            self.mol_mass = np.array([32., 18., 28.]) * 1.e-3
-        else:
-            self.channel = ch.Channel(ch_dict.anode_channel)
-            self.h2_con_in = phy_prop.hydrogen_inlet_concentration
-            self.n2h2ratio = (1. - self.h2_con_in) / self.h2_con_in
-            self.spec_num = 3
-            self.val_num = 2.
-            self.mol_mass = np.array([2., 18., 28.]) * 1.e-3
-        self.type = dict_hc['type']  # Anode is False; Cathode is True
-        self.th_gdl = dict_hc['th_gdl']
-        self.th_plate = dict_hc['th_plate']
-        self.th_cat = dict_hc['th_electrode']
-        self.th_gde = self.th_gdl + self.th_cat
-        self.vol_ex_cd = dict_hc['vol_ex_cd']
-        self.prot_con = dict_hc['prot_con']
-        self.diff_coef_cat = dict_hc['diff_coef_cat']
-        self.diff_coef_gdl = dict_hc['diff_coef_gdl']
-        self.tafel_slope = dict_hc['tafel_slope']
-        # Scalar variables
-        self.break_program = False
-        self.pem_type = True
-        self.stoi = 0.
-        self.i_theta = np.sqrt(2. * self.vol_ex_cd * self.prot_con
-                               * self.tafel_slope)
-        self.d_h = 4. * self.channel.cross_area / self.channel.extent
-        self.index_cat = g_par.dict_case['nodes'] - 1
-        self.p_drop_bends = 0.
-        self.i_star = self.prot_con * self.tafel_slope / self.th_cat
         nodes = g_par.dict_case['nodes']
-        # Arrays
-        self.j = np.full(nodes-1, 0.)
-        self.g_full = np.full(nodes, 0.)
-        self.cp_full = np.full(nodes, 0.)
-        self.Re = np.full(nodes, 0.)
-        self.zero_ele = np.full(nodes - 1, 1.e-50)
-        self.zero_node = np.full(nodes, 1.e-50)
-        self.w = np.full(nodes, 0.)
-        self.p = np.full(nodes, self.channel.p_in)
-        self.gamma = np.full(nodes, 0.)
-        self.humidity = np.full(nodes, 0.)
-        self.free_water = np.full(nodes, 0.)
-        self.i_ca = np.full(nodes - 1, g_par.dict_case['tar_cd'])
-        self.u = np.full(nodes, 0.)
-        self.node_fwd = m_d.fwd_mat_reac_flow(nodes - 1)
-        self.node_bwd = m_d.bwd_mat_reac_flow(nodes - 1)
-        self.m_flow = np.full(nodes, 0.)
-        self.m_reac_flow = np.full(nodes, 0.)
-        self.m_liq_water = np.full(nodes, 0.)
-        self.m_vap_water_flow = np.full(nodes, 0.)
-        self.m_reac_flow_delta = np.full(nodes, 0.)
-        self.m_vap_water_flow_delta = np.full(nodes, 0.)
-        self.m_full_flow = np.full(nodes, 0.)
-        self.act_ov = np.full(nodes - 1, 0.)
-        self.gdl_diff_los = np.full(nodes - 1, 0.)
-        self.cat_diff_los = np.full(nodes - 1, 0.)
-        self.v_los = np.full(nodes-1, 0.)
-        self.i_lim = np.full(nodes - 1, 0.)
-        self.i_hat = np.full(nodes - 1, 0.)
-        self.beta = np.full(nodes - 1, 0.)
-        self.var = np.full(nodes - 1, 0.)
-        self.i_square = np.full(nodes - 1, 0.)
-        self.q_gas = np.full(nodes, 0.)
-        self.perm = np.full(nodes, 0.)
-        self.mol_flow = np.full((self.spec_num, nodes), 0.)
-        self.gas_con = np.full((self.spec_num, nodes), 0.)
-        self.gas_con_ele = np.full((nodes-1), 0.)
-        self.mixture = [None] * nodes
-        self.temp_gas = np.full(nodes, self.channel.temp_in)
-        self.rho = np.full(nodes, 1.)
-        self.visc_mix = np.full(nodes, 1.e-5)
-        self.Nu = np.full(nodes, 0.)
-        self.mol_f = np.full((self.spec_num, nodes), 0.)
-        self.mass_f = np.full((self.spec_num, nodes), 0.)
-        self.r_mix = np.full((self.spec_num, nodes), 0.)
-        self.r_el = np.full(self.spec_num, 0.)
-        self.cp = np.full((self.spec_num, nodes), 0.)
-        self.lambda_gas = np.full((self.spec_num, nodes), 0.)
-        self.visc = np.full((self.spec_num, nodes), 0.)
-        self.temp_gas_ele = np.full((nodes - 1), 0.)
-        self.cp_ele = np.full((nodes-1), 0.)
-        self.cp_mix = np.full(nodes, 0.)
-        self.ht_coef = np.full(nodes, 0.)
-        self.k_ht_coef_ca = np.full(nodes, 0.)
-        self.cp_mix_ele = np.full((nodes-1), 0.)
-        self.lambda_mix = np.full(nodes, 0.)
-        self.Pr = np.full(nodes, 0.)
-        if self.type is True:
-            self.temp_nodes = np.full((3, nodes), 0.)
+        # number of nodes along the channel
+
+        # check if the object is an anode or a cathode
+        # catalyst layer specific handover
+        if dict_hc['cl_type'] is True:
+            self.channel = ch.Channel(ch_dict.dict_cathode_channel)
+            self.o2_con_in = phy_prop.oxygen_inlet_concentration
+            # volumetric inlet oxygen ratio
+            self.n2o2ratio = (1. - self.o2_con_in) / self.o2_con_in
+            # volumetric nitrogen to oxygen ratio
+            self.spec_num = 3
+            # number of  species in the gas mixture
+            self.val_num = 4.
+            # electrical charge number
+            self.mol_mass = np.array([32., 18., 28.]) * 1.e-3
+            # molar mass
         else:
-            self.temp_nodes = np.full((2, nodes - 1), 0.)
-            # 1 catalyst layer, 2 channel layer, 3 coolant plate layer
+            self.channel = ch.Channel(ch_dict.dict_anode_channel)
+            self.h2_con_in = phy_prop.hydrogen_inlet_concentration
+            # volumetric inlet hydrogen ratio
+            self.n2h2ratio = (1. - self.h2_con_in) / self.h2_con_in
+            # volumetric hydrogen to oxygen ratio
+            self.spec_num = 3
+            # number of species in the gas mixture
+            self.val_num = 2.
+            # electrical charge number
+            self.mol_mass = np.array([2., 18., 28.]) * 1.e-3
+            # molar mass
+
+        self.cl_type = dict_hc['cl_type']
+        # anode is false; Cathode is true
+        """layer thickness"""
+        self.th_gdl = dict_hc['th_gdl']
+        # thickness of the gas diffusion layer
+        self.th_bpp = dict_hc['th_bpp']
+        # thickness of the bipolar plate
+        self.th_cl = dict_hc['th_cl']
+        # thickness of the catalyst layer
+        self.th_gde = self.th_gdl + self.th_cl
+        # thickness gas diffusion electrode
+
+        """voltage loss parameter, (Kulikovsky, 2013)"""
+        self.vol_ex_cd = dict_hc['vol_ex_cd']
+        # exchange current density
+        self.prot_con_cl = dict_hc['prot_con_cl']
+        # proton conductivity of the catalyst layer
+        self.diff_coeff_cl = dict_hc['diff_coeff_cl']
+        # diffusion coefficient of the reactant in the catalyst layer
+        self.diff_coeff_gdl = dict_hc['diff_coeff_gdl']
+        # diffusion coefficient of the reactant in the gas diffusion layer
+        self.tafel_slope = dict_hc['tafel_slope']
+        # tafel slope of the electrode
+        self.i_sigma = np.sqrt(2. * self.vol_ex_cd * self.prot_con_cl  # could use a better name see (Kulikovsky, 2013) not sure if 2-D exchange current densisty
+                               * self.tafel_slope)
+        self.index_cat = g_par.dict_case['nodes'] - 1
+        # index of the first element with negative cell voltage
+        self.i_ca_char = self.prot_con_cl * self.tafel_slope / self.th_cl  # not sure if the name is ok, i_ca_char is the characteristic current densisty, see (Kulikovsky, 2013)
+        self.act_loss = np.zeros(nodes - 1)
+        # activation voltage loss
+        self.gdl_diff_loss = np.zeros(nodes - 1)
+        # diffusion voltage loss at the gas diffusion layer
+        self.cl_diff_loss = np.zeros(nodes - 1)
+        # diffusion voltage loss at the catalyst layer
+        self.v_loss = np.zeros(nodes-1)
+        # sum of the activation and diffusion voltage loss
+        self.beta = np.zeros(nodes - 1)
+        # dimensionless parameter
+        self.var = np.zeros(nodes - 1)
+        # term used in multiple functions
+        self.i_ca_square = np.zeros(nodes - 1)
+        # current density²
+
+        """general parameter"""
+        self.break_program = False
+        # boolean to hint if the cell voltage runs below zero
+        self.ht_pem = True
+        # if HT-PEMFC True; if NT-PEMFC False
+        self.stoi = None
+        # stoichiometry of the reactant at the channel inlet
+        self.p_drop_bends = 0.
+        # pressure drop in the channel through bends
+        self.w_cross_flow = np.zeros(nodes - 1)
+        # cross water flux through the membrane
+        self.g_fluid = np.zeros(nodes)
+        # heat capacity flow of the species mixture including fluid water
+        self.cp_fluid = np.zeros(nodes)
+        # heat capacity of the species mixture including fluid water
+        self.Re = np.zeros(nodes)
+        # reynolds number
+        self.liq_w_flow = np.zeros(nodes)
+        # molar liquid water flux
+        self.p = np.full(nodes, self.channel.p_in)
+        # channel pressure
+        self.cond_rate = np.zeros(nodes)
+        # condensation rate of water
+        self.humidity = np.zeros(nodes)
+        # gas mixture humidity
+        self.free_w = np.zeros(nodes)
+        # fre water content in the membrane, (Chang, 2007)
+        self.i_ca = np.full(nodes - 1, g_par.dict_case['tar_cd'])
+        # current density
+        self.u = np.zeros(nodes)
+        # channel velocity
+        self.fwd_mat = np.tril(np.full((nodes - 1, nodes - 1), 1.))
+        # forward matrix
+        self.bwd_mat = np.triu(np.full((nodes - 1, nodes - 1), 1.))
+        # backward matrix
+        self.m_flow_gas = np.zeros(nodes)
+        # mass flow of the gas mixture
+        self.m_flow_reac = np.zeros(nodes)
+        # reactant mass flow
+        self.m_flow_liq_w = np.zeros(nodes)
+        # liquid water mass flow
+        self.m_flow_vap_w = np.zeros(nodes)
+        # steam mass flow
+        self.m_flow_reac_delta = np.zeros(nodes)
+        # change of the reactant mass fow over dx
+        self.m_flow_vap_water_delta = np.zeros(nodes)
+        # change of the steam mass flow over dx
+        self.m_flow_fluid = np.zeros(nodes)
+        # fluid mass flow
+        self.q_gas = np.zeros(nodes)
+        # molar flux of the gas phase
+        self.mol_flow = np.full((self.spec_num, nodes), 0.)
+        # molar flow of each species, 0: Reactant, 1: Water 2: Nitrogen
+        self.gas_con = np.full((self.spec_num, nodes), 0.)
+        # molar concentration of each species, 0: Reactant, 1: Water 2: Nitrogen
+        self.gas_con_ele = np.full((nodes-1), 0.)
+        # element based molar concentration of the reactant
+        self.temp_fluid = np.full(nodes, self.channel.temp_in)
+        # temperature of the fluid in the channel
+        self.rho_gas = np.full(nodes, 1.)
+        # density of the gas phase
+        self.visc_gas = np.full(nodes, 1.e-5)
+        # viscosity of the gas phase
+        self.Nu = 3.66
+        # nusselt number
+        self.mol_f = np.full((self.spec_num, nodes), 0.)
+        # molar fraction of the species in the gas phase
+        self.mass_f = np.full((self.spec_num, nodes), 0.)
+        # mass fraction of the species in the gas phase
+        self.r_gas = np.full((self.spec_num, nodes), 0.)
+        # gas constant of the gas phase
+        self.r_species = np.full(self.spec_num, 0.)
+        # gas constant of the species
+        self.cp = np.full((self.spec_num, nodes), 0.)
+        # heat capacity of the species in the gas phase
+        self.lambdas = np.full((self.spec_num, nodes), 0.)
+        # heat conductivity of the species in the gas phase
+        self.visc = np.full((self.spec_num, nodes), 0.)
+        # viscosity of the species in the gas phase
+        self.temp_fluid_ele = np.full((nodes - 1), 0.)
+        # element based temperature of the gas phase
+        self.cp_ele = np.full((nodes-1), 0.)
+        # element based heat capacity of the reactant
+        self.cp_gas = np.zeros(nodes)
+        # heat capacity of the gas phase
+        self.ht_coef = np.zeros(nodes)
+        # convection coefficient between the gas phase and the channel
+        self.k_ht_coef_ca = np.zeros(nodes)
+        # heat conductivity between the gas phase and the channel
+        self.cp_gas_ele = np.full((nodes - 1), 0.)
+        # element based heat capacity
+        self.lambda_gas = np.zeros(nodes)
+        # heat conductivity of the gas phase
+        self.Pr = np.zeros(nodes)
+        # prandtl number of the gas phase
         for q, item in enumerate(self.mol_mass):
-            self.r_el[q] = g_par.dict_uni['R'] / item
+            self.r_species[q] = g_par.dict_uni['R'] / item
 
     def update(self):
-        self.calc_t_gas_e()
+        """
+        This function coordinates the program sequence
+        """
+
+        self.calc_temp_fluid_ele()
         self.calc_reac_flow()
         self.calc_water_flow()
         self.calc_con()
         self.calc_voltage_losses_parameter()
         if self.break_program is False:
-            self.calc_activation_losses()
-            self.calc_transport_losses_catalyst_layer()
-            self.calc_transport_losses_diffusion_layer()
-            self.calc_electrode_losses()
-            self.calc_fluid_water()
+            self.calc_activation_loss()
+            self.calc_transport_loss_catalyst_layer()
+            self.calc_transport_loss_diffusion_layer()
+            self.calc_electrode_loss()
+            self.calc_liquid_water_flow()
             self.sum_flows()
             self.calc_cond_rates()
             self.calc_mass_fraction()
             self.calc_mol_fraction()
+            self.calc_species_properties()
             self.calc_gas_properties()
-            self.calc_gas_mix_properties()
             self.calc_rel_humidity()
             self.calc_flow_velocity()
             self.calc_mass_flow()
-            self.calc_m_mix_properties()
+            self.calc_fluid_flow_properties()
             self.calc_re()
-            self.calc_nu()
             self.calc_heat_transfer_coef()
             self.calc_pressure_drop_bends()
             self.calc_pressure()
-            if self.pem_type is False:  # NT
-                self.calc_free_water()
 
-    def set_i(self, i_ca):
+    def set_current_density(self, i_ca):
+        """
+        This function sets the current density.
+        The current density can be obtained
+        from the electrical coupling.
+
+            Manipulate:
+            - self.i_ca, scalar
+        """
+
         self.i_ca = i_ca
 
-    def set_j(self, j):
-        self.j = j[1:]
+    def set_water_cross_flux(self, j):
+        """
+        This function sets the water cross flux through the membran.
+        The water cruss flux can be obtained from the cell level.
 
-    def set_stoi(self, stoi):
+            Manipulate:
+            - self.water_cross_flux, 1-D-array, [cell elements]
+        """
+
+        self.w_cross_flow = j[1:]
+
+    def set_stoichiometry(self, stoi):
+        """
+        This function sets the reactant stoichiometry.
+        The stoichiometry can be obtained from the manifold methods.
+
+            Manipulate:
+            - self.stoi, scalar
+        """
+
         self.stoi = stoi
 
     def set_pem_type(self, pem_type):
-        self.pem_type = pem_type
+        """
+        This function defines the PEM-Type.
 
-    def set_temp(self, var):
+            Manipulate:
+            - self.pem_type, boolean
+        """
+
+        self.ht_pem = pem_type
+
+    def set_layer_temperature(self, var):
+        """
+        This function sets the layer Temperatures,
+        they can be obtained from the temperature system.
+
+            Manipulate:
+            - self.temp, 2-D-array, [layer][elements]
+        """
+
         var = g_func.calc_nodes_2_d(np.array(var))
-        if self.type is True:
+        if self.cl_type is True:
             self.temp = np.array([var[0], var[1], var[2]])
         else:
             self.temp = np.array([var[0], var[1]])
 
-    def calc_t_gas_e(self):
-        self.temp_gas_ele = g_func.calc_elements_1_d(self.temp_gas)
+    def calc_temp_fluid_ele(self):
+        """
+        This function sets the layer Temperatures,
+        they can be obtained from the temperature system.
+
+            Access to:
+            - self.temp_fluid 1-D-Array, [nodes]
+
+            Manipulate:
+            - self.temp_fluid, 1-D-Array, [elements]
+        """
+
+        self.temp_fluid_ele = g_func.calc_elements_1_d(self.temp_fluid)
 
     def calc_reac_flow(self):
-        """Calculates the reactant molar flow [mol/s]
+        """
+        Calculates the reactant molar flow [mol/s]
 
             Access too:
             -self.stoi
@@ -187,23 +309,26 @@ class HalfCell:
             Manipulate:
             -self.mol_flow
         """
+
         f = g_par.dict_uni['F']
         var1 = self.stoi * g_par.dict_case['tar_cd'] \
-            * self.channel.plane / (self.val_num * f)
-        if self.type is True:
+               * self.channel.act_area / (self.val_num * f)
+        if self.cl_type is True:
             self.mol_flow[0, 0] = var1
-            self.mol_flow[0, 1:] = var1 - np.matmul(self.node_fwd, self.i_ca)\
-                * self.channel.plane_dx / (self.val_num * f)
+            self.mol_flow[0, 1:] = var1 - np.matmul(self.fwd_mat, self.i_ca) \
+                                   * self.channel.act_area_dx / (self.val_num * f)
 
         else:
             self.mol_flow[0, -1] = var1
-            self.mol_flow[0, :-1] = var1 - np.matmul(self.node_bwd, self.i_ca) \
-                * self.channel.plane_dx \
+            self.mol_flow[0, :-1] = var1 - np.matmul(self.bwd_mat, self.i_ca) \
+                * self.channel.act_area_dx \
                 / (self.val_num * f)
-        self.mol_flow[0] = np.maximum(self.mol_flow[0], self.zero_node)
+        self.mol_flow[0] = np.maximum(self.mol_flow[0],
+                                      np.zeros(g_par.dict_case['elements'] + 1))
 
     def calc_water_flow(self):
-        """" Calculates the water and nitrogen molar flows [mol/s]
+        """"
+        Calculates the water and nitrogen molar flows [mol/s]
 
             Access to:
             -self.channel.t_in
@@ -226,10 +351,11 @@ class HalfCell:
             -self.mol_flow
             -self.index_cat
         """
+
         sat_p = p_sat.water.calc_p_sat(self.channel.temp_in)
-        plane_dx = self.channel.plane_dx
+        plane_dx = self.channel.act_area_dx
         b = 0.
-        if self.type is True:
+        if self.cl_type is True:
             q_0_water = self.mol_flow[0][0] \
                         * (1. + self.n2o2ratio) \
                         * sat_p \
@@ -239,11 +365,11 @@ class HalfCell:
                            * sat_p)
             a = plane_dx \
                 / (self.val_num * g_par.dict_uni['F'] * 0.5) \
-                * np.matmul(self.node_fwd, self.i_ca)
+                * np.matmul(self.fwd_mat, self.i_ca)
             # production
-            if self.pem_type is False:
+            if self.ht_pem is False:
                 b = plane_dx \
-                    * np.matmul(self.node_fwd, self.j)
+                    * np.matmul(self.fwd_mat, self.w_cross_flow)
                 # crossover
             self.mol_flow[1, 0] = q_0_water
             self.mol_flow[1, 1:] = a + b + q_0_water
@@ -257,17 +383,18 @@ class HalfCell:
                         / (self.channel.p_in
                            - self.channel.humidity_in
                            * sat_p)
-            if self.pem_type is False:
+            if self.ht_pem is False:
                 b = plane_dx \
-                    * np.matmul(self.node_bwd, self.j)
+                    * np.matmul(self.bwd_mat, -self.w_cross_flow)
             self.mol_flow[1, -1] = q_0_water
             self.mol_flow[1, :-1] = b + q_0_water
             self.mol_flow[2] = np.full(g_par.dict_case['nodes'],
                                        self.mol_flow[0][-1] * self.n2h2ratio)
 
         self.mol_flow[1] = np.choose(self.mol_flow[0] > 1.e-50,
-                                     [self.zero_node, self.mol_flow[1]])
-        if self.type is True:
+                                     [np.zeros(g_par.dict_case['nodes']),
+                                      self.mol_flow[1]])
+        if self.cl_type is True:
             for w in range(1, g_par.dict_case['nodes']):
                 if self.mol_flow[1, w] < 1.e-49:
                     self.index_cat = w - 1
@@ -276,8 +403,9 @@ class HalfCell:
                     break
 
     def calc_pressure_drop_bends(self):
-        """Calculates the channel pressure
-           drop through the channel bends for each element
+        """
+        Calculates the channel pressure drop
+        through the channel bends for each element.
 
             Access to:
             -self.channel.bend_fri_fac
@@ -289,50 +417,68 @@ class HalfCell:
             Manipulate:
             -self.p_drop_bends
         """
-        self.p_drop_bends = self.channel.bend_fri_fac * np.average(self.rho) \
-            * np.average(self.u) ** 2. * self.channel.bend_num \
-            / (g_par.dict_case['nodes'] - 1) * .5
+
+        self.p_drop_bends = self.channel.bend_fri_fac\
+            * np.average(self.rho_gas) * np.average(self.u) ** 2.\
+            * self.channel.bend_numb / (g_par.dict_case['nodes'] - 1) * .5
 
     def calc_pressure(self):
-        """ Calculates the total channel pressure for each element
+        """
+        Calculates the total channel pressure for each element.
 
             Access to:
             -self.channel.p_in
             -self.u
             -self.Re
-            -self.node_fwd
-            -self.dh
-            -self.channel.d_x
+            -self.rho_gas
+            -self.fwd_mat
+            -self.bwd_mat
+            -self.channel.d_h
+            -self.channel.dx
             -self.p_drop_bends
 
             Manipulate:
             -self.p
         """
+
         p_in = self.channel.p_in
-        rho_ele = g_func.calc_elements_1_d(self.rho)
+        rho_ele = g_func.calc_elements_1_d(self.rho_gas)
         u_ele = g_func.calc_elements_1_d(self.u)
         Re_ele = g_func.calc_elements_1_d(self.Re)
-        if self.type is True:
-            mat = self.node_fwd
+        if self.cl_type is True:
+            mat = self.fwd_mat
             self.p[0] = p_in
-            self.p[1:] = p_in + 32. / self.d_h \
-                         * np.matmul(-mat, rho_ele * u_ele ** 2. / Re_ele) \
-                         * self.channel.dx - self.p_drop_bends
+            self.p[1:] = p_in + 32. / self.channel.d_h \
+                * np.matmul(-mat, rho_ele * u_ele ** 2. / Re_ele) \
+                * self.channel.dx - self.p_drop_bends
         else:
-            mat = self.node_bwd
+            mat = self.bwd_mat
             self.p[-1] = p_in
-            self.p[:-1] = p_in + 32. / self.d_h \
-                          * np.matmul(-mat, rho_ele * u_ele ** 2. / Re_ele) \
-                          * self.channel.dx - self.p_drop_bends
+            self.p[:-1] = p_in + 32. / self.channel.d_h \
+                * np.matmul(-mat, rho_ele * u_ele ** 2. / Re_ele) \
+                * self.channel.dx - self.p_drop_bends
 
     def calc_con(self):
+        """
+        Calculates the gas phase molar concentrations.
+
+            Access to:
+            -self.p
+            -self.mol_flow
+            -self.temp_fluid
+            -g.par.dict_uni['R']
+
+            Manipulate:
+            -self.gas_con
+        """
+
         for w in range(g_par.dict_case['nodes']):
-            id_lw = self.p[w] / (g_par.dict_uni['R'] * self.temp[1, w])
+            id_lw = self.p[w] / (g_par.dict_uni['R'] * self.temp_fluid[w])
             var4 = np.sum(self.mol_flow[:, w])
             var2 = self.mol_flow[1][w] / var4
             self.gas_con[1][w] = id_lw * var2
-            a = p_sat.water.calc_p_sat(self.temp[1, w])
-            e = g_par.dict_uni['R'] * self.temp_gas[w]
+            a = p_sat.water.calc_p_sat(self.temp_fluid[w])
+            e = g_par.dict_uni['R'] * self.temp_fluid[w]
             if self.gas_con[1][w] >= a / e:  # saturated
                 b = self.mol_flow[0][w] + self.mol_flow[2][w]
                 c = self.mol_flow[0][w] / b
@@ -347,170 +493,387 @@ class HalfCell:
         self.gas_con_ele = g_func.calc_elements_1_d(self.gas_con[0])
 
     def calc_mass_fraction(self):
+        """
+        Calculates the gas phase mass fractions.
+
+            Access to:
+            -self.gas_con
+            -self.mol_mass
+
+            Manipulate:
+            -self.mass_f
+        """
+
         temp_var_1 = []
         for q, item in enumerate(self.gas_con):
             temp_var_1.append(item * self.mol_mass[q])
         for q in range(len(self.gas_con)):
             self.mass_f[q] = temp_var_1[q] / sum(temp_var_1)
-        # print(self.mass_f, 'mass_f')
 
     def calc_mol_fraction(self):
+        """
+        Calculates the gas phase molar fractions.
+
+            Access to:
+            -self.gas_con
+
+            Manipulate:
+            -self.mol_f
+        """
+
         for q, item in enumerate(self.gas_con):
             self.mol_f[q] = item / sum(self.gas_con)
-        # print(self.mol_f, 'mol_f')
 
-    def calc_gas_properties(self):
-        if self.type is True:
-            self.cp[0] = g_fit.oxygen.calc_cp(self.temp_gas)
-            self.lambda_gas[0] = g_fit.oxygen.calc_lambda(self.temp_gas, self.p)
-            self.visc[0] = g_fit.oxygen.calc_visc(self.temp_gas)
+    def calc_species_properties(self):
+        """
+        Calculates the properties of the species in the gas phase
+
+            Access to:
+            -self.temp_fluid
+            -self.p
+            -self.cl_type
+            -g_fit.object.methods
+
+            Manipulate:
+            -self.cp
+            -self.lambdas
+            -self.visc
+            -self.cp_ele
+        """
+
+        if self.cl_type is True:
+            self.cp[0] = g_fit.oxygen.calc_cp(self.temp_fluid)
+            self.lambdas[0] = g_fit.oxygen.calc_lambda(self.temp_fluid, self.p)
+            self.visc[0] = g_fit.oxygen.calc_visc(self.temp_fluid)
         else:
-            self.cp[0] = g_fit.hydrogen.calc_cp(self.temp_gas)
-            self.lambda_gas[0] = g_fit.hydrogen.calc_lambda(self.temp_gas, self.p)
-            self.visc[0] = g_fit.hydrogen.calc_visc(self.temp_gas)
-        self.cp[1] = g_fit.water.calc_cp(self.temp_gas)
-        self.cp[2] = g_fit.nitrogen.calc_cp(self.temp_gas)
-        self.lambda_gas[1] = g_fit.water.calc_lambda(self.temp_gas, self.p)
-        self.lambda_gas[2] = g_fit.nitrogen.calc_lambda(self.temp_gas, self.p)
-        self.visc[1] = g_fit.water.calc_visc(self.temp_gas)
-        self.visc[2] = g_fit.nitrogen.calc_visc(self.temp_gas)
+            self.cp[0] = g_fit.hydrogen.calc_cp(self.temp_fluid)
+            self.lambdas[0] = g_fit.hydrogen.calc_lambda(self.temp_fluid,
+                                                         self.p)
+            self.visc[0] = g_fit.hydrogen.calc_visc(self.temp_fluid)
+        self.cp[1] = g_fit.water.calc_cp(self.temp_fluid)
+        self.cp[2] = g_fit.nitrogen.calc_cp(self.temp_fluid)
+        self.lambdas[1] = g_fit.water.calc_lambda(self.temp_fluid, self.p)
+        self.lambdas[2] = g_fit.nitrogen.calc_lambda(self.temp_fluid, self.p)
+        self.visc[1] = g_fit.water.calc_visc(self.temp_fluid)
+        self.visc[2] = g_fit.nitrogen.calc_visc(self.temp_fluid)
         self.cp_ele = g_func.calc_elements_1_d(self.cp[0])
 
-    def calc_gas_mix_properties(self):
+    def calc_gas_properties(self):
+        """
+        Calculates the properties of the gas phase
+
+            Access to:
+            -self.spec_num
+            -self.mass_f
+            -self.r_species
+            -self.cp
+            -self.visc
+            -self.lambdas
+            -self.mol_f
+            -self.temp_fluid
+
+            Manipulate:
+            -self.r_gas
+            -self.cp_gas
+            -self.cp_gas_ele
+            -self.cp_ele
+            -self.visc_gas
+            -self.lambda_gas
+            -self.rho_gas
+            -self.Pr
+        """
+
         temp1, temp2 = [], []
         for q in range(self.spec_num):
-            temp1.append(self.mass_f[q] * self.r_el[q])
+            temp1.append(self.mass_f[q] * self.r_species[q])
             temp2.append(self.mass_f[q] * self.cp[q])
-        self.r_mix = sum(temp1)
-        self.cp_mix = sum(temp2)
-        self.cp_mix_ele = g_func.calc_elements_1_d(self.cp_mix)
-        self.visc_mix = g_func.calc_visc_mix(self.visc,
+        self.r_gas = sum(temp1)
+        self.cp_gas = sum(temp2)
+        self.cp_gas_ele = g_func.calc_elements_1_d(self.cp_gas)
+        self.visc_gas = g_func.calc_visc_mix(self.visc,
                                              self.mol_f,
                                              self.mol_mass)
-        self.lambda_mix = g_func.calc_lambda_mix(self.lambda_gas, self.mol_f,
+        self.lambda_gas = g_func.calc_lambda_mix(self.lambdas, self.mol_f,
                                                  self.visc, self.mol_mass)
-        self.rho = g_func.calc_rho(self.p, self.r_mix, self.temp_gas)
-        self.Pr = self.visc_mix * self.cp_mix / self.lambda_mix
-        # print(self.mass_f,'mass_f')
-        # print(self.mol_f, 'mol_f')
-        # print(self.r_mix, 'r_mix')
-        # print(self.cp_mix, 'cp_mix')
-        # print(self.visc_mix, 'visc_mix')
-        # print(self.lambda_mix, 'lambda_mix')
-        # print(self.rho, 'rho')
-        # print(self.Pr, 'Pr')
+        self.rho_gas = g_func.calc_rho(self.p, self.r_gas, self.temp_fluid)
+        self.Pr = self.visc_gas * self.cp_gas / self.lambda_gas
 
     def calc_flow_velocity(self):
-        self.u = self.q_gas * g_par.dict_uni['R'] * self.temp_gas \
-                 / (self.p * self.channel.cross_area)
-        # print(self.u, 'u')
+        """
+        Calculates the gas phase velocity.
+        The gas phase velocity is taken to be the liquid water velocity as well.
+
+            Access to:
+            -self.q_gas
+            -self.temp_fluid
+            -self.p
+            -self.channel.cross_area
+            -g_par.dict_uni['R']
+
+
+            Manipulate:
+            -self.u
+        """
+
+        self.u = self.q_gas * g_par.dict_uni['R'] * self.temp_fluid \
+            / (self.p * self.channel.cross_area)
 
     def calc_mass_flow(self):
-        self.m_flow = self.u * self.rho * self.channel.cross_area
-        self.m_reac_flow = self.mol_flow[0] * self.mol_mass[0]
-        self.m_liq_water = self.w * self.mol_mass[1]
-        self.m_vap_water_flow = (self.mol_flow[1] - self.w) * self.mol_mass[1]
-        self.m_reac_flow_delta = abs(g_func.calc_dif(self.m_reac_flow))
-        self.m_vap_water_flow_delta = abs(g_func.calc_dif(
-            self.m_vap_water_flow))
-        self.m_full_flow = self.m_flow + self.m_liq_water
-        # print(self.m_flow)
-        # print(self.m_reac_flow)
-        # print(self.m_liq_water)
-        # print(self.m_vap_water_flow)
-        # print(self.m_reac_flow_delta)
-        # print(self.m_reac_flow_delta)
-        # print(self.m_full_flow)
+        """
+        Calculates the relevant mass flows
 
-    def calc_m_mix_properties(self):
-        self.cp_full = (self.m_flow * self.cp_mix
-                        + self.m_liq_water * g_par.dict_uni['cp_liq']) \
-                       / self.m_full_flow
-        self.g_full = self.m_full_flow * self.cp_full
-        # print(self.cp_full, 'cp_full')
-        # print(self.g_full, 'g_full')
+            Access to:
+            -self.u
+            -self.rho_gas
+            -self.channel_cross_area
+            -self.mol_flow
+            -self.mol_mass
+            -self.l_w_flow
+
+            Manipulate:
+            -self.m_flow_gas
+            -self.m_flow_reac
+            -self.m_flow_liq_w
+            -self.m_flow_vap_w
+            -self.m_flow_reac_delta
+            -self.m_flow_vap_water_delta
+            -self.m_flow_fluid
+        """
+
+        self.m_flow_gas = self.u * self.rho_gas * self.channel.cross_area
+        self.m_flow_reac = self.mol_flow[0] * self.mol_mass[0]
+        self.m_flow_liq_w = self.liq_w_flow * self.mol_mass[1]
+        self.m_flow_vap_w = (self.mol_flow[1] - self.liq_w_flow)\
+            * self.mol_mass[1]
+        self.m_flow_reac_delta = abs(g_func.calc_dif(self.m_flow_reac))
+        self.m_flow_vap_water_delta = abs(g_func.calc_dif(self.m_flow_vap_w))
+        self.m_flow_fluid = self.m_flow_gas + self.m_flow_liq_w
+
+    def calc_fluid_flow_properties(self):
+        """
+        Calculate the fluid flow properties
+
+            Access to:
+            -self.m_flow_gas
+            -self.cp_gas
+            -self.m_flow_liq_w
+            -self.m_flow_fluid
+            -g_par.dict_uni['cp_liq']
+        """
+
+        self.cp_fluid = (self.m_flow_gas * self.cp_gas + self.m_flow_liq_w
+                         * g_par.dict_uni['cp_liq']) / self.m_flow_fluid
+        self.g_fluid = self.m_flow_fluid * self.cp_fluid
 
     def calc_re(self):
-        self.Re = g_func.calc_Re(self.rho, self.u, self.d_h, self.visc_mix)
-        # print(self.Re, 'Re')
+        """
+        Calculates the reynolds number of the gas flow in the channel
 
-    def calc_nu(self):
-        self.Nu = np.full(g_par.dict_case['nodes'], 3.66)
-        # print(self.Nu, 'Nu')
+            Access to:
+            -self.rho_gas
+            -self.u
+            -self.visc_gas
+            -self.channel.d_h
+        """
+
+        self.Re = g_func.calc_Re(self.rho_gas, self.u,
+                                 self.channel.d_h, self.visc_gas)
 
     def calc_heat_transfer_coef(self):
-        self.ht_coef = self.lambda_mix * self.Nu / self.d_h
-        self.k_ht_coef_ca = self.ht_coef * np.pi * self.channel.dx * self.d_h
+        """
+        Calculates the convection coefficient between the channel and
+        the gas phase.
+        Deputy for the convection coefficient between the fluid and the channel.
 
-    def calc_fluid_water(self):  # fluid water in the channel
-        self.w = self.mol_flow[1] - self.gas_con[1] / self.gas_con[0] \
-                 * self.mol_flow[0]
-        # print(self.w, 'w')
+        Calculates the heat conductivity based on the convection coefficient
+        and the element area of the channel.
 
-    def calc_cond_rates(self):  # condensation rates of vapour in the channel
-        if self.type is True:
-            self.gamma = g_func.calc_nodes_1_d(np.ediff1d(self.w))
+            Access to:
+            -self.lambda_gas
+            -self.Nu
+            -self.channel.d_h
+            -self.channel.dx
+
+            Manipulate:
+            -self.ht_coef
+            self.k_ht_coef_ca
+        """
+
+        self.ht_coef = self.lambda_gas * self.Nu / self.channel.d_h
+        self.k_ht_coef_ca =\
+            self.ht_coef * np.pi * self.channel.dx * self.channel.d_h
+
+    def calc_liquid_water_flow(self):
+        """
+        Calculates the liquid water flow.
+
+            Access to:
+            -self.mol_flow
+            -self.gas_con
+
+            Manipulate:
+            -self.liq_w_flow
+        """
+
+        self.liq_w_flow = self.mol_flow[1]\
+            - self.gas_con[1] / self.gas_con[0] * self.mol_flow[0]
+
+    def calc_cond_rates(self):
+        """
+        Calculates the molar condensation rate of water in the channel.
+
+            Access to:
+            -self.cl_type
+            -self.liq_w_flow
+
+            Manipulate:
+            -self.cond_rate
+        """
+
+        if self.cl_type is True:
+            self.cond_rate = g_func.calc_nodes_1_d(np.ediff1d(self.liq_w_flow))
         else:
-            self.gamma = -g_func.calc_nodes_1_d(np.ediff1d(self.w))
-        # print(self.gamma, 'gamma')
+            self.cond_rate = -g_func.calc_nodes_1_d(np.ediff1d(self.liq_w_flow))
 
-    def calc_rel_humidity(self):  # relative humidity in the channel
+    def calc_rel_humidity(self):
+        """
+        Calculates the relative humidity of the fluid.
+
+            Access to:
+            -self.gas_con
+            -self.temp_fluid
+            -g_par.dict_uni['R']
+
+            Manipulate:
+            self.humidity
+        """
+
         self.humidity = self.gas_con[1] * g_par.dict_uni['R'] \
-                        * self.temp_gas / p_sat.water.calc_p_sat(self.temp_gas)
-        # print(self.humidity, 'humidity')
-
-    def calc_free_water(self):  # membrane free water content
-        a = 0.043 + 17.81 * self.humidity
-        b = -39.85 * self.humidity ** 2 + 36. * self.humidity ** 3
-        self.free_water = a + b
-        # print(self.free_water, 'free_water')
+            * self.temp_fluid / p_sat.water.calc_p_sat(self.temp_fluid)
 
     def sum_flows(self):
-        self.q_gas = sum(self.mol_flow) - self.w
-        # print(self.q_gas, 'q_gas')
+        """
+        Calculates the molar flow of the gas phase
+
+        Access to:
+        -self.mol_flow
+        -self.liq_w_flow
+
+        Manipulate:
+        -self.q_gas
+        """
+
+        self.q_gas = sum(self.mol_flow) - self.liq_w_flow
 
     def calc_voltage_losses_parameter(self):
-        self.i_lim = 4. * g_par.dict_uni['F'] * self.gas_con[0, :-1] \
-                     * self.diff_coef_gdl / self.th_gdl
-        self.i_hat = self.i_ca / self.i_star
-        short_save = np.sqrt(2. * self.i_hat)
-        self.beta =\
-            short_save / (1. + np.sqrt(1.12 * self.i_hat) * np.exp(short_save))\
-            + np.pi * self.i_hat / (2. + self.i_hat)
-        self.var =\
-            1. - self.i_ca\
-            / (self.i_lim * self.gas_con_ele / self.gas_con[0, :-1])
-        self.i_square = self.i_ca ** 2.
-        # print(self.i_lim)
-        # print(self.i_hat)
-        # print(short_save)
-        # print(self.beta)
-        # print(self.var)
-        # print(self.i_square)
+        """
+        Calculates multiply used supporting parameters
+        to calculate the voltage loss according to (Kulikovsky, 2013).
 
-    def calc_activation_losses(self):
-        self.act_ov = self.tafel_slope \
-                      * np.arcsinh((self.i_ca / self.i_theta) ** 2.
-                                   / (2. * (self.gas_con_ele
-                                            / self.gas_con[0, :-1])
-                                      * (1. - np.exp(-self.i_ca /
-                                                     (2. * self.i_star)))))
+        Access to:
+        - self.gas_con
+        -self.diff_coeff_gdl
+        -self.th_gdl
+        -self.i_ca
+        -self.gas_con_ele
+        -g_par.dict_uni['F']
 
-    def calc_transport_losses_catalyst_layer(self):
-        self.cat_diff_los = ((self.prot_con * self.tafel_slope ** 2.)
-                             / (4. * g_par.dict_uni['F'] * self.diff_coef_cat
-                                * self.gas_con_ele)
-                             * (self.i_ca / self.i_star
-                                - np.log10(1. + self.i_square
-                                           / (self.i_star ** 2.
-                                              * self.beta ** 2.)))) / self.var
+        Manipulate:
+        -self.var
+        -self.i_ca_square
+        """
 
-    def calc_transport_losses_diffusion_layer(self):
-        self.gdl_diff_los = -self.tafel_slope * np.log10(self.var)
-        nan_list = np.isnan(self.gdl_diff_los)
+        i_lim = 4. * g_par.dict_uni['F'] * self.gas_con[0, :-1] \
+            * self.diff_coeff_gdl / self.th_gdl
+        self.var = 1.\
+            - self.i_ca / (i_lim * self.gas_con_ele / self.gas_con[0, :-1])
+        self.i_ca_square = self.i_ca ** 2.
+
+    def calc_activation_loss(self):
+        """
+        Calculates the activation voltage loss,
+        according to (Kulikovsky, 2013).
+
+        Access to:
+        -self.tafel_slope
+        -self.i_ca
+        -self.i_sigma
+        -self.gas_con
+        -self.gas_con_ele
+        -self.i_ca_char
+
+        Manipulate:
+        -self.act_ov
+        """
+
+        self.act_loss = self.tafel_slope \
+             * np.arcsinh((self.i_ca / self.i_sigma) ** 2.
+                         / (2. * (self.gas_con_ele / self.gas_con[0, :-1])
+                            * (1. - np.exp(-self.i_ca /
+                                           (2. * self.i_ca_char)))))
+
+    def calc_transport_loss_catalyst_layer(self):
+        """
+        Calculates the diffusion voltage loss in the catalyst layer
+        according to (Kulikovsky, 2013).
+
+        Access to:
+        -self.i_ca
+        -self.i_ca_char
+        -self.prot_con_cl
+        -self.tafel_slope
+        -self.diff_coeff_cl
+        -self.i_ca_char
+        -self.gas_con_ele
+        -self.i_ca_square
+        -self.var
+        -g_par.dict_uni['F']
+
+        Manipulate:
+        -self.cl_diff_loss
+        """
+
+        i_hat = self.i_ca / self.i_ca_char
+        short_save = np.sqrt(2. * i_hat)
+        beta = short_save / (1. + np.sqrt(1.12 * i_hat) * np.exp(short_save))\
+            + np.pi * i_hat / (2. + i_hat)
+        self.cl_diff_loss = \
+            ((self.prot_con_cl * self.tafel_slope ** 2.)
+             / (4. * g_par.dict_uni['F']
+                * self.diff_coeff_cl * self.gas_con_ele)
+                * (self.i_ca / self.i_ca_char
+                   - np.log10(1. + self.i_ca_square /
+                              (self.i_ca_char ** 2. * beta ** 2.)))) / self.var
+
+    def calc_transport_loss_diffusion_layer(self):
+        """
+        Calculates the diffusion voltage loss in the gas diffusion layer
+        according to (Kulikovsky, 2013).
+
+        Access to:
+        -self.tafel_slope
+        -self.var
+
+        Manipulate:
+        -self.gdl_diff_loss
+        """
+
+        self.gdl_diff_loss = -self.tafel_slope * np.log10(self.var)
+        nan_list = np.isnan(self.gdl_diff_loss)
         bol = nan_list.any()
         if bol == True:
-            self.gdl_diff_los[np.argwhere(nan_list)[0, 0]:] = 1.e20
+            self.gdl_diff_loss[np.argwhere(nan_list)[0, 0]:] = 1.e50
 
-    def calc_electrode_losses(self):
-        self.v_los = self.act_ov + self.cat_diff_los + self.gdl_diff_los
+    def calc_electrode_loss(self):
+        """Calculates the full volatege losses of the electrode
+
+            Access to:
+            -self.act_loss
+            -self.cl_diff_loss
+            -self.gdl_diff_loss
+
+            Manipulate:
+            -self.v_loss
+        """
+
+        self.v_loss = self.act_loss + self.cl_diff_loss + self.gdl_diff_loss
