@@ -24,6 +24,13 @@ class Stack:
         nodes = g_par.dict_case['nodes']
         # node points along the x-axis
         self.alpha_env = dict_stack['alpha_env']
+        # environment convection coefficient
+        self.calc_temp = dict_stack['calc_temperature']
+        # switch to calculate the temperature distribution
+        self.calc_cd = dict_stack['calc_current_density']
+        # switch to calculate the current density distribution
+        self.calc_flow_dis = dict_stack['calc_flow_distribution']
+        # switch to calculate the flow distribution
 
         self.cells = []
         # list of the stack cells
@@ -170,11 +177,14 @@ class Stack:
                 break
         if self.break_program is False:
             self.stack_dynamic_properties()
-            self.update_temperature_coupling()
+            if self.calc_temp is True:
+                self.update_temperature_coupling()
             if self.cell_numb > 1:
-                self.update_flows()
+                if self.calc_flow_dis is True:
+                    self.update_flows()
             self.i_ca_old = copy.deepcopy(self.i_ca)
-            self.update_electrical_coupling()
+            if self.calc_cd is True:
+                self.update_electrical_coupling()
 
     def update_flows(self):
         """

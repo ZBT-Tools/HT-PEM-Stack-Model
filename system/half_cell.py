@@ -47,6 +47,9 @@ class HalfCell:
 
         self.cl_type = dict_hc['cl_type']
         # anode is false; Cathode is true
+        self.calc_act_loss = dict_hc['calc_act_loss']
+        self.calc_cl_diff_loss = dict_hc['calc_cl_diff_loss']
+        self.calc_gdl_diff_loss = dict_hc['calc_gdl_diff_loss']
         """layer thickness"""
         self.th_gdl = dict_hc['th_gdl']
         # thickness of the gas diffusion layer
@@ -238,7 +241,7 @@ class HalfCell:
             - self.water_cross_flux, 1-D-array, [cell elements]
         """
 
-        self.w_cross_flow = j[1:]
+        self.w_cross_flow = j
 
     def set_stoichiometry(self, stoi):
         """
@@ -312,11 +315,11 @@ class HalfCell:
 
         f = g_par.dict_uni['F']
         var1 = self.stoi * g_par.dict_case['tar_cd'] \
-               * self.channel.act_area / (self.val_num * f)
+            * self.channel.act_area / (self.val_num * f)
         if self.cl_type is True:
             self.mol_flow[0, 0] = var1
             self.mol_flow[0, 1:] = var1 - np.matmul(self.fwd_mat, self.i_ca) \
-                                   * self.channel.act_area_dx / (self.val_num * f)
+                * self.channel.act_area_dx / (self.val_num * f)
 
         else:
             self.mol_flow[0, -1] = var1
@@ -385,12 +388,12 @@ class HalfCell:
                            * sat_p)
             if self.ht_pem is False:
                 b = plane_dx \
-                    * np.matmul(self.bwd_mat, -self.w_cross_flow)
+                    * np.matmul(-self.bwd_mat, self.w_cross_flow)
             self.mol_flow[1, -1] = q_0_water
             self.mol_flow[1, :-1] = b + q_0_water
             self.mol_flow[2] = np.full(g_par.dict_case['nodes'],
                                        self.mol_flow[0][-1] * self.n2h2ratio)
-
+        self.mol_flow[1] = np.maximum(self.mol_flow[1], 0.)
         self.mol_flow[1] = np.choose(self.mol_flow[0] > 1.e-50,
                                      [np.zeros(g_par.dict_case['nodes']),
                                       self.mol_flow[1]])
@@ -807,7 +810,7 @@ class HalfCell:
         """
 
         self.act_loss = self.tafel_slope \
-             * np.arcsinh((self.i_ca / self.i_sigma) ** 2.
+            * np.arcsinh((self.i_ca / self.i_sigma) ** 2.
                          / (2. * (self.gas_con_ele / self.gas_con[0, :-1])
                             * (1. - np.exp(-self.i_ca /
                                            (2. * self.i_ca_char)))))
@@ -876,5 +879,10 @@ class HalfCell:
             Manipulate:
             -self.v_loss
         """
-
+        if self.calc_gdl_diff_loss is False:
+            self.gdl_diff_loss = 0.
+        if self.calc_cl_diff_loss is False:
+            self.cl_diff_loss = 0.
+        if self.calc_act_loss is False:
+            self.act_loss = 0.
         self.v_loss = self.act_loss + self.cl_diff_loss + self.gdl_diff_loss

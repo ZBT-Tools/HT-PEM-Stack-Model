@@ -2,15 +2,15 @@
 
 """Electrochemistry Settings"""
 # volumetric exchange current density of the cathode[A/m^3]
-exchange_current_density_cathode = 1.4e5
+exchange_current_density_cathode = 0.75e6
 # volumetric exchange current density of the anode [A/m^3]
 exchange_current_density_anode = 0.817e9
 # oxygen catalyst layer diffusion coefficient [m^2/s]
-oxygen_catalyst_layer_diffusion_coefficient = 1.36e-8
+oxygen_catalyst_layer_diffusion_coefficient = 0.20e-7
 # hydrogen catalyst layer diffusion coefficient [m^2/s]
 hydrogen_catalyst_layer_diffusion_coefficient = 5.e-8
 # oxygen gas diffusion layer diffusion coefficient [[m^2/s]
-oygen_gas_diffusion_layer_diffusion_coefficient = 2.59e-6
+oygen_gas_diffusion_layer_diffusion_coefficient = 6.75e-6
 # hydrogen gas diffusion layer diffusion coefficient [m^2/s]
 hydrogen_diffusion_layer_diffusion_coefficient = 9.52e-6
 # catalyst layer proton conductivity of the cathode [Ohm^-1/m]
@@ -18,7 +18,7 @@ catalyst_layer_proton_conductivity_cathode = 3.e0
 # catalyst layer proton conductivity of the anode [Ohm^-1/m]
 catalyst_layer_proton_conductivity_anode = 3.e0
 # tafel slope of the cathode [V]
-tafel_slope_cathode = 0.04
+tafel_slope_cathode = 0.03
 # tafel slope of the anode [V]
 tafel_slope_anode = 0.03
 # thermo neutral open circuit voltage [V]
@@ -65,7 +65,7 @@ convection_coefficient_stack_environment = 0.
 
 """Fluid Mechanic Settings"""
 # geometrical pressure loss coefficient of the manifold header
-manifold_pressure_loss_coefficient = 5.e4
+manifold_pressure_loss_coefficient = 0.
 # bend pressure loss coefficient of the channel bends
 bend_pressure_loss_coefficient = 0.1
 # number of channel bends
@@ -77,7 +77,7 @@ anode_channel_flow_direction = False
 
 """Humidification"""
 # cathode inlet gas relative humidity
-inlet_humidity_cathode = 0.
+inlet_humidity_cathode = 1.
 # anode inlet gas relative humidity
 inlet_humidity_anode = 0.
 
@@ -85,5 +85,5 @@ inlet_humidity_anode = 0.
 # oxygen concentration at the cathode inlet
 oxygen_inlet_concentration = 0.21
 # hydrogen concentration at the anode inlet
-hydrogen_inlet_concentration = 0.5
+hydrogen_inlet_concentration = 1.
 

@@ -27,6 +27,7 @@ class Cell:
         # basic electrical resistance of the membrane
         self.mem_acl_r = dict_cell['mem_acl_r']
         # thermal related electrical resistance gain of the membrane
+        self.calc_mem_loss = dict_cell['calc_mem_loss']
 
         """membrane resistance parameter (Goßling)"""
         self.fac_res_fit = 0.5913
@@ -78,7 +79,7 @@ class Cell:
         # height of the cell
         nodes = g_par.dict_case['nodes']
         # number of nodes along the channel
-        self.w_cross_flow = np.zeros(nodes)
+        self.w_cross_flow = np.zeros(nodes-1)
         # water cross flux through the membrane
         self.omega_ca = np.zeros(nodes)
         # area specific membrane resistance
@@ -104,7 +105,7 @@ class Cell:
         This function coordinates the program sequence
         """
 
-        self.temp_mem = .5 * (self.temp[2] + self.temp[1])
+        self.temp_mem = .5 * (self.temp[2] + self.temp[3])
         if g_par.dict_case['pem_type'] is False:
             self.cathode.set_pem_type(False)
             self.anode.set_pem_type(False)
@@ -186,7 +187,6 @@ class Cell:
             self.i_ca / g_par.dict_uni['F'] + g_par.dict_case['mol_con_m']\
             * g_func.dw(self.temp_mem) * (m_a ** 2. - m_c ** 2.)\
             / (2. * self.th_mem)
-        self.w_cross_flow = np.hstack(([0], self.w_cross_flow))
 
     def calc_mem_resistivity_kvesic(self):
         """
@@ -252,7 +252,6 @@ class Cell:
             -self.omega_ca
             -self.omega
         """
-
         humidity = (self.cathode.humidity + self.anode.humidity) * 0.5
         humidity_ele = g_func.calc_elements_1_d(humidity)
         a = 0.043 + 17.81 * humidity_ele
@@ -262,7 +261,6 @@ class Cell:
         mem_el_con_temp =\
             np.exp(1268 * (0.0033 - 1. / self.temp_mem)) * mem_el_con
         self.omega_ca = self.th_mem / mem_el_con_temp * 1.e-4
-        self.omega = self.omega_ca / self.cathode.channel.act_area_dx
 
     def calc_membrane_loss(self):
         """
@@ -277,6 +275,8 @@ class Cell:
         """
 
         self.mem_loss = self.omega_ca * self.i_ca
+        if self.calc_mem_loss is False:
+            self.mem_loss = 0.
 
     def calc_voltage(self):
         """

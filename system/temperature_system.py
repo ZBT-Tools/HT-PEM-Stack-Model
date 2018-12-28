@@ -125,8 +125,8 @@ class TemperatureSystem:
 
         conv_coeff_ch = nu_ch * self.lambda_cool / d_h_cool
         # convection coefficient between the coolant and the channel wall
-        print('Coolant channel convection coefficient:',
-              conv_coeff_ch, 'W/(m²K)')
+        #print('Coolant channel convection coefficient:',
+           #   conv_coeff_ch, 'W/(m²K)')
         conv_area = d_h_cool * np.pi * self.ch_length / self.elements
         # convection area of the channel wall
         self.k_cool = conv_coeff_ch * conv_area
@@ -502,7 +502,6 @@ class TemperatureSystem:
         s = self
         s.r_s = self.rhs
         ct = 0
-        self.cond_rate = self.cond_rate * 0.
         for q in range(self.cell_numb):
             for w in range(self.elements):
                 if q is 0:

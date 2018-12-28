@@ -37,6 +37,12 @@ class Simulation:
         # iteration criteria
         self.max_it = dict_simulation['maximal_iteration']
         # maximal number of iterations before force termination#
+        self.save_csv = dict_simulation['save_csv']
+        # switch to save the csv data
+        self.save_plot = dict_simulation['save_plot']
+        # switch to save the plot data
+        self.show_loss = dict_simulation['show_loss']
+        # switch to show the single voltage losses in the u-i-graph
         cell_numb = st_dict.dict_stack['cell_numb']
         # number of stack cells
         nodes = g_par.dict_case['nodes']
@@ -83,13 +89,13 @@ class Simulation:
         # cathodic activation voltage loss
         self.act_loss_ano = np.full((cell_numb, nodes - 1), 0.)
         # anodic activation voltage loss
-        self.cl_diff_loss_cathode = np.full((cell_numb, nodes - 1), 0.)
+        self.cl_diff_loss_cat = np.full((cell_numb, nodes - 1), 0.)
         # cathic catalyst layer diffusion voltage loss
-        self.cl_diff_loss_anode = np.full((cell_numb, nodes - 1), 0.)
+        self.cl_diff_loss_ano = np.full((cell_numb, nodes - 1), 0.)
         # anodic catalyst layer diffusion voltage loss
-        self.gdl_diff_loss_cathode = np.full((cell_numb, nodes - 1), 0.)
+        self.gdl_diff_loss_cat = np.full((cell_numb, nodes - 1), 0.)
         # cathodic gas diffusion layer diffusion voltage loss
-        self.gdl_diff_loss_anode = np.full((cell_numb, nodes - 1), 0.)
+        self.gdl_diff_loss_ano = np.full((cell_numb, nodes - 1), 0.)
         # anodic gas diffusion layer diffusion voltage loss
         self.mem_loss = np.full((cell_numb, nodes - 1), 0.)
         # membrane voltage loss
@@ -163,6 +169,20 @@ class Simulation:
         # inlet stoichiometry of the cathode channels
         self.stoi_ano = np.full(cell_numb, 0.)
         # inlet stoichiometry of the anode channels
+        self.act_loss_ui_ano = []
+        # average activation voltage loss of the anode
+        self.act_loss_ui_cat = []
+        # average activation voltage loss of the cathode
+        self.cl_diff_loss_ui_ano = []
+        # average anode catalyst layer diffusion voltage losses
+        self.cl_diff_loss_ui_cat = []
+        # average cathode catalyst layer diffusion voltage losses
+        self.gdl_diff_loss_ui_ano = []
+        # average anode gdl diffusion voltage losses
+        self.gdl_diff_loss_ui_cat = []
+        # average cathode gdl diffusion voltage losses
+        self.mem_loss_ui = []
+        # average membrane voltage losses
 
     # @do_c_profile
     def update(self):
@@ -192,30 +212,91 @@ class Simulation:
                 self.mdf_criteria_process =\
                     (np.array(self.mdf_criteria_ano_process)
                      + np.array(self.mdf_criteria_cat_process)) * .5
-                self.v.append(np.average(self.stack.v_cell))
-                self.output_plots(str(q))
-                self.output_csv(str(q))
+                self.save_voltages()
+                print(item)
+                if self.save_plot is True:
+                    self.output_plots(str(q))
+                if self.save_csv is True:
+                    self.output_csv(str(q))
             else:
                 oper_con.target_current_density =\
                     oper_con.target_current_density[0:-q]
                 print(oper_con.target_current_density, self.v)
                 break
-
         if len(oper_con.target_current_density) > 1:
-            plt.plot(np.asarray(oper_con.target_current_density) * 1.e-4,
-                     self.v, marker='.', color='k', label='Simulation')
-            plt.ylabel('Voltage $[V]$', fontsize=16)
-            plt.xlabel('Current Density $[A/cm²]$', fontsize=16)
-            plt.tick_params(labelsize=14)
-            plt.grid()
-            plt.legend()
-            plt.autoscale(tight=True, axis='both', enable=True)
-            plt.ylim(0., 1.)
-            plt.tight_layout()
-            plt.savefig(os.path.join(os.path.dirname(__file__),
-                                     + '\output'
-                                     + 'Polarization_curve' + '.jpg'))
-            plt.close()
+            self.plot_polarization_curve()
+
+    def plot_polarization_curve(self):
+        try:
+            os.makedirs(os.path.join(os.path.dirname(__file__), 'output/'))
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
+        i_measurement = [3.17782859, 2.998470663, 2.798749363, 2.598393607,
+                         2.396849473, 2.197724053, 1.997807213, 1.796569687,
+                         1.5972518, 1.396593663, 1.196849567, 0.997384197,
+                         0.796733187, 0.597545647, 0.49775168, 0.396710477,
+                         0.29834263, 0.1982076, 0.148961347, 0.098618743,
+                         0.04888981, 0.01861823, 0.000440543]
+        v_measurement = [0.208858083, 0.276528, 0.33438425, 0.390633083,
+                         0.442454333, 0.48813775, 0.530697667, 0.569340833,
+                         0.604201833, 0.6375915, 0.669950083, 0.6913865,
+                         0.720160917, 0.74782375, 0.761192667, 0.775360333,
+                         0.7912925, 0.809277833, 0.824127833, 0.841406917,
+                         0.864242417, 0.88843633, 0.93131375]
+        cd_array = np.asarray(oper_con.target_current_density) * 1.e-4
+        plt.plot(cd_array, self.v, marker='.',
+                 color='k', label='Simulation')
+        if self.show_loss is True:
+            plt.plot(cd_array, self.mem_loss_ui, color='b',
+                     marker='.', label='Membrane Loss')
+            plt.plot(cd_array, self.act_loss_ui_ano, color='g',
+                     marker='*', label='Anode Activation Loss')
+            plt.plot(cd_array, self.act_loss_ui_cat, color='g',
+                     marker='+', label='Cathode Activation Loss')
+            plt.plot(cd_array, self.cl_diff_loss_ui_ano, color='y',
+                     marker='*', label='Anode Cl Diff Loss')
+            plt.plot(cd_array, self.cl_diff_loss_ui_cat, color='y',
+                     marker='+', label='Cathode Cl Diff Loss')
+            plt.plot(cd_array, self.gdl_diff_loss_ui_ano, color='m',
+                     marker='*', label='Anode GDL Diff Loss')
+            plt.plot(cd_array, self.gdl_diff_loss_ui_cat, color='m',
+                     marker='+', label='Cathode GDL Diff Loss')
+        plt.plot(i_measurement, v_measurement,
+                 color='r', label='Measurement', marker='^')
+        plt.ylabel('Voltage $[V]$', fontsize=16)
+        plt.xlabel('Current Density $[A/cm²]$', fontsize=16)
+        plt.tick_params(labelsize=14)
+        plt.grid()
+        plt.legend()
+        plt.autoscale(tight=True, axis='both', enable=True)
+        plt.ylim(0., 1.)
+        plt.tight_layout()
+        plt.savefig(os.path.join(os.path.dirname(__file__), 'output/' +
+                                 'Polarization_curve' + '.jpg'))
+        plt.close()
+
+    def save_voltages(self):
+        """
+        Saves the average voltage losses of the stack
+        """
+
+        for w, item in enumerate(self.stack.cells):
+            self.act_loss_cat[w] = item.cathode.act_loss
+            self.act_loss_ano[w] = item.anode.act_loss
+            self.cl_diff_loss_cat[w] = item.cathode.cl_diff_loss
+            self.cl_diff_loss_ano[w] = item.anode.cl_diff_loss
+            self.gdl_diff_loss_cat[w] = item.cathode.gdl_diff_loss
+            self.gdl_diff_loss_ano[w] = item.anode.gdl_diff_loss
+            self.mem_loss[w] = item.mem_loss
+        self.v.append(np.average(self.stack.v_cell))
+        self.act_loss_ui_ano.append(np.average(self.act_loss_ano))
+        self.act_loss_ui_cat.append(np.average(self.act_loss_cat))
+        self.cl_diff_loss_ui_ano.append(np.average(self.cl_diff_loss_ano))
+        self.cl_diff_loss_ui_cat.append(np.average(self.cl_diff_loss_cat))
+        self.gdl_diff_loss_ui_ano.append(np.average(self.gdl_diff_loss_ano))
+        self.gdl_diff_loss_ui_cat.append(np.average(self.gdl_diff_loss_cat))
+        self.mem_loss_ui.append(np.average(self.mem_loss))
 
     def calc_convergence_criteria(self):
         """
@@ -342,9 +423,9 @@ class Simulation:
                            'Cathode GDE - Plate Temperature',
                            [0., ch_dict.dict_cathode_channel['channel_length']],
                            x_ele, False)
-        self.plot_cell_var('anode.temp_fluid', 'Hydrogen Temperature $[K]$',
+        self.plot_cell_var('anode.temp_fluid', 'Anode Channel Temperature $[K]$',
                            'Channel Location $[m]$', 'linear',
-                           'Hydrogen Temperature',
+                           'Anode_Channel_Temperature',
                            [0., ch_dict.dict_cathode_channel['channel_length']],
                            x_node, False)
         self.plot_cell_var('temp[0]',
@@ -354,39 +435,39 @@ class Simulation:
                            [0., ch_dict.dict_cathode_channel['channel_length']],
                            x_ele, False)
         self.plot_cell_var('cathode.mol_flow[0] * 1.e3',
-                           'Oxygen Molar Flow $[mmol/s]$',
+                           'Cathode Oxygen Molar Flow $[mmol/s]$',
                            'Channel Location $[m]$', 'linear',
-                           'Oxygen Molar Flow',
+                           'Cathode Oxygen Molar Flow',
                            [0., ch_dict.dict_cathode_channel['channel_length']],
                            x_node, False)
         self.plot_cell_var('cathode.mol_flow[1] * 1.e3',
-                           'Water Molar Flow $[mmol/s]$',
+                           'Cathode Water Molar Flow $[mmol/s]$',
                            'Channel Location $[m]$', 'linear',
-                           'Water Molar Flow Cathode',
+                           'Cathode Water Molar Flow',
                            [0., ch_dict.dict_cathode_channel['channel_length']],
                            x_node, False)
         self.plot_cell_var('cathode.mol_flow[2] * 1.e3',
-                           'Nitrogen Molar Flow $[mmol/s]$',
+                           'Cathode Nitrogen Molar Flow $[mmol/s]$',
                            'Channel Location $[m]$', 'linear',
-                           'Nitrogen Molar Flow Cathode',
+                           'Cathode Nitrogen Molar Flow',
                            [0., ch_dict.dict_cathode_channel['channel_length']],
                            x_node, False)
         self.plot_cell_var('anode.mol_flow[0] * 1.e3',
-                           'Hydrogen Molar Flow $[mmol/s]$',
+                           'Anode Hydrogen Molar Flow $[mmol/s]$',
                            'Channel Location $[m]$', 'linear',
-                           'Hydrogen Molar Flow',
+                           'Anode Hydrogen Molar Flow',
                            [0., ch_dict.dict_cathode_channel['channel_length']],
                            x_node, False)
         self.plot_cell_var('anode.mol_flow[1] * 1.e3',
-                           'Water Molar Flow $[mmol/s]$',
+                           'Anode Water Molar Flow $[mmol/s]$',
                            'Channel Location $[m]$', 'linear',
-                           'Water Molar Flow Anode',
+                           'Anode Water Molar Flow',
                            [0., ch_dict.dict_cathode_channel['channel_length']],
                            x_node, False)
         self.plot_cell_var('anode.mol_flow[2] * 1.e3',
-                           'Nitrogen Molar Flow $[mmol/s]$',
+                           'Anode Nitrogen Molar Flow $[mmol/s]$',
                            'Channel Location $[m]$', 'linear',
-                           'Nitrogen Molar Flow Anode',
+                           'Anode Nitrogen Molar Flow',
                            [0., ch_dict.dict_cathode_channel['channel_length']],
                            x_node, False)
         self.plot_cell_var('cathode.mol_f[0]', 'Oxygen  Molar Fraction',
@@ -394,12 +475,14 @@ class Simulation:
                            'Oxygen_Molar_Fraction',
                            [0., ch_dict.dict_cathode_channel['channel_length']],
                            x_node, False)
-        self.plot_cell_var('cathode.mol_f[1]', 'Gas Water  Molar Fraction',
+        self.plot_cell_var('cathode.mol_f[1]',
+                           'Cathode Gas Water Molar Fraction',
                            'Channel Location $[m]$', 'linear',
                            'Water Molar Fraction Cathode',
                            [0., ch_dict.dict_cathode_channel['channel_length']],
                            x_node, False)
-        self.plot_cell_var('cathode.mol_f[2]', 'Nitrogen Molar Fraction',
+        self.plot_cell_var('cathode.mol_f[2]',
+                           'Cathode Nitrogen Molar Fraction',
                            'Channel Location $[m]$', 'linear',
                            'Nitrogen_Molar_Fraction_Cathode',
                            [0., ch_dict.dict_cathode_channel['channel_length']],
@@ -409,29 +492,29 @@ class Simulation:
                            'Hydrogen_Molar_Fraction_Anode',
                            [0., ch_dict.dict_cathode_channel['channel_length']],
                            x_node, False)
-        self.plot_cell_var('anode.mol_f[1]', 'Gas Water  Molar Fraction',
+        self.plot_cell_var('anode.mol_f[1]', 'Anode Gas Water  Molar Fraction',
                            'Channel Location $[m]$', 'linear',
                            'Water_Molar_Fraction_Anode',
                            [0., ch_dict.dict_cathode_channel['channel_length']],
                            x_node, False)
-        self.plot_cell_var('anode.mol_f[2]', 'Nitrogen Molar Fraction',
+        self.plot_cell_var('anode.mol_f[2]', 'Anode Nitrogen Molar Fraction',
                            'Channel Location $[m]$', 'linear',
                            'Nitrogen_Molar_Fraction_Anode',
                            [0., ch_dict.dict_cathode_channel['channel_length']],
                            x_node, False)
         self.plot_cell_var('cathode.liq_w_flow * 1.e3',
-                           'Liquid Water Flow $[mmol/s]$',
+                           'Cathode Liquid Water Flow $[mmol/s]$',
                            'Channel Location $[m]$', 'linear',
                            'Liquid Water Flow Cathode',
                            [0., ch_dict.dict_cathode_channel['channel_length']],
                            x_node, False)
         self.plot_cell_var('cathode.cond_rate * 1.e3',
-                           'Water Condensation Rate $[mmol/s]$',
+                           'Cathode Water Condensation Rate $[mmol/s]$',
                            'Channel Location $[m]$', 'linear',
                            'Water Condensation Rate Cathode',
                            [0., ch_dict.dict_cathode_channel['channel_length']],
                            x_node, False)
-        self.plot_cell_var('cathode.humidity', 'Relative Humidity',
+        self.plot_cell_var('cathode.humidity', 'Cathode Relative Humidity',
                            'Channel Location $[m]$', 'linear',
                            'Relative Humidity Cathode',
                            [0., ch_dict.dict_cathode_channel['channel_length']],
@@ -460,7 +543,8 @@ class Simulation:
                            [0., ch_dict.dict_cathode_channel['channel_length']],
                            x_node, False)
         self.plot_cell_var('cathode.m_flow_vap_w * 1.e6',
-                           'Vapour Massflow $[mg/s]$', 'Channel Location $[m]$',
+                           'Cathode Vapour Massflow $[mg/s]$',
+                           'Channel Location $[m]$',
                            'linear', 'Vapour Massflow',
                            [0., ch_dict.dict_cathode_channel['channel_length']],
                            x_node, False)
@@ -524,7 +608,8 @@ class Simulation:
                                            t[l][3, w], t[l][4, w], t[l][5, w]]))
             plt.plot(x, np.block(t_vec),
                      color=plt.cm.coolwarm((w + 1.e-20)
-                                           / g_par.dict_case['nodes'] - 1))
+                                           / float(g_par.dict_case['nodes']
+                                                   - 1.)))
         plt.xlim(0, x[-1])
         plt.xlabel('Stack Location $[m]$', fontsize=16)
         plt.ylabel('Temperature $[K]$', fontsize=16)
@@ -571,13 +656,6 @@ class Simulation:
             self.mol_f[3, w] = item.anode.mol_f[0]
             self.mol_f[4, w] = item.anode.mol_f[1]
             self.mol_f[5, w] = item.anode.mol_f[2]
-            self.act_loss_cat[w] = item.cathode.act_loss
-            self.act_loss_ano[w] = item.anode.act_loss
-            self.cl_diff_loss_cathode[w] = item.cathode.cl_diff_loss
-            self.cl_diff_loss_anode[w] = item.anode.cl_diff_loss
-            self.gdl_diff_loss_cathode[w] = item.cathode.gdl_diff_loss
-            self.gdl_diff_loss_anode[w] = item.anode.gdl_diff_loss
-            self.mem_loss[w] = item.mem_loss
             self.v_loss[w] = item.v_loss
             self.v_cell[w] = item.v
             self.cp[0, w] = item.cathode.cp[0]
@@ -707,16 +785,16 @@ class Simulation:
                    self.act_loss_ano, delimiter=self.delimiter,
                    fmt=self.csv_format)
         np.savetxt(self.path_csv_data + 'Cathode Layer Diffusion Loss.csv',
-                   self.cl_diff_loss_cathode, delimiter=self.delimiter,
+                   self.cl_diff_loss_cat, delimiter=self.delimiter,
                    fmt=self.csv_format)
         np.savetxt(self.path_csv_data + 'Anode Layer Diffusion Loss.csv',
-                   self.cl_diff_loss_anode, delimiter=self.delimiter,
+                   self.cl_diff_loss_ano, delimiter=self.delimiter,
                    fmt=self.csv_format)
         np.savetxt(self.path_csv_data + 'Cathode GDL Diffusion Loss.csv',
-                   self.gdl_diff_loss_cathode, delimiter=self.delimiter,
+                   self.gdl_diff_loss_cat, delimiter=self.delimiter,
                    fmt=self.csv_format)
         np.savetxt(self.path_csv_data + 'Anode GDL Diffusion ´Loss.csv',
-                   self.gdl_diff_loss_anode, delimiter=self.delimiter,
+                   self.gdl_diff_loss_ano, delimiter=self.delimiter,
                    fmt=self.csv_format)
         np.savetxt(self.path_csv_data + 'Membrane Conductivity Loss.csv',
                    self.mem_loss, delimiter=self.delimiter, fmt=self.csv_format)
