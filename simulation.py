@@ -231,42 +231,41 @@ class Simulation:
       Plots the polarization curve of the given
       current densities and average stack voltages.
       """
-      
-        try:
-            os.makedirs(os.path.join(os.path.dirname(__file__), 'output/'))
-        except OSError as e:
-            if e.errno != errno.EEXIST:
-                raise
-        cd_array = np.asarray(oper_con.target_current_density) * 1.e-4
-        plt.plot(cd_array, self.v, marker='.',
-                 color='k', label='Simulation')
-        if self.show_loss is True:
-            plt.plot(cd_array, self.mem_loss_ui, color='b',
-                     marker='.', label='Membrane Loss')
-            plt.plot(cd_array, self.act_loss_ui_ano, color='g',
-                     marker='*', label='Anode Activation Loss')
-            plt.plot(cd_array, self.act_loss_ui_cat, color='g',
-                     marker='+', label='Cathode Activation Loss')
-            plt.plot(cd_array, self.cl_diff_loss_ui_ano, color='y',
-                     marker='*', label='Anode Cl Diff Loss')
-            plt.plot(cd_array, self.cl_diff_loss_ui_cat, color='y',
-                     marker='+', label='Cathode Cl Diff Loss')
-            plt.plot(cd_array, self.gdl_diff_loss_ui_ano, color='m',
-                     marker='*', label='Anode GDL Diff Loss')
-            plt.plot(cd_array, self.gdl_diff_loss_ui_cat, color='m',
-                     marker='+', label='Cathode GDL Diff Loss')
-        plt.ylabel('Voltage $[V]$', fontsize=16)
-        plt.xlabel('Current Density $[A/cm²]$', fontsize=16)
-        plt.tick_params(labelsize=14)
-        plt.grid()
-        plt.legend()
-        plt.autoscale(tight=True, axis='both', enable=True)
-        plt.ylim(0., 1.)
-        plt.tight_layout()
-        plt.savefig(os.path.join(os.path.dirname(__file__), 'output/' +
-                                 'Polarization_curve' + '.jpg'))
-        plt.close()
 
+      try:
+          os.makedirs(os.path.join(os.path.dirname(__file__), 'output/'))
+      except OSError as e:
+          if e.errno != errno.EEXIST:
+              raise
+      cd_array = np.asarray(oper_con.target_current_density) * 1.e-4
+      plt.plot(cd_array, self.v, marker='.', color='k', label='Simulation')
+      if self.show_loss is True:
+          plt.plot(cd_array, self.mem_loss_ui, color='b', marker='.',
+                   label='Membrane Loss')
+          plt.plot(cd_array, self.act_loss_ui_ano, color='g', marker='*',
+                   label='Anode Activation Loss')
+          plt.plot(cd_array, self.act_loss_ui_cat, color='g', marker='+',
+                   label='Cathode Activation Loss')
+          plt.plot(cd_array, self.cl_diff_loss_ui_ano, color='y', marker='*',
+                   label='Anode Cl Diff Loss')
+          plt.plot(cd_array, self.cl_diff_loss_ui_cat, color='y', marker='+',
+                   label='Cathode Cl Diff Loss')
+          plt.plot(cd_array, self.gdl_diff_loss_ui_ano, color='m', marker='*',
+                   label='Anode GDL Diff Loss')
+          plt.plot(cd_array, self.gdl_diff_loss_ui_cat, color='m', marker='+',
+                   label='Cathode GDL Diff Loss')
+      plt.ylabel('Voltage $[V]$', fontsize=16)
+      plt.xlabel('Current Density $[A/cm²]$', fontsize=16)
+      plt.tick_params(labelsize=14)
+      plt.grid()
+      plt.legend()
+      plt.autoscale(tight=True, axis='both', enable=True)
+      plt.ylim(0., 1.)
+      plt.tight_layout()
+      plt.savefig(os.path.join(os.path.dirname(__file__),
+                               'output/' + 'Polarization_curve' + '.jpg'))
+      plt.close()
+      
     def save_voltages(self):
         """
         Saves the average voltage losses of the stack
