@@ -227,23 +227,16 @@ class Simulation:
             self.plot_polarization_curve()
 
     def plot_polarization_curve(self):
+      """
+      Plots the polarization curve of the given
+      current densities and average stack voltages.
+      """
+      
         try:
             os.makedirs(os.path.join(os.path.dirname(__file__), 'output/'))
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
-        i_measurement = [3.17782859, 2.998470663, 2.798749363, 2.598393607,
-                         2.396849473, 2.197724053, 1.997807213, 1.796569687,
-                         1.5972518, 1.396593663, 1.196849567, 0.997384197,
-                         0.796733187, 0.597545647, 0.49775168, 0.396710477,
-                         0.29834263, 0.1982076, 0.148961347, 0.098618743,
-                         0.04888981, 0.01861823, 0.000440543]
-        v_measurement = [0.208858083, 0.276528, 0.33438425, 0.390633083,
-                         0.442454333, 0.48813775, 0.530697667, 0.569340833,
-                         0.604201833, 0.6375915, 0.669950083, 0.6913865,
-                         0.720160917, 0.74782375, 0.761192667, 0.775360333,
-                         0.7912925, 0.809277833, 0.824127833, 0.841406917,
-                         0.864242417, 0.88843633, 0.93131375]
         cd_array = np.asarray(oper_con.target_current_density) * 1.e-4
         plt.plot(cd_array, self.v, marker='.',
                  color='k', label='Simulation')
@@ -262,8 +255,6 @@ class Simulation:
                      marker='*', label='Anode GDL Diff Loss')
             plt.plot(cd_array, self.gdl_diff_loss_ui_cat, color='m',
                      marker='+', label='Cathode GDL Diff Loss')
-        plt.plot(i_measurement, v_measurement,
-                 color='r', label='Measurement', marker='^')
         plt.ylabel('Voltage $[V]$', fontsize=16)
         plt.xlabel('Current Density $[A/cm²]$', fontsize=16)
         plt.tick_params(labelsize=14)
