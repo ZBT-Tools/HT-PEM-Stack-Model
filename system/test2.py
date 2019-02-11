@@ -136,7 +136,7 @@ class TemperatureSystem:
            #   conv_coeff_ch, 'W/(m²K)')
         conv_area = d_h_cool * np.pi * self.ch_length / self.elements
         # convection area of the channel wall
-        self.k_cool = conv_coeff_ch * conv_area * self.cool_numb
+        self.k_cool = conv_coeff_ch * conv_area * self.cool_numb* 0.
         # thermal conductance between the element channel area and the coolant
 
         """Building up the result temperature list and arrays"""
@@ -181,7 +181,7 @@ class TemperatureSystem:
         mat_n[5, 4] = self.k_layer[0, 2, 0]
         mat_n[5, 5] = -self.k_layer[0, 2, 0]
         # heat conductance matrix in z-direction for the cell n
-
+        print(self.k_layer)
         list_mat = []
         for i in range(self.cell_numb):
             for j in range(self.elements):
@@ -193,7 +193,6 @@ class TemperatureSystem:
         # for all cells and all elements
         self.mat_const = sp_l.block_diag(*list_mat)
         # uncoupled heat conductance matrix in z-direction
-
         """Setting the coolant channel heat conductance"""
         cool_pos_n_up = \
             np.arange(self.elements * (self.cell_numb - 1) * 5,
@@ -266,6 +265,7 @@ class TemperatureSystem:
             + np.diag(x_con_side_n, 6) \
             + np.diag(x_con_side_n, -6)
 
+
         """Setting the cell connecting heat conductance, z-direction"""
         pos_r, pos_c = [], []
         for ct in range(self.elements * (self.cell_numb - 1)):
@@ -317,6 +317,11 @@ class TemperatureSystem:
                                self.elements),
                        np.tile(env_con_n, self.elements)))
         # vector of the main diagonal of the heat conductance matrix
+        print(self.mat_const)
+        for q in range(len(self.mat_const)):
+            print(q, self.mat_const[q])
+            if abs(np.sum(self.mat_const[q]))> 1.:
+                print('zeile', q)
         self.mat_const = self.mat_const + np.diag(env_con_vec)
         self.mat_dyn = self.mat_const
 
@@ -341,6 +346,7 @@ class TemperatureSystem:
         # heat conductance for the n cell
         self.pos_cat_ch = np.hstack((pos_cat_ch_base, pos_cat_ch_n))
         self.pos_ano_ch = np.hstack((pos_ano_ch_base, pos_ano_ch_n))
+        self.qzu = -100./self.elements
 
     def update_values(self, dict_temp_sys_dyn):
         """
@@ -385,6 +391,7 @@ class TemperatureSystem:
         self.k_gas_ch = np.array([g_func.calc_elements_2d(self.k_gas_ch[0]),
                                   g_func.calc_elements_2d(self.k_gas_ch[1])])\
             * self.ch_numb
+        self.k_gas_ch = self.k_gas_ch * 0.
 
     def update(self):
         """
@@ -392,9 +399,10 @@ class TemperatureSystem:
         """
 
         self.change_value_shape()
-        self.update_gas_channel_lin()
+        #self.update_gas_channel_lin()
         self.update_coolant_channel_lin()
         self.update_temp_layer()
+        self.calc_inout()
 
     def update_temp_layer(self):
         """
@@ -464,7 +472,8 @@ class TemperatureSystem:
                     g_func.calc_fluid_temp_out(self.temp_cool[q, w - 1],
                                                self.temp_layer[q][0, w - 1],
                                                self.g_cool, self.k_cool)
-                self.temp_cool_ele[q] = g_func.calc_elements_1_d(self.temp_cool[q])
+            self.temp_cool_ele[q] = g_func.calc_elements_1_d(self.temp_cool[q])
+
         if self.cool_ch_bc is True:
             for w in range(1, self.nodes):
                 self.temp_cool[-1, w] =\
@@ -472,6 +481,7 @@ class TemperatureSystem:
                                                self.temp_layer[-1][-1, w - 1],
                                                self.g_cool, self.k_cool)
                 self.temp_cool_ele[-1] = g_func.calc_elements_1_d(self.temp_cool[-1])
+        print(self.temp_cool)
 
     def update_rhs(self):
         """
@@ -500,36 +510,21 @@ class TemperatureSystem:
             Manipulate:
             -self.rhs
         """
+
         self.rhs = np.full(self.elements * (5 * (self.cell_numb - 1) + 6), 0.)
         s = self
         s.r_s = self.rhs
         ct = 0
+        self.cond_rate = self.cond_rate * 0.
+        #self.i = self.i * 0.
+
         for q in range(self.cell_numb):
             for w in range(self.elements):
+                s.r_s[ct + 1] = self.qzu
+                s.r_s[ct + 2] = 0.
+                s.r_s[ct + 3] = 0.
+                s.r_s[ct + 4] = 0.
                 if q is 0:
-                    s.r_s[ct] = -.5 * s.temp_env * s.k_alpha_env[0, 2, q]
-                else:
-                    s.r_s[ct] = -s.temp_env * s.k_alpha_env[0, 2, q]
-
-                s.r_s[ct + 1] = -s.temp_env * s.k_alpha_env[0, 1, q] \
-                    - s.temp_fluid_ele[0, q, w] * s.k_gas_ch[0, q, w] \
-                    - w_prop.water.calc_h_vap(self.temp_fluid[0, q, w]) \
-                    * s.cond_rate[0, q, w]
-                s.r_s[ct + 2] = -s.temp_env * s.k_alpha_env[0, 0, q] \
-                                - (s.v_tn - g_par.dict_case['e_0'] +
-                                   self.v_loss[0, q, w]
-                                   + .5 * s.omega[q, w] * s.i[q, w]) * s.i[q, w]
-                s.r_s[ct + 3] = \
-                    -s.temp_env * s.k_alpha_env[0, 0, q] \
-                    - (self.v_loss[1, q, w] + s.omega[q, w] * s.i[q, w] * .5) \
-                    * self.i[q, w]
-                s.r_s[ct + 4] = -s.temp_env * s.k_alpha_env[0, 1, q] \
-                    - s.temp_fluid_ele[1, q, w]\
-                    * s.k_gas_ch[1, q, w] \
-                    - w_prop.water.calc_h_vap(self.temp_fluid[1, q, w])\
-                    * s.cond_rate[1, q, w]
-                if q is 0:
-                    s.r_s[ct] -= s.heat_pow
                     if s.cool_ch_bc is True:
                         s.r_s[ct] -= s.k_cool * s.temp_cool_ele[0, w]
                     cr = 5
@@ -538,12 +533,12 @@ class TemperatureSystem:
                     cr = 5
                 else:
                     s.r_s[ct] -= s.k_cool * s.temp_cool_ele[q, w]
-                    s.r_s[ct + 5] -= s.heat_pow \
-                        - .5 * s.k_alpha_env[0, 2, 0] * s.temp_env
                     if s.cool_ch_bc is True:
                         s.r_s[ct + 5] -= s.k_cool * s.temp_cool_ele[-1, w]
                     cr = 6
                 ct += cr
+        for q, item in enumerate(self.rhs):
+            print(q, item)
 
     def update_matrix(self):
         """
@@ -558,6 +553,7 @@ class TemperatureSystem:
             Manipulate:
             -self.mat_dyn
         """
+        self.k_gas_ch = self.k_gas_ch * 0.
         dyn_vec = np.full(self.elements * (5 * (self.cell_numb - 1) + 6), 0.)
         ct = 0
         for q in range(self.cell_numb):
@@ -569,7 +565,7 @@ class TemperatureSystem:
                 dyn_vec[ct + 1] = -self.k_gas_ch[0, q, w]
                 dyn_vec[ct + 4] = -self.k_gas_ch[1, q, w]
                 ct += cr
-        self.mat_dyn = self.mat_const + np.diag(dyn_vec)
+        self.mat_dyn = self.mat_const #+ np.diag(dyn_vec)
 
     def solve_system(self):
         """
@@ -608,3 +604,17 @@ class TemperatureSystem:
             for w in range(self.elements):
                 self.temp_layer[q][:, w] = self.temp_layer_vec[ct: ct + cr]
                 ct += cr
+        print(self.temp_layer)
+
+    def calc_inout(self):
+        q_out = np.sum((self.temp_cool[:, -1] - self.temp_cool[:, 0])) * self.g_cool
+
+        a = np.sum(- (1.25 - 0.95 + self.v_loss[0] + .5 * self.omega * self.i) * self.i)
+        b = np.sum(- (self.v_loss[1] + self.omega * self.i * .5) * self.i)
+        q_in = a+b
+
+
+        print('relativer Fehler:',(q_out-self.qzu)/q_out)
+
+
+

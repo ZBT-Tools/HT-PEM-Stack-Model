@@ -385,6 +385,7 @@ class TemperatureSystem:
         self.k_gas_ch = np.array([g_func.calc_elements_2d(self.k_gas_ch[0]),
                                   g_func.calc_elements_2d(self.k_gas_ch[1])])\
             * self.ch_numb
+        self.k_gas_ch = self.k_gas_ch * 0.
 
     def update(self):
         """
@@ -392,9 +393,10 @@ class TemperatureSystem:
         """
 
         self.change_value_shape()
-        self.update_gas_channel_lin()
+        #self.update_gas_channel_lin()
         self.update_coolant_channel_lin()
         self.update_temp_layer()
+        self.calc_inout()
 
     def update_temp_layer(self):
         """
@@ -500,6 +502,7 @@ class TemperatureSystem:
             Manipulate:
             -self.rhs
         """
+
         self.rhs = np.full(self.elements * (5 * (self.cell_numb - 1) + 6), 0.)
         s = self
         s.r_s = self.rhs
@@ -544,6 +547,7 @@ class TemperatureSystem:
                         s.r_s[ct + 5] -= s.k_cool * s.temp_cool_ele[-1, w]
                     cr = 6
                 ct += cr
+        print(self.r_s)
 
     def update_matrix(self):
         """
@@ -558,6 +562,7 @@ class TemperatureSystem:
             Manipulate:
             -self.mat_dyn
         """
+        self.k_gas_ch = self.k_gas_ch * 0.
         dyn_vec = np.full(self.elements * (5 * (self.cell_numb - 1) + 6), 0.)
         ct = 0
         for q in range(self.cell_numb):
@@ -569,7 +574,7 @@ class TemperatureSystem:
                 dyn_vec[ct + 1] = -self.k_gas_ch[0, q, w]
                 dyn_vec[ct + 4] = -self.k_gas_ch[1, q, w]
                 ct += cr
-        self.mat_dyn = self.mat_const + np.diag(dyn_vec)
+        self.mat_dyn = self.mat_const #+ np.diag(dyn_vec)
 
     def solve_system(self):
         """
@@ -608,3 +613,20 @@ class TemperatureSystem:
             for w in range(self.elements):
                 self.temp_layer[q][:, w] = self.temp_layer_vec[ct: ct + cr]
                 ct += cr
+        print(self.temp_layer)
+
+    def calc_inout(self):
+        q_out = np.sum((self.temp_cool[:, -1] - self.temp_cool[:, 0])) * self.g_cool
+
+        a = np.sum(- (1.25 - 0.95 + self.v_loss[0] + .5 * self.omega * self.i) * self.i)
+        b = np.sum(- (self.v_loss[1] + self.omega * self.i * .5) * self.i)
+        q_in = a+b
+
+
+
+        print('cat',a,'ano',b,'ano+cat', q_in)
+        print('cool',q_out,'p(ano+cat)', q_in)
+        print('relativer Fehler:',(q_out-q_in)/q_out)
+
+
+

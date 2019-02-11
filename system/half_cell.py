@@ -1,12 +1,12 @@
 import warnings
 import system.global_functions as g_func
-import data.saturation_pressure_vapour as p_sat
-import data.gas_properties_fit as g_fit
+import data.water_properties as p_sat
+import data.gas_properties as g_fit
 import numpy as np
-import data.global_parameter as g_par
+import data.global_parameters as g_par
 import system.channel as ch
 import data.channel_dict as ch_dict
-import input.physical_property as phy_prop
+import input.physical_properties as phy_prop
 
 
 warnings.filterwarnings("ignore")
@@ -50,7 +50,14 @@ class HalfCell:
         self.calc_act_loss = dict_hc['calc_act_loss']
         self.calc_cl_diff_loss = dict_hc['calc_cl_diff_loss']
         self.calc_gdl_diff_loss = dict_hc['calc_gdl_diff_loss']
-        """layer thickness"""
+
+        """geometry"""
+        self.channel_numb = dict_hc['channel_numb']
+        # number of channels of each cell
+        self.cell_width = dict_hc['cell_width']
+        # height of the cell
+        self.cell_length = dict_hc['cell_length']
+        # length of the cell
         self.th_gdl = dict_hc['th_gdl']
         # thickness of the gas diffusion layer
         self.th_bpp = dict_hc['th_bpp']
@@ -92,6 +99,13 @@ class HalfCell:
         # current density²
 
         """general parameter"""
+        area_fac = self.cell_length * self.cell_width\
+            / (self.channel.active_area * self.channel_numb)
+        # factor active area with racks / active channel area
+        self.active_area_dx_ch = area_fac * self.channel.active_area_dx
+        # active area belonging to the channel plan area dx
+        self.active_area_ch = area_fac * self.channel.active_area
+        # active area belonging to the channel plan area
         self.break_program = False
         # boolean to hint if the cell voltage runs below zero
         self.ht_pem = True
@@ -110,7 +124,7 @@ class HalfCell:
         # reynolds number
         self.liq_w_flow = np.zeros(nodes)
         # molar liquid water flux
-        self.p = np.full(nodes, self.channel.p_in)
+        self.p = np.full(nodes, self.channel.p_out)
         # channel pressure
         self.cond_rate = np.zeros(nodes)
         # condensation rate of water
@@ -195,15 +209,10 @@ class HalfCell:
         """
 
         self.calc_temp_fluid_ele()
-        self.calc_reac_flow()
-        self.calc_water_flow()
-        self.calc_con()
+        self.calc_mass_balance()
         self.calc_voltage_losses_parameter()
         if self.break_program is False:
-            self.calc_activation_loss()
-            self.calc_transport_loss_catalyst_layer()
-            self.calc_transport_loss_diffusion_layer()
-            self.calc_electrode_loss()
+            self.update_voltage_loss()
             self.calc_liquid_water_flow()
             self.sum_flows()
             self.calc_cond_rates()
@@ -219,6 +228,17 @@ class HalfCell:
             self.calc_heat_transfer_coef()
             self.calc_pressure_drop_bends()
             self.calc_pressure()
+
+    def calc_mass_balance(self):
+        self.calc_reac_flow()
+        self.calc_water_flow()
+        self.calc_con()
+
+    def update_voltage_loss(self):
+        self.calc_activation_loss()
+        self.calc_transport_loss_catalyst_layer()
+        self.calc_transport_loss_diffusion_layer()
+        self.calc_electrode_loss()
 
     def set_current_density(self, i_ca):
         """
@@ -315,16 +335,16 @@ class HalfCell:
 
         f = g_par.dict_uni['F']
         var1 = self.stoi * g_par.dict_case['tar_cd'] \
-            * self.channel.act_area / (self.val_num * f)
+            * self.active_area_ch / (self.val_num * f)
         if self.cl_type is True:
             self.mol_flow[0, 0] = var1
             self.mol_flow[0, 1:] = var1 - np.matmul(self.fwd_mat, self.i_ca) \
-                * self.channel.act_area_dx / (self.val_num * f)
+                * self.active_area_dx_ch / (self.val_num * f)
 
         else:
             self.mol_flow[0, -1] = var1
             self.mol_flow[0, :-1] = var1 - np.matmul(self.bwd_mat, self.i_ca) \
-                * self.channel.act_area_dx \
+                * self.active_area_dx_ch \
                 / (self.val_num * f)
         self.mol_flow[0] = np.maximum(self.mol_flow[0],
                                       np.zeros(g_par.dict_case['elements'] + 1))
@@ -356,14 +376,14 @@ class HalfCell:
         """
 
         sat_p = p_sat.water.calc_p_sat(self.channel.temp_in)
-        plane_dx = self.channel.act_area_dx
+        plane_dx = self.active_area_dx_ch
         b = 0.
         if self.cl_type is True:
             q_0_water = self.mol_flow[0][0] \
                         * (1. + self.n2o2ratio) \
                         * sat_p \
                         * self.channel.humidity_in \
-                        / (self.channel.p_in
+                        / (self.channel.p_out
                            - self.channel.humidity_in
                            * sat_p)
             a = plane_dx \
@@ -383,7 +403,7 @@ class HalfCell:
                         * (1. + self.n2h2ratio) \
                         * sat_p \
                         * self.channel.humidity_in \
-                        / (self.channel.p_in
+                        / (self.channel.p_out
                            - self.channel.humidity_in
                            * sat_p)
             if self.ht_pem is False:
@@ -444,22 +464,26 @@ class HalfCell:
             -self.p
         """
 
-        p_in = self.channel.p_in
+        p_out = self.channel.p_out
         rho_ele = g_func.calc_elements_1_d(self.rho_gas)
         u_ele = g_func.calc_elements_1_d(self.u)
         Re_ele = g_func.calc_elements_1_d(self.Re)
         if self.cl_type is True:
-            mat = self.fwd_mat
-            self.p[0] = p_in
-            self.p[1:] = p_in + 32. / self.channel.d_h \
-                * np.matmul(-mat, rho_ele * u_ele ** 2. / Re_ele) \
-                * self.channel.dx - self.p_drop_bends
-        else:
             mat = self.bwd_mat
-            self.p[-1] = p_in
-            self.p[:-1] = p_in + 32. / self.channel.d_h \
-                * np.matmul(-mat, rho_ele * u_ele ** 2. / Re_ele) \
-                * self.channel.dx - self.p_drop_bends
+            self.p[-1] = p_out
+            self.p[:-1] = p_out + 32. / self.channel.d_h \
+                * np.matmul(mat, rho_ele * u_ele ** 2. / Re_ele) \
+                * self.channel.dx\
+                + np.linspace(self.p_drop_bends * (g_par.dict_case['nodes']),0,
+                              g_par.dict_case['nodes']-1)
+        else:
+            mat = self.fwd_mat
+            self.p[0] = p_out
+            self.p[1:] = p_out + 32. / self.channel.d_h \
+                * np.matmul(mat, rho_ele * u_ele ** 2. / Re_ele) \
+                * self.channel.dx\
+                + np.linspace(0, self.p_drop_bends * (g_par.dict_case['nodes']),
+                              g_par.dict_case['nodes']-1)
 
     def calc_con(self):
         """

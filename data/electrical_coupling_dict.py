@@ -8,7 +8,8 @@ dict_electrical_coupling =\
         'cell_numb': op_con.cell_number,
         'dx': geo.channel_length / float(sim.elements),
         'th_bpp': geo.bipolar_plate_thickness,
-        'channel_width': geo.channel_width
+        'width_channels': geo.channel_width * op_con.gas_channel_number
+        + geo.rack_width * (op_con.gas_channel_number + 1)
     }
 
 

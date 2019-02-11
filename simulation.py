@@ -4,7 +4,7 @@ import data.simulation_dict as sim
 import input.operating_conditions as oper_con
 import system.stack as st
 import numpy as np
-import data.global_parameter as g_par
+import data.global_parameters as g_par
 import system.global_functions as g_func
 import input.geometry as geom
 import cProfile
@@ -265,6 +265,7 @@ class Simulation:
       plt.savefig(os.path.join(os.path.dirname(__file__),
                                'output/' + 'Polarization_curve' + '.jpg'))
       plt.close()
+
       
     def save_voltages(self):
         """
@@ -376,50 +377,55 @@ class Simulation:
                           'Stoichimetry Distribution', 0.,
                           self.stack.cell_numb - 1, ['Cathode', 'Anode'],
                           self.path_plot)
+            g_func.output([self.stack.manifold[0].cell_stoi/2.5],
+                          'Flow Distribution', 'Cell Number', 'linear', ['k'],
+                          'Distribution', 0.,
+                          self.stack.cell_numb - 1, ['Cathode'],
+                          self.path_plot)
         self.plot_cell_var('v', 'Voltage $[V]$', 'Channel Location $[m]$',
                            'linear', 'Cell Voltage',
                            [0., ch_dict.dict_cathode_channel['channel_length']],
-                           x_ele, [0., 1.28])
+                           x_ele, [0.52, 0.54])
         g_func.output_x(self.stack.temp_cpl_stack.temp_cool, x_node,
                         'Coolant Temperature [K]', 'Channel Location $[m]$',
                         'linear', 'Coolant Temperature', False,
                         [0., ch_dict.dict_cathode_channel['channel_length']],
                         self.path_plot)
         self.plot_cell_var('temp[-1]',
-                           'Anode Plate - GDE Temperature $[K]$',
+                           'Anode BPP - GDE Temperature $[K]$',
                            'Channel Location $[m]$', 'linear',
                            'Anode Plate - GDE Temperature',
                            [0., ch_dict.dict_cathode_channel['channel_length']],
                            x_ele, False)
-        self.plot_cell_var('temp[-2]', 'Anode GDE - Membrane Temperature $[K]$',
+        self.plot_cell_var('temp[-2]', 'Anode GDE - MEM Temperature $[K]$',
                            'Channel Location $[m]$', 'linear',
                            'Anode GDE - Membrane Temperature',
                            [0., ch_dict.dict_cathode_channel['channel_length']],
                            x_ele, False)
         self.plot_cell_var('temp[2]',
-                           'Membrane - Cathode GDE Temperature $[K]$',
+                           'Cathode GDE - MEM Temperature $[K]$',
                            'Channel Location $[m]$', 'linear',
                            'Cathode GDL Temperature',
                            [0., ch_dict.dict_cathode_channel['channel_length']],
                            x_ele, False)
         self.plot_cell_var('cathode.temp_fluid',
-                           'Cathode Channel Temperature $[K]$',
+                           'Cathode Fluid Temperature $[K]$',
                            'Channel Location $[m]$', 'linear',
                            'Cathode_Channel_Temperature',
                            [0., ch_dict.dict_cathode_channel['channel_length']],
                            x_node, False)
-        self.plot_cell_var('temp[1]', 'Cathode GDE - Plate Temperature $[K]$',
+        self.plot_cell_var('temp[1]', 'Cathode BPP-GDE Temperature $[K]$',
                            'Channel Location $[m]$', 'linear',
                            'Cathode GDE - Plate Temperature',
                            [0., ch_dict.dict_cathode_channel['channel_length']],
                            x_ele, False)
-        self.plot_cell_var('anode.temp_fluid', 'Anode Channel Temperature $[K]$',
+        self.plot_cell_var('anode.temp_fluid', 'Anode Fluid Temperature $[K]$',
                            'Channel Location $[m]$', 'linear',
                            'Anode_Channel_Temperature',
                            [0., ch_dict.dict_cathode_channel['channel_length']],
                            x_node, False)
         self.plot_cell_var('temp[0]',
-                           'Cathode Plate- Anode Plate Temperature $[K]$',
+                           'BPP - BPP Temperature $[K]$',
                            'Channel Location $[m]$', 'linear',
                            'Coolant Plate Temperature',
                            [0., ch_dict.dict_cathode_channel['channel_length']],

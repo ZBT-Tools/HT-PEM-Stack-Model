@@ -30,7 +30,6 @@ The main issues can be found in the manifold,
  -  The coolant channel and species channels are implemented explicit.
   To decrease the number of necessary iterations to solve the
   thermal system the coolant and species channel should be implemented implicit.
-  - Decreasing the temperature-matrix to cell level might increase the performance.
 
   
 **Polarization Curve**

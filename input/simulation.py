@@ -2,11 +2,11 @@
 
 """Simulation Settings"""
 # partition of the flow channel in elements along the x-axis
-elements = 10
+elements = 5
 # convergence criteria of the simulation
 convergence_criteria = 1.e-9
 # maximal number of iterations
-maximal_number_iteration = 100
+maximal_number_iteration = 1000
 # output csv data
 save_csv_data = False
 # output plots
@@ -16,7 +16,7 @@ calc_temperature = True
 # calculate the current density distribution
 calc_current_density = True
 # calculate the flow distribution
-calc_flow_distribution = False
+calc_flow_distribution = True
 # calculate the activation voltage losses
 calc_activation_loss = True
 # calculate the membrane voltage losses

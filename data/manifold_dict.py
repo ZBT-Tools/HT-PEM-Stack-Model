@@ -2,11 +2,12 @@ import copy as copy
 import numpy as np
 import input.operating_conditions as op_con
 import input.geometry as geom
-import input.physical_property as phy_prop
+import input.physical_properties as phy_prop
 
 
 dict_mfold_cat = {
     'cell_num': op_con.cell_number,
+    'channel_numb': op_con.gas_channel_number,
     'header_width': geom.manifold_width,
     'header_height': geom.manifold_height,
     'kf': phy_prop.manifold_pressure_loss_coefficient,
@@ -27,7 +28,7 @@ dict_mfold_ano['p_out'] = op_con.p_manifold_anode_out
 
 
 def manifold(mol_flow, cell_temp, cell_cp, cell_visc,
-             cell_p, cell_r, mass_flow):
+             cell_p, cell_r, f_mass_flow, g_mass_flow):
     return {'mol_flow': mol_flow, 'cell_temp': cell_temp, 'cell_cp': cell_cp,
             'cell_visc': cell_visc, 'cell_p': cell_p, 'cell_r': cell_r,
-            'mass_flow': mass_flow}
+            'f_mass_flow': f_mass_flow, 'g_mass_flow': g_mass_flow}

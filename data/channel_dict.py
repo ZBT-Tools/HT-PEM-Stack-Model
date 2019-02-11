@@ -1,5 +1,5 @@
 import input.geometry as geom
-import input.physical_property as phy_prop
+import input.physical_properties as phy_prop
 import input.operating_conditions as oper_con
 
 

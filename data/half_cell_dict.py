@@ -1,9 +1,13 @@
-import input.physical_property as phy_prop
+import input.physical_properties as phy_prop
 import input.geometry as geom
 import input.simulation as sim
+import input.operating_conditions as op_con
 
 
 dict_cathode = {
+ 'cell_width': geom.cell_width,
+ 'cell_length': geom.cell_length,
+ 'channel_numb': op_con.gas_channel_number,
  'cl_type': True,
  'th_gdl': geom.gas_diffusion_layer_thickness,
  'th_bpp': geom.bipolar_plate_thickness,
@@ -19,6 +23,9 @@ dict_cathode = {
                 }
 
 dict_anode = {
+    'cell_width': geom.cell_width,
+    'cell_length': geom.cell_length,
+    'channel_numb': op_con.gas_channel_number,
     'cl_type': False,
     'th_gdl': geom.gas_diffusion_layer_thickness,
     'th_bpp': geom.bipolar_plate_thickness,

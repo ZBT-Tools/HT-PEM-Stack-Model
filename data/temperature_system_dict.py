@@ -1,8 +1,7 @@
 import input.operating_conditions as op_con
 import input.simulation as sim
-import input.physical_property as phy_prop
+import input.physical_properties as phy_prop
 import input.geometry as geom
-import numpy as np
 
 
 
@@ -10,7 +9,10 @@ dict_temp_sys = {
     'cell_numb': op_con.cell_number,
     'nodes': sim.elements + 1,
     'channel_length':geom.channel_length,
-    'channel_width':geom.channel_width,
+    'channel_width': geom.coolant_channel_widht,
+    'channel_height': geom.coolant_channel_height,
+    'gas_ch_numb': op_con.gas_channel_number,
+    'cool_ch_numb': op_con.coolant_channel_number,
     'cool_ch_bc': op_con.cooling_bc,
     'temp_gas_in': [op_con.temp_air_in, op_con.temp_anode_gas_in],
     'cool_cp': phy_prop.heat_capacity_coolant,

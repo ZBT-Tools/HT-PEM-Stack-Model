@@ -1,4 +1,4 @@
-from data.global_parameter import dict_case
+from data.global_parameters import dict_case
 
 
 class Channel:
@@ -8,7 +8,7 @@ class Channel:
         # channel length
         self.dx = self.length / float(dict_case['elements'])
         # element length
-        self.p_in = dict_ch['p_in']
+        self.p_out = dict_ch['p_in']
         # inlet pressure
         self.temp_in = dict_ch['temp_in']
         # inlet temperature
@@ -26,14 +26,14 @@ class Channel:
         # bend friction factor
         self.rack_width = dict_ch['rack_width']
         # rack width
+        self.active_area = self.width * self.length
+        # planar area of the channel
+        self.active_area_dx = self.width * self.dx
+        # planar area of an element of the channel
         self.cross_area = self.width * self.height
         # channel cross area
         self.circum = 2. * (self.width + self.height)
         # channel circumference
-        self.act_area = self.width * self.length
-        # active area
-        self.act_area_dx = self.width * self.dx
-        # active area of the element
         self.d_h = 4. * self.cross_area / self.circum
         # channel hydraulic diameter
 
@@ -47,4 +47,4 @@ class Channel:
             - self.p_in, scalar
         """
 
-        self.p_in = p_in
+        self.p_out = p_in

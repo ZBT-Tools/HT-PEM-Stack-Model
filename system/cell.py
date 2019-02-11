@@ -1,6 +1,6 @@
 import numpy as np
 import system.global_functions as g_func
-import data.global_parameter as g_par
+import data.global_parameters as g_par
 import system.half_cell as h_c
 import data.half_cell_dict as hc_dict
 
@@ -43,24 +43,31 @@ class Cell:
         self.fac_n = np.log10(self.res_65) - self.fac_m * 1000. / (65. + 273.15)
 
         """heat conductivity along and through the cell layers"""
-        self.k_bpp_z = self.lambda_bpp[0] * self.cathode.channel.act_area_dx \
+        self.width_channels = self.cathode.channel.width\
+            * self.cathode.channel_numb\
+            + self.cathode.channel.rack_width\
+            * (self.cathode.channel_numb + 1)
+        self.active_area_dx = self.width_channels * self.cathode.channel.dx
+        self.k_bpp_z = self.lambda_bpp[0] * self.active_area_dx \
             / self.cathode.th_bpp
         # heat conductivity through the bipolar plate
-        self.k_gde_z = self.lambda_gde[0] * self.cathode.channel.act_area_dx \
+        self.k_gde_z = self.lambda_gde[0]\
+            * self.active_area_dx \
             / self.cathode.th_gde
         # heat conductivity through the gas diffusion electrode
-        self.k_mem_z = self.lambda_mem[0] * self.cathode.channel.act_area_dx \
+        self.k_mem_z = self.lambda_mem[0]\
+            * self.active_area_dx \
             / self.th_mem
         # heat conductivity through the membrane
-        self.k_bpp_x = self.cathode.channel.width * self.lambda_bpp[1] \
+        self.k_bpp_x = self.width_channels * self.lambda_bpp[1] \
             * self.cathode.th_bpp / self.cathode.channel.dx
         # heat conductivity along the bipolar plate
-        self.k_gp = (self.cathode.channel.width
+        self.k_gp = (self.width_channels
                      * (self.lambda_bpp[1] * self.cathode.th_bpp
                         + self.lambda_gde[1] * self.cathode.th_gde))\
             / (2. * self.cathode.channel.dx)
         # heat conductivity alon the bipolar plate and gas diffusion electrode
-        self.k_gm = (self.cathode.channel.width
+        self.k_gm = (self.width_channels
                      * (self.lambda_mem[1] * self.th_mem
                         + self.lambda_gde[1] * self.cathode.th_gde))\
             / (2. * self.cathode.channel.dx)
@@ -198,7 +205,7 @@ class Cell:
             -self.mem_acl_r
             -self.temp_mem
             -self.omega_ca
-            -self.cathode.channel.act_area_dx
+            -self.cathode.cathode.active_area_dx_ch
 
             Manipulate:
             -self.omega_ca
@@ -207,7 +214,7 @@ class Cell:
 
         self.omega_ca = (self.mem_base_r
                          - self.mem_acl_r * self.temp_mem) * 1.e-4
-        self.omega = self.omega_ca / self.cathode.channel.act_area_dx
+        self.omega = self.omega_ca / self.active_area_dx
 
     def calc_mem_resistivity_gossling(self):
         """
@@ -234,7 +241,7 @@ class Cell:
         rp = self.th_mem / res
         self.omega_ca = 1.e-4 * (self.fac_res_basic
                                  + rp * self.fac_res_fit)
-        self.omega = self.omega_ca / self.cathode.channel.act_area_dx
+        self.omega = self.omega_ca / self.active_area_dx
 
     def calc_mem_resistivity_springer(self):
         """
@@ -246,7 +253,7 @@ class Cell:
             -self.anode.humidity
             -self.temp_mem
             -self.th_mem
-            -self.cathode.channel.act_area_dx
+            -self.cathode.cathode.active_area_dx_ch
 
             Manipulate:
             -self.omega_ca
@@ -297,7 +304,6 @@ class Cell:
             -self.v
             -self.v_alarm
         """
-
         self.v_loss = self.mem_loss + self.cathode.v_loss + self.anode.v_loss
         if any(self.v_loss) >= g_par.dict_case['e_0']:
             self.v_alarm = True

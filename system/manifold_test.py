@@ -2,6 +2,8 @@ import numpy as np
 import data.global_parameters as g_par
 import system.global_functions as g_func
 import copy as copy
+import input.geometry as geo
+import input.physical_properties as phy_prop
 
 
 class Manifold:
@@ -16,6 +18,9 @@ class Manifold:
         self.cell_ch_length = dict_manifold_const['cell_channel_length']
         self.cell_ch_ca = dict_manifold_const['cell_channel_cross_area']
         self.head_p = np.full((2, self.cell_num), dict_manifold_const['p_out'])
+        self.cell_ch_d = 0.5 * (geo.channel_width * geo.channel_width)\
+                         / (geo.channel_width + geo.channel_width)
+        self.zeta = phy_prop.bend_pressure_loss_coefficient
         self.head_stoi = 1.5
         self.cell_mass_flow = None
         self.cell_mol_flow = None
@@ -76,7 +81,6 @@ class Manifold:
         self.calc_header_fanning_friction_factor()
         self.calc_header_p_out()
         self.calc_ref_p_drop()
-        self.calc_ref_permeability()
         self.calc_header_p_in()
         self.calc_pressure_distribution_factor()
         self.calc_new_ref_p_drop()
@@ -301,32 +305,6 @@ class Manifold:
 
         self.cell_ref_p_drop = self.cell_p[0, 0] - self.cell_p[1, 0]
 
-    def calc_ref_permeability(self):
-        """"
-        This function calculates the permeability of the reference cell
-        and a pressure drop correction factor.
-
-             Access to:
-             - self.cell_visc, 2-D-array, [cell inlet/outlet][cell number]
-             - self.cell_ch_length, 1-D-array, [cell number]
-             - self.cell_ch_ca, 1-D-array, [cell number]
-             - self.cell_mol_flow, 2-D-array, [cell inlet/outlet][cell number]
-             - self.cell_ref_p_drop, reference pressure drop in Pa
-
-             Manipulate:
-             - self.cell_perm , reference cell permeability
-             - self.cell_ref_p_drop_cor, corrected reference cell pressure drop
-             - self.p_cor_fac, correction factor
-             """
-
-        self.ref_perm = np.average(self.cell_visc[:, 0]) \
-            * self.cell_ch_length[0] * np.average(self.cell_mol_flow[:, 0]) \
-            / (self.cell_ch_ca[0] * self.cell_ref_p_drop) / self.channel_num
-        self.cell_ref_p_drop_cor = np.average(self.cell_mol_flow[:, 0])\
-            / self.channel_num * np.average(self.cell_visc[:, 0])\
-            * self.cell_ch_length[0] / (self.cell_ch_ca[0] * self.ref_perm)
-        self.p_cor_fac = self.cell_ref_p_drop / self.cell_ref_p_drop_cor
-
     def calc_header_p_in(self):
         """
         This function calculates the pressure of the inlet header
@@ -390,13 +368,7 @@ class Manifold:
             -self.cell_ref_p_drop, 1-D-array, [cell number]
         """
 
-        self.cell_ref_p_drop = self.head_mol_flow[0, -1]\
-            * np.average(self.cell_visc[:, 0])\
-            * self.cell_ch_length[0]\
-            * 1\
-            / (self.ref_perm
-               * np.sum(self.p_dist_fac)
-               * self.cell_ch_ca[0] * self.channel_num)
+        self.cell_ref_p_drop = self.cell_ref_p_drop / np.sum(self.p_dist_fac) * self.cell_num
 
     def calc_new_cell_flows(self):
         """
@@ -417,11 +389,19 @@ class Manifold:
         """
 
         self.cell_mol_flow_old = copy.deepcopy(self.cell_mol_flow[0])
-        self.cell_mol_flow[0] = (self.head_p[0] - self.head_p[1]) \
-            * self.ref_perm * self.cell_ch_ca[0] / (np.average(self.cell_visc)
-                                                    * self.cell_ch_length[0]
-                                                    * self.p_cor_fac)\
-            * self.channel_num
+        p = (self.head_p[0] + self.head_p[1]) * .5
+        pdif = self.head_p[0] - self.head_p[1]
+        T = (self.cell_temp[0] + self.cell_temp[1]) * .5
+        density = (self.head_density[1] + self.head_density[0]) * .5
+        visc = (self.cell_visc[1]+self.cell_visc[0]) * .5
+        self.zet = self.zeta * 48
+        R = 8.3144598
+        a = 32. * visc * self.cell_ch_length[0] / (self.cell_ch_d ** 2. * self.zeta * density)
+        b = 2. * pdif / (self.zeta * density)
+        u = -a + np.sqrt(a ** 2. + b)
+        self.cell_mol_flow[0] = self.cell_ch_ca * p / T / R * u * self.channel_num
+        print('old', self.cell_mol_flow_old )
+        print('new', self.cell_mol_flow)
 
     def calc_new_cell_stoi(self):
         """

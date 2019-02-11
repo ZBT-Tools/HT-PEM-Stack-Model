@@ -1,6 +1,6 @@
 import numpy as np
 import copy as copy
-import data.global_parameter as g_par
+import data.global_parameters as g_par
 import system.cell as cl
 import data.cell_dict as c_dict
 import system.manifold as m_fold
@@ -135,19 +135,11 @@ class Stack:
 
         """"Calculation of the environment heat conductivity"""
         # free convection geometry model
-        n_ch_x = int(self.cells[0].cathode.channel.bend_numb * .5 + 1)
-        n_ch_y = n_ch_x - 1
-        l_ch_y = 2. * self.cells[0].cathode.channel.width\
-            + self.cells[0].cathode.channel.rack_width
-        l_ch_x = (self.cells[0].cathode.channel.length
-                  - n_ch_y * l_ch_y
-                  - 2. * self.cells[0].cathode.channel.rack_width)\
-            / n_ch_x
-        h_flow_y = l_ch_y * n_ch_y\
-            + 2. * self.cells[0].cathode.channel.rack_width
-        h_flow_x = l_ch_x + 2. * self.cells[0].cathode.channel.rack_width
-        cricum_flow = 2. * (h_flow_x + h_flow_y)
-        fac = cricum_flow / self.cells[0].cathode.channel.circum
+        cell_width = self.cells[0].cathode.cell_width
+        cell_height = self.cells[0].cathode.cell_length
+        fac = (cell_width + cell_height)\
+            / (self.cells[0].cathode.channel.length
+               * self.cells[0].width_channels)
         for q, item in enumerate(self.cells):
             self.k_alpha_env[0, 1, q] =\
                 .5 * self.alpha_env * item.cathode.channel.dx\
@@ -192,24 +184,33 @@ class Stack:
         """
 
         self.manifold[0].update_values(
-            m_fold_dict.manifold(self.q_sum_cat, self.temp_fluid_cat,
+            m_fold_dict.manifold(self.q_sum_cat
+                                 * self.cells[0].cathode.channel_numb,
+                                 self.temp_fluid_cat,
                                  self.cp_cat, self.visc_cat,
                                  self.p_cat, self.r_cat,
-                                 self.m_sum_cat))
+                                 self.m_sum_f_cat
+                                 * self.cells[0].cathode.channel_numb,
+                                 self.m_sum_g_cat
+                                 * self.cells[0].cathode.channel_numb))
         self.manifold[1].update_values(
-            m_fold_dict.manifold(self.q_sum_ano[::-1],
+            m_fold_dict.manifold(self.q_sum_ano[::-1]
+                                 * self.cells[0].cathode.channel_numb,
                                  self.temp_fluid_ano[::-1],
                                  self.cp_ano[::-1],
                                  self.visc_ano[::-1],
                                  self.p_ano[::-1],
                                  self.r_ano[::-1],
-                                 self.m_sum_ano[::-1]))
+                                 self.m_sum_f_ano[::-1]
+                                 * self.cells[0].cathode.channel_numb,
+                                 self.m_sum_g_ano[::-1]
+                                 * self.cells[0].cathode.channel_numb))
         self.manifold[0].update()
         self.manifold[1].update()
         self.set_stoichiometry(self.manifold[0].cell_stoi,
                                self.manifold[1].cell_stoi)
-        self.set_channel_inlet_pressure(self.manifold[0].head_p[0],
-                                        self.manifold[1].head_p[0])
+        self.set_channel_outlet_pressure(self.manifold[0].head_p[-1],
+                                         self.manifold[1].head_p[-1])
         self.cathode_mfd_criteria = self.manifold[0].criteria
         self.anode_mfd_criteria = self.manifold[1].criteria
 
@@ -229,9 +230,12 @@ class Stack:
         This function updates the layer and fluid temperatures of the stack
         """
 
-        self.i = self.i_ca * self.cells[0].cathode.channel.act_area_dx
+        self.i = self.i_ca * self.cells[0].active_area_dx
         self.temp_cpl_stack.update_values(
-            therm_dict.temp_sys(self.k_alpha_ch, self.cond_rate,
+            therm_dict.temp_sys(self.k_alpha_ch
+                                * self.cells[0].cathode.channel_numb,
+                                self.cond_rate
+                                * self.cells[0].cathode.channel_numb,
                                 self.omega,
                                 [self.v_loss_cat, self.v_loss_ano],
                                 self.g_fluid, self.i))
@@ -263,8 +267,10 @@ class Stack:
         temp_fluid_cat_in, temp_fluid_cat_out = [], []
         temp_fluid_ano_in, temp_fluid_ano_out = [], []
         cond_rate_cat, cond_rate_ano = [], []
-        m_sum_cat_in, m_sum_cat_out = [], []
-        m_sum_ano_in, m_sum_ano_out = [], []
+        m_sum_f_cat_in, m_sum_f_cat_out = [], []
+        m_sum_f_ano_in, m_sum_f_ano_out = [], []
+        m_sum_g_cat_in, m_sum_g_cat_out = [], []
+        m_sum_g_ano_in, m_sum_g_ano_out = [], []
         omega = []
         for w, item in enumerate(self.cells):
             v_alarm.append(item.v_alarm)
@@ -284,14 +290,22 @@ class Stack:
             q_sum_cat_out = np.hstack((q_sum_cat_out, item.cathode.q_gas[-1]))
             q_sum_ano_in = np.hstack((q_sum_ano_in, item.anode.q_gas[0]))
             q_sum_ano_out = np.hstack((q_sum_ano_out, item.anode.q_gas[-1]))
-            m_sum_cat_in = np.hstack((m_sum_cat_in,
+            m_sum_f_cat_in = np.hstack((m_sum_f_cat_in,
                                       item.cathode.m_flow_fluid[0]))
-            m_sum_cat_out = np.hstack((m_sum_cat_out,
+            m_sum_f_cat_out = np.hstack((m_sum_f_cat_out,
                                        item.cathode.m_flow_fluid[-1]))
-            m_sum_ano_in = np.hstack((m_sum_ano_in,
+            m_sum_f_ano_in = np.hstack((m_sum_f_ano_in,
                                       item.anode.m_flow_fluid[0]))
-            m_sum_ano_out = np.hstack((m_sum_ano_out,
+            m_sum_f_ano_out = np.hstack((m_sum_f_ano_out,
                                        item.anode.m_flow_fluid[-1]))
+            m_sum_g_cat_in = np.hstack((m_sum_g_cat_in,
+                                      item.cathode.m_flow_gas[0]))
+            m_sum_g_cat_out = np.hstack((m_sum_g_cat_out,
+                                       item.cathode.m_flow_gas[-1]))
+            m_sum_g_ano_in = np.hstack((m_sum_g_ano_in,
+                                      item.anode.m_flow_gas[0]))
+            m_sum_g_ano_out = np.hstack((m_sum_g_ano_out,
+                                       item.anode.m_flow_gas[-1]))
             cp_cat_in = np.hstack((cp_cat_in, item.cathode.cp_fluid[0]))
             cp_cat_out = np.hstack((cp_cat_out, item.cathode.cp_fluid[-1]))
             cp_ano_in = np.hstack((cp_ano_in, item.anode.cp_fluid[0]))
@@ -324,8 +338,10 @@ class Stack:
         self.v_loss_cat, self.v_loss_ano = v_loss_cat, v_loss_ano
         self.q_sum_cat = np.array([q_sum_cat_in, q_sum_cat_out])
         self.q_sum_ano = np.array([q_sum_ano_in, q_sum_ano_out])
-        self.m_sum_cat = np.array([m_sum_cat_in, m_sum_cat_out])
-        self.m_sum_ano = np.array([m_sum_ano_in, m_sum_ano_out])
+        self.m_sum_f_cat = np.array([m_sum_f_cat_in, m_sum_f_cat_out])
+        self.m_sum_f_ano = np.array([m_sum_f_ano_in, m_sum_f_ano_out])
+        self.m_sum_g_cat = np.array([m_sum_g_cat_in, m_sum_g_cat_out])
+        self.m_sum_g_ano = np.array([m_sum_g_ano_in, m_sum_g_ano_out])
         self.cp_cat = np.array([cp_cat_in, cp_cat_out])
         self.cp_ano = np.array([cp_ano_in, cp_ano_out])
         self.visc_cat = np.array([visc_cat_in, visc_cat_out])
@@ -352,7 +368,7 @@ class Stack:
             item.cathode.stoi = stoi_cat[w]
             item.anode.stoi = stoi_ano[w]
 
-    def set_channel_inlet_pressure(self, p_cat, p_ano):
+    def set_channel_outlet_pressure(self, p_cat, p_ano):
         """
         This function sets up the inlet pressure
         of the cathode and the anode channels.
@@ -363,8 +379,8 @@ class Stack:
         """
 
         for w, item in enumerate(self.cells):
-            item.cathode.channel.p_in = p_cat[w]
-            item.anode.channel.p_in = p_ano[w]
+            item.cathode.channel.p_out = p_cat[w]
+            item.anode.channel.p_out = p_ano[w]
 
     def set_temperature(self):
         """

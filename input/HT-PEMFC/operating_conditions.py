@@ -5,13 +5,13 @@ import numpy as np
 
 """Electrochemistry"""
 # target current density [A/m^2]
-target_current_density = [6000.]#np.linspace(1., 12000., 100)
+target_current_density = [6000.]
 # open circuit voltage [V]
 open_circuit_voltage = 0.95
 # cathode stoichiometry
-stoichiometry_cathode = 1.6
+stoichiometry_cathode = 2.5
 # anode stoichiometry
-stoichiometry_anode = 1.6
+stoichiometry_anode = 2.
 # pem-type (True = HT-PEM, False = NT-PEM)
 pem_type = True
 
@@ -37,8 +37,14 @@ p_manifold_anode_out = 1.e5
 # mass flow of the coolant per channel [kg/s]
 mass_flow_coolant = 1.e-4
 
+"""Cell Settings"""
+# number of gas channels
+gas_channel_number = 10
+# number of coolant channels
+coolant_channel_number = 10
+
 """Stack Settings"""
 # number of the pemfc
-cell_number = 10
+cell_number = 40
 # coolant channel configuration (no cooling channel at the endplates = False)
 cooling_bc = True

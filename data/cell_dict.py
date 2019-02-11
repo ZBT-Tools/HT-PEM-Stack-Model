@@ -1,5 +1,5 @@
 import input.geometry as geo
-import input.physical_property as phy_prop
+import input.physical_properties as phy_prop
 import input.operating_conditions as oper_con
 import input.simulation as sim
 # still in search for shortings to replace mem_bas_r and mem_acl_r

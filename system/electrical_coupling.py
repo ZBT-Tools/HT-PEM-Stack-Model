@@ -1,5 +1,5 @@
 import numpy as np
-import data.global_parameter as g_par
+import data.global_parameters as g_par
 import system.global_functions as g_func
 
 
@@ -13,7 +13,7 @@ class ElectricalCoupling:
         # length of an element
         self.th_plate = dict_electrical_coupling_const['th_bpp']
         # thickness of the bipolar plate
-        self.w_ch = dict_electrical_coupling_const['channel_width']
+        self.width_channels = dict_electrical_coupling_const['width_channels']
         # width of the channel
         # Variables
         self.nodes = g_par.dict_case['nodes']
@@ -22,7 +22,7 @@ class ElectricalCoupling:
         # number of the elements along the channel
         self.v_end_plate = 0.
         # accumulated voltage loss over the stack at the lower end plate
-        c_x = self.w_ch * self.th_plate\
+        c_x = self.width_channels * self.th_plate \
             / (self.dx * g_par.dict_case['bpp_resistivity'])
         # electrical conductance of the bipolar plate in x-direction
         self.v_loss = []
@@ -70,7 +70,7 @@ class ElectricalCoupling:
 
         self.cell_r = dict_electrical_coupling_dyn['r_cell']
         self.v_loss = dict_electrical_coupling_dyn['v_loss']
-        self.cell_c = self.w_ch * self.th_plate / self.cell_r
+        self.cell_c = self.width_channels * self.th_plate / self.cell_r
         self.cell_c_mid = np.hstack((self.cell_c[:-self.elements]
                                      + self.cell_c[self.elements:]))
 
