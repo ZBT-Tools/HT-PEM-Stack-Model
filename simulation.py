@@ -294,8 +294,8 @@ class Simulation:
                                          / self.stack.i_cd.flatten()) ** 2.))
         self.temp_criteria =\
             np.abs(np.sum(((self.temp_old
-                            - self.stack.temp_cpl_stack.temp_layer[0][0, 0]))
-                          / self.stack.temp_cpl_stack.temp_layer[0][0, 0]))
+                            - self.stack.temp_sys.temp_layer[0][0, 0]))
+                          / self.stack.temp_sys.temp_layer[0][0, 0]))
 
         self.temp_criteria_process.append(self.temp_criteria)
         self.mdf_criteria_cat_process.append(self.stack.cathode_mfd_criteria)
@@ -307,7 +307,7 @@ class Simulation:
         Saves an defined temperature value of the current iteration
         as the old temperature value for the next iteration.
         """
-        self.temp_old = self.stack.temp_cpl_stack.temp_layer[0][0, 0]
+        self.temp_old = self.stack.temp_sys.temp_layer[0][0, 0]
 
     def plot_cell_var(self, y_var, y_label, x_label,
                       y_scale, title, x_lim, x_var, y_lim):
@@ -378,7 +378,7 @@ class Simulation:
                            'linear', 'Cell Voltage',
                            [0., ch_dict.dict_cathode_channel['channel_length']],
                            x_ele, [0.52, 0.54])
-        g_func.output_x(self.stack.temp_cpl_stack.temp_cool, x_node,
+        g_func.output_x(self.stack.temp_sys.temp_cool, x_node,
                         'Coolant Temperature [K]', 'Channel Location $[m]$',
                         'linear', 'Coolant Temperature', False,
                         [0., ch_dict.dict_cathode_channel['channel_length']],
@@ -584,7 +584,7 @@ class Simulation:
             else:
                 x.append(x_vec_l)
         x = np.cumsum(np.block(x))
-        t = self.stack.temp_cpl_stack.temp_layer
+        t = self.stack.temp_sys.temp_layer
         for w in range(g_par.dict_case['nodes'] - 1):
             t_vec = []
             for l in range(self.stack.cell_numb):

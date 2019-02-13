@@ -342,7 +342,7 @@ class TemperatureSystem:
         self.pos_cat_ch = np.hstack((pos_cat_ch_base, pos_cat_ch_n))
         self.pos_ano_ch = np.hstack((pos_ano_ch_base, pos_ano_ch_n))
 
-    def update_values(self, dict_temp_sys_dyn):
+    def update_values(self, k_alpha_ch, gamma, omega, v_loss, g_gas, i):
         """
         Updates the dynamic parameters
 
@@ -357,15 +357,13 @@ class TemperatureSystem:
             -self.v_loss
             -self.omega
         """
-        self.g_fluid = \
-            np.array([g_func.calc_elements_2d(dict_temp_sys_dyn['g_gas'][0]),
-                      g_func.calc_elements_2d(dict_temp_sys_dyn['g_gas'][1])])\
-            * self.ch_numb
-        self.k_gas_ch = dict_temp_sys_dyn['k_gas_ch']
-        self.cond_rate = dict_temp_sys_dyn['cond_rate'] * self.ch_numb
-        self.i = dict_temp_sys_dyn['i']
-        self.v_loss = dict_temp_sys_dyn['v_loss']
-        self.omega = dict_temp_sys_dyn['omega']
+        self.g_fluid = np.array([g_func.calc_elements_2d(g_gas[0]),
+                                 g_func.calc_elements_2d(g_gas[1])])
+        self.k_gas_ch = k_alpha_ch
+        self.cond_rate = gamma
+        self.i = i
+        self.v_loss = v_loss
+        self.omega = omega
 
     def change_value_shape(self):
         """
@@ -379,10 +377,8 @@ class TemperatureSystem:
             -self.v_loss
             -self.k_gas_ch
         """
-        self.v_loss = np.array(self.v_loss)
         self.k_gas_ch = np.array([g_func.calc_elements_2d(self.k_gas_ch[0]),
-                                  g_func.calc_elements_2d(self.k_gas_ch[1])])\
-            * self.ch_numb
+                                  g_func.calc_elements_2d(self.k_gas_ch[1])])
 
     def update(self):
         """

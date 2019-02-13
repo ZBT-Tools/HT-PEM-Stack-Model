@@ -153,7 +153,7 @@ class Stack:
         # Initialize the thermal coupling
         therm_dict.dict_temp_sys['k_layer'] = self.k_layer
         therm_dict.dict_temp_sys['k_alpha_env'] = self.k_alpha_env
-        self.temp_cpl_stack = therm_cpl.\
+        self.temp_sys = therm_cpl.\
             TemperatureSystem(therm_dict.dict_temp_sys)
 
     def update(self):
@@ -230,15 +230,14 @@ class Stack:
         """
 
         current = self.i_cd * self.cells[0].active_area_dx
-        self.temp_cpl_stack.update_values(
-            therm_dict.temp_sys(self.k_alpha_ch
-                                * self.cells[0].cathode.channel_numb,
-                                self.cond_rate
-                                * self.cells[0].cathode.channel_numb,
-                                self.omega,
-                                [self.v_loss_cat, self.v_loss_ano],
-                                self.g_fluid, current))
-        self.temp_cpl_stack.update()
+        n_ch = self.cells[0].cathode.channel_numb
+        self.temp_sys.update_values(self.k_alpha_ch * n_ch,
+                                    self.cond_rate * n_ch,
+                                    self.omega,
+                                    np.array([self.v_loss_cat,
+                                              self.v_loss_ano]),
+                                    self.g_fluid * n_ch, current)
+        self.temp_sys.update()
         self.set_temperature()
 
     def stack_dynamic_properties(self):
@@ -392,6 +391,6 @@ class Stack:
         """
 
         for w, item in enumerate(self.cells):
-            item.temp = self.temp_cpl_stack.temp_layer[w][0:5, :]
-            item.cathode.temp_fluid = self.temp_cpl_stack.temp_fluid[0, w]
-            item.anode.temp_fluid = self.temp_cpl_stack.temp_fluid[1, w]
+            item.temp = self.temp_sys.temp_layer[w][0:5, :]
+            item.cathode.temp_fluid = self.temp_sys.temp_fluid[0, w]
+            item.anode.temp_fluid = self.temp_sys.temp_fluid[1, w]
