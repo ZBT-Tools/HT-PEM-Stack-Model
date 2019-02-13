@@ -3,16 +3,14 @@ import input.simulation as sim
 import input.physical_properties as phy_prop
 import input.geometry as geom
 
-
-
 dict_temp_sys = {
     'cell_numb': op_con.cell_number,
     'nodes': sim.elements + 1,
-    'channel_length':geom.channel_length,
+    'channel_length': geom.channel_length,
     'channel_width': geom.coolant_channel_widht,
     'channel_height': geom.coolant_channel_height,
-    'gas_ch_numb': op_con.gas_channel_number,
-    'cool_ch_numb': op_con.coolant_channel_number,
+    'gas_ch_numb': geom.gas_channel_number,
+    'cool_ch_numb': geom.coolant_channel_number,
     'cool_ch_bc': op_con.cooling_bc,
     'temp_gas_in': [op_con.temp_air_in, op_con.temp_anode_gas_in],
     'cool_cp': phy_prop.heat_capacity_coolant,
@@ -24,8 +22,7 @@ dict_temp_sys = {
     'temp_layer_init': op_con.temp_initial,
     'cool_lambda':phy_prop.thermal_conductivity_coolant,
     'cool_temp_in': op_con.temp_coolant_in
-
-                }
+    }
 
 
 def temp_sys(k_alpha_ch, gamma, omega, v_loss,

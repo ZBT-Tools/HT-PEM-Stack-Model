@@ -3,7 +3,7 @@ import scipy.linalg as sp_l
 import data.global_parameters as g_par
 import system.global_functions as g_func
 import data.water_properties as w_prop
-
+import input.operating_conditions as op_con
 
 np.set_printoptions(linewidth=10000, threshold=None, precision=2)
 
@@ -92,7 +92,7 @@ class TemperatureSystem:
         # coordinates of the cathode channel heat conductance
         self.pos_ano_ch = None
         # coordinates of the anode channel heat conductance
-        self.g_cool = self.cp_cool * self.m_flow_cool * self.cool_numb * self.cool_numb
+        self.g_cool = self.cp_cool * self.m_flow_cool * self.cool_numb
         # coolant heat capacity flow
         self.k_cool = None
         # heat conductance between the coolant and the channel wall
@@ -147,6 +147,7 @@ class TemperatureSystem:
             self.temp_layer.append(temp_layer)
         self.temp_layer.append(temp_layer_n)
         # layer temperature list cell, layer, element
+        #temp_cool_out = self.temp_cool_in + op_con.tar
         if self.cool_ch_bc is True:
             self.temp_cool = np.full((self.cell_numb + 1, self.nodes),
                                      self.temp_cool_in)

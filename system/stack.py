@@ -61,10 +61,10 @@ class Stack:
         # convergence criteria of the air manifold
         self.anode_mfd_criteria = 0.
         # convergence criteria of the h2 gas mix manifold
-        self.i_ca = np.full((self.cell_numb, nodes - 1),
+        self.i_cd = np.full((self.cell_numb, nodes - 1),
                             g_par.dict_case['tar_cd'])
         # current density
-        self.i_ca_old = copy.deepcopy(self.i_ca)
+        self.i_cd_old = copy.deepcopy(self.i_cd)
         # current density of the last iteration
         self.i = np.full((self.cell_numb, nodes - 1), 20.)
         # current
@@ -115,7 +115,7 @@ class Stack:
         self.cond_rate = np.full((2, self.cell_numb, nodes), 0.)
         # molar condensation rate
         self.omega = np.full((self.cell_numb, nodes), 0.)
-        # electrical resistance of the membran
+        # electrical resistance of the membrane
         self.m_reac_flow_delta = np.full((self.cell_numb, nodes), 0.)
         # mass flow of the consumed oxygen in the cathode channels
         self.g_fluid = []
@@ -160,9 +160,8 @@ class Stack:
         """
         This function coordinates the program sequence
         """
-
         for j in range(self.cell_numb):
-            self.cells[j].set_current_density(self.i_ca[j, :])
+            self.cells[j].set_current_density(self.i_cd[j, :])
             self.cells[j].update()
             if self.cells[j].break_program is True:
                 self.break_program = True
@@ -174,7 +173,7 @@ class Stack:
             if self.cell_numb > 1:
                 if self.calc_flow_dis is True:
                     self.update_flows()
-            self.i_ca_old = copy.deepcopy(self.i_ca)
+            self.i_cd_old = copy.deepcopy(self.i_cd)
             if self.calc_cd is True:
                 self.update_electrical_coupling()
 
@@ -182,7 +181,6 @@ class Stack:
         """
         This function updates the flow distribution of gas over the stack cells
         """
-
         self.manifold[0].update_values(
             m_fold_dict.manifold(self.q_sum_cat
                                  * self.cells[0].cathode.channel_numb,
@@ -223,14 +221,14 @@ class Stack:
             el_cpl_dict.electrical_coupling(self.v_loss,
                                             self.stack_cell_r))
         self.el_cpl_stack.update()
-        self.i_ca = self.el_cpl_stack.i_ca
+        self.i_cd = self.el_cpl_stack.i_cd
 
     def update_temperature_coupling(self):
         """
         This function updates the layer and fluid temperatures of the stack
         """
 
-        self.i = self.i_ca * self.cells[0].active_area_dx
+        current = self.i_cd * self.cells[0].active_area_dx
         self.temp_cpl_stack.update_values(
             therm_dict.temp_sys(self.k_alpha_ch
                                 * self.cells[0].cathode.channel_numb,
@@ -238,7 +236,7 @@ class Stack:
                                 * self.cells[0].cathode.channel_numb,
                                 self.omega,
                                 [self.v_loss_cat, self.v_loss_ano],
-                                self.g_fluid, self.i))
+                                self.g_fluid, current))
         self.temp_cpl_stack.update()
         self.set_temperature()
 

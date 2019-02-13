@@ -31,7 +31,7 @@ class ElectricalCoupling:
         # 1-d-array of the  combined cell & bipolar plate
         # conductance in z-direction
         self.cell_c_mid = []
-        # cell_c array for the main diagonale of the matrix self.mat_const
+        # cell_c array for the main diagonal of the matrix self.mat_const
         self.cell_r = np.full((self.cell_numb, self.elements), 0.)
         # 2-d-array of the combined cell & bipolar plate
         # resistance in z-direction
@@ -39,7 +39,7 @@ class ElectricalCoupling:
         # electrical conductance matrix
         self.rhs = np.full((self.cell_numb + 1) * self.elements, 0.)
         # right hand side terms, here the current
-        self.i_ca = np.full((self.cell_numb, self.elements), 0.)
+        self.i_cd = np.full((self.cell_numb, self.elements), 0.)
         # current density of the elements in z-direction
         c_x_cell = np.hstack(([c_x],
                               np.full(self.elements - 2, 2. * c_x), [c_x]))
@@ -67,7 +67,6 @@ class ElectricalCoupling:
             -self.cell_c
             -self.cell_c_mid
         """
-
         self.cell_r = dict_electrical_coupling_dyn['r_cell']
         self.v_loss = dict_electrical_coupling_dyn['v_loss']
         self.cell_c = self.width_channels * self.th_plate / self.cell_r
@@ -78,7 +77,6 @@ class ElectricalCoupling:
         """
         This function coordinates the program sequence
         """
-
         self.update_mat()
         self.update_right_side()
         self.calc_i()
@@ -96,7 +94,6 @@ class ElectricalCoupling:
             Manipulate:
             -self.mat
         """
-
         self.mat = self.mat_const\
             - np.diag(self.cell_c_mid, 0)\
             + np.diag(self.cell_c[:-self.elements][self.elements:],
@@ -147,6 +144,8 @@ class ElectricalCoupling:
                            v_new, np.full(self.elements, 0.)))
         v_dif = v_new[:-self.elements] - v_new[self.elements:]
         i_ca_vec = v_dif / self.cell_r
-        self.i_ca = g_func.to_array(i_ca_vec, self.cell_numb, self.nodes - 1)
-        self.i_ca = self.i_ca / np.average(self.i_ca)\
-            * g_par.dict_case['tar_cd']
+        i_cd = g_func.to_array(i_ca_vec, self.cell_numb, self.nodes - 1)
+        print(i_cd)
+        self.i_cd = i_cd / np.average(i_cd) * g_par.dict_case['tar_cd']
+        print(self.i_cd)
+        print(g_par.dict_case['tar_cd'])

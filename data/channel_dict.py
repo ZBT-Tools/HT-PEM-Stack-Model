@@ -14,7 +14,7 @@ dict_cathode_channel = {
     'bend_numb': phy_prop.channel_bends,
     'bend_fri_fac': phy_prop.bend_pressure_loss_coefficient,
     'rack_width': geom.rack_width
-                        }
+    }
 
 dict_anode_channel = {
     'channel_length': geom.channel_length,
@@ -27,4 +27,4 @@ dict_anode_channel = {
     'bend_numb': phy_prop.channel_bends,
     'bend_fri_fac': phy_prop.bend_pressure_loss_coefficient,
     'rack_width': geom.rack_width
-                      }
+    }
