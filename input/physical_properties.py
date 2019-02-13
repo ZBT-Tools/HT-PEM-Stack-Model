@@ -10,7 +10,7 @@ oxygen_catalyst_layer_diffusion_coefficient = 1.36e-8
 # hydrogen catalyst layer diffusion coefficient [m^2/s]
 hydrogen_catalyst_layer_diffusion_coefficient = 5.e-8
 # oxygen gas diffusion layer diffusion coefficient [[m^2/s]
-oygen_gas_diffusion_layer_diffusion_coefficient = 2.59e-6
+oxygen_gas_diffusion_layer_diffusion_coefficient = 2.59e-6
 # hydrogen gas diffusion layer diffusion coefficient [m^2/s]
 hydrogen_diffusion_layer_diffusion_coefficient = 9.52e-6
 # catalyst layer proton conductivity of the cathode [Ohm^-1/m]

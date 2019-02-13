@@ -1,7 +1,7 @@
 import data.stack_dict as st_dict
 import data.channel_dict as ch_dict
 import data.simulation_dict as sim
-import input.operating_conditions as oper_con
+import input.operating_conditions as op_con
 import system.stack as st
 import numpy as np
 import data.global_parameters as g_par
@@ -90,7 +90,7 @@ class Simulation:
         self.act_loss_ano = np.full((cell_numb, nodes - 1), 0.)
         # anodic activation voltage loss
         self.cl_diff_loss_cat = np.full((cell_numb, nodes - 1), 0.)
-        # cathic catalyst layer diffusion voltage loss
+        # cathodic catalyst layer diffusion voltage loss
         self.cl_diff_loss_ano = np.full((cell_numb, nodes - 1), 0.)
         # anodic catalyst layer diffusion voltage loss
         self.gdl_diff_loss_cat = np.full((cell_numb, nodes - 1), 0.)
@@ -189,9 +189,8 @@ class Simulation:
         """
         This function coordinates the program sequence
         """
-
-        for q, item in enumerate(oper_con.target_current_density):
-            g_par.dict_case['tar_cd'] = oper_con.target_current_density[q]
+        for i, item in enumerate(op_con.target_current_density):
+            g_par.dict_case['tar_cd'] = op_con.target_current_density[i]
             self.stack = st.Stack(st_dict.dict_stack)
             statement = True
             counter = 0
@@ -201,7 +200,7 @@ class Simulation:
                 if self.stack.break_program is True:
                     break
                 self.calc_convergence_criteria()
-                if len(oper_con.target_current_density) < 1:
+                if len(op_con.target_current_density) < 1:
                     print(counter)
                 counter = counter + 1
                 if ((self.i_ca_criteria < self.it_crit
@@ -215,63 +214,60 @@ class Simulation:
                 self.save_voltages()
                 print(item)
                 if self.save_plot is True:
-                    self.output_plots(str(q))
+                    self.output_plots(str(i))
                 if self.save_csv is True:
-                    self.output_csv(str(q))
+                    self.output_csv(str(i))
             else:
-                oper_con.target_current_density =\
-                    oper_con.target_current_density[0:-q]
-                print(oper_con.target_current_density, self.v)
+                op_con.target_current_density = \
+                    op_con.target_current_density[0:-i]
+                print(op_con.target_current_density, self.v)
                 break
-        if len(oper_con.target_current_density) > 1:
+        if len(op_con.target_current_density) > 1:
             self.plot_polarization_curve()
 
     def plot_polarization_curve(self):
-      """
-      Plots the polarization curve of the given
-      current densities and average stack voltages.
-      """
+        """
+        Plots the polarization curve of the given
+        current densities and average stack voltages.
+        """
+        try:
+            os.makedirs(os.path.join(os.path.dirname(__file__), 'output/'))
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
+        cd_array = np.asarray(op_con.target_current_density) * 1.e-4
+        plt.plot(cd_array, self.v, marker='.', color='k', label='Simulation')
+        if self.show_loss is True:
+            plt.plot(cd_array, self.mem_loss_ui, color='b', marker='.',
+                     label='Membrane Loss')
+            plt.plot(cd_array, self.act_loss_ui_ano, color='g', marker='*',
+                     label='Anode Activation Loss')
+            plt.plot(cd_array, self.act_loss_ui_cat, color='g', marker='+',
+                     label='Cathode Activation Loss')
+            plt.plot(cd_array, self.cl_diff_loss_ui_ano, color='y', marker='*',
+                     label='Anode Cl Diff Loss')
+            plt.plot(cd_array, self.cl_diff_loss_ui_cat, color='y', marker='+',
+                     label='Cathode Cl Diff Loss')
+            plt.plot(cd_array, self.gdl_diff_loss_ui_ano, color='m', marker='*',
+                     label='Anode GDL Diff Loss')
+            plt.plot(cd_array, self.gdl_diff_loss_ui_cat, color='m', marker='+',
+                     label='Cathode GDL Diff Loss')
+        plt.ylabel('Voltage $[V]$', fontsize=16)
+        plt.xlabel('Current Density $[A/cm²]$', fontsize=16)
+        plt.tick_params(labelsize=14)
+        plt.grid()
+        plt.legend()
+        plt.autoscale(tight=True, axis='both', enable=True)
+        plt.ylim(0., 1.)
+        plt.tight_layout()
+        plt.savefig(os.path.join(os.path.dirname(__file__),
+                                 'output/' + 'Polarization_curve' + '.jpg'))
+        plt.close()
 
-      try:
-          os.makedirs(os.path.join(os.path.dirname(__file__), 'output/'))
-      except OSError as e:
-          if e.errno != errno.EEXIST:
-              raise
-      cd_array = np.asarray(oper_con.target_current_density) * 1.e-4
-      plt.plot(cd_array, self.v, marker='.', color='k', label='Simulation')
-      if self.show_loss is True:
-          plt.plot(cd_array, self.mem_loss_ui, color='b', marker='.',
-                   label='Membrane Loss')
-          plt.plot(cd_array, self.act_loss_ui_ano, color='g', marker='*',
-                   label='Anode Activation Loss')
-          plt.plot(cd_array, self.act_loss_ui_cat, color='g', marker='+',
-                   label='Cathode Activation Loss')
-          plt.plot(cd_array, self.cl_diff_loss_ui_ano, color='y', marker='*',
-                   label='Anode Cl Diff Loss')
-          plt.plot(cd_array, self.cl_diff_loss_ui_cat, color='y', marker='+',
-                   label='Cathode Cl Diff Loss')
-          plt.plot(cd_array, self.gdl_diff_loss_ui_ano, color='m', marker='*',
-                   label='Anode GDL Diff Loss')
-          plt.plot(cd_array, self.gdl_diff_loss_ui_cat, color='m', marker='+',
-                   label='Cathode GDL Diff Loss')
-      plt.ylabel('Voltage $[V]$', fontsize=16)
-      plt.xlabel('Current Density $[A/cm²]$', fontsize=16)
-      plt.tick_params(labelsize=14)
-      plt.grid()
-      plt.legend()
-      plt.autoscale(tight=True, axis='both', enable=True)
-      plt.ylim(0., 1.)
-      plt.tight_layout()
-      plt.savefig(os.path.join(os.path.dirname(__file__),
-                               'output/' + 'Polarization_curve' + '.jpg'))
-      plt.close()
-
-      
     def save_voltages(self):
         """
         Saves the average voltage losses of the stack
         """
-
         for w, item in enumerate(self.stack.cells):
             self.act_loss_cat[w] = item.cathode.act_loss
             self.act_loss_ano[w] = item.anode.act_loss
@@ -293,10 +289,9 @@ class Simulation:
         """
         Calculates the convergence criteria according to (Koh, 2003)
         """
-
-        self.i_ca_criteria = np.abs(sum(((self.stack.i_ca.flatten()
-                                          - self.stack.i_ca_old.flatten())
-                                         / self.stack.i_ca.flatten()) ** 2.))
+        self.i_ca_criteria = np.abs(sum(((self.stack.i_cd.flatten()
+                                          - self.stack.i_cd_old.flatten())
+                                         / self.stack.i_cd.flatten()) ** 2.))
         self.temp_criteria =\
             np.abs(np.sum(((self.temp_old
                             - self.stack.temp_cpl_stack.temp_layer[0][0, 0]))
@@ -312,7 +307,6 @@ class Simulation:
         Saves an defined temperature value of the current iteration
         as the old temperature value for the next iteration.
         """
-
         self.temp_old = self.stack.temp_cpl_stack.temp_layer[0][0, 0]
 
     def plot_cell_var(self, y_var, y_label, x_label,
@@ -320,7 +314,6 @@ class Simulation:
         """
         Creates plots by given input values
         """
-
         for l, item in enumerate(self.stack.cells):
             plt.plot(x_var, eval('self.stack.cells' +
                                  '['+str(l)+']'+'.' + y_var),
@@ -336,14 +329,13 @@ class Simulation:
             plt.ylim(y_lim[0], y_lim[1])
         plt.tight_layout()
         plt.grid()
-        plt.savefig(self.path_plot + title + '.jpg')
+        plt.savefig(self.path_plot + title + '.png')
         plt.close()
 
     def output_plots(self, q):
         """
         Coordinates the plot sequence
         """
-
         self.path_plot = os.path.join(os.path.dirname(__file__),
                                       'output/' + 'case' + q + '/plots' + '/')
         try:
@@ -365,7 +357,7 @@ class Simulation:
         self.mdf_criteria_cat_process = []
         self.temp_criteria_process = []
         self.i_ca_criteria_process = []
-        g_func.output_x(self.stack.i_ca, x_ele, 'Current Density $[A/m²]$',
+        g_func.output_x(self.stack.i_cd, x_ele, 'Current Density $[A/m²]$',
                         'Channel Location $[m]$', 'linear', 'Current Density',
                         False,
                         [0., ch_dict.dict_cathode_channel['channel_length']],
@@ -567,7 +559,7 @@ class Simulation:
                            [0., ch_dict.dict_cathode_channel['channel_length']],
                            x_node, False)
         # Z-Axis-Temperature Plot
-        x_vecz = np.array([0.,
+        x_vec_z = np.array([0.,
                            geom.bipolar_plate_thickness,
                            geom.gas_diffusion_layer_thickness,
                            geom.membrane_thickness,
@@ -586,7 +578,7 @@ class Simulation:
         x = []
         for l in range(self.stack.cell_numb):
             if l is 0:
-                x.append(x_vecz)
+                x.append(x_vec_z)
             elif 0 < l < self.stack.cell_numb - 1:
                 x.append(x_vec_e)
             else:
@@ -612,7 +604,7 @@ class Simulation:
         plt.tick_params(labelsize=14)
         plt.autoscale(tight=True, axis='both', enable=True)
         plt.tight_layout()
-        plt.savefig(os.path.join(self.path_plot+'Z-Cut-Temperature' + '.jpg'))
+        plt.savefig(os.path.join(self.path_plot+'Z-Cut-Temperature' + '.png'))
         plt.close()
 
         for q in range(self.stack.cell_numb):
@@ -901,7 +893,7 @@ class Simulation:
                    self.ht_coef_cat, delimiter=self.delimiter,
                    fmt=self.csv_format)
         np.savetxt(self.path_csv_data
-                   + 'Anode Channel Heat Convection Coefficient .csv',
+                   + 'Anode Channel Heat Convection Coefficient.csv',
                    self.ht_coef_ano, delimiter=self.delimiter,
                    fmt=self.csv_format)
 

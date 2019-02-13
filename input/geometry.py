@@ -9,10 +9,12 @@ channel_width = 1.e-3
 channel_height = 1.e-3
 # rack width [m]
 rack_width = 1.e-3
-# number of channels
-channel_number = 10.
+# number of gas channels
+gas_channel_number = 10
+# number of coolant channels
+coolant_channel_number = 3
 # channel bends [n]
-channel_bends = 48.
+gas_channel_bends = 48.
 
 
 """Coolant Channel Geometry"""
@@ -22,7 +24,6 @@ coolant_channel_height = 1.e-3
 coolant_channel_widht = 1.e-3
 # number of coolant channels
 coolant_channel_number = 10.
-
 
 
 """"Cell Geometry """

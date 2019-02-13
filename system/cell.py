@@ -96,7 +96,7 @@ class Cell:
         # layer temperature
         self.temp_mem = np.zeros(nodes)
         # membrane temperature
-        self.i_ca = np.full((nodes - 1), 0.)
+        self.i_cd = np.full((nodes - 1), 0.)
         # current density
         self.omega = np.full(nodes-1, 0.)
         # membrane resistance
@@ -111,15 +111,14 @@ class Cell:
         """
         This function coordinates the program sequence
         """
-
         self.temp_mem = .5 * (self.temp[2] + self.temp[3])
         if g_par.dict_case['pem_type'] is False:
             self.cathode.set_pem_type(False)
             self.anode.set_pem_type(False)
             self.cathode.set_water_cross_flux(self.w_cross_flow)
             self.anode.set_water_cross_flux(self.w_cross_flow)
-        self.cathode.set_current_density(self.i_ca)
-        self.anode.set_current_density(self.i_ca)
+        self.cathode.set_current_density(self.i_cd)
+        self.anode.set_current_density(self.i_cd)
         self.cathode.set_layer_temperature([self.temp[2],
                                             self.temp[3],
                                             self.temp[4]])
@@ -139,7 +138,7 @@ class Cell:
             self.calc_voltage()
             self.calc_resistance()
 
-    def set_current_density(self, i_ca):
+    def set_current_density(self, i_cd):
         """
         This function sets the current density.
         The current density can be obtained
@@ -148,8 +147,7 @@ class Cell:
             Manipulate:
             - self.i_ca, scalar
         """
-
-        self.i_ca = i_ca
+        self.i_cd = i_cd
 
     def calc_cross_water_flux(self):
         """
@@ -169,7 +167,6 @@ class Cell:
             Manipulate:
             -self.w_cross_flow
         """
-
         vap_coeff = g_par.dict_case['vap_m_temp_coeff']
         humidity = [self.cathode.humidity, self.anode.humidity]
         humidity_ele = np.array([g_func.calc_elements_1_d(humidity[0]),
@@ -178,21 +175,21 @@ class Cell:
         b = -39.85 * humidity_ele ** 2. + 36. * humidity_ele ** 3.
         free_w_content = a + b
         zeta_plus = free_w_content[0] + free_w_content[1] \
-            + self.i_ca / (2. * vap_coeff
-                           * g_par.dict_case['mol_con_m']
-                           * g_par.dict_uni['F'])
+                    + self.i_cd / (2. * vap_coeff
+                                   * g_par.dict_case['mol_con_m']
+                                   * g_par.dict_uni['F'])
         zeta_negative =\
             (free_w_content[0]
              - free_w_content[1]
-             + 5. * self.i_ca / (2. * vap_coeff * g_par.dict_case['mol_con_m']
+             + 5. * self.i_cd / (2. * vap_coeff * g_par.dict_case['mol_con_m']
                                  * g_par.dict_uni['F'])) \
             / (1. + g_func.dw(self.temp_mem) * zeta_plus
                / (self.th_mem * vap_coeff))
         m_c = 0.5 * (zeta_plus + zeta_negative)
         m_a = 0.5 * (zeta_plus - zeta_negative)
-        self.w_cross_flow =\
-            self.i_ca / g_par.dict_uni['F'] + g_par.dict_case['mol_con_m']\
-            * g_func.dw(self.temp_mem) * (m_a ** 2. - m_c ** 2.)\
+        self.w_cross_flow = \
+            self.i_cd / g_par.dict_uni['F'] + g_par.dict_case['mol_con_m'] \
+            * g_func.dw(self.temp_mem) * (m_a ** 2. - m_c ** 2.) \
             / (2. * self.th_mem)
 
     def calc_mem_resistivity_kvesic(self):
@@ -220,7 +217,6 @@ class Cell:
         """
         Calculates the membrane resitace for NT-PEMFC according to Goßling
         """
-
         lambda_x = np.full(g_par.dict_case['nodes'], 0.)
         res_t = np.exp(self.fac_m * 1.e3 / self.temp_mem + self.fac_n)
         r_avg = (self.cathode.humidity + self.anode.humidity) * 0.5
@@ -281,7 +277,7 @@ class Cell:
             -self.mem_los
         """
 
-        self.mem_loss = self.omega_ca * self.i_ca
+        self.mem_loss = self.omega_ca * self.i_cd
         if self.calc_mem_loss is False:
             self.mem_loss = 0.
 
@@ -323,6 +319,5 @@ class Cell:
             Manipulate:
             -self.resistance
         """
-
-        self.resistance = self.v_loss / self.i_ca + 2. \
-            * g_par.dict_case['bpp_resistivity'] * self.cathode.th_bpp
+        self.resistance = self.v_loss / self.i_cd + 2. \
+                          * g_par.dict_case['bpp_resistivity'] * self.cathode.th_bpp

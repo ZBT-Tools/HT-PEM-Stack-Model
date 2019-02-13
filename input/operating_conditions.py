@@ -5,7 +5,8 @@ import numpy as np
 
 """Electrochemistry"""
 # target current density [A/m^2]
-target_current_density = np.linspace(1.e-3, 10000., 20)
+#target_current_density = np.linspace(1.e-3, 10000., 20)
+target_current_density = np.array([4000., 8000.])
 # open circuit voltage [V]
 open_circuit_voltage = 0.95
 # cathode stoichiometry
@@ -38,13 +39,10 @@ p_manifold_anode_out = 1.e5
 mass_flow_coolant = 1.e-4
 
 """Cell Settings"""
-# number of gas channels
-gas_channel_number = 10
-# number of coolant channels
-coolant_channel_number = 3
+
 
 """Stack Settings"""
 # number of the pemfc
-cell_number = 40
+cell_number = 3
 # coolant channel configuration (no cooling channel at the endplates = False)
 cooling_bc = True

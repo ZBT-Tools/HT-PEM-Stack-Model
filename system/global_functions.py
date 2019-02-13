@@ -194,7 +194,7 @@ def output(y_values, y_label, x_label, y_scale, color,
     plt.grid()
     if val_label is not False:
         plt.legend()
-    plt.savefig(os.path.join(path + title + '.jpg'))
+    plt.savefig(os.path.join(path + title + '.png'))
     plt.close()
 
 
@@ -220,7 +220,7 @@ def output_x(y_values, x_values, y_label, x_label,
     plt.grid()
     if val_label is not False:
         plt.legend()
-    plt.savefig(os.path.join(path + title + '.jpg'))
+    plt.savefig(os.path.join(path + title + '.png'))
     plt.close()
 
 

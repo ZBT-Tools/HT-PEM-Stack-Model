@@ -7,4 +7,4 @@ simulation = {
     'save_csv': sim.save_csv_data,
     'save_plot': sim.save_plot_data,
     'show_loss': sim.show_voltage_loss
-             }
+    }

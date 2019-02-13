@@ -1,15 +1,15 @@
 import input.operating_conditions as op_con
-import input.geometry as geo
+import input.geometry as geom
 import input.simulation as sim
 
 
 dict_electrical_coupling =\
     {
         'cell_numb': op_con.cell_number,
-        'dx': geo.channel_length / float(sim.elements),
-        'th_bpp': geo.bipolar_plate_thickness,
-        'width_channels': geo.channel_width * op_con.gas_channel_number
-        + geo.rack_width * (op_con.gas_channel_number + 1)
+        'dx': geom.channel_length / float(sim.elements),
+        'th_bpp': geom.bipolar_plate_thickness,
+        'width_channels': geom.channel_width * geom.gas_channel_number
+                          + geom.rack_width * (geom.gas_channel_number + 1)
     }
 
 
