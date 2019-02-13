@@ -1,6 +1,6 @@
 import warnings
 import system.global_functions as g_func
-import data.water_properties as p_sat
+import data.water_properties as w_prop
 import data.gas_properties as g_fit
 import numpy as np
 import data.global_parameters as g_par
@@ -375,7 +375,7 @@ class HalfCell:
             -self.index_cat
         """
 
-        sat_p = p_sat.water.calc_p_sat(self.channel.temp_in)
+        sat_p = w_prop.water.calc_p_sat(self.channel.temp_in)
         plane_dx = self.active_area_dx_ch
         b = 0.
         if self.cl_type is True:
@@ -441,9 +441,9 @@ class HalfCell:
             -self.p_drop_bends
         """
 
-        self.p_drop_bends = self.channel.bend_fri_fac\
-            * np.average(self.rho_gas) * np.average(self.u) ** 2.\
-            * self.channel.bend_numb / (g_par.dict_case['nodes'] - 1) * .5
+        self.p_drop_bends = self.channel.bend_fri_fac \
+                            * np.average(self.rho_gas) * np.average(self.u) ** 2. \
+                            * self.channel.n_bends / (g_par.dict_case['nodes'] - 1) * .5
 
     def calc_pressure(self):
         """
@@ -504,7 +504,7 @@ class HalfCell:
             var4 = np.sum(self.mol_flow[:, w])
             var2 = self.mol_flow[1][w] / var4
             self.gas_con[1][w] = id_lw * var2
-            a = p_sat.water.calc_p_sat(self.temp_fluid[w])
+            a = w_prop.water.calc_p_sat(self.temp_fluid[w])
             e = g_par.dict_uni['R'] * self.temp_fluid[w]
             if self.gas_con[1][w] >= a / e:  # saturated
                 b = self.mol_flow[0][w] + self.mol_flow[2][w]
@@ -703,8 +703,8 @@ class HalfCell:
             -self.channel.d_h
         """
 
-        self.Re = g_func.calc_Re(self.rho_gas, self.u,
-                                 self.channel.d_h, self.visc_gas)
+        self.Re = g_func.calc_reynolds_number(self.rho_gas, self.u,
+                                              self.channel.d_h, self.visc_gas)
 
     def calc_heat_transfer_coef(self):
         """
@@ -776,7 +776,7 @@ class HalfCell:
         """
 
         self.humidity = self.gas_con[1] * g_par.dict_uni['R'] \
-            * self.temp_fluid / p_sat.water.calc_p_sat(self.temp_fluid)
+                        * self.temp_fluid / w_prop.water.calc_p_sat(self.temp_fluid)
 
     def sum_flows(self):
         """

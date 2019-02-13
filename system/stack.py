@@ -161,7 +161,8 @@ class Stack:
         This function coordinates the program sequence
         """
         for j in range(self.cell_numb):
-            self.cells[j].set_current_density(self.i_cd[j, :])
+            #self.cells[j].set_current_density(self.i_cd[j, :])
+            self.cells[j].i_cd = self.i_cd[j, :]
             self.cells[j].update()
             if self.cells[j].break_program is True:
                 self.break_program = True

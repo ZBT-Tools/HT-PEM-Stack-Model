@@ -20,7 +20,7 @@ class Channel:
         # channel width
         self.height = dict_ch['channel_height']
         # channel height
-        self.bend_numb = dict_ch['bend_numb']
+        self.n_bends = dict_ch['bend_numb']
         # number of channel bends
         self.bend_fri_fac = dict_ch['bend_fri_fac']
         # bend friction factor

@@ -608,7 +608,7 @@ class Simulation:
         plt.close()
 
         for q in range(self.stack.cell_numb):
-            print(np.average(self.stack.i_ca[q, :]))
+            print(np.average(self.stack.i_cd[q, :]))
 
     def output_csv(self, q):
         self.path_csv_data = os.path.join(os.path.dirname(__file__),

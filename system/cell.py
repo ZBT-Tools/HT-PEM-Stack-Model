@@ -138,16 +138,16 @@ class Cell:
             self.calc_voltage()
             self.calc_resistance()
 
-    def set_current_density(self, i_cd):
-        """
-        This function sets the current density.
-        The current density can be obtained
-        from the electrical coupling.
-
-            Manipulate:
-            - self.i_ca, scalar
-        """
-        self.i_cd = i_cd
+    # def set_current_density(self, i_cd):
+    #     """
+    #     This function sets the current density.
+    #     The current density can be obtained
+    #     from the electrical coupling.
+    #
+    #         Manipulate:
+    #         - self.i_ca, scalar
+    #     """
+    #     self.i_cd = i_cd
 
     def calc_cross_water_flux(self):
         """
@@ -208,7 +208,6 @@ class Cell:
             -self.omega_ca
             -self.omega
         """
-
         self.omega_ca = (self.mem_base_r
                          - self.mem_acl_r * self.temp_mem) * 1.e-4
         self.omega = self.omega_ca / self.active_area_dx
@@ -276,10 +275,11 @@ class Cell:
             Manipulate:
             -self.mem_los
         """
-
-        self.mem_loss = self.omega_ca * self.i_cd
+        #self.mem_loss = self.omega_ca * self.i_cd
         if self.calc_mem_loss is False:
             self.mem_loss = 0.
+        else:
+            self.mem_loss = self.omega_ca * self.i_cd
 
     def calc_voltage(self):
         """
@@ -287,7 +287,6 @@ class Cell:
             Calculates the cell voltage
             If the cell voltage loss is larger than the
             open circuit cell voltage, the cell voltage is set to zero.
-
 
             Access to:
             -self.mem_loss
@@ -320,4 +319,5 @@ class Cell:
             -self.resistance
         """
         self.resistance = self.v_loss / self.i_cd + 2. \
-                          * g_par.dict_case['bpp_resistivity'] * self.cathode.th_bpp
+                          * g_par.dict_case['bpp_resistivity'] \
+                          * self.cathode.th_bpp
