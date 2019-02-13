@@ -357,7 +357,6 @@ class TemperatureSystem:
             -self.v_loss
             -self.omega
         """
-
         self.g_fluid = \
             np.array([g_func.calc_elements_2d(dict_temp_sys_dyn['g_gas'][0]),
                       g_func.calc_elements_2d(dict_temp_sys_dyn['g_gas'][1])])\
@@ -380,7 +379,6 @@ class TemperatureSystem:
             -self.v_loss
             -self.k_gas_ch
         """
-
         self.v_loss = np.array(self.v_loss)
         self.k_gas_ch = np.array([g_func.calc_elements_2d(self.k_gas_ch[0]),
                                   g_func.calc_elements_2d(self.k_gas_ch[1])])\
@@ -419,7 +417,6 @@ class TemperatureSystem:
             Manipulate:
             -self.temp_fluid
         """
-
         for q in range(self.n_cells):
             for w in range(1, self.nodes):
                 self.temp_fluid[0, q, w] =\
@@ -457,7 +454,6 @@ class TemperatureSystem:
                     -self.temp_cool
                     -self.temp_cool_ele
                 """
-
         for q in range(self.n_cells):
             for w in range(1, self.nodes):
                 self.temp_cool[q, w] =\
