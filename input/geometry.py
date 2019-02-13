@@ -14,7 +14,6 @@ channel_number = 10.
 # channel bends [n]
 channel_bends = 48.
 
-
 """Coolant Channel Geometry"""
 # height of the coolant channel [m]
 coolant_channel_height = 1.e-3
@@ -22,8 +21,6 @@ coolant_channel_height = 1.e-3
 coolant_channel_widht = 1.e-3
 # number of coolant channels
 coolant_channel_number = 10.
-
-
 
 """"Cell Geometry """
 # thickness of the membrane [m]

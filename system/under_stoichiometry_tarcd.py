@@ -4,7 +4,6 @@ import understoi_dict as u_dict
 import data.global_parameters as g_par
 
 
-
 const_param = None
 dyn_param = None
 self.i_theta = np.sqrt(2. * self.vol_ex_cd * self.prot_con
