@@ -388,7 +388,6 @@ class TemperatureSystem:
         """
         This function coordinates the program sequence
         """
-
         self.change_value_shape()
         self.update_gas_channel_lin()
         self.update_coolant_channel_lin()
@@ -398,7 +397,6 @@ class TemperatureSystem:
         """
         This function coordinates the temp_layer program sequence
         """
-
         self.update_matrix()
         self.update_rhs()
         self.solve_system()
