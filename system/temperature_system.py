@@ -9,48 +9,47 @@ np.set_printoptions(linewidth=10000, threshold=None, precision=2)
 
 class TemperatureSystem:
 
-    def __init__(self, temp_sys_dict):
+    def __init__(self, dict):
+        self.dict = dict
         # Handover
-        self.n_cells = temp_sys_dict['cell_numb']
+        self.n_cells = dict['cell_numb']
         # cell number
-        self.n_nodes = temp_sys_dict['nodes']
+        self.n_nodes = dict['nodes']
         # node number
         self.n_ele = self.n_nodes - 1
         # element number
-        ch_length = temp_sys_dict['channel_length']
+        ch_length = dict['channel_length']
         # channel length
-        ch_width = temp_sys_dict['channel_width']
+        ch_width = dict['channel_width']
         # channel width
-        self.cool_ch_bc = temp_sys_dict['cool_ch_bc']
+        self.cool_ch_bc = dict['cool_ch_bc']
         # coolant geometry condition
-        self.temp_gas_in = temp_sys_dict['temp_gas_in']
+        self.temp_gas_in = dict['temp_gas_in']
         # gas inlet temperature
-        temp_cool_in = temp_sys_dict['cool_temp_in']
+        temp_cool_in = dict['cool_temp_in']
         # coolant inlet temperature
-        temp_layer_init = temp_sys_dict['temp_layer_init']
+        temp_layer_init = dict['temp_layer_init']
         # initial temperature
-        cp_cool = temp_sys_dict['cool_cp']
+        cp_cool = dict['cool_cp']
         # coolant heat capacity
-        m_flow_cool = temp_sys_dict['cool_m_flow']
+        m_flow_cool = dict['cool_m_flow']
         # mass flow of the coolant
-        rho_cool = temp_sys_dict['cool_density']
+        rho_cool = dict['cool_density']
         # density of the coolant
-        visc_cool = temp_sys_dict['cool_visc']
+        visc_cool = dict['cool_visc']
         # viscosity of the coolant
-        height_cool = temp_sys_dict['channel_height']
+        height_cool = dict['channel_height']
         # height of the coolant channel
-        width_cool = temp_sys_dict['channel_width']
+        width_cool = dict['channel_width']
         # width of the coolant channel
-        n_cool = temp_sys_dict['cool_ch_numb']
+        n_cool = dict['cool_ch_numb']
         # number of coolant channels
-        # number of gas channels
-        self.heat_pow = temp_sys_dict['heat_pow']
         # end plate heat power
-        self.lambda_cool = temp_sys_dict['cool_lambda']
+        self.lambda_cool = dict['cool_lambda']
         # heat conductance from the channel to the coolant
-        self.k_layer = temp_sys_dict['k_layer']
+        self.k_layer = dict['k_layer']
         # heat conductance array through and along the control volume
-        self.k_alpha_env = temp_sys_dict['k_alpha_env']
+        self.k_alpha_env = dict['k_alpha_env']
         # heat conductance from control volume to the environment
         self.temp_env = g_par.dict_case['temp_env']
         # environment temperature
@@ -489,6 +488,8 @@ class TemperatureSystem:
             Manipulate:
             -self.rhs
         """
+        heat_pow = self.dict['heat_pow']
+
         self.rhs = np.full(self.n_ele * (5 * (self.n_cells - 1) + 6), 0.)
         rhs = self.rhs
         temp_env = self.temp_env
@@ -519,7 +520,7 @@ class TemperatureSystem:
                     - w_prop.water.calc_h_vap(self.temp_fluid[1, q, w]) \
                     * self.cond_rate[1, q, w]
                 if q is 0:
-                    rhs[ct] -= self.heat_pow
+                    rhs[ct] -= heat_pow
                     if self.cool_ch_bc is True:
                         rhs[ct] -= self.k_cool * self.temp_cool_ele[0, w]
                     cr = 5
@@ -528,7 +529,7 @@ class TemperatureSystem:
                     cr = 5
                 else:
                     rhs[ct] -= self.k_cool * self.temp_cool_ele[q, w]
-                    rhs[ct + 5] -= self.heat_pow \
+                    rhs[ct + 5] -= heat_pow \
                         - .5 * self.k_alpha_env[0, 2, 0] * temp_env
                     if self.cool_ch_bc is True:
                         rhs[ct + 5] -= self.k_cool * self.temp_cool_ele[-1, w]

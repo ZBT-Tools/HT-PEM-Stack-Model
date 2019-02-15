@@ -8,10 +8,11 @@ import data.half_cell_dict as hc_dict
 class Cell:
 
     def __init__(self, dict_cell):
+        self.dict_cell = dict_cell
         # Handover
-        self.anode = h_c.HalfCell(hc_dict.dict_anode)
+        self.anode = h_c.HalfCell(hc_dict.dict_anode, dict_cell)
         # anode - object of the class HalfCell
-        self.cathode = h_c.HalfCell(hc_dict.dict_cathode)
+        self.cathode = h_c.HalfCell(hc_dict.dict_cathode, dict_cell)
         # cathode - object of the class HalfCell
         self.th_mem = dict_cell['th_mem']
         # thickness membrane
@@ -84,52 +85,53 @@ class Cell:
             + 2. * self.cathode.th_bpp\
             + 2. * self.cathode.th_gde
         # height of the cell
-        nodes = g_par.dict_case['nodes']
+        n_nodes = g_par.dict_case['nodes']
         # number of nodes along the channel
-        self.w_cross_flow = np.zeros(nodes-1)
+        n_ele = n_nodes - 1
+        self.w_cross_flow = np.zeros(n_ele)
         # water cross flux through the membrane
-        self.omega_ca = np.zeros(nodes)
+        self.omega_ca = np.zeros(n_nodes)
         # area specific membrane resistance
-        self.v_loss = np.full(nodes - 1, 0.)
+        self.v_loss = np.full(n_ele, 0.)
         # voltage loss
-        self.temp = np.full((5, nodes - 1), dict_cell['temp_init'])
+        self.temp = np.full((5, n_ele), dict_cell['temp_init'])
         # layer temperature
-        self.temp_mem = np.zeros(nodes)
+        self.temp_mem = np.zeros(n_nodes)
         # membrane temperature
-        self.i_cd = np.full((nodes - 1), 0.)
+        self.i_cd = np.full(n_ele, 0.)
         # current density
-        self.omega = np.full(nodes-1, 0.)
+        self.omega = np.full(n_ele, 0.)
         # membrane resistance
-        self.mem_loss = np.full((nodes - 1), 0.)#
+        self.mem_loss = np.full(n_ele, 0.)#
         # voltage loss at the membrane
-        self.v = np.full((nodes - 1), 0.)
+        self.v = np.full(n_ele, 0.)
         # cell voltage
-        self.resistance = np.full((nodes - 1), 0.)
+        self.resistance = np.full(n_ele, 0.)
         # cell resistance
 
     def update(self):
         """
         This function coordinates the program sequence
         """
+        is_ht_pem = self.dict_cell['is_ht_pem']
         self.temp_mem = .5 * (self.temp[2] + self.temp[3])
-        if g_par.dict_case['pem_type'] is False:
-            self.cathode.set_pem_type(False)
-            self.anode.set_pem_type(False)
-            self.cathode.set_water_cross_flux(self.w_cross_flow)
-            self.anode.set_water_cross_flux(self.w_cross_flow)
-        self.cathode.set_current_density(self.i_cd)
-        self.anode.set_current_density(self.i_cd)
+        if not is_ht_pem:
+            self.cathode.is_ht_pem = False
+            self.anode.is_ht_pem = False
+            self.cathode.w_cross_flow = self.w_cross_flow
+            self.anode.w_cross_flow = self.w_cross_flow
+        self.cathode.i_ca = self.i_cd
+        self.anode.i_ca = self.i_cd
         self.cathode.set_layer_temperature([self.temp[2],
                                             self.temp[3],
                                             self.temp[4]])
         self.anode.set_layer_temperature([self.temp[0], self.temp[1]])
         self.cathode.update()
         self.anode.update()
-        if self.anode.break_program is True\
-                or self.cathode.break_program is True:
+        if self.anode.break_program or self.cathode.break_program:
             self.break_program = True
         else:
-            if g_par.dict_case['pem_type'] is False:
+            if not is_ht_pem:
                 self.calc_cross_water_flux()
                 self.calc_mem_resistivity_springer()
             else:
@@ -137,17 +139,6 @@ class Cell:
             self.calc_membrane_loss()
             self.calc_voltage()
             self.calc_resistance()
-
-    # def set_current_density(self, i_cd):
-    #     """
-    #     This function sets the current density.
-    #     The current density can be obtained
-    #     from the electrical coupling.
-    #
-    #         Manipulate:
-    #         - self.i_ca, scalar
-    #     """
-    #     self.i_cd = i_cd
 
     def calc_cross_water_flux(self):
         """

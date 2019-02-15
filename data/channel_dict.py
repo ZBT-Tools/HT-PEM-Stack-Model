@@ -5,7 +5,7 @@ import input.operating_conditions as op_con
 
 dict_cathode_channel = {
     'channel_length': geom.channel_length,
-    'p_in': op_con.p_manifold_cathode_out,
+    'p_out': op_con.p_manifold_cathode_out,
     'temp_in': op_con.temp_air_in,
     'hum_in': phy_prop.inlet_humidity_cathode,
     'flow_dir': phy_prop.cathode_channel_flow_direction,
@@ -18,7 +18,7 @@ dict_cathode_channel = {
 
 dict_anode_channel = {
     'channel_length': geom.channel_length,
-    'p_in': op_con.p_manifold_anode_out,
+    'p_out': op_con.p_manifold_anode_out,
     'temp_in': op_con.temp_anode_gas_in,
     'hum_in': phy_prop.inlet_humidity_anode,
     'flow_dir': phy_prop.anode_channel_flow_direction,

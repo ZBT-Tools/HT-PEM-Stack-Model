@@ -14,7 +14,7 @@ stoichiometry_cathode = 2.5
 # anode stoichiometry
 stoichiometry_anode = 2.
 # pem-type (True = HT-PEM, False = NT-PEM)
-pem_type = True
+is_ht_pem = True
 
 """"Thermal Settings"""
 # air inlet temperature [K]
