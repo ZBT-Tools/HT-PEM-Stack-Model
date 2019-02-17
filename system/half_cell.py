@@ -672,8 +672,8 @@ class HalfCell:
         self.m_flow_liq_w = self.liq_w_flow * self.mol_mass[1]
         self.m_flow_vap_w = (self.mol_flow[1] - self.liq_w_flow)\
             * self.mol_mass[1]
-        self.m_flow_reac_delta = abs(g_func.calc_dif(self.m_flow_reac))
-        self.m_flow_vap_water_delta = abs(g_func.calc_dif(self.m_flow_vap_w))
+        self.m_flow_reac_delta = abs(g_func.calc_diff(self.m_flow_reac))
+        self.m_flow_vap_water_delta = abs(g_func.calc_diff(self.m_flow_vap_w))
         self.m_flow_fluid = self.m_flow_gas + self.m_flow_liq_w
 
     def calc_fluid_flow_properties(self):

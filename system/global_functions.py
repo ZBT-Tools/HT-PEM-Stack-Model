@@ -17,7 +17,7 @@ def to_array(var, m, n):
     return np.reshape(var.flatten(order='C'), (m, n))
 
 
-def calc_dif(vec):
+def calc_diff(vec):
     """
     Calculates the difference between the i+1 and i position of an 1-d-array.
     """
