@@ -4,6 +4,7 @@ import input.operating_conditions as op_con
 import input.simulation as sim
 # still in search for shortings to replace mem_bas_r and mem_acl_r
 dict_cell = {
+    'is_ht_pem': op_con.is_ht_pem,
     'th_mem': geom.membrane_thickness,
     'lambda_z_bpp': phy_prop.thermal_conductivity_bipolar_plate_z,
     'lambda_z_gde': phy_prop.thermal_conductivity_gas_diffusion_electrode_z,
