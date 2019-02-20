@@ -261,7 +261,7 @@ class Simulation:
         plt.ylim(0., 1.)
         plt.tight_layout()
         plt.savefig(os.path.join(os.path.dirname(__file__),
-                                 'output/' + 'Polarization_curve' + '.jpg'))
+                                 'output/' + 'Polarization_curve' + '.png'))
         plt.close()
 
     def save_voltages(self):
