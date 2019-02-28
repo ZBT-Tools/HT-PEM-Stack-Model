@@ -160,8 +160,8 @@ class Cell:
         """
         vap_coeff = g_par.dict_case['vap_m_temp_coeff']
         humidity = [self.cathode.humidity, self.anode.humidity]
-        humidity_ele = np.array([g_func.calc_elements_1_d(humidity[0]),
-                                 g_func.calc_elements_1_d(humidity[1])])
+        humidity_ele = np.array([g_func.calc_elements_1d(humidity[0]),
+                                 g_func.calc_elements_1d(humidity[1])])
         a = 0.043 + 17.81 * humidity_ele
         b = -39.85 * humidity_ele ** 2. + 36. * humidity_ele ** 3.
         free_w_content = a + b
@@ -246,7 +246,7 @@ class Cell:
             -self.omega
         """
         humidity = (self.cathode.humidity + self.anode.humidity) * 0.5
-        humidity_ele = g_func.calc_elements_1_d(humidity)
+        humidity_ele = g_func.calc_elements_1d(humidity)
         a = 0.043 + 17.81 * humidity_ele
         b = -39.85 * humidity_ele ** 2. + 36. * humidity_ele ** 3.
         free_water_content = a + b

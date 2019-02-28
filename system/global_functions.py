@@ -83,9 +83,9 @@ def calc_psi(visc, mol_w):
     psi = []
     for q in range(len(visc)):
         for w in range(len(visc)):
-            a = (1. + (visc[q] / visc[w])**0.5
-                 * (mol_w[w] / mol_w[q])**0.25)**2.
-            b = np.sqrt(8.) * (1. + mol_w[q] / mol_w[w])**0.5
+            a = (1. + np.power((visc[q] / visc[w]), 0.5)
+                 * np.power(np.power((mol_w[w] / mol_w[q]), 0.25), 2.))
+            b = np.sqrt(8.) * np.power((1. + mol_w[q] / mol_w[w]), 0.5)
             psi.append(a / b)
     return psi
 
@@ -99,37 +99,37 @@ def calc_lambda_mix(lambdax, mol_f, visc, mol_w):
     psi = calc_psi(visc, mol_w)
     counter = 0
     outcome = 0.
-    for q in range(len(visc)):
-        a = mol_f[q] * lambdax[q]
+    for i in range(len(visc)):
+        a = mol_f[i] * lambdax[i]
         b = 1.e-20
         for w in range(len(visc)):
-            b = b + mol_f[q] * psi[counter]
+            b = b + mol_f[i] * psi[counter]
             counter = counter + 1
         outcome = outcome + a / b
     return outcome
 
 
-def calc_elements_1_d(node_vec):
+def calc_elements_1d(node_vec):
     """
     Calculates an element 1-d-array from a node 1-d-array.
     """
-    return np.array((node_vec[:-1] + node_vec[1:])) * .5
+    return np.asarray((node_vec[:-1] + node_vec[1:])) * .5
 
 
 def calc_elements_2d(node_mat):
     """
     Calculates an element 2-d-array from a node 2-d-array.
     """
-    return np.array((node_mat[:, :-1] + node_mat[:, 1:])) * .5
+    return np.asarray((node_mat[:, :-1] + node_mat[:, 1:])) * .5
 
 
-def calc_nodes_2_d(ele_mat):
+def calc_nodes_2d(ele_mat):
     """
     Calculates an node 2-d-array from an element 2-d-array,
     uses the [:, 1], [:, -2] entries of the calculated node 2-d-array
     to fill the first als last row of the node 2-d-array.
     """
-    mat = np.array((ele_mat[:, :-1] + ele_mat[:, 1:])) * .5
+    mat = np.asarray((ele_mat[:, :-1] + ele_mat[:, 1:])) * .5
     return np.hstack([mat[:, [0]], mat, mat[:, [-1]]])
 
 
@@ -144,13 +144,13 @@ def calc_nodes_2_d(ele_mat):
 #     return np.concatenate((first_node.T, re_array, last_node.T), axis=1)
 
 
-def calc_nodes_1_d(ele_vec):
+def calc_nodes_1d(ele_vec):
     """
     Calculates an node 1-d-array from an element 1-d-array,
     uses the [:, 1], [:, -2] entries of the calculated node 1-d-array
     to fill the first als last row of the node 1-d-array.
     """
-    vec = np.array((ele_vec[:-1] + ele_vec[1:])) * .5
+    vec = np.asarray((ele_vec[:-1] + ele_vec[1:])) * .5
     return np.hstack([vec[0], vec, vec[-1]])
 
 
