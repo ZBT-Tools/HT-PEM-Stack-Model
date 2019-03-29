@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import os
 import errno
 import timeit
-np.set_printoptions(threshold=np.nan, linewidth=10000,
+np.set_printoptions(threshold=np.nan, linewidth=100,
                     precision=9, suppress=True)
 
 
@@ -33,16 +33,10 @@ class Simulation:
 
     def __init__(self, dict_simulation):
         # Handover
-        self.it_crit = dict_simulation['iteration_criteria']
         # iteration criteria
+        self.it_crit = dict_simulation['iteration_criteria']
+        # maximal number of iterations before force termination
         self.max_it = dict_simulation['maximal_iteration']
-        # maximal number of iterations before force termination#
-        self.save_csv = dict_simulation['save_csv']
-        # switch to save the csv data
-        self.save_plot = dict_simulation['save_plot']
-        # switch to save the plot data
-        self.show_loss = dict_simulation['show_loss']
-        # switch to show the single voltage losses in the u-i-graph
         cell_numb = st_dict.dict_stack['cell_numb']
         # number of stack cells
         nodes = g_par.dict_case['nodes']
@@ -214,9 +208,9 @@ class Simulation:
                      + np.array(self.mdf_criteria_cat_process)) * .5
                 self.save_voltages()
                 print(item)
-                if self.save_plot is True:
+                if g_par.dict_case['save_plt'] is True:
                     self.output_plots(str(q))
-                if self.save_csv is True:
+                if g_par.dict_case['save_csv'] is True:
                     self.output_csv(str(q))
             else:
                 oper_con.target_current_density =\
@@ -238,25 +232,7 @@ class Simulation:
           if e.errno != errno.EEXIST:
               raise
       cd_array = np.asarray(oper_con.target_current_density) * 1.e-4
-      plt.plot(cd_array, self.v, marker='.', color='k', label='Simulation')
-      a= [0.9499848647719047, 0.7469483413721764, 0.7176805898449299,
-       0.6998481071283353, 0.6866529141903911, 0.6759620122436885,
-       0.6668232421141305, 0.6587269101808086, 0.6513671445063615,
-       0.644545166298152, 0.6381238427925507, 0.6320041529295971,
-       0.6261116479305749, 0.6203886915614374, 0.6147893173950336,
-       0.6092759681526516, 0.6038172613981327, 0.5983864253822543,
-       0.5929601739809931, 0.5875178773940085, 0.5820409368696621,
-       0.576512267214822, 0.5709160635716911, 0.5652372765208061,
-       0.5594615125091995, 0.5535747879691998, 0.5475633513816296,
-       0.5414135276534248, 0.5351115787618176, 0.5286435759168192,
-       0.5219952794169213, 0.5151520230266093, 0.5080986264636029,
-       0.5008191775641363, 0.49329706857057504, 0.4855147724345696,
-       0.47745374966744963, 0.4690942673649541, 0.46041531213552916,
-       0.4513943822733027, 0.4420073270442749, 0.4322281377603891,
-       0.4220287257589967, 0.4113786724822608, 0.4002449469790305,
-       0.38859158546161493, 0.3763793265757484, 0.36356519470308274,
-       0.3501020219051873, 0.3359378971652752]
-      if self.show_loss is True:
+      if g_par.dict_case['show_pol_curve'] is True:
           plt.plot(cd_array, self.mem_loss_ui, color='b', marker='.',
                    label='Membrane Loss')
           plt.plot(cd_array, self.act_loss_ui_ano, color='g', marker='*',
@@ -408,49 +384,6 @@ class Simulation:
                         'linear', 'Coolant Temperature', False,
                         [0., ch_dict.dict_cathode_channel['channel_length']],
                         self.path_plot)
-
-        plt.plot(x_ele, self.stack.temp_cpl_stack.temp_layer[1][0, :],
-                 color='k', linestyle='-') # cat bpp_bpp
-        plt.plot(x_ele, self.stack.temp_cpl_stack.temp_layer[1][1, :],
-                 color='r', linestyle='-.') # cat bpp-gde
-        plt.plot(x_ele, self.stack.temp_cpl_stack.temp_layer[1][2, :],
-                 color='r', linestyle=':') # cat gde-mem
-        plt.plot(x_ele, self.stack.temp_cpl_stack.temp_layer[1][3, :],
-                 color='b', linestyle=':') # ano gde-mem
-        plt.plot(x_ele, self.stack.temp_cpl_stack.temp_layer[1][4, :],
-                 color='b', linestyle='-.') # ano bpp-gde
-        plt.plot(x_ele, self.stack.temp_cpl_stack.temp_layer[2][0, :],
-                 color='k', linestyle='-') # ano bpp-bpp
-        plt.xlabel('Channel Location $[m]$', fontsize=16)
-        plt.ylabel('Temperature', fontsize=16)
-        plt.tick_params(labelsize=14)
-        plt.autoscale(tight=True, axis='both', enable=True)
-        plt.xlim(0., ch_dict.dict_cathode_channel['channel_length'])
-        plt.tight_layout()
-        plt.grid()
-        plt.savefig(self.path_plot + 'Temperatures' + '.jpg')
-        plt.close()
-
-        plt.plot(x_node, self.stack.temp_cpl_stack.temp_fluid[0, 1, :],
-                 color='r')  # air
-        plt.plot(x_node, self.stack.temp_cpl_stack.temp_fluid[1, 1, :],
-                 color='b')  # hydrogen
-        plt.plot(x_node, self.stack.temp_cpl_stack.temp_cool[1],
-                 color='k')  # cool 0
-        plt.plot(x_node, self.stack.temp_cpl_stack.temp_cool[2],
-                 color='k')  # cool 1
-        plt.xlabel('Channel Location $[m]$', fontsize=16)
-        plt.ylabel('Temperature', fontsize=16)
-        plt.tick_params(labelsize=14)
-        plt.autoscale(tight=True, axis='both', enable=True)
-        plt.xlim(0., ch_dict.dict_cathode_channel['channel_length'])
-        plt.tight_layout()
-        plt.grid()
-        plt.savefig(self.path_plot + 'Temperatures_channel' + '.jpg')
-        plt.close()
-
-
-
         self.plot_cell_var('temp[-1]',
                            'Anode BPP - GDE Temperature $[K]$',
                            'Channel Location $[m]$', 'linear',
@@ -682,11 +615,30 @@ class Simulation:
         self.path_csv_data = os.path.join(os.path.dirname(__file__),
                                           'output/' + 'case' + q
                                           + '/csv_data' + '/')
+        print(self.path_csv_data)
         try:
             os.makedirs(self.path_csv_data)
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
+
+            print(len(self.stack.cells))
+            twod_array = np.zeros((g_par.dict_case['nodes'],
+                                 len(self.stack.cells)))
+
+            for i in range(len(self.stack.cells[0].anode.mol_flow)):
+                for j in range(len(self.stack.cells)):
+                    twod_array[:, j] = self.stack.cells[j].anode.mol_flow[i]
+                np.savetxt(self.path_csv_data + 'anode_mol_flow' + str(i) + '.csv',
+                           twod_array, delimiter=self.delimiter,
+                           fmt=self.csv_format)
+            for i in range(len(self.stack.cells[0].cathode.mol_flow)):
+                for j in range(len(self.stack.cells)):
+                    twod_array[:, j] = self.stack.cells[j].anode.mol_flow[i]
+                np.savetxt(self.path_csv_data + 'cathode_mol_flow' + str(i) + '.csv',
+                           twod_array, delimiter=self.delimiter,
+                           fmt=self.csv_format)
+
         for w, item in enumerate(self.stack.cells):
             self.mol_flow[0, w] = item.cathode.mol_flow[0]
             self.mol_flow[1, w] = item.cathode.mol_flow[1]
@@ -873,6 +825,7 @@ class Simulation:
                    self.visc[1], delimiter=self.delimiter, fmt=self.csv_format)
         np.savetxt(self.path_csv_data + 'Nitrogen Dynamic Viscosity.csv',
                    self.visc[2], delimiter=self.delimiter, fmt=self.csv_format)
+        print(self.path_csv_data, 'Nitrogen Dynamic Viscosity.csv')
         np.savetxt(self.path_csv_data + 'Hydrogen Dynamic Viscosity.csv',
                    self.visc[3], delimiter=self.delimiter, fmt=self.csv_format)
         np.savetxt(self.path_csv_data + 'Anode Gas Water Dynamic Viscosity.csv',

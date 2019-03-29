@@ -17,6 +17,8 @@ class HalfCell:
     def __init__(self, dict_hc):
         # number of nodes along the channel
         nodes = g_par.dict_case['nodes']
+
+        self.species_list = dict_hc['species']
         # check if the object is an anode or a cathode
         # catalyst layer specific handover
         if dict_hc['cl_type'] is True:

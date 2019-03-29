@@ -24,5 +24,11 @@ dict_case = {
     'calc_act_loss': sim.calc_activation_loss,
     'calc_gdl_diff_loss': sim.calc_gdl_loss,
     'calc_cl_diff_loss': sim.calc_cl_loss,
-    'calc_mem_loss': sim.calc_membrane_loss
-            }
+    'calc_mem_loss': sim.calc_membrane_loss,
+    'calc_temperature': sim.calc_temperature,
+    'calc_current_density': sim.calc_current_density,
+    'calc_flow_distribution': sim.calc_flow_distribution,
+    'save_csv': sim.save_csv_data,
+    'save_plt': sim.save_plot_data,
+    'show_pol_curve': sim.show_voltage_loss
+     }

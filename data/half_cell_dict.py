@@ -5,6 +5,7 @@ import input.operating_conditions as op_con
 
 
 dict_cathode = {
+ 'species': ['O2', 'H2O', 'N2'],
  'cell_width': geom.cell_width,
  'cell_length': geom.cell_length,
  'channel_numb': op_con.gas_channel_number,
@@ -20,6 +21,7 @@ dict_cathode = {
                 }
 
 dict_anode = {
+    'species': ['H2', 'H2O', 'N2'],
     'cell_width': geom.cell_width,
     'cell_length': geom.cell_length,
     'channel_numb': op_con.gas_channel_number,

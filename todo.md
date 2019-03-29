@@ -1,6 +1,6 @@
 To-do-list:
 -
-The development of the PEMFC-Stack-Model is ist in progress.
+The development of the PEMFC-Stack-Model is in progress.
 
 The main issues can be found in the manifold,
  thermic and electrical couplings are:
@@ -34,6 +34,14 @@ The main issues can be found in the manifold,
   high grid density, decreasing the temperature system level down
   to the cell level is necessary. This should also ease the understanding of the
   matrix position of connecting heat conductivities.
+- In the case of keeping the temperature System as an direct object of the class
+  Stack, define the heat conductivities on stack level
+  or directly inside the class TemperatureSystem.
+- Rethink if different thermal conductivities are necessary, if not redefine the
+  thermal conductivity arrays (not necessary if the temperature system
+  is defined on cell level)
+- Include the free convection model in the class TemperatureSystem (not
+  necessary if the temperature system is defined on cell level)
 
   
 **Polarization Curve**
@@ -61,6 +69,21 @@ The main issues can be found in the manifold,
     
   An option here is to rebuild the class channel on an universal fundament,
   including flow mechanics.
+  
+**Membrane**
+- Set up the class Membrane including the methods to calculate the crossflow
+  and the electrical resistance of the membrane
+  
+**Hierarchy**
+- Rebuild and narrow the low level classes beyond the cell
+  level an option could be: Simulation <- [Stack, Output]
+   <- [Cells, FlowDistribution, ElectricalNetwork]
+   <- [Membrane (ElectricalMethods, Crossflow),
+       Channels(ReactantChannelMethods),
+        VoltageLosses, TemperatureSystem]  
+   
+
+ 
 
     
    

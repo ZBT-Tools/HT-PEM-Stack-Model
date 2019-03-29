@@ -232,3 +232,11 @@ def calc_fluid_temp_out(temp_in, temp_wall, g, k):
     """
 
     return (temp_in * (g - .5 * k) + temp_wall * k) / (g + k * .5)
+
+
+def calc_convergence_criteria(new_val, old_val):
+    """
+    Calculates the convergence of a given set of values
+    """
+
+    return (abs(new_val-old_val)/old_val)

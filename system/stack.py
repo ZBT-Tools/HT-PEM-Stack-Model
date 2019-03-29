@@ -15,112 +15,96 @@ class Stack:
 
     def __init__(self, dict_stack):
         # Handover
+        # number of stack cells
         self.cell_numb = dict_stack['cell_numb']
-        # number of cells of the stack
-        self.stoi_cat = dict_stack['stoi_cat']
-        # inlet stoichiometry of the cathode header
-        self.stoi_ano = dict_stack['stoi_ano']
-        # inlet stoichiometry of the anode header
-        nodes = g_par.dict_case['nodes']
         # node points along the x-axis
-        self.alpha_env = dict_stack['alpha_env']
-        # environment convection coefficient
-        self.calc_temp = dict_stack['calc_temperature']
-        # switch to calculate the temperature distribution
-        self.calc_cd = dict_stack['calc_current_density']
-        # switch to calculate the current density distribution
-        self.calc_flow_dis = dict_stack['calc_flow_distribution']
-        # switch to calculate the flow distribution
-
+        nodes = g_par.dict_case['nodes']
+        # create a list of the cells
         self.cells = []
-        # list of the stack cells
         for w in range(self.cell_numb):
             x = cl.Cell(c_dict.dict_cell)
             self.cells.append(x)
-        self.set_stoichiometry(np.full(self.cell_numb, self.stoi_cat),
-                               np.full(self.cell_numb, self.stoi_ano))
-
-        # Initialize the manifolds
+        # set the inlet stoichiometry
+        self.set_stoichiometry(np.full(self.cell_numb, dict_stack['stoi_cat']),
+                               np.full(self.cell_numb, dict_stack['stoi_ano']))
+        # initialize the manifolds
         self.manifold = [m_fold.Manifold(m_fold_dict.dict_mfold_cat),
                          m_fold.Manifold(m_fold_dict.dict_mfold_ano)]
-        self.manifold[0].head_stoi = self.stoi_cat
-        self.manifold[1].head_stoi = self.stoi_ano
-
+        self.manifold[0].head_stoi = dict_stack['stoi_cat']
+        self.manifold[1].head_stoi = dict_stack['stoi_ano']
         # Initialize the electrical coupling
         self.el_cpl_stack = el_cpl\
             .ElectricalCoupling(el_cpl_dict.dict_electrical_coupling)
-
         """boolean alarms"""
-        self.v_alarm = False
         # True if :voltage loss > cell voltage
-        self.break_program = False
+        self.v_alarm = False
         # True if the program aborts because of some critical impact
-
+        self.break_program = False
         """General data"""
-        self.cathode_mfd_criteria = 0.
         # convergence criteria of the air manifold
-        self.anode_mfd_criteria = 0.
+        self.cathode_mfd_criteria = 0.
         # convergence criteria of the h2 gas mix manifold
+        self.anode_mfd_criteria = 0.
+        # current density [A/m²]
         self.i_ca = np.full((self.cell_numb, nodes - 1),
                             g_par.dict_case['tar_cd'])
-        # current density
+        # current density of the previous iteration [A/m²]
         self.i_ca_old = copy.deepcopy(self.i_ca)
-        # current density of the last iteration
+        # current [A]
         self.i = np.full((self.cell_numb, nodes - 1), 20.)
-        # current
+        # cell voltage [V]
         self.v_cell = []
-        # cell voltage
+        # cell over voltage [V]
         self.v_loss = []
-        # cell voltage loss
+        # cathodic over voltages [V]
         self.v_loss_cat = []
-        # cathode voltage loss
+        # anodic over voltages [V]
         self.v_loss_ano = []
-        # anode voltage loss
+        # array of the cell resistances in z-dir [Ohm]
         self.stack_cell_r = []
-        # cell resistance in z-direction
+        # molar flow at the in- and outlets of the cathodic channels [mol/s]
         self.q_sum_cat = []
-        # molar flow at the inlet and outlet of the cathode channels
+        # molar flow at the in- and outlets of the anodic channels [mol/s]
         self.q_sum_ano = []
-        # molar flow  at the inlet and outlet of the anode channels
+        # mass flow at the in- and outlets of the cathodic channels [kg/s]
         self.m_sum_cat = []
-        # mass flow at the inlet and outlet of the cathode channels
+        # mass flow at the in- and outlets of the anodic channels [kg/s]
         self.m_sum_ano = []
-        # mass flow at the inlet and outlet of the anode channels
+        # heat capacity in the cathode channels [J/kgK]
         self.cp_cat = []
-        # heat capacity in the cathode channels
+        # heat capacity in the anode channels [J/kgK]
         self.cp_ano = []
-        # heat capacity in the anode channels
+        # viscosity at the in- and outlets of the cathodic channels [kg/ms]
         self.visc_cat = []
-        # viscosity at the inlet and outlet of the cathode channels
+        # viscosity at the in- and outlets of the anodic channels [kg/ms]
         self.visc_ano = []
-        # viscosity at the inlet and outlet of the anode channels
+        # pressure at the in- and outlet of the cathodic channels [Pa]
         self.p_cat = []
-        # pressure at the inlet and outlet of the cathode channels
+        # pressure at the in- and outlet of the anodic channels [Pa]
         self.p_ano = []
-        # pressure at the inlet and outlet of the anode channels
+        # gas constant of the air at the in- and outlet
+        # of the cathode channels [J/kgK]
         self.r_cat = []
-        # gas constant of air fluid at the inlet
-        # and outlet of the cathode channels
+        # gas constant of the hydrogen mixture at the in- and outlet
+        # of the anode channels [J/kgK]
         self.r_ano = []
-        # gas constant of the hydrogen fluid at the
-        # inlet and outlet of the anode channels
+        # air temperature at the channel in- and outlets [K]
         self.temp_fluid_cat = []
-        # inlet and outlet temperature of the cathode channel fluid
+        # hydrogen mixture temperature at the channel in- and outlets [K]
         self.temp_fluid_ano = np.zeros(self.cell_numb)
-        # inlet and outlet temperature of the anode channel fluid
+        # convection conductance to the environment [W/K]
         self.k_alpha_env = np.full((2, 3, self.cell_numb), 0.)
-        # convection conductance to the environment
+        # convection conductance between the channel and the fluid [W/K]
         self.k_alpha_ch = None
-        # convection conductance between the channel and the fluid
+        # condensation rate of water in the channels [mol/s]
         self.cond_rate = np.full((2, self.cell_numb, nodes), 0.)
-        # molar condensation rate
+        # electrical resistance of the membrane [ohm]
         self.omega = np.full((self.cell_numb, nodes), 0.)
-        # electrical resistance of the membran
-        self.m_reac_flow_delta = np.full((self.cell_numb, nodes), 0.)
-        # mass flow of the consumed oxygen in the cathode channels
+        # enthalpy flow of the channel fluids [W]
         self.g_fluid = []
-        # heat capacity flow of the channel fluids
+        # heat capacity of the hydrogen [J/kgK]
         self.cp_h2 = np.full((self.cell_numb, nodes), 0.)
+        # heat conductivities of the cell layer [W/K]
         k_p, k_g, k_m = [], [], []
         k_pp, k_gp, k_gm = [], [], []
         for i, item in enumerate(self.cells):
@@ -131,7 +115,6 @@ class Stack:
             k_gp = np.hstack((k_gp, self.cells[i].k_gp))
             k_gm = np.hstack((k_gm, self.cells[i].k_gm))
         self.k_layer = np.array([[k_m, k_g, k_p], [k_gm, k_gp, k_pp]])
-        # heat conductivity of the cell layer
 
         """"Calculation of the environment heat conductivity"""
         # free convection geometry model
@@ -142,15 +125,14 @@ class Stack:
                * self.cells[0].width_channels)
         for q, item in enumerate(self.cells):
             self.k_alpha_env[0, 1, q] =\
-                .5 * self.alpha_env * item.cathode.channel.dx\
+                .5 * dict_stack['alpha_env'] * item.cathode.channel.dx\
                 * (item.cathode.th_bpp + item.cathode.th_gde) / fac
             self.k_alpha_env[0, 0, q] =\
-                .5 * (self.alpha_env * item.cathode.channel.dx
+                .5 * (dict_stack['alpha_env'] * item.cathode.channel.dx
                       * (item.cathode.th_bpp + item.th_mem)) / fac
-            self.k_alpha_env[0, 2, q] = \
-                self.alpha_env * item.cathode.channel.dx\
-                * item.cathode.th_bpp / fac
-        # Initialize the thermal coupling
+            self.k_alpha_env[0, 2, q] = dict_stack['alpha_env']\
+                * item.cathode.channel.dx * item.cathode.th_bpp / fac
+        # initialize the thermal coupling
         therm_dict.dict_temp_sys['k_layer'] = self.k_layer
         therm_dict.dict_temp_sys['k_alpha_env'] = self.k_alpha_env
         self.temp_cpl_stack = therm_cpl.\
@@ -169,13 +151,13 @@ class Stack:
                 break
         if self.break_program is False:
             self.stack_dynamic_properties()
-            if self.calc_temp is True:
+            if g_par.dict_case['calc_temperature'] is True:
                 self.update_temperature_coupling()
             if self.cell_numb > 1:
-                if self.calc_flow_dis is True:
+                if g_par.dict_case['calc_flow_distribution'] is True:
                     self.update_flows()
             self.i_ca_old = copy.deepcopy(self.i_ca)
-            if self.calc_cd is True:
+            if g_par.dict_case['calc_current_density'] is True:
                 self.update_electrical_coupling()
 
     def update_flows(self):

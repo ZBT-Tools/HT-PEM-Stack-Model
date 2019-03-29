@@ -12,8 +12,5 @@ dict_stack = {
     'stoi_cat': oper_con.stoichiometry_cathode,
     'stoi_ano': oper_con.stoichiometry_anode,
     'cool_ch_bc': oper_con.cooling_bc,
-    'alpha_env': phy_prop.convection_coefficient_stack_environment,
-    'calc_temperature': sim.calc_temperature,
-    'calc_current_density': sim.calc_current_density,
-    'calc_flow_distribution': sim.calc_flow_distribution
+    'alpha_env': phy_prop.convection_coefficient_stack_environment
              }
