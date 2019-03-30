@@ -120,8 +120,8 @@ class Cell:
             self.anode.is_ht_pem = False
             self.cathode.w_cross_flow = self.w_cross_flow
             self.anode.w_cross_flow = self.w_cross_flow
-        self.cathode.i_ca = self.i_cd
-        self.anode.i_ca = self.i_cd
+        self.cathode.i_cd = self.i_cd
+        self.anode.i_cd = self.i_cd
         self.cathode.set_layer_temperature([self.temp[2],
                                             self.temp[3],
                                             self.temp[4]])

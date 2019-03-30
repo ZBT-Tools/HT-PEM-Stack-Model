@@ -1,9 +1,11 @@
 import input.physical_properties as phy_prop
 import input.geometry as geom
 import input.simulation as sim
+import input.operating_conditions as op_con
 
 
 dict_cathode = {
+    'flow_direction': op_con.cathode_flow_direction,
     'cell_width': geom.cell_width,
     'cell_length': geom.cell_length,
     'channel_numb': geom.gas_channel_number,
@@ -22,6 +24,7 @@ dict_cathode = {
     }
 
 dict_anode = {
+    'flow_direction': op_con.anode_flow_direction,
     'cell_width': geom.cell_width,
     'cell_length': geom.cell_length,
     'channel_numb': geom.gas_channel_number,

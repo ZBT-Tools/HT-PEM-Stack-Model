@@ -38,6 +38,10 @@ p_manifold_anode_out = 1.e5
 # mass flow of the coolant per channel [kg/s]
 mass_flow_coolant = 1.e-4
 
+# flow directions (1 is along the x-axis, -1 the opposite direction)
+anode_flow_direction = -1
+cathode_flow_direction = 1
+
 """Cell Settings"""
 
 

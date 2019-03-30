@@ -7,6 +7,7 @@ import data.global_parameters as g_par
 import system.channel as ch
 import data.channel_dict as ch_dict
 import input.physical_properties as phy_prop
+import sys
 
 
 warnings.filterwarnings("ignore")
@@ -19,8 +20,12 @@ class HalfCell:
         n_nodes = self.n_nodes
         n_ele = n_nodes - 1
         self.n_ele = n_ele
-        # number of nodes along the channel
+        # discretization in elements and nodes along the x-axis (flow axis)
 
+        self.flow_direction = dict_hc['flow_direction']
+        if self.flow_direction != 1 and self.flow_direction != -1:
+            raise sys.exit('Member variable flow_direction of class HalfCell '
+                           'must be either 1 or -1')
         # check if the object is an anode or a cathode
         # catalyst layer specific handover
         if dict_hc['is_cathode'] is True:
@@ -137,13 +142,15 @@ class HalfCell:
         # condensation rate of water
         self.humidity = np.zeros(n_nodes)
         # gas mixture humidity
-        self.i_ca = np.full(n_ele, g_par.dict_case['tar_cd'])
+        self.i_cd = np.full(n_ele, g_par.dict_case['tar_cd'])
         # current density
         self.u = np.zeros(n_nodes)
         # channel velocity
         self.fwd_mat = np.tril(np.full((n_ele, n_ele), 1.))
+        self.fwd_mat_2 = np.tril(np.full((n_nodes, n_nodes), 1.), k=-1)
         # forward matrix
         self.bwd_mat = np.triu(np.full((n_ele, n_ele), 1.))
+        self.bwd_mat_2 = np.triu(np.full((n_nodes, n_nodes), 1.), k=+1)
         # backward matrix
         self.m_flow_gas = np.zeros(n_nodes)
         # mass flow of the gas mixture
@@ -292,18 +299,21 @@ class HalfCell:
         faraday = g_par.dict_uni['F']
         var1 = self.stoi * g_par.dict_case['tar_cd'] \
             * self.active_area_ch / (self.val_num * faraday)
-        if self.is_cathode is True:
-            self.mol_flow[0, 0] = var1
-            self.mol_flow[0, 1:] = var1 - np.matmul(self.fwd_mat, self.i_ca) \
-                * self.active_area_dx_ch / (self.val_num * faraday)
+        # if self.is_cathode is True:
+        #     self.mol_flow[0, 0] = var1
+        #     self.mol_flow[0, 1:] = var1 - np.matmul(self.fwd_mat, self.i_cd) \
+        #         * self.active_area_dx_ch / (self.val_num * faraday)
+        #
+        # else:
+        #     self.mol_flow[0, -1] = var1
+        #     self.mol_flow[0, :-1] = var1 - np.matmul(self.bwd_mat, self.i_cd) \
+        #         * self.active_area_dx_ch / (self.val_num * faraday)
 
-        else:
-            self.mol_flow[0, -1] = var1
-            self.mol_flow[0, :-1] = var1 - np.matmul(self.bwd_mat, self.i_ca) \
-                * self.active_area_dx_ch \
-                / (self.val_num * faraday)
-        self.mol_flow[0] = np.maximum(self.mol_flow[0],
-                                      np.zeros(g_par.dict_case['elements'] + 1))
+        self.mol_flow[0] = var1
+        source = -1 * self.i_cd * self.active_area_dx_ch / \
+            (self.val_num * faraday)
+        self.add_source(self.mol_flow[0], source, self.flow_direction)
+        self.mol_flow[0] = np.maximum(self.mol_flow[0], 0.0)
 
     def calc_water_flow(self):
         """"
@@ -333,52 +343,66 @@ class HalfCell:
         sat_p = w_prop.water.calc_p_sat(self.channel.temp_in)
         plane_dx = self.active_area_dx_ch
         b = 0.
-        if self.is_cathode is True:
-            q_0_water = self.mol_flow[0][0] \
-                        * (1. + self.n2o2ratio) \
-                        * sat_p \
-                        * self.channel.humidity_in \
-                        / (self.channel.p_out
-                           - self.channel.humidity_in
-                           * sat_p)
-            a = plane_dx \
-                / (self.val_num * g_par.dict_uni['F'] * 0.5) \
-                * np.matmul(self.fwd_mat, self.i_ca)
+        if self.is_cathode:
+            reac_ratio = self.n2o2ratio
+        else:
+            reac_ratio = self.n2h2ratio
+
+        cha = self.channel
+        q_0_water = \
+            self.mol_flow[0][0] * (1. + reac_ratio) * sat_p * cha.humidity_in \
+            / (cha.p_out - cha.humidity_in * sat_p)
+        h2o_in = q_0_water
+        h2o_source = np.zeros_like(self.i_cd)
+        if self.is_cathode:
+            # a = plane_dx \
+            #     / (self.val_num * g_par.dict_uni['F'] * 0.5) \
+            #     * np.matmul(self.fwd_mat, self.i_cd)
+            h2o_prod = plane_dx / (self.val_num * g_par.dict_uni['F'] * 0.5) * \
+                self.i_cd
+            h2o_source += h2o_prod
             # production
             if not self.is_ht_pem:
-                b = plane_dx \
-                    * np.matmul(self.fwd_mat, self.w_cross_flow)
+                # b = plane_dx \
+                #     * np.matmul(self.fwd_mat, self.w_cross_flow)
+                h2o_cross = plane_dx * self.w_cross_flow
+                h2o_source += h2o_cross
                 # crossover
-            self.mol_flow[1, 0] = q_0_water
-            self.mol_flow[1, 1:] = a + b + q_0_water
-            self.mol_flow[2] = np.full(self.n_nodes,
-                                       self.mol_flow[0][0] * self.n2o2ratio)
+            # self.mol_flow[1, 0] = q_0_water
+            # self.mol_flow[1, 1:] = a + b + q_0_water
+
         else:
-            q_0_water = self.mol_flow[0][0] \
-                        * (1. + self.n2h2ratio) \
-                        * sat_p \
-                        * self.channel.humidity_in \
-                        / (self.channel.p_out
-                           - self.channel.humidity_in
-                           * sat_p)
             if not self.is_ht_pem:
-                b = plane_dx \
-                    * np.matmul(-self.bwd_mat, self.w_cross_flow)
-            self.mol_flow[1, -1] = q_0_water
-            self.mol_flow[1, :-1] = b + q_0_water
-            self.mol_flow[2] = np.full(self.n_nodes,
-                                       self.mol_flow[0][-1] * self.n2h2ratio)
+                # b = plane_dx \
+                #     * np.matmul(-self.bwd_mat, self.w_cross_flow)
+                h2o_cross = plane_dx * self.w_cross_flow * -1
+                h2o_source += h2o_cross
+            # self.mol_flow[1, -1] = q_0_water
+            # self.mol_flow[1, :-1] = b + q_0_water
+            # self.mol_flow[2] = np.full(self.n_nodes,
+            #                            self.mol_flow[0][-1] * self.n2h2ratio)
+
+        self.mol_flow[1] = h2o_in
+        self.add_source(self.mol_flow[1], h2o_source, self.flow_direction)
         self.mol_flow[1] = np.maximum(self.mol_flow[1], 0.)
         self.mol_flow[1] = np.choose(self.mol_flow[0] > 1.e-50,
                                      [np.zeros(self.n_nodes),
                                       self.mol_flow[1]])
-        if self.is_cathode is True:
+        print(self.mol_flow[1])
+        if self.is_cathode:
             for w in range(1, self.n_nodes):
                 if self.mol_flow[1, w] < 1.e-49:
-                    self.index_cat = w - 1
-                    self.mol_flow[1, -self.index_cat - 1:] = \
-                        self.mol_flow[1, self.index_cat]
+                    index_cat = w - 1
+                    self.mol_flow[1, - index_cat - 1:] = \
+                        self.mol_flow[1, index_cat]
                     break
+
+        if self.is_cathode:
+            self.mol_flow[2] = \
+                np.full(self.n_nodes, self.mol_flow[0][0] * self.n2o2ratio)
+        else:
+            self.mol_flow[2] = \
+                np.full(self.n_nodes, self.mol_flow[0][-1] * self.n2h2ratio)
 
     def calc_pressure_drop_bends(self, rho, u):
         """
@@ -631,7 +655,7 @@ class HalfCell:
             -g_par.dict_uni['cp_liq']
         """
         self.cp_fluid = (self.m_flow_gas * self.cp_gas + self.m_flow_liq_w
-                         * g_par.dict_uni['cp_liq']) / self.m_flow_fluid
+                         * g_par.dict_case['cp_liq']) / self.m_flow_fluid
         self.g_fluid = self.m_flow_fluid * self.cp_fluid
 
     def calc_re(self):
@@ -712,7 +736,7 @@ class HalfCell:
             Manipulate:
             self.humidity
         """
-        self.humidity =  self.gas_con[1] * g_par.dict_uni['R'] \
+        self.humidity = self.gas_con[1] * g_par.dict_uni['R'] \
             * self.temp_fluid / w_prop.water.calc_p_sat(self.temp_fluid)
 
     def sum_flows(self):
@@ -726,7 +750,7 @@ class HalfCell:
         Manipulate:
         -self.q_gas
         """
-        self.q_gas = sum(self.mol_flow) - self.liq_w_flow
+        self.q_gas = np.sum(self.mol_flow) - self.liq_w_flow
 
     def calc_voltage_losses_parameter(self):
         """
@@ -747,9 +771,9 @@ class HalfCell:
         """
         i_lim = 4. * g_par.dict_uni['F'] * self.gas_con[0, :-1] \
             * self.diff_coeff_gdl / self.th_gdl
-        self.var = 1.\
-            - self.i_ca / (i_lim * self.gas_con_ele / self.gas_con[0, :-1])
-        self.i_ca_square = self.i_ca ** 2.
+        self.var = 1. \
+                   - self.i_cd / (i_lim * self.gas_con_ele / self.gas_con[0, :-1])
+        self.i_ca_square = np.square(self.i_cd)
 
     def calc_activation_loss(self):
         """
@@ -768,9 +792,9 @@ class HalfCell:
         -self.act_ov
         """
         self.act_loss = self.tafel_slope \
-            * np.arcsinh((self.i_ca / self.i_sigma) ** 2.
+            * np.arcsinh((self.i_cd / self.i_sigma) ** 2.
                          / (2. * (self.gas_con_ele / self.gas_con[0, :-1])
-                            * (1. - np.exp(-self.i_ca /
+                            * (1. - np.exp(-self.i_cd /
                                            (2. * self.i_ca_char)))))
 
     def calc_transport_loss_catalyst_layer(self):
@@ -793,7 +817,7 @@ class HalfCell:
         Manipulate:
         -self.cl_diff_loss
         """
-        i_hat = self.i_ca / self.i_ca_char
+        i_hat = self.i_cd / self.i_ca_char
         short_save = np.sqrt(2. * i_hat)
         beta = short_save / (1. + np.sqrt(1.12 * i_hat) * np.exp(short_save))\
             + np.pi * i_hat / (2. + i_hat)
@@ -801,7 +825,7 @@ class HalfCell:
             ((self.prot_con_cl * self.tafel_slope ** 2.)
              / (4. * g_par.dict_uni['F']
                 * self.diff_coeff_cl * self.gas_con_ele)
-                * (self.i_ca / self.i_ca_char
+                * (self.i_cd / self.i_ca_char
                    - np.log10(1. + self.i_ca_square /
                               (self.i_ca_char ** 2. * beta ** 2.)))) / self.var
 
@@ -842,3 +866,13 @@ class HalfCell:
         if self.calc_act_loss is False:
             self.act_loss = 0.
         self.v_loss = self.act_loss + self.cl_diff_loss + self.gdl_diff_loss
+
+    def add_source(self, var, source, direction=1):
+        n = len(var) - 1
+        if len(source) != n:
+            raise ValueError('source variable must be of length (var-1)')
+        if direction == 1:
+            var[1:] += np.matmul(self.fwd_mat, source)
+        elif direction == -1:
+            var[:-1] += np.matmul(self.bwd_mat, source)
+        return var
