@@ -139,13 +139,17 @@ class ElectricalCoupling:
             Manipulate:
             -self.i_ca
         """
+        print(np.shape(self.mat))
+        print(np.shape(self.rhs))
         v_new = np.linalg.tensorsolve(self.mat, self.rhs)
+        print(np.shape(v_new))
         v_new = np.hstack((np.full(self.elements, self.v_end_plate),
                            v_new, np.full(self.elements, 0.)))
-        v_dif = v_new[:-self.elements] - v_new[self.elements:]
-        i_ca_vec = v_dif / self.cell_r
+        print(v_new)
+        v_diff = v_new[:-self.elements] - v_new[self.elements:]
+        print(v_diff)
+        i_ca_vec = v_diff / self.cell_r
         i_cd = g_func.to_array(i_ca_vec, self.cell_numb, self.elements)
-        print(i_cd)
         self.i_cd = i_cd / np.average(i_cd) * g_par.dict_case['tar_cd']
-        print(self.i_cd)
-        print(g_par.dict_case['tar_cd'])
+        #print(self.i_cd)
+

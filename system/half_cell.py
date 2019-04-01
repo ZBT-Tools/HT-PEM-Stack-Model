@@ -250,6 +250,16 @@ class HalfCell:
         self.calc_transport_loss_diffusion_layer()
         self.calc_electrode_loss()
 
+    def add_source(self, var, source, direction=1):
+        n = len(var) - 1
+        if len(source) != n:
+            raise ValueError('source variable must be of length (var-1)')
+        if direction == 1:
+            var[1:] += np.matmul(self.fwd_mat, source)
+        elif direction == -1:
+            var[:-1] += np.matmul(self.bwd_mat, source)
+        return var
+
     def set_layer_temperature(self, var):
         """
         This function sets the layer Temperatures,
@@ -297,7 +307,7 @@ class HalfCell:
             -self.mol_flow
         """
         faraday = g_par.dict_uni['F']
-        var1 = self.stoi * g_par.dict_case['tar_cd'] \
+        self.mol_flow[0] = self.stoi * g_par.dict_case['tar_cd'] \
             * self.active_area_ch / (self.val_num * faraday)
         # if self.is_cathode is True:
         #     self.mol_flow[0, 0] = var1
@@ -341,7 +351,8 @@ class HalfCell:
             -self.index_cat
         """
         sat_p = w_prop.water.calc_p_sat(self.channel.temp_in)
-        plane_dx = self.active_area_dx_ch
+        i_cd = self.i_cd
+        area = self.active_area_dx_ch
         b = 0.
         if self.is_cathode:
             reac_ratio = self.n2o2ratio
@@ -353,49 +364,23 @@ class HalfCell:
             self.mol_flow[0][0] * (1. + reac_ratio) * sat_p * cha.humidity_in \
             / (cha.p_out - cha.humidity_in * sat_p)
         h2o_in = q_0_water
-        h2o_source = np.zeros_like(self.i_cd)
+        h2o_source = np.zeros_like(i_cd)
         if self.is_cathode:
-            # a = plane_dx \
-            #     / (self.val_num * g_par.dict_uni['F'] * 0.5) \
-            #     * np.matmul(self.fwd_mat, self.i_cd)
-            h2o_prod = plane_dx / (self.val_num * g_par.dict_uni['F'] * 0.5) * \
-                self.i_cd
+            h2o_prod = area / (self.val_num * g_par.dict_uni['F'] * 0.5) * i_cd
             h2o_source += h2o_prod
             # production
             if not self.is_ht_pem:
-                # b = plane_dx \
-                #     * np.matmul(self.fwd_mat, self.w_cross_flow)
-                h2o_cross = plane_dx * self.w_cross_flow
+                h2o_cross = area * self.w_cross_flow
                 h2o_source += h2o_cross
                 # crossover
-            # self.mol_flow[1, 0] = q_0_water
-            # self.mol_flow[1, 1:] = a + b + q_0_water
-
         else:
             if not self.is_ht_pem:
-                # b = plane_dx \
-                #     * np.matmul(-self.bwd_mat, self.w_cross_flow)
-                h2o_cross = plane_dx * self.w_cross_flow * -1
+                h2o_cross = area * self.w_cross_flow * -1
                 h2o_source += h2o_cross
-            # self.mol_flow[1, -1] = q_0_water
-            # self.mol_flow[1, :-1] = b + q_0_water
-            # self.mol_flow[2] = np.full(self.n_nodes,
-            #                            self.mol_flow[0][-1] * self.n2h2ratio)
 
         self.mol_flow[1] = h2o_in
         self.add_source(self.mol_flow[1], h2o_source, self.flow_direction)
         self.mol_flow[1] = np.maximum(self.mol_flow[1], 0.)
-        self.mol_flow[1] = np.choose(self.mol_flow[0] > 1.e-50,
-                                     [np.zeros(self.n_nodes),
-                                      self.mol_flow[1]])
-        print(self.mol_flow[1])
-        if self.is_cathode:
-            for w in range(1, self.n_nodes):
-                if self.mol_flow[1, w] < 1.e-49:
-                    index_cat = w - 1
-                    self.mol_flow[1, - index_cat - 1:] = \
-                        self.mol_flow[1, index_cat]
-                    break
 
         if self.is_cathode:
             self.mol_flow[2] = \
@@ -771,8 +756,8 @@ class HalfCell:
         """
         i_lim = 4. * g_par.dict_uni['F'] * self.gas_con[0, :-1] \
             * self.diff_coeff_gdl / self.th_gdl
-        self.var = 1. \
-                   - self.i_cd / (i_lim * self.gas_con_ele / self.gas_con[0, :-1])
+        self.var = \
+            1. - self.i_cd / (i_lim * self.gas_con_ele / self.gas_con[0, :-1])
         self.i_ca_square = np.square(self.i_cd)
 
     def calc_activation_loss(self):
@@ -866,13 +851,3 @@ class HalfCell:
         if self.calc_act_loss is False:
             self.act_loss = 0.
         self.v_loss = self.act_loss + self.cl_diff_loss + self.gdl_diff_loss
-
-    def add_source(self, var, source, direction=1):
-        n = len(var) - 1
-        if len(source) != n:
-            raise ValueError('source variable must be of length (var-1)')
-        if direction == 1:
-            var[1:] += np.matmul(self.fwd_mat, source)
-        elif direction == -1:
-            var[:-1] += np.matmul(self.bwd_mat, source)
-        return var

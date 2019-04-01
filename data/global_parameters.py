@@ -10,7 +10,7 @@ dict_uni = {
     }
 
 dict_case = {
-    'tar_cd': np.array(op_con.target_current_density),
+    'tar_cd': op_con.target_current_density,
     'nodes': sim.elements + 1,
     'elements': sim.elements,
     'mol_con_m': phy_prop.molar_membrane_acid_group_concentration,

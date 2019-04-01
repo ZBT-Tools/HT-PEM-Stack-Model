@@ -189,8 +189,13 @@ class Simulation:
         """
         This function coordinates the program sequence
         """
-        for i, item in enumerate(op_con.target_current_density):
-            g_par.dict_case['tar_cd'] = op_con.target_current_density[i]
+        target_current_density = op_con.target_current_density
+        if not isinstance(target_current_density, (list, tuple, np.ndarray)):
+            target_current_density = [target_current_density]
+        #target_current_density = [float(i) for i in target_current_density]
+
+        for i, tar_cd in enumerate(target_current_density):
+            g_par.dict_case['tar_cd'] = tar_cd
             self.stack = st.Stack(st_dict.dict_stack)
             statement = True
             counter = 0
@@ -200,29 +205,27 @@ class Simulation:
                 if self.stack.break_program is True:
                     break
                 self.calc_convergence_criteria()
-                if len(op_con.target_current_density) < 1:
+                if len(target_current_density) < 1:
                     print(counter)
                 counter = counter + 1
                 if ((self.i_ca_criteria < self.it_crit
                      and self.temp_criteria < self.it_crit) and counter > 10)\
                         or counter > self.max_it:
                     statement = False
-            if self.stack.break_program is False:
+            if not self.stack.break_program:
                 self.mdf_criteria_process =\
                     (np.array(self.mdf_criteria_ano_process)
                      + np.array(self.mdf_criteria_cat_process)) * .5
                 self.save_voltages()
-                print(item)
                 if self.save_plot is True:
                     self.output_plots(str(i))
                 if self.save_csv is True:
                     self.output_csv(str(i))
             else:
-                op_con.target_current_density = \
-                    op_con.target_current_density[0:-i]
-                print(op_con.target_current_density, self.v)
+                target_current_density = target_current_density[0:-i]
+                print(target_current_density, self.v)
                 break
-        if len(op_con.target_current_density) > 1:
+        if len(target_current_density) > 1:
             self.plot_polarization_curve()
 
     def plot_polarization_curve(self):
@@ -899,7 +902,7 @@ class Simulation:
 
 
 start = timeit.default_timer()
-Simulation_runs = Simulation(sim.simulation)
-Simulation_runs.update()
+simulation = Simulation(sim.simulation_dict)
+simulation.update()
 stop = timeit.default_timer()
 print('Simulation time:', stop-start)
