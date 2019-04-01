@@ -269,7 +269,7 @@ class HalfCell:
             - self.temp, 2-D-array, [layer][elements]
         """
         var = g_func.calc_nodes_2d(np.array(var))
-        if self.is_cathode is True:
+        if self.is_cathode:
             self.temp = np.array([var[0], var[1], var[2]])
         else:
             self.temp = np.array([var[0], var[1]])
@@ -414,24 +414,17 @@ class HalfCell:
             Manipulate:
             -self.p
         """
-        p_out = self.channel.p_out
+        chl = self.channel
         rho_ele = g_func.calc_elements_1d(self.rho_gas)
         u_ele = g_func.calc_elements_1d(self.u)
         reynolds_ele = g_func.calc_elements_1d(self.Re)
-        dp_bends = self.calc_pressure_drop_bends(rho_ele, u_ele)
-
-        if self.is_cathode:
-            matrix = self.bwd_mat
-            self.p[-1] = p_out
-            self.p[:-1] = p_out + 32. / self.channel.d_h \
-                * np.matmul(matrix, rho_ele * np.square(u_ele) / reynolds_ele) \
-                * self.channel.dx + dp_bends
-        else:
-            matrix = self.fwd_mat
-            self.p[0] = p_out
-            self.p[1:] = p_out + 32. / self.channel.d_h \
-                * np.matmul(matrix, rho_ele * np.square(u_ele) / reynolds_ele) \
-                * self.channel.dx + dp_bends
+        zeta_bends = chl.bend_fri_fac * chl.n_bends / self.n_ele
+        friction_factor = 64.0 / reynolds_ele
+        dp = (friction_factor * chl.dx / chl.d_h + zeta_bends) \
+            * rho_ele * 0.5 * u_ele ** 2.0
+        pressure_direction = -self.flow_direction
+        self.p.fill(chl.p_out)
+        self.add_source(self.p, dp, pressure_direction)
 
     def calc_concentrations(self):
         """
@@ -693,10 +686,12 @@ class HalfCell:
             Manipulate:
             -self.cond_rate
         """
-        if self.is_cathode is True:
+        if self.is_cathode:
             self.cond_rate = g_func.calc_nodes_1d(np.ediff1d(self.liq_w_flow))
         else:
             self.cond_rate = -g_func.calc_nodes_1d(np.ediff1d(self.liq_w_flow))
+
+        print(self.cond_rate)
 
     def calc_rel_humidity(self):
         """

@@ -62,10 +62,9 @@ dynamic_viscosity_coolant = 56.e-3
 # convection coefficient between the stack walls and the environment [W/(Km^2)]
 convection_coefficient_stack_environment = 5.
 
-
 """Fluid Mechanic Settings"""
 # geometrical pressure loss coefficient of the manifold header
-manifold_pressure_loss_coefficient = 0.4
+manifold_pressure_loss_coefficient = 5.0
 # bend pressure loss coefficient of the channel bends
 bend_pressure_loss_coefficient = 0.1
 # number of channel bends

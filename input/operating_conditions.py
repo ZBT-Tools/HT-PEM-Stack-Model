@@ -6,7 +6,7 @@ import numpy as np
 """Electrochemistry"""
 # target current density [A/m^2]
 #target_current_density = np.linspace(1.e-3, 10000., 20)
-target_current_density = 8000.0
+target_current_density = 6000.0
 # open circuit voltage [V]
 open_circuit_voltage = 0.95
 # cathode stoichiometry
