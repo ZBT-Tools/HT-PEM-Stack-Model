@@ -2,7 +2,7 @@
 
 """Simulation Settings"""
 # partition of the flow channel in elements along the x-axis
-elements = 10
+elements = 3
 # convergence criteria of the simulation
 convergence_criteria = 1.e-6
 # maximal number of iterations

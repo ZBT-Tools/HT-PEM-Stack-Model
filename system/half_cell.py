@@ -309,17 +309,6 @@ class HalfCell:
         faraday = g_par.dict_uni['F']
         self.mol_flow[0] = self.stoi * g_par.dict_case['tar_cd'] \
             * self.active_area_ch / (self.val_num * faraday)
-        # if self.is_cathode is True:
-        #     self.mol_flow[0, 0] = var1
-        #     self.mol_flow[0, 1:] = var1 - np.matmul(self.fwd_mat, self.i_cd) \
-        #         * self.active_area_dx_ch / (self.val_num * faraday)
-        #
-        # else:
-        #     self.mol_flow[0, -1] = var1
-        #     self.mol_flow[0, :-1] = var1 - np.matmul(self.bwd_mat, self.i_cd) \
-        #         * self.active_area_dx_ch / (self.val_num * faraday)
-
-        self.mol_flow[0] = var1
         source = -1 * self.i_cd * self.active_area_dx_ch / \
             (self.val_num * faraday)
         self.add_source(self.mol_flow[0], source, self.flow_direction)
