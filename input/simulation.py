@@ -2,11 +2,11 @@
 
 """Simulation Settings"""
 # partition of the flow channel in elements along the x-axis
-elements = 3
+elements = 20
 # convergence criteria of the simulation
 convergence_criteria = 1.e-6
 # maximal number of iterations
-maximal_number_iteration = 2
+maximal_number_iteration = 50
 # output csv data
 save_csv_data = False
 # output plots

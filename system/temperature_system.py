@@ -1,5 +1,7 @@
 import numpy as np
-import scipy.linalg as sp_l
+from scipy import linalg as sp_la
+from scipy import sparse
+from scipy.sparse.linalg import spsolve
 import data.global_parameters as g_par
 import system.global_functions as g_func
 import data.water_properties as w_prop
@@ -183,15 +185,16 @@ class TemperatureSystem:
         # heat conductance matrix in z-direction for the cell n
 
         list_mat = []
-        for i in range(self.n_cells):
+        for i in range(self.n_cells - 1):
             for j in range(self.n_ele):
-                if i is self.n_cells - 1:
-                    list_mat.append(mat_n)
-                else:
-                    list_mat.append(mat_base)
+                list_mat.append(mat_base)
+        for i in range(self.n_ele):
+            list_mat.append(mat_n)
         # list of all the heat conductance matrix in z-direction
         # for all cells and all elements
-        self.mat_const = sp_l.block_diag(*list_mat)
+        # for i in range(len(list_mat)):
+        #     print(list_mat[i])
+        self.mat_const = sp_la.block_diag(*list_mat)
         # uncoupled heat conductance matrix in z-direction
         self.dyn_vec = np.zeros_like(self.temp_layer_vec)
         # vector for dynamically changing heat conductance values
@@ -330,7 +333,10 @@ class TemperatureSystem:
                        np.tile(env_con_n, self.n_ele)))
         # vector of the main diagonal of the heat conductance matrix
         self.mat_const = self.mat_const + np.diag(env_con_vec)
-        self.mat_dyn = self.mat_const
+        #self.mat_dyn = np.copy(self.mat_const)
+
+        self.mat_const_sp = sparse.lil_matrix(self.mat_const)
+        self.mat_dyn_sp = sparse.lil_matrix(self.mat_const_sp)
 
         """Calculating the coordinates of the gas channel heat conductance"""
         pos_cat_ch_base = \
@@ -619,7 +625,9 @@ class TemperatureSystem:
                 self.dyn_vec[ct + 1] = -self.k_gas_ch[0, q, w]
                 self.dyn_vec[ct + 4] = -self.k_gas_ch[1, q, w]
                 ct += cr
-        self.mat_dyn = self.mat_const + np.diag(self.dyn_vec)
+        self.mat_dyn = \
+            (self.mat_const_sp + sparse.diags([self.dyn_vec], [0])).tocsr()
+        #self.mat_dyn = self.mat_const + np.diag(self.dyn_vec)
 
     def solve_system(self):
         """
@@ -632,7 +640,8 @@ class TemperatureSystem:
             Manipulate:
             -self.temp_layer_vec
         """
-        self.temp_layer_vec = np.linalg.tensorsolve(self.mat_dyn, self.rhs)
+        #self.temp_layer_vec = np.linalg.tensorsolve(self.mat_dyn, self.rhs)
+        self.temp_layer_vec = spsolve(self.mat_dyn, self.rhs)
 
     def sort_results(self):
         """

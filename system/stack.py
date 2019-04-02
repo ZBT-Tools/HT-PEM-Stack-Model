@@ -177,7 +177,7 @@ class Stack:
             self.i_cd_old = copy.deepcopy(self.i_cd)
             if self.calc_cd:
                 self.update_electrical_coupling()
-        print(self.i_cd)
+        # print(self.i_cd)
 
     def update_flows(self):
         """
