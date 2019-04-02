@@ -145,7 +145,7 @@ class TemperatureSystem:
         self.temp_layer.append(temp_layer_n)
         # layer temperature list cell, layer, element
         #temp_cool_out = temp_cool_in + op_con.tar
-        if self.cool_ch_bc is True:
+        if self.cool_ch_bc:
             self.temp_cool = np.full((self.n_cells + 1, self.n_nodes),
                                      temp_cool_in)
             self.temp_cool_ele = np.full((self.n_cells + 1,
@@ -200,7 +200,7 @@ class TemperatureSystem:
                       self.n_ele * (5 * (self.n_cells - 1) + 6), 6)
         # upper cool ch pos for the n cell
 
-        if self.cool_ch_bc is True:
+        if self.cool_ch_bc:
             cool_pos_base = np.arange(0,
                                       self.n_ele * (self.n_cells - 1) * 5,
                                       5)
@@ -425,12 +425,15 @@ class TemperatureSystem:
                                                self.temp_layer[q][4, w],
                                                self.g_fluid[1, q, w],
                                                self.k_gas_ch[1, q, w])
-                temp_fluid_ele = g_func.interpolate_to_elements_1d(self.temp_fluid[1, q])
+                temp_fluid_ele = \
+                    g_func.interpolate_to_elements_1d(self.temp_fluid[1, q])
                 self.temp_fluid_ele[1, q] = np.minimum(temp_fluid_ele,
                                                        self.temp_layer[q][4])
-            self.temp_fluid[0] = g_func.interpolate_to_nodes_2d(self.temp_fluid_ele[0])
+            self.temp_fluid[0] = \
+                g_func.interpolate_to_nodes_2d(self.temp_fluid_ele[0])
             self.temp_fluid[0, :, 0] = self.temp_gas_in[0]
-            self.temp_fluid[1] = g_func.interpolate_to_nodes_2d(self.temp_fluid_ele[1])
+            self.temp_fluid[1] = \
+                g_func.interpolate_to_nodes_2d(self.temp_fluid_ele[1])
             self.temp_fluid[1, :, -1] = self.temp_gas_in[1]
 
     def update_coolant_channel_lin(self):
@@ -452,14 +455,16 @@ class TemperatureSystem:
                     g_func.calc_fluid_temp_out(self.temp_cool[q, w - 1],
                                                self.temp_layer[q][0, w - 1],
                                                self.g_cool, self.k_cool)
-                self.temp_cool_ele[q] = g_func.interpolate_to_elements_1d(self.temp_cool[q])
-        if self.cool_ch_bc is True:
+                self.temp_cool_ele[q] = \
+                    g_func.interpolate_to_elements_1d(self.temp_cool[q])
+        if self.cool_ch_bc:
             for w in range(1, self.n_nodes):
                 self.temp_cool[-1, w] =\
                     g_func.calc_fluid_temp_out(self.temp_cool[-1, w - 1],
                                                self.temp_layer[-1][-1, w - 1],
                                                self.g_cool, self.k_cool)
-                self.temp_cool_ele[-1] = g_func.interpolate_to_elements_1d(self.temp_cool[-1])
+                self.temp_cool_ele[-1] = \
+                    g_func.interpolate_to_elements_1d(self.temp_cool[-1])
 
     def update_rhs(self):
         """

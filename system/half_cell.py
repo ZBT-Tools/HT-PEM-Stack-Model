@@ -23,12 +23,12 @@ class HalfCell:
         # discretization in elements and nodes along the x-axis (flow axis)
 
         self.flow_direction = dict_hc['flow_direction']
-        if self.flow_direction != 1 and self.flow_direction != -1:
+        if self.flow_direction not in (-1, 1):
             raise sys.exit('Member variable flow_direction of class HalfCell '
                            'must be either 1 or -1')
         # check if the object is an anode or a cathode
         # catalyst layer specific handover
-        if dict_hc['is_cathode'] is True:
+        if dict_hc['is_cathode']:
             self.channel = ch.Channel(ch_dict.dict_cathode_channel)
             self.o2_con_in = phy_prop.oxygen_inlet_concentration
             # volumetric inlet oxygen ratio
@@ -686,13 +686,11 @@ class HalfCell:
             -self.cond_rate
         """
         if self.is_cathode:
-            self.cond_rate = g_func.interpolate_to_nodes_1d(np.ediff1d(self.liq_w_flow))
+            self.cond_rate = \
+                g_func.interpolate_to_nodes_1d(np.ediff1d(self.liq_w_flow))
         else:
-            self.cond_rate = -g_func.interpolate_to_nodes_1d(np.ediff1d(self.liq_w_flow))
-
-        print('Cell: ', )
-        print(self.liq_w_flow)
-        print(self.cond_rate)
+            self.cond_rate = \
+                -g_func.interpolate_to_nodes_1d(np.ediff1d(self.liq_w_flow))
 
     def calc_rel_humidity(self):
         """
@@ -814,7 +812,7 @@ class HalfCell:
         self.gdl_diff_loss = -self.tafel_slope * np.log10(self.var)
         nan_list = np.isnan(self.gdl_diff_loss)
         bol = nan_list.any()
-        if bol == True:
+        if bol:
             self.gdl_diff_loss[np.argwhere(nan_list)[0, 0]:] = 1.e50
 
     def calc_electrode_loss(self):
