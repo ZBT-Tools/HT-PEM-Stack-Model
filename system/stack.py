@@ -223,6 +223,7 @@ class Stack:
                                             self.stack_cell_r))
         self.el_cpl_stack.update()
         self.i_cd = self.el_cpl_stack.i_cd
+        print(self.i_cd)
 
     def update_temperature_coupling(self):
         """

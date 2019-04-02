@@ -199,10 +199,10 @@ class Simulation:
             self.stack = st.Stack(st_dict.dict_stack)
             statement = True
             counter = 0
-            while statement is True:
+            while statement:
                 self.save_old_value()
                 self.stack.update()
-                if self.stack.break_program is True:
+                if self.stack.break_program:
                     break
                 self.calc_convergence_criteria()
                 if len(target_current_density) < 1:
@@ -217,9 +217,9 @@ class Simulation:
                     (np.array(self.mdf_criteria_ano_process)
                      + np.array(self.mdf_criteria_cat_process)) * .5
                 self.save_voltages()
-                if self.save_plot is True:
+                if self.save_plot:
                     self.output_plots(str(i))
-                if self.save_csv is True:
+                if self.save_csv:
                     self.output_csv(str(i))
             else:
                 target_current_density = target_current_density[0:-i]
