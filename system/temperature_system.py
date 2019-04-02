@@ -353,8 +353,8 @@ class TemperatureSystem:
             -self.v_loss
             -self.omega
         """
-        self.g_fluid[0] = g_func.calc_elements_2d(g_gas[0])
-        self.g_fluid[1] = g_func.calc_elements_2d(g_gas[1])
+        self.g_fluid[0] = g_func.interpolate_to_elements_2d(g_gas[0])
+        self.g_fluid[1] = g_func.interpolate_to_elements_2d(g_gas[1])
         self.k_gas_ch = k_alpha_ch
         self.cond_rate = gamma
         self.i = i
@@ -374,9 +374,9 @@ class TemperatureSystem:
             -self.k_gas_ch
         """
         print(self.k_gas_ch)
-        print(g_func.calc_elements_2d(self.k_gas_ch[0]))
-        self.k_gas_ch[0] = g_func.calc_elements_2d(self.k_gas_ch[0])
-        self.k_gas_ch[1] = g_func.calc_elements_2d(self.k_gas_ch[1])
+        print(g_func.interpolate_to_elements_2d(self.k_gas_ch[0]))
+        self.k_gas_ch[0] = g_func.interpolate_to_elements_2d(self.k_gas_ch[0])
+        self.k_gas_ch[1] = g_func.interpolate_to_elements_2d(self.k_gas_ch[1])
 
     def update(self):
         """
@@ -416,7 +416,7 @@ class TemperatureSystem:
                                                self.temp_layer[q][1, w - 1],
                                                self.g_fluid[0, q, w - 1],
                                                self.k_gas_ch[0, q, w - 1])
-            temp_fluid_ele = g_func.calc_elements_1d(self.temp_fluid[0, q])
+            temp_fluid_ele = g_func.interpolate_to_elements_1d(self.temp_fluid[0, q])
             self.temp_fluid_ele[0, q] = np.minimum(temp_fluid_ele,
                                                    self.temp_layer[q][0])
             for w in range(self.n_ele - 1, -1, -1):
@@ -425,12 +425,12 @@ class TemperatureSystem:
                                                self.temp_layer[q][4, w],
                                                self.g_fluid[1, q, w],
                                                self.k_gas_ch[1, q, w])
-                temp_fluid_ele = g_func.calc_elements_1d(self.temp_fluid[1, q])
+                temp_fluid_ele = g_func.interpolate_to_elements_1d(self.temp_fluid[1, q])
                 self.temp_fluid_ele[1, q] = np.minimum(temp_fluid_ele,
                                                        self.temp_layer[q][4])
-            self.temp_fluid[0] = g_func.calc_nodes_2d(self.temp_fluid_ele[0])
+            self.temp_fluid[0] = g_func.interpolate_to_nodes_2d(self.temp_fluid_ele[0])
             self.temp_fluid[0, :, 0] = self.temp_gas_in[0]
-            self.temp_fluid[1] = g_func.calc_nodes_2d(self.temp_fluid_ele[1])
+            self.temp_fluid[1] = g_func.interpolate_to_nodes_2d(self.temp_fluid_ele[1])
             self.temp_fluid[1, :, -1] = self.temp_gas_in[1]
 
     def update_coolant_channel_lin(self):
@@ -452,14 +452,14 @@ class TemperatureSystem:
                     g_func.calc_fluid_temp_out(self.temp_cool[q, w - 1],
                                                self.temp_layer[q][0, w - 1],
                                                self.g_cool, self.k_cool)
-                self.temp_cool_ele[q] = g_func.calc_elements_1d(self.temp_cool[q])
+                self.temp_cool_ele[q] = g_func.interpolate_to_elements_1d(self.temp_cool[q])
         if self.cool_ch_bc is True:
             for w in range(1, self.n_nodes):
                 self.temp_cool[-1, w] =\
                     g_func.calc_fluid_temp_out(self.temp_cool[-1, w - 1],
                                                self.temp_layer[-1][-1, w - 1],
                                                self.g_cool, self.k_cool)
-                self.temp_cool_ele[-1] = g_func.calc_elements_1d(self.temp_cool[-1])
+                self.temp_cool_ele[-1] = g_func.interpolate_to_elements_1d(self.temp_cool[-1])
 
     def update_rhs(self):
         """

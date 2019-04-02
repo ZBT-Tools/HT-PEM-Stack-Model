@@ -268,7 +268,7 @@ class HalfCell:
             Manipulate:
             - self.temp, 2-D-array, [layer][elements]
         """
-        var = g_func.calc_nodes_2d(np.array(var))
+        var = g_func.interpolate_to_nodes_2d(np.array(var))
         if self.is_cathode:
             self.temp = np.array([var[0], var[1], var[2]])
         else:
@@ -285,7 +285,7 @@ class HalfCell:
             Manipulate:
             - self.temp_fluid, 1-D-Array, [elements]
         """
-        self.temp_fluid_ele = g_func.calc_elements_1d(self.temp_fluid)
+        self.temp_fluid_ele = g_func.interpolate_to_elements_1d(self.temp_fluid)
 
     def calc_reac_flow(self):
         """
@@ -342,7 +342,6 @@ class HalfCell:
         sat_p = w_prop.water.calc_p_sat(self.channel.temp_in)
         i_cd = self.i_cd
         area = self.active_area_dx_ch
-        b = 0.
         if self.is_cathode:
             reac_ratio = self.n2o2ratio
         else:
@@ -378,23 +377,23 @@ class HalfCell:
             self.mol_flow[2] = \
                 np.full(self.n_nodes, self.mol_flow[0][-1] * self.n2h2ratio)
 
-    def calc_pressure_drop_bends(self, rho, u):
-        """
-        Calculates the channel pressure drop
-        through the channel bends for each element.
-
-            Access to:
-            -self.channel.bend_fri_fac
-            -self.rho
-            -self.u
-            -self.channel.bend_num
-            -gpar.dict_case['nodes']
-
-            Manipulate:
-            -self.p_drop_bends
-        """
-        return self.channel.bend_fri_fac * rho * np.square(u) \
-            * self.channel.n_bends / self.n_ele * .5
+    # def calc_pressure_drop_bends(self, rho, u):
+    #     """
+    #     Calculates the channel pressure drop
+    #     through the channel bends for each element.
+    #
+    #         Access to:
+    #         -self.channel.bend_fri_fac
+    #         -self.rho
+    #         -self.u
+    #         -self.channel.bend_num
+    #         -gpar.dict_case['nodes']
+    #
+    #         Manipulate:
+    #         -self.p_drop_bends
+    #     """
+    #     return self.channel.bend_fri_fac * rho * np.square(u) \
+    #         * self.channel.n_bends / self.n_ele * .5
 
     def calc_pressure(self):
         """
@@ -415,9 +414,9 @@ class HalfCell:
             -self.p
         """
         chl = self.channel
-        rho_ele = g_func.calc_elements_1d(self.rho_gas)
-        u_ele = g_func.calc_elements_1d(self.u)
-        reynolds_ele = g_func.calc_elements_1d(self.Re)
+        rho_ele = g_func.interpolate_to_elements_1d(self.rho_gas)
+        u_ele = g_func.interpolate_to_elements_1d(self.u)
+        reynolds_ele = g_func.interpolate_to_elements_1d(self.Re)
         zeta_bends = chl.bend_fri_fac * chl.n_bends / self.n_ele
         friction_factor = 64.0 / reynolds_ele
         dp = (friction_factor * chl.dx / chl.d_h + zeta_bends) \
@@ -457,7 +456,7 @@ class HalfCell:
                 var5 = id_lw / var4
                 self.gas_con[0][w] = var5 * self.mol_flow[0][w]
                 self.gas_con[2][w] = var5 * self.mol_flow[2][w]
-        self.gas_con_ele = g_func.calc_elements_1d(self.gas_con[0])
+        self.gas_con_ele = g_func.interpolate_to_elements_1d(self.gas_con[0])
 
     def calc_mass_fraction(self):
         """
@@ -521,7 +520,7 @@ class HalfCell:
         self.lambdas[2] = g_fit.nitrogen.calc_lambda(self.temp_fluid, self.p)
         self.visc[1] = g_fit.water.calc_visc(self.temp_fluid)
         self.visc[2] = g_fit.nitrogen.calc_visc(self.temp_fluid)
-        self.cp_ele = g_func.calc_elements_1d(self.cp[0])
+        self.cp_ele = g_func.interpolate_to_elements_1d(self.cp[0])
 
     def calc_gas_properties(self):
         """
@@ -553,12 +552,12 @@ class HalfCell:
             temp2.append(self.mass_f[q] * self.cp[q])
         self.r_gas = sum(temp1)
         self.cp_gas = sum(temp2)
-        self.cp_gas_ele = g_func.calc_elements_1d(self.cp_gas)
+        self.cp_gas_ele = g_func.interpolate_to_elements_1d(self.cp_gas)
         self.visc_gas = \
             g_func.calc_visc_mix(self.visc, self.mol_f, self.mol_mass)
         self.lambda_gas = g_func.calc_lambda_mix(self.lambdas, self.mol_f,
                                                  self.visc, self.mol_mass)
-        self.lambda_gas_ele = g_func.calc_elements_1d(self.lambda_gas)
+        self.lambda_gas_ele = g_func.interpolate_to_elements_1d(self.lambda_gas)
         self.rho_gas = g_func.calc_rho(self.p, self.r_gas, self.temp_fluid)
         self.Pr = self.visc_gas * self.cp_gas / self.lambda_gas
 
@@ -687,10 +686,12 @@ class HalfCell:
             -self.cond_rate
         """
         if self.is_cathode:
-            self.cond_rate = g_func.calc_nodes_1d(np.ediff1d(self.liq_w_flow))
+            self.cond_rate = g_func.interpolate_to_nodes_1d(np.ediff1d(self.liq_w_flow))
         else:
-            self.cond_rate = -g_func.calc_nodes_1d(np.ediff1d(self.liq_w_flow))
+            self.cond_rate = -g_func.interpolate_to_nodes_1d(np.ediff1d(self.liq_w_flow))
 
+        print('Cell: ', )
+        print(self.liq_w_flow)
         print(self.cond_rate)
 
     def calc_rel_humidity(self):
@@ -818,7 +819,7 @@ class HalfCell:
 
     def calc_electrode_loss(self):
         """
-        Calculates the full volatege losses of the electrode
+        Calculates the full voltage losses of the electrode
 
             Access to:
             -self.act_loss
@@ -828,10 +829,10 @@ class HalfCell:
             Manipulate:
             -self.v_loss
         """
-        if self.calc_gdl_diff_loss is False:
+        if not self.calc_gdl_diff_loss:
             self.gdl_diff_loss = 0.
-        if self.calc_cl_diff_loss is False:
+        if not self.calc_cl_diff_loss:
             self.cl_diff_loss = 0.
-        if self.calc_act_loss is False:
+        if not self.calc_act_loss:
             self.act_loss = 0.
         self.v_loss = self.act_loss + self.cl_diff_loss + self.gdl_diff_loss

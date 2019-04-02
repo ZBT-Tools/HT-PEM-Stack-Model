@@ -348,7 +348,7 @@ class Simulation:
                 raise
         x_node = np.linspace(0., ch_dict.dict_cathode_channel['channel_length'],
                              g_par.dict_case['nodes'])
-        x_ele = g_func.calc_elements_1d(x_node)
+        x_ele = g_func.interpolate_to_elements_1d(x_node)
         g_func.output([self.mdf_criteria_process, self.i_ca_criteria_process,
                        self.temp_criteria_process], 'ERR', 'Iteration', 'log',
                       ['k', 'r', 'b'], 'Convergence', 0.,

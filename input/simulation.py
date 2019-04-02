@@ -16,7 +16,7 @@ calc_temperature = True
 # calculate the current density distribution
 calc_current_density = True
 # calculate the flow distribution
-calc_flow_distribution = True
+calc_flow_distribution = False
 # calculate the activation voltage losses
 calc_activation_loss = True
 # calculate the membrane voltage losses

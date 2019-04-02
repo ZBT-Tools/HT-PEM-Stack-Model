@@ -109,21 +109,21 @@ def calc_lambda_mix(lambdax, mol_f, visc, mol_w):
     return outcome
 
 
-def calc_elements_1d(node_vec):
+def interpolate_to_elements_1d(node_vec):
     """
     Calculates an element 1-d-array from a node 1-d-array.
     """
     return np.asarray((node_vec[:-1] + node_vec[1:])) * .5
 
 
-def calc_elements_2d(node_mat):
+def interpolate_to_elements_2d(node_mat):
     """
     Calculates an element 2-d-array from a node 2-d-array.
     """
     return np.asarray((node_mat[:, :-1] + node_mat[:, 1:])) * .5
 
 
-def calc_nodes_2d(ele_mat):
+def interpolate_to_nodes_2d(ele_mat):
     """
     Calculates an node 2-d-array from an element 2-d-array,
     uses the [:, 1], [:, -2] entries of the calculated node 2-d-array
@@ -144,7 +144,7 @@ def calc_nodes_2d(ele_mat):
 #     return np.concatenate((first_node.T, re_array, last_node.T), axis=1)
 
 
-def calc_nodes_1d(ele_vec):
+def interpolate_to_nodes_1d(ele_vec):
     """
     Calculates an node 1-d-array from an element 1-d-array,
     uses the [:, 1], [:, -2] entries of the calculated node 1-d-array
