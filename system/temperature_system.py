@@ -9,51 +9,54 @@ np.set_printoptions(linewidth=10000, threshold=None, precision=2)
 
 class TemperatureSystem:
 
-    def __init__(self, dict):
-        self.dict = dict
+    def __init__(self, temp_dict):
+        self.dict = temp_dict
         # Handover
-        self.n_cells = dict['cell_numb']
+        self.n_cells = temp_dict['cell_numb']
         # cell number
-        self.n_nodes = dict['nodes']
+        self.n_nodes = temp_dict['nodes']
         # node number
         self.n_ele = self.n_nodes - 1
         # element number
-        ch_length = dict['channel_length']
+        self.n_layer = 5
+        # layer number
+        ch_length = temp_dict['channel_length']
         # channel length
-        ch_width = dict['channel_width']
+        ch_width = temp_dict['channel_width']
         # channel width
-        self.cool_ch_bc = dict['cool_ch_bc']
+        self.cool_ch_bc = temp_dict['cool_ch_bc']
         # coolant geometry condition
         self.n_cool = self.n_cells
         if self.cool_ch_bc:
             self.n_cool += 1
         # number of coolant channels
-        self.temp_gas_in = dict['temp_gas_in']
+        self.temp_gas_in = temp_dict['temp_gas_in']
+        self.temp_gas_in = temp_dict['temp_gas_in']
         # gas inlet temperature
-        temp_cool_in = dict['cool_temp_in']
+        temp_cool_in = temp_dict['cool_temp_in']
         # coolant inlet temperature
-        temp_layer_init = dict['temp_layer_init']
+        temp_layer_init = temp_dict['temp_layer_init']
         # initial temperature
-        cp_cool = dict['cool_cp']
+        cp_cool = temp_dict['cool_cp']
         # coolant heat capacity
-        m_flow_cool = dict['cool_m_flow']
+        m_flow_cool = temp_dict['cool_m_flow']
         # mass flow of the coolant
-        rho_cool = dict['cool_density']
+        rho_cool = temp_dict['cool_density']
         # density of the coolant
-        visc_cool = dict['cool_visc']
+        visc_cool = temp_dict['cool_visc']
         # viscosity of the coolant
-        height_cool = dict['channel_height']
+        height_cool = temp_dict['channel_height']
         # height of the coolant channel
-        width_cool = dict['channel_width']
+        width_cool = temp_dict['channel_width']
         # width of the coolant channel
-        n_cool_cell = dict['cool_ch_numb']
+        n_cool_cell = temp_dict['cool_ch_numb']
         # number of coolant channels
         # end plate heat power
-        self.lambda_cool = dict['cool_lambda']
+        self.lambda_cool = temp_dict['cool_lambda']
         # heat conductance from the channel to the coolant
-        self.k_layer = dict['k_layer']
+        self.k_layer = temp_dict['k_layer']
         # heat conductance array through and along the control volume
-        self.k_alpha_env = dict['k_alpha_env']
+        self.k_alpha_env = temp_dict['k_alpha_env']
         # heat conductance from control volume to the environment
         self.temp_env = g_par.dict_case['temp_env']
         # environment temperature
@@ -69,9 +72,9 @@ class TemperatureSystem:
         # conductance of the species flow to the species channels
         # 0: cathode channels, 1: anode channels
         self.temp_layer_vec = \
-            np.full(self.n_ele * (5 * (self.n_cells - 1) + 6), 0.)
+            np.full(self.n_ele * (self.n_layer * self.n_cells + 1), 0.)
         # unsorted result layer temperature vector
-        self.rhs = np.full(self.n_ele * (5 * (self.n_cells - 1) + 6), 0.)
+        self.rhs = np.zeros_like(self.temp_layer_vec)
         # right side of the matrix system: mat T = rhs,
         # contains the power sources and explicit coupled terms
         self.temp_fluid = np.full((2, self.n_cells, self.n_nodes),
@@ -104,8 +107,7 @@ class TemperatureSystem:
         d_h_cool = 2. * width_cool * height_cool \
             / (width_cool + height_cool)
         # hydraulic diameter of the coolant channel
-        u_ch = m_flow_cool / (width_cool
-                                   * height_cool * rho_cool)
+        u_ch = m_flow_cool / (width_cool * height_cool * rho_cool)
         # velocity of the coolant flow
         re_ch = rho_cool * u_ch * d_h_cool / visc_cool
         # reynolds number in the coolant channel
@@ -142,7 +144,9 @@ class TemperatureSystem:
 
         """Building up the result temperature list and arrays"""
         temp_layer = np.full((self.n_layer, self.n_ele), temp_layer_init)
-        temp_layer_n = np.full((6, self.n_ele), temp_layer_init)
+        temp_layer_n = np.full((self.n_layer + 1, self.n_ele), temp_layer_init)
+        temp_layer = np.full((self.n_layer, self.n_ele), temp_layer_init)
+        temp_layer_n = np.full((self.n_layer + 1, self.n_ele), temp_layer_init)
         self.temp_layer = []
         for q in range(self.n_cells - 1):
             self.temp_layer.append(temp_layer)
@@ -151,11 +155,11 @@ class TemperatureSystem:
         #temp_cool_out = temp_cool_in + op_con.tar
 
         self.temp_cool = np.full((self.n_cool, self.n_nodes), temp_cool_in)
-        self.temp_cool_ele = g_func.interpolate_to_elements_1d(self.temp_cool)
+        self.temp_cool_ele = np.full((self.n_cool, self.n_ele), temp_cool_in)
         # coolant temperature array cell, element
 
         """Building up the base conductance matrix mat"""
-        mat_base = np.full((5, 5), 0.)
+        mat_base = np.full((self.n_layer, self.n_layer), 0.)
         mat_base[0, 0] = - self.k_layer[0, 2, 0]
         mat_base[0, 1] = self.k_layer[0, 2, 0]
         mat_base[1, 0] = self.k_layer[0, 2, 0]
@@ -170,7 +174,7 @@ class TemperatureSystem:
         mat_base[4, 3] = + self.k_layer[0, 1, 0]
         mat_base[4, 4] = - self.k_layer[0, 1, 0]
         # heat conductance matrix in z-direction for the cells 0-(n-1)
-        mat_n = np.full((6, 6), 0.)
+        mat_n = np.full((self.n_layer + 1, self.n_layer + 1), 0.)
         mat_n[0:5, 0:5] = mat_base
         mat_n[4, 4] -= self.k_layer[0, 2, 0]
         mat_n[4, 5] = self.k_layer[0, 2, 0]
@@ -189,23 +193,26 @@ class TemperatureSystem:
         # for all cells and all elements
         self.mat_const = sp_l.block_diag(*list_mat)
         # uncoupled heat conductance matrix in z-direction
-        self.dyn_vec = np.full(self.n_ele * (5 * (self.n_cells - 1) + 6), 0.)
+        self.dyn_vec = np.zeros_like(self.temp_layer_vec)
         # vector for dynamically changing heat conductance values
 
         """Setting the coolant channel heat conductance"""
         cool_pos_n_up = \
-            np.arange(self.n_ele * (self.n_cells - 1) * 5,
-                      self.n_ele * (5 * (self.n_cells - 1) + 6), 6)
+            np.arange(self.n_ele * (self.n_cells - 1) * self.n_layer,
+                      self.n_ele * (self.n_layer * self.n_cells + 1),
+                      self.n_layer + 1)
         # upper cool ch pos for the n cell
 
         if self.cool_ch_bc:
-            cool_pos_base = np.arange(0,
-                                      self.n_ele * (self.n_cells - 1) * 5,
-                                      5)
+            cool_pos_base = \
+                np.arange(0, self.n_ele * (self.n_cells - 1) * self.n_layer,
+                          self.n_layer)
             # cool ch pos for the 0-(n-1) cell
             cool_pos_n_down = \
-                np.arange(self.n_ele * (self.n_cells - 1) * 5 + 5,
-                          self.n_ele * (5 * (self.n_cells - 1) + 6), 6)
+                np.arange(self.n_ele * (self.n_cells - 1) * self.n_layer +
+                          self.n_layer,
+                          self.n_ele * (self.n_layer * self.n_cells + 1),
+                          self.n_layer + 1)
             # lower cool ch pos for the n cell
             for q, item in enumerate(cool_pos_n_up):
                 self.mat_const[item, item] -= self.k_cool
@@ -213,7 +220,8 @@ class TemperatureSystem:
         else:
             cool_pos_base = \
                 np.arange(self.n_ele,
-                          self.n_ele * (self.n_cells - 1) * 5, 5)
+                          self.n_ele * (self.n_cells - 1) * self.n_layer,
+                          self.n_layer)
             # cool ch pos for the 1-(n-1) cell
         for q, item in enumerate(cool_pos_base):
             self.mat_const[item, item] -= self.k_cool
@@ -232,15 +240,17 @@ class TemperatureSystem:
         x_con_zero = np.hstack((0.5 * self.k_layer[1, 2, 0], x_con_base[1:]))
         # heat conductance vec for one element of the n cell
         x_con_side_base = np.hstack((
-            np.hstack((np.tile(x_con_zero, self.n_ele - 1), np.zeros(5))),
+            np.hstack((np.tile(x_con_zero, self.n_ele - 1),
+                       np.zeros(self.n_layer))),
             np.tile(np.hstack((np.tile(x_con_base, self.n_ele - 1),
-                               np.zeros(5))), self.n_cells - 2),
-            np.zeros(6 * (self.n_ele - 1) + 1)))
+                               np.zeros(self.n_layer))), self.n_cells - 2),
+            np.zeros((self.n_layer + 1) * (self.n_ele - 1) + 1)))
         # heat conductance vec for the right and left side
         # of the matrix main diagonal for the cells 0-(n-1)
-        x_con_side_n = np.hstack((np.zeros((self.n_cells - 1)
-                                           * self.n_ele * 5),
-                                  np.tile(x_con_n, self.n_ele - 1)))
+        x_con_side_n = \
+            np.hstack((np.zeros((self.n_cells - 1) * self.n_ele *
+                                 self.n_layer),
+                       np.tile(x_con_n, self.n_ele - 1)))
         # heat conductance vec for the right and left side
         # of the matrix main diagonal for the cell n
         x_con_mid = \
@@ -259,34 +269,38 @@ class TemperatureSystem:
         # the diagonal of the main heat conductance matrix for the cells 0-n
         self.mat_const = self.mat_const \
             - np.diag(x_con_mid) \
-            + np.diag(x_con_side_base, 5) \
-            + np.diag(x_con_side_base, -5) \
-            + np.diag(x_con_side_n, 6) \
-            + np.diag(x_con_side_n, -6)
+            + np.diag(x_con_side_base, self.n_layer) \
+            + np.diag(x_con_side_base, -self.n_layer) \
+            + np.diag(x_con_side_n, self.n_layer + 1) \
+            + np.diag(x_con_side_n, -(self.n_layer + 1))
 
         """Setting the cell connecting heat conductance, z-direction"""
         pos_r, pos_c = [], []
         for ct in range(self.n_ele * (self.n_cells - 1)):
-            pos_r.append(4 + 5 * ct)
+            pos_r.append(4 + self.n_layer * ct)
             if ct <= self.n_ele * (self.n_cells - 2):
-                pos_c.append(5 * self.n_ele + 5 * ct)
+                pos_c.append(self.n_layer * self.n_ele + self.n_layer * ct)
             else:
-                pos_c.append(pos_c[-1] + 6)
+                pos_c.append(pos_c[-1] + self.n_layer + 1)
         for ct, item in enumerate(pos_c):
             self.mat_const[pos_c[ct], pos_r[ct]] += self.k_layer[0, 2, 0]
             self.mat_const[pos_r[ct], pos_c[ct]] += self.k_layer[0, 2, 0]
         # heat conductance outside the main diagonal
 
-        pos_base_out = np.arange(4,
-                                 self.n_ele * (self.n_cells - 1) * 5, 5)
+        pos_base_out = \
+            np.arange(4, self.n_ele * (self.n_cells - 1) * self.n_layer,
+                      self.n_layer)
         # coordinates of the heat conductance
         # of the last layer of the elements for the cells 0-(n-1)
-        pos_base_in = np.arange(self.n_ele * 5,
-                                self.n_ele * (self.n_cells - 1) * 5, 5)
+        pos_base_in = \
+            np.arange(self.n_ele * self.n_layer,
+                      self.n_ele * (self.n_cells - 1) * self.n_layer,
+                      self.n_layer)
         # coordinates of the heat conductance
         # of the first layer of the cells 1-(n-1)
         pos_n_in = np.arange((self.n_cells - 1) * self.n_ele * 5,
-                             self.n_ele * (5 * (self.n_cells - 1) + 6), 6)
+                             self.n_ele * (self.n_layer * self.n_cells + 1),
+                             self.n_layer + 1)
         # coordinates of the heat conductance
         # of first layer of the elements for the last cell
         pos_in = np.hstack((pos_base_in, pos_n_in))
@@ -319,18 +333,27 @@ class TemperatureSystem:
         self.mat_dyn = self.mat_const
 
         """Calculating the coordinates of the gas channel heat conductance"""
-        pos_cat_ch_base = np.arange(1,(self.n_cells - 1) * self.n_ele * 5, 5)
+        pos_cat_ch_base = \
+            np.arange(1, (self.n_cells - 1) * self.n_ele * self.n_layer,
+                      self.n_layer)
         # coordinates of the cathode channels
         # heat conductance for the 0-(n-1) cells
-        pos_ano_ch_base = np.arange(4, (self.n_cells - 1) * self.n_ele * 5, 5)
+        pos_ano_ch_base = \
+            np.arange(4, (self.n_cells - 1) * self.n_ele * self.n_layer,
+                      self.n_layer)
         # coordinates of the anode channels
         # heat conductance for the 0-(n-1) cells
-        pos_cat_ch_n = np.arange((self.n_cells - 1) * self.n_ele * 5 + 1,
-                                 self.n_ele * (5 * (self.n_cells - 1) + 6), 6)
+        pos_cat_ch_n = \
+            np.arange((self.n_cells - 1) * self.n_ele * self.n_layer + 1,
+                      self.n_ele * (self.n_layer * self.n_cells + 1),
+                      self.n_layer + 1)
         # coordinates of the cathode channels
         # heat conductance for the n cell
-        pos_ano_ch_n = np.arange((self.n_cells - 1) * self.n_ele * 5 + 4,
-                                 self.n_ele * (5 * (self.n_cells - 1) + 6), 6)
+        pos_ano_ch_n = \
+            np.arange((self.n_cells - 1) * self.n_ele * self.n_layer \
+                      + (self.n_layer - 1),
+                      self.n_ele * (self.n_layer * self.n_cells + 1),
+                      self.n_layer + 1)
         # coordinates of the anode channels
         # heat conductance for the n cell
         self.pos_cat_ch = np.hstack((pos_cat_ch_base, pos_cat_ch_n))
@@ -437,7 +460,6 @@ class TemperatureSystem:
 
             dtemp = self.k_gas_ch[0, i] / self.g_fluid[0, i] \
                 * (self.temp_layer[i][1, :] - self.temp_fluid_ele[0, i])
-            print(dtemp)
             self.add_source(self.temp_fluid[0, i], dtemp, 1)
             temp_fluid_ele = \
                 g_func.interpolate_to_elements_1d(self.temp_fluid[0, i])
@@ -467,7 +489,7 @@ class TemperatureSystem:
                 g_func.interpolate_to_nodes_2d(self.temp_fluid_ele[1])
             self.temp_fluid[1, :, -1] = self.temp_gas_in[1]
 
-        print(self.temp_fluid)
+        #print(self.temp_fluid)
 
     def update_coolant_channel_lin(self):
         """
@@ -488,16 +510,16 @@ class TemperatureSystem:
                     g_func.calc_fluid_temp_out(self.temp_cool[q, w - 1],
                                                self.temp_layer[q][0, w - 1],
                                                self.g_cool, self.k_cool)
-                self.temp_cool_ele[q] = \
-                    g_func.interpolate_to_elements_1d(self.temp_cool[q])
+            self.temp_cool_ele[q] = \
+                g_func.interpolate_to_elements_1d(self.temp_cool[q])
         if self.cool_ch_bc:
             for w in range(1, self.n_nodes):
-                self.temp_cool[-1, w] =\
+                self.temp_cool[-1, w] = \
                     g_func.calc_fluid_temp_out(self.temp_cool[-1, w - 1],
                                                self.temp_layer[-1][-1, w - 1],
                                                self.g_cool, self.k_cool)
-                self.temp_cool_ele[-1] = \
-                    g_func.interpolate_to_elements_1d(self.temp_cool[-1])
+            self.temp_cool_ele[-1] = \
+                g_func.interpolate_to_elements_1d(self.temp_cool[-1])
 
     def update_rhs(self):
         """
@@ -528,7 +550,7 @@ class TemperatureSystem:
         """
         heat_pow = self.dict['heat_pow']
 
-        self.rhs = np.full(self.n_ele * (5 * (self.n_cells - 1) + 6), 0.)
+        self.rhs.fill(0.)
         rhs = self.rhs
         temp_env = self.temp_env
         k_alpha_env = self.k_alpha_env

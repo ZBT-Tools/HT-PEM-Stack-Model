@@ -54,7 +54,7 @@ def calc_fan_fri_fac(re):
 
 def calc_head_p_drop(rho, v1, v2, f, kf, le, dh):
     """
-    Calculates the pressure drop at an defined t-junction,
+    Calculates the pressure drop at a defined t-junction,
     according to (Koh, 2003).
     """
     a = (np.square(v1) - np.square(v2)) * .5
@@ -109,49 +109,38 @@ def calc_lambda_mix(lambdax, mol_f, visc, mol_w):
     return outcome
 
 
-def interpolate_to_elements_1d(node_vec):
+def interpolate_to_elements_1d(nodes):
     """
     Calculates an element 1-d-array from a node 1-d-array.
     """
-    return np.asarray((node_vec[:-1] + node_vec[1:])) * .5
+    return np.asarray((nodes[:-1] + nodes[1:])) * .5
 
 
-def interpolate_to_elements_2d(node_mat):
-    """
-    Calculates an element 2-d-array from a node 2-d-array.
-    """
-    return np.asarray((node_mat[:, :-1] + node_mat[:, 1:])) * .5
-
-
-def interpolate_to_nodes_2d(ele_mat):
-    """
-    Calculates an node 2-d-array from an element 2-d-array,
-    uses the [:, 1], [:, -2] entries of the calculated node 2-d-array
-    to fill the first als last row of the node 2-d-array.
-    """
-    mat = np.asarray((ele_mat[:, :-1] + ele_mat[:, 1:])) * .5
-    return np.hstack([mat[:, [0]], mat, mat[:, [-1]]])
-
-
-# def i_e_polate_nodes_2_d(ele_vec):
-#     """
-#     Calculates an node 2-d-array from an element 2-d-array,
-#     and interpolates the first and last row of the node 2-d-array.
-#     """
-#     re_array = np.array((ele_vec[:, :-1] + ele_vec[:, 1:])) * 0.5
-#     first_node = np.array([2. * re_array[:, 0] - re_array[:, 1]])
-#     last_node = np.array([2. * re_array[:, -1] - re_array[:, -2]])
-#     return np.concatenate((first_node.T, re_array, last_node.T), axis=1)
-
-
-def interpolate_to_nodes_1d(ele_vec):
+def interpolate_to_nodes_1d(elements):
     """
     Calculates an node 1-d-array from an element 1-d-array,
     uses the [:, 1], [:, -2] entries of the calculated node 1-d-array
     to fill the first als last row of the node 1-d-array.
     """
-    vec = np.asarray((ele_vec[:-1] + ele_vec[1:])) * .5
-    return np.hstack([vec[0], vec, vec[-1]])
+    nodes = np.asarray((elements[:-1] + elements[1:])) * .5
+    return np.hstack([elements[0], nodes, elements[-1]])
+
+
+def interpolate_to_elements_2d(node_mtx):
+    """
+    Calculates an element 2-d-array from a node 2-d-array.
+    """
+    return np.asarray((node_mtx[:, :-1] + node_mtx[:, 1:])) * .5
+
+
+def interpolate_to_nodes_2d(element_mtx):
+    """
+    Calculates an node 2-d-array from an element 2-d-array,
+    uses the [:, 1], [:, -2] entries of the calculated node 2-d-array
+    to fill the first als last row of the node 2-d-array.
+    """
+    node_mtx = np.asarray((element_mtx[:, :-1] + element_mtx[:, 1:])) * .5
+    return np.hstack([element_mtx[:, [0]], node_mtx, element_mtx[:, [-1]]])
 
 
 # def calc_fluid_water_enthalpy(t):
