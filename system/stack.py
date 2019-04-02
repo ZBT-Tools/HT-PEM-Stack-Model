@@ -141,15 +141,15 @@ class Stack:
             / (self.cells[0].cathode.channel.length
                * self.cells[0].width_channels)
         for q, item in enumerate(self.cells):
+            avg_dx = np.average(item.cathode.channel.dx)
             self.k_alpha_env[0, 1, q] =\
-                .5 * self.alpha_env * item.cathode.channel.dx\
+                .5 * self.alpha_env * avg_dx\
                 * (item.cathode.th_bpp + item.cathode.th_gde) / fac
             self.k_alpha_env[0, 0, q] =\
-                .5 * (self.alpha_env * item.cathode.channel.dx
+                .5 * (self.alpha_env * avg_dx
                       * (item.cathode.th_bpp + item.th_mem)) / fac
             self.k_alpha_env[0, 2, q] = \
-                self.alpha_env * item.cathode.channel.dx\
-                * item.cathode.th_bpp / fac
+                self.alpha_env * avg_dx * item.cathode.th_bpp / fac
         # Initialize the thermal coupling
         therm_dict.dict_temp_sys['k_layer'] = self.k_layer
         therm_dict.dict_temp_sys['k_alpha_env'] = self.k_alpha_env
@@ -164,19 +164,20 @@ class Stack:
             #self.cells[j].set_current_density(self.i_cd[j, :])
             self.cells[j].i_cd = self.i_cd[j, :]
             self.cells[j].update()
-            if self.cells[j].break_program is True:
+            if self.cells[j].break_program:
                 self.break_program = True
                 break
-        if self.break_program is False:
+        if not self.break_program:
             self.stack_dynamic_properties()
-            if self.calc_temp is True:
+            if self.calc_temp:
                 self.update_temperature_coupling()
             if self.cell_numb > 1:
-                if self.calc_flow_dis is True:
+                if self.calc_flow_dis:
                     self.update_flows()
             self.i_cd_old = copy.deepcopy(self.i_cd)
-            if self.calc_cd is True:
+            if self.calc_cd:
                 self.update_electrical_coupling()
+        print(self.i_cd)
 
     def update_flows(self):
         """
@@ -289,21 +290,21 @@ class Stack:
             q_sum_ano_in = np.hstack((q_sum_ano_in, item.anode.q_gas[0]))
             q_sum_ano_out = np.hstack((q_sum_ano_out, item.anode.q_gas[-1]))
             m_sum_f_cat_in = np.hstack((m_sum_f_cat_in,
-                                      item.cathode.m_flow_fluid[0]))
+                                        item.cathode.m_flow_fluid[0]))
             m_sum_f_cat_out = np.hstack((m_sum_f_cat_out,
-                                       item.cathode.m_flow_fluid[-1]))
+                                         item.cathode.m_flow_fluid[-1]))
             m_sum_f_ano_in = np.hstack((m_sum_f_ano_in,
-                                      item.anode.m_flow_fluid[0]))
+                                        item.anode.m_flow_fluid[0]))
             m_sum_f_ano_out = np.hstack((m_sum_f_ano_out,
-                                       item.anode.m_flow_fluid[-1]))
+                                         item.anode.m_flow_fluid[-1]))
             m_sum_g_cat_in = np.hstack((m_sum_g_cat_in,
-                                      item.cathode.m_flow_gas[0]))
+                                        item.cathode.m_flow_gas[0]))
             m_sum_g_cat_out = np.hstack((m_sum_g_cat_out,
-                                       item.cathode.m_flow_gas[-1]))
+                                         item.cathode.m_flow_gas[-1]))
             m_sum_g_ano_in = np.hstack((m_sum_g_ano_in,
-                                      item.anode.m_flow_gas[0]))
+                                        item.anode.m_flow_gas[0]))
             m_sum_g_ano_out = np.hstack((m_sum_g_ano_out,
-                                       item.anode.m_flow_gas[-1]))
+                                         item.anode.m_flow_gas[-1]))
             cp_cat_in = np.hstack((cp_cat_in, item.cathode.cp_fluid[0]))
             cp_cat_out = np.hstack((cp_cat_out, item.cathode.cp_fluid[-1]))
             cp_ano_in = np.hstack((cp_ano_in, item.anode.cp_fluid[0]))

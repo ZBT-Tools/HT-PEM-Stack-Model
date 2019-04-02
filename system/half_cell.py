@@ -309,9 +309,9 @@ class HalfCell:
         faraday = g_par.dict_uni['F']
         self.mol_flow[0] = self.stoi * g_par.dict_case['tar_cd'] \
             * self.active_area_ch / (self.val_num * faraday)
-        source = -1 * self.i_cd * self.active_area_dx_ch / \
+        dmol = -1 * self.i_cd * self.active_area_dx_ch / \
             (self.val_num * faraday)
-        self.add_source(self.mol_flow[0], source, self.flow_direction)
+        self.add_source(self.mol_flow[0], dmol, self.flow_direction)
         self.mol_flow[0] = np.maximum(self.mol_flow[0], 0.0)
 
     def calc_water_flow(self):
@@ -656,7 +656,7 @@ class HalfCell:
             -self.ht_coef
             self.k_ht_coef_ca
         """
-        self.ht_coeff = self.lambda_gas * self.Nu / self.channel.d_h
+        self.ht_coeff = self.lambda_gas_ele * self.Nu / self.channel.d_h
         self.k_ht_coeff_ca = \
             self.ht_coeff * np.pi * self.channel.dx * self.channel.d_h
 
@@ -671,7 +671,7 @@ class HalfCell:
             Manipulate:
             -self.liq_w_flow
         """
-        self.liq_w_flow = self.mol_flow[1]\
+        self.liq_w_flow = self.mol_flow[1] \
             - self.gas_con[1] / self.gas_con[0] * self.mol_flow[0]
 
     def calc_cond_rates(self):
@@ -685,12 +685,9 @@ class HalfCell:
             Manipulate:
             -self.cond_rate
         """
-        if self.is_cathode:
-            self.cond_rate = \
-                g_func.interpolate_to_nodes_1d(np.ediff1d(self.liq_w_flow))
-        else:
-            self.cond_rate = \
-                -g_func.interpolate_to_nodes_1d(np.ediff1d(self.liq_w_flow))
+        self.cond_rate = \
+            self.flow_direction \
+            * g_func.interpolate_to_nodes_1d(np.ediff1d(self.liq_w_flow))
 
     def calc_rel_humidity(self):
         """

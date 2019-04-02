@@ -9,7 +9,8 @@ class Channel:
         # channel length
         n_ele = g_par.dict_case['elements']
         n_nodes = n_ele + 1
-        self.dx = self.length / float(n_ele)
+        self.x = np.linspace(0.0, self.length, n_nodes)
+        self.dx = np.diff(self.x)
         # element length
         self.p_out = dict_ch['p_out']
         # inlet pressure

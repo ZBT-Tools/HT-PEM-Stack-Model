@@ -24,6 +24,10 @@ class TemperatureSystem:
         # channel width
         self.cool_ch_bc = dict['cool_ch_bc']
         # coolant geometry condition
+        self.n_cool = self.n_cells
+        if self.cool_ch_bc:
+            self.n_cool += 1
+        # number of coolant channels
         self.temp_gas_in = dict['temp_gas_in']
         # gas inlet temperature
         temp_cool_in = dict['cool_temp_in']
@@ -42,7 +46,7 @@ class TemperatureSystem:
         # height of the coolant channel
         width_cool = dict['channel_width']
         # width of the coolant channel
-        n_cool = dict['cool_ch_numb']
+        n_cool_cell = dict['cool_ch_numb']
         # number of coolant channels
         # end plate heat power
         self.lambda_cool = dict['cool_lambda']
@@ -89,7 +93,7 @@ class TemperatureSystem:
         # coordinates of the cathode channel heat conductance
         self.pos_ano_ch = None
         # coordinates of the anode channel heat conductance
-        self.g_cool = cp_cool * m_flow_cool * n_cool
+        self.g_cool = cp_cool * m_flow_cool * n_cool_cell
         # coolant heat capacity flow
         self.k_cool = None
         # heat conductance between the coolant and the channel wall
@@ -133,11 +137,11 @@ class TemperatureSystem:
            #   conv_coeff_ch, 'W/(m²K)')
         conv_area = d_h_cool * np.pi * ch_length / self.n_ele
         # convection area of the channel wall
-        self.k_cool = conv_coeff_ch * conv_area * n_cool
+        self.k_cool = conv_coeff_ch * conv_area * n_cool_cell
         # thermal conductance between the element channel area and the coolant
 
         """Building up the result temperature list and arrays"""
-        temp_layer = np.full((5, self.n_ele), temp_layer_init)
+        temp_layer = np.full((self.n_layer, self.n_ele), temp_layer_init)
         temp_layer_n = np.full((6, self.n_ele), temp_layer_init)
         self.temp_layer = []
         for q in range(self.n_cells - 1):
@@ -145,15 +149,9 @@ class TemperatureSystem:
         self.temp_layer.append(temp_layer_n)
         # layer temperature list cell, layer, element
         #temp_cool_out = temp_cool_in + op_con.tar
-        if self.cool_ch_bc:
-            self.temp_cool = np.full((self.n_cells + 1, self.n_nodes),
-                                     temp_cool_in)
-            self.temp_cool_ele = np.full((self.n_cells + 1,
-                                          self.n_ele), 0.)
-        else:
-            self.temp_cool = np.full((self.n_cells, self.n_nodes),
-                                     temp_cool_in)
-            self.temp_cool_ele = np.full((self.n_cells, self.n_ele), 0.)
+
+        self.temp_cool = np.full((self.n_cool, self.n_nodes), temp_cool_in)
+        self.temp_cool_ele = g_func.interpolate_to_elements_1d(self.temp_cool)
         # coolant temperature array cell, element
 
         """Building up the base conductance matrix mat"""
@@ -338,6 +336,21 @@ class TemperatureSystem:
         self.pos_cat_ch = np.hstack((pos_cat_ch_base, pos_cat_ch_n))
         self.pos_ano_ch = np.hstack((pos_ano_ch_base, pos_ano_ch_n))
 
+        self.fwd_mat = np.tril(np.full((self.n_ele, self.n_ele), 1.))
+        # forward matrix
+        self.bwd_mat = np.triu(np.full((self.n_ele, self.n_ele), 1.))
+        # backward matrix
+
+    def add_source(self, var, source, direction=1):
+        n = len(var) - 1
+        if len(source) != n:
+            raise ValueError('source variable must be of length (var-1)')
+        if direction == 1:
+            var[1:] += np.matmul(self.fwd_mat, source)
+        elif direction == -1:
+            var[:-1] += np.matmul(self.bwd_mat, source)
+        return var
+
     def update_values(self, k_alpha_ch, gamma, omega, v_loss, g_gas, i):
         """
         Updates the dynamic parameters
@@ -409,32 +422,52 @@ class TemperatureSystem:
             Manipulate:
             -self.temp_fluid
         """
-        for q in range(self.n_cells):
-            for w in range(1, self.n_nodes):
-                self.temp_fluid[0, q, w] =\
-                    g_func.calc_fluid_temp_out(self.temp_fluid[0, q, w - 1],
-                                               self.temp_layer[q][1, w - 1],
-                                               self.g_fluid[0, q, w - 1],
-                                               self.k_gas_ch[0, q, w - 1])
-            temp_fluid_ele = g_func.interpolate_to_elements_1d(self.temp_fluid[0, q])
-            self.temp_fluid_ele[0, q] = np.minimum(temp_fluid_ele,
-                                                   self.temp_layer[q][0])
-            for w in range(self.n_ele - 1, -1, -1):
-                self.temp_fluid[1, q, w] =\
-                    g_func.calc_fluid_temp_out(self.temp_fluid[1, q, w + 1],
-                                               self.temp_layer[q][4, w],
-                                               self.g_fluid[1, q, w],
-                                               self.k_gas_ch[1, q, w])
-                temp_fluid_ele = \
-                    g_func.interpolate_to_elements_1d(self.temp_fluid[1, q])
-                self.temp_fluid_ele[1, q] = np.minimum(temp_fluid_ele,
-                                                       self.temp_layer[q][4])
+
+        self.temp_fluid[0].fill(self.temp_gas_in[0])
+        self.temp_fluid[1].fill(self.temp_gas_in[1])
+        for i in range(self.n_cells):
+
+            # cathode
+            # for w in range(1, self.n_nodes):
+            #     self.temp_fluid[0, i, w] =\
+            #         g_func.calc_fluid_temp_out(self.temp_fluid[0, i, w - 1],
+            #                                    self.temp_layer[i][1, w - 1],
+            #                                    self.g_fluid[0, i, w - 1],
+            #                                    self.k_gas_ch[0, i, w - 1])
+
+            dtemp = self.k_gas_ch[0, i] / self.g_fluid[0, i] \
+                * (self.temp_layer[i][1, :] - self.temp_fluid_ele[0, i])
+            print(dtemp)
+            self.add_source(self.temp_fluid[0, i], dtemp, 1)
+            temp_fluid_ele = \
+                g_func.interpolate_to_elements_1d(self.temp_fluid[0, i])
+            self.temp_fluid_ele[0, i] = \
+                np.minimum(temp_fluid_ele, self.temp_layer[i][0])
+
+            # anode
+            # for w in range(self.n_ele - 1, -1, -1):
+            #     self.temp_fluid[1, i, w] =\
+            #         g_func.calc_fluid_temp_out(self.temp_fluid[1, i, w + 1],
+            #                                    self.temp_layer[i][4, w],
+            #                                    self.g_fluid[1, i, w],
+            #                                    self.k_gas_ch[1, i, w])
+            dtemp = self.k_gas_ch[1, i] / self.g_fluid[1, i] \
+                * (self.temp_layer[i][4, :] - self.temp_fluid_ele[1, i])
+            # dtemp = q_conv/self.g_fluid[1, i]
+            self.add_source(self.temp_fluid[1, i], dtemp, -1)
+            temp_fluid_ele = \
+                g_func.interpolate_to_elements_1d(self.temp_fluid[1, i])
+            self.temp_fluid_ele[1, i] = \
+                np.minimum(temp_fluid_ele, self.temp_layer[i][4])
+
             self.temp_fluid[0] = \
                 g_func.interpolate_to_nodes_2d(self.temp_fluid_ele[0])
             self.temp_fluid[0, :, 0] = self.temp_gas_in[0]
             self.temp_fluid[1] = \
                 g_func.interpolate_to_nodes_2d(self.temp_fluid_ele[1])
             self.temp_fluid[1, :, -1] = self.temp_gas_in[1]
+
+        print(self.temp_fluid)
 
     def update_coolant_channel_lin(self):
         """
