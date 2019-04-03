@@ -50,21 +50,21 @@ class Manifold:
         self.cell_mol_flow_old = np.full(self.cell_num, 0.)
         self.criteria = 0.
 
-    def update_values(self, dict_manifold_dyn):
-        self.cell_f_mass_flow = dict_manifold_dyn['f_mass_flow']
-        self.cell_g_mass_flow = dict_manifold_dyn['g_mass_flow']
-        self.cell_mol_flow = dict_manifold_dyn['mol_flow']
-        self.cell_temp = dict_manifold_dyn['cell_temp']
-        self.cell_cp = dict_manifold_dyn['cell_cp']
-        self.cell_visc = dict_manifold_dyn['cell_visc']
-        self.cell_p = dict_manifold_dyn['cell_p']
-        self.cell_R_avg = dict_manifold_dyn['cell_r']
+    def update_values(self, mol_flow, cell_temp, cell_cp, cell_visc,
+             cell_p, cell_r, f_mass_flow, g_mass_flow):
+        self.cell_f_mass_flow = f_mass_flow
+        self.cell_g_mass_flow = g_mass_flow
+        self.cell_mol_flow = mol_flow
+        self.cell_temp = cell_temp
+        self.cell_cp = cell_cp
+        self.cell_visc = cell_visc
+        self.cell_p = cell_p
+        self.cell_R_avg = cell_r
 
     def update(self):
         """
         This function coordinates the program sequence.
         """
-
         self.calc_header_fluid_mass_flows()
         self.calc_header_mol_flows()
         self.calc_header_heat_capacity()

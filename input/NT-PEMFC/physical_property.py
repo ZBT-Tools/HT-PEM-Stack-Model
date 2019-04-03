@@ -75,11 +75,6 @@ cathode_channel_flow_direction = True
 # anode channel gas flow direction
 anode_channel_flow_direction = False
 
-"""Humidification"""
-# cathode inlet gas relative humidity
-inlet_humidity_cathode = 1.
-# anode inlet gas relative humidity
-inlet_humidity_anode = 0.
 
 """Species settings"""
 # oxygen concentration at the cathode inlet

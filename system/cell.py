@@ -45,9 +45,9 @@ class Cell:
 
         """heat conductivity along and through the cell layers"""
         self.width_channels = self.cathode.channel.width\
-            * self.cathode.channel_numb\
+            * self.cathode.n_chl\
             + self.cathode.channel.rack_width\
-            * (self.cathode.channel_numb + 1)
+            * (self.cathode.n_chl + 1)
         self.active_area_dx = self.width_channels * self.cathode.channel.dx
         self.k_bpp_z = self.lambda_bpp[0] * self.active_area_dx \
             / self.cathode.th_bpp
@@ -245,14 +245,20 @@ class Cell:
             -self.omega_ca
             -self.omega
         """
+        print('anode humidity:', self.anode.humidity)
+        print('cathode humidity:', self.cathode.humidity)
         humidity = (self.cathode.humidity + self.anode.humidity) * 0.5
         humidity_ele = g_func.interpolate_to_elements_1d(humidity)
+        print('humidity_ele: ', humidity_ele)
         a = 0.043 + 17.81 * humidity_ele
         b = -39.85 * humidity_ele ** 2. + 36. * humidity_ele ** 3.
         free_water_content = a + b
+        print('free_water_content: ', free_water_content)
         mem_el_con = 0.005139 * free_water_content - 0.00326
+        print('mem_el_con: ', mem_el_con)
         mem_el_con_temp =\
             np.exp(1268 * (0.0033 - 1. / self.temp_mem)) * mem_el_con
+        print('mem_el_con_temp: ', mem_el_con_temp)
         self.omega_ca = self.th_mem / mem_el_con_temp * 1.e-4
 
     def calc_membrane_loss(self):
@@ -267,10 +273,11 @@ class Cell:
             -self.mem_los
         """
         #self.mem_loss = self.omega_ca * self.i_cd
-        if self.calc_mem_loss is False:
+        if not self.calc_mem_loss:
             self.mem_loss = 0.
         else:
             self.mem_loss = self.omega_ca * self.i_cd
+        print('omega_ca: ', self.omega_ca)
 
     def calc_voltage(self):
         """
@@ -290,6 +297,9 @@ class Cell:
             -self.v
             -self.v_alarm
         """
+        print('mem loss: ', self.mem_loss)
+        print('cat loss: ', self.cathode.v_loss)
+        print('ano loss: ', self.anode.v_loss)
         self.v_loss = self.mem_loss + self.cathode.v_loss + self.anode.v_loss
         if any(self.v_loss) >= g_par.dict_case['e_0']:
             self.v_alarm = True

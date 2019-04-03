@@ -29,6 +29,12 @@ endplates_heat_power = 0.
 # initial temperature [K]
 temp_initial = 298.15
 
+"""Humidification"""
+# cathode inlet gas relative humidity
+inlet_humidity_cathode = 1.
+# anode inlet gas relative humidity
+inlet_humidity_anode = 0.
+
 """Fluid Mechanic Settings"""
 # pressure at the outlet of the cathode manifold [Pa]
 p_manifold_cathode_out = 1.e5

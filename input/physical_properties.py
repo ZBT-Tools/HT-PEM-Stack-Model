@@ -65,7 +65,7 @@ convection_coefficient_stack_environment = 0.
 
 """Fluid Mechanic Settings"""
 # geometrical pressure loss coefficient of the manifold header
-manifold_pressure_loss_coefficient = 0.
+manifold_pressure_loss_coefficient = 0.1
 # bend pressure loss coefficient of the channel bends
 bend_pressure_loss_coefficient = 0.1
 # number of channel bends
@@ -75,11 +75,6 @@ cathode_channel_flow_direction = True
 # anode channel gas flow direction
 anode_channel_flow_direction = False
 
-"""Humidification"""
-# cathode inlet gas relative humidity
-inlet_humidity_cathode = 1.
-# anode inlet gas relative humidity
-inlet_humidity_anode = 0.
 
 """Species settings"""
 # oxygen concentration at the cathode inlet

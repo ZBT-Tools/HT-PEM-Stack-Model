@@ -177,34 +177,23 @@ class Stack:
             self.i_cd_old = copy.deepcopy(self.i_cd)
             if self.calc_cd:
                 self.update_electrical_coupling()
-        # print(self.i_cd)
+        print(self.i_cd)
 
     def update_flows(self):
         """
         This function updates the flow distribution of gas over the stack cells
         """
         self.manifold[0].update_values(
-            m_fold_dict.manifold(self.q_sum_cat
-                                 * self.cells[0].cathode.channel_numb,
-                                 self.temp_fluid_cat,
-                                 self.cp_cat, self.visc_cat,
-                                 self.p_cat, self.r_cat,
-                                 self.m_sum_f_cat
-                                 * self.cells[0].cathode.channel_numb,
-                                 self.m_sum_g_cat
-                                 * self.cells[0].cathode.channel_numb))
+            self.q_sum_cat * self.cells[0].cathode.n_chl, self.temp_fluid_cat,
+            self.cp_cat, self.visc_cat, self.p_cat, self.r_cat,
+            self.m_sum_f_cat * self.cells[0].cathode.n_chl,
+            self.m_sum_g_cat * self.cells[0].cathode.n_chl)
         self.manifold[1].update_values(
-            m_fold_dict.manifold(self.q_sum_ano[::-1]
-                                 * self.cells[0].cathode.channel_numb,
-                                 self.temp_fluid_ano[::-1],
-                                 self.cp_ano[::-1],
-                                 self.visc_ano[::-1],
-                                 self.p_ano[::-1],
-                                 self.r_ano[::-1],
-                                 self.m_sum_f_ano[::-1]
-                                 * self.cells[0].cathode.channel_numb,
-                                 self.m_sum_g_ano[::-1]
-                                 * self.cells[0].cathode.channel_numb))
+            self.q_sum_ano[::-1] * self.cells[0].cathode.n_chl,
+            self.temp_fluid_ano[::-1], self.cp_ano[::-1],
+            self.visc_ano[::-1], self.p_ano[::-1], self.r_ano[::-1],
+            self.m_sum_f_ano[::-1] * self.cells[0].cathode.n_chl,
+            self.m_sum_g_ano[::-1] * self.cells[0].cathode.n_chl)
         self.manifold[0].update()
         self.manifold[1].update()
         self.set_stoichiometry(self.manifold[0].cell_stoi,
@@ -219,9 +208,7 @@ class Stack:
         This function updates current distribution over the stack cells
         """
 
-        self.el_cpl_stack.update_values(
-            el_cpl_dict.electrical_coupling(self.v_loss,
-                                            self.stack_cell_r))
+        self.el_cpl_stack.update_values(self.v_loss, self.stack_cell_r)
         self.el_cpl_stack.update()
         self.i_cd = self.el_cpl_stack.i_cd
 
@@ -231,7 +218,7 @@ class Stack:
         """
 
         current = self.i_cd * self.cells[0].active_area_dx
-        n_ch = self.cells[0].cathode.channel_numb
+        n_ch = self.cells[0].cathode.n_chl
         self.temp_sys.update_values(self.k_alpha_ch * n_ch,
                                     self.cond_rate * n_ch,
                                     self.omega,

@@ -11,7 +11,3 @@ dict_electrical_coupling =\
         'width_channels': geom.channel_width * geom.gas_channel_number
                           + geom.rack_width * (geom.gas_channel_number + 1)
     }
-
-
-def electrical_coupling(v_loss, r_cell):
-    return {'v_loss': v_loss, 'r_cell': r_cell}

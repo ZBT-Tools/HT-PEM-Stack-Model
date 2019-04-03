@@ -5,13 +5,13 @@ import numpy as np
 
 """Electrochemistry"""
 # target current density [A/m^2]
-target_current_density = 15000.
+target_current_density = 10000.
 # open circuit voltage [V]
 open_circuit_voltage = 1.00
 # cathode stoichiometry
 stoichiometry_cathode = 2.
 # anode stoichiometry
-stoichiometry_anode = 5.
+stoichiometry_anode = 2.
 # pem-type (True = HT-PEM, False = NT-PEM)
 is_ht_pem = False
 
@@ -29,13 +29,19 @@ endplates_heat_power = 0.
 # initial temperature [K]
 temp_initial = 298.15
 
+"""Humidification"""
+# cathode inlet gas relative humidity
+inlet_humidity_cathode = 1.
+# anode inlet gas relative humidity
+inlet_humidity_anode = 0.
+
 """Fluid Mechanic Settings"""
 # pressure at the outlet of the cathode manifold [Pa]
 p_manifold_cathode_out = 1.e5
 # pressure at the outlet of the anode manifold [Pa]
 p_manifold_anode_out = 1.e5
 # mass flow of the coolant per channel [kg/s]
-mass_flow_coolant = 1.e-4
+mass_flow_coolant = 1.e-3
 
 cathode_flow_direction = 1
 anode_flow_direction = -1
@@ -48,6 +54,6 @@ coolant_channel_number = 10
 
 """Stack Settings"""
 # number of the pemfc
-cell_number = 20
+cell_number = 3
 # coolant channel configuration (no cooling channel at the endplates = False)
 cooling_bc = True

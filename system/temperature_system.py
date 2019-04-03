@@ -5,6 +5,7 @@ from scipy.sparse.linalg import spsolve
 import data.global_parameters as g_par
 import system.global_functions as g_func
 import data.water_properties as w_prop
+from numba import jit
 
 np.set_printoptions(linewidth=10000, threshold=None, precision=2)
 
@@ -145,8 +146,6 @@ class TemperatureSystem:
         # thermal conductance between the element channel area and the coolant
 
         """Building up the result temperature list and arrays"""
-        temp_layer = np.full((self.n_layer, self.n_ele), temp_layer_init)
-        temp_layer_n = np.full((self.n_layer + 1, self.n_ele), temp_layer_init)
         temp_layer = np.full((self.n_layer, self.n_ele), temp_layer_init)
         temp_layer_n = np.full((self.n_layer + 1, self.n_ele), temp_layer_init)
         self.temp_layer = []
@@ -333,10 +332,10 @@ class TemperatureSystem:
                        np.tile(env_con_n, self.n_ele)))
         # vector of the main diagonal of the heat conductance matrix
         self.mat_const = self.mat_const + np.diag(env_con_vec)
-        #self.mat_dyn = np.copy(self.mat_const)
+        # self.mat_dyn = np.copy(self.mat_const)
 
-        self.mat_const_sp = sparse.lil_matrix(self.mat_const)
-        self.mat_dyn_sp = sparse.lil_matrix(self.mat_const_sp)
+        self.mat_const_sp = sparse.csr_matrix(self.mat_const)
+        # self.mat_dyn_sp = sparse.lil_matrix(self.mat_const_sp)
 
         """Calculating the coordinates of the gas channel heat conductance"""
         pos_cat_ch_base = \
@@ -495,7 +494,7 @@ class TemperatureSystem:
                 g_func.interpolate_to_nodes_2d(self.temp_fluid_ele[1])
             self.temp_fluid[1, :, -1] = self.temp_gas_in[1]
 
-        #print(self.temp_fluid)
+        # print(self.temp_fluid)
 
     def update_coolant_channel_lin(self):
         """
@@ -510,23 +509,21 @@ class TemperatureSystem:
                     -self.temp_cool
                     -self.temp_cool_ele
                 """
-        for q in range(self.n_cells):
-            for w in range(1, self.n_nodes):
-                self.temp_cool[q, w] =\
-                    g_func.calc_fluid_temp_out(self.temp_cool[q, w - 1],
-                                               self.temp_layer[q][0, w - 1],
-                                               self.g_cool, self.k_cool)
-            self.temp_cool_ele[q] = \
-                g_func.interpolate_to_elements_1d(self.temp_cool[q])
+        for i in range(self.n_cells):
+            dtemp = self.k_cool / self.g_cool \
+                * (self.temp_layer[i][0, :] - self.temp_cool_ele[i])
+            self.add_source(self.temp_cool[i], dtemp, 1)
+            self.temp_cool_ele[i] = \
+                g_func.interpolate_to_elements_1d(self.temp_cool[i])
         if self.cool_ch_bc:
-            for w in range(1, self.n_nodes):
-                self.temp_cool[-1, w] = \
-                    g_func.calc_fluid_temp_out(self.temp_cool[-1, w - 1],
-                                               self.temp_layer[-1][-1, w - 1],
-                                               self.g_cool, self.k_cool)
+            dtemp = self.k_cool / self.g_cool \
+                * (self.temp_layer[-1][-1, :] - self.temp_cool_ele[-1])
+            self.add_source(self.temp_cool[-1], dtemp, 1)
             self.temp_cool_ele[-1] = \
                 g_func.interpolate_to_elements_1d(self.temp_cool[-1])
+        # print(self.temp_cool_ele)
 
+    # @jit(nopython=True)
     def update_rhs(self):
         """
         Creates a vector with the right hand side entries,
@@ -562,6 +559,7 @@ class TemperatureSystem:
         k_alpha_env = self.k_alpha_env
 
         ct = 0
+        # print(self.cond_rate)
         for i in range(self.n_cells):
             for j in range(self.n_ele):
                 if i is 0:
@@ -601,7 +599,9 @@ class TemperatureSystem:
                         rhs[ct + 5] -= self.k_cool * self.temp_cool_ele[-1, j]
                     cr = 6
                 ct += cr
+        # print(self.rhs)
 
+    # @jit(nopython=True)
     def update_matrix(self):
         """
         Updates the thermal conductance matrix
@@ -625,9 +625,9 @@ class TemperatureSystem:
                 self.dyn_vec[ct + 1] = -self.k_gas_ch[0, q, w]
                 self.dyn_vec[ct + 4] = -self.k_gas_ch[1, q, w]
                 ct += cr
-        self.mat_dyn = \
-            (self.mat_const_sp + sparse.diags([self.dyn_vec], [0])).tocsr()
-        #self.mat_dyn = self.mat_const + np.diag(self.dyn_vec)
+        # self.mat_dyn = \
+        #    self.mat_const_sp + sparse.diags([self.dyn_vec], [0], format='csr')
+        self.mat_dyn = self.mat_const + np.diag(self.dyn_vec)
 
     def solve_system(self):
         """
@@ -640,8 +640,8 @@ class TemperatureSystem:
             Manipulate:
             -self.temp_layer_vec
         """
-        #self.temp_layer_vec = np.linalg.tensorsolve(self.mat_dyn, self.rhs)
-        self.temp_layer_vec = spsolve(self.mat_dyn, self.rhs)
+        self.temp_layer_vec = np.linalg.tensorsolve(self.mat_dyn, self.rhs)
+        # self.temp_layer_vec = spsolve(self.mat_dyn, self.rhs)
 
     def sort_results(self):
         """
@@ -665,3 +665,4 @@ class TemperatureSystem:
             for w in range(self.n_ele):
                 self.temp_layer[q][:, w] = self.temp_layer_vec[ct: ct + cr]
                 ct += cr
+        # print(self.temp_layer)

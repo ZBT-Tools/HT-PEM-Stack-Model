@@ -36,7 +36,7 @@ class HalfCell:
             # volumetric nitrogen to oxygen ratio
             self.n_species = 3
             # number of  species in the gas mixture
-            self.val_num = 4.
+            self.n_val = 4.
             # electrical charge number
             self.mol_mass = np.array([32., 18., 28.]) * 1.e-3
             # molar mass
@@ -48,7 +48,7 @@ class HalfCell:
             # volumetric hydrogen to oxygen ratio
             self.n_species = 3
             # number of species in the gas mixture
-            self.val_num = 2.
+            self.n_val = 2.
             # electrical charge number
             self.mol_mass = np.array([2., 18., 28.]) * 1.e-3
             # molar mass
@@ -60,7 +60,7 @@ class HalfCell:
         self.calc_gdl_diff_loss = dict_hc['calc_gdl_diff_loss']
 
         """geometry"""
-        self.channel_numb = dict_hc['channel_numb']
+        self.n_chl = dict_hc['channel_numb']
         # number of channels of each cell
         self.cell_width = dict_hc['cell_width']
         # height of the cell
@@ -112,7 +112,7 @@ class HalfCell:
 
         """general parameter"""
         area_fac = self.cell_length * self.cell_width\
-            / (self.channel.active_area * self.channel_numb)
+            / (self.channel.active_area * self.n_chl)
         # factor active area with racks / active channel area
         self.active_area_dx_ch = area_fac * self.channel.active_area_dx
         # active area belonging to the channel plan area dx
@@ -308,11 +308,12 @@ class HalfCell:
         """
         faraday = g_par.dict_uni['F']
         self.mol_flow[0] = self.stoi * g_par.dict_case['tar_cd'] \
-            * self.active_area_ch / (self.val_num * faraday)
+            * self.active_area_ch / (self.n_val * faraday)
         dmol = -1 * self.i_cd * self.active_area_dx_ch / \
-            (self.val_num * faraday)
+            (self.n_val * faraday)
         self.add_source(self.mol_flow[0], dmol, self.flow_direction)
         self.mol_flow[0] = np.maximum(self.mol_flow[0], 0.0)
+        # print(self.mol_flow[0])
 
     def calc_water_flow(self):
         """"
@@ -347,14 +348,14 @@ class HalfCell:
         else:
             reac_ratio = self.n2h2ratio
 
-        cha = self.channel
+        chl = self.channel
         q_0_water = \
-            self.mol_flow[0][0] * (1. + reac_ratio) * sat_p * cha.humidity_in \
-            / (cha.p_out - cha.humidity_in * sat_p)
+            self.mol_flow[0][0] * (1. + reac_ratio) * sat_p * chl.humidity_in \
+            / (chl.p_out - chl.humidity_in * sat_p)
         h2o_in = q_0_water
         h2o_source = np.zeros_like(i_cd)
         if self.is_cathode:
-            h2o_prod = area / (self.val_num * g_par.dict_uni['F'] * 0.5) * i_cd
+            h2o_prod = area / (self.n_val * g_par.dict_uni['F'] * 0.5) * i_cd
             h2o_source += h2o_prod
             # production
             if not self.is_ht_pem:
@@ -376,6 +377,7 @@ class HalfCell:
         else:
             self.mol_flow[2] = \
                 np.full(self.n_nodes, self.mol_flow[0][-1] * self.n2h2ratio)
+        print('water_flow: ', self.mol_flow[1])
 
     # def calc_pressure_drop_bends(self, rho, u):
     #     """
@@ -703,6 +705,7 @@ class HalfCell:
         """
         self.humidity = self.gas_con[1] * g_par.dict_uni['R'] \
             * self.temp_fluid / w_prop.water.calc_p_sat(self.temp_fluid)
+        print('temp_fluid:', self.temp_fluid)
 
     def sum_flows(self):
         """
