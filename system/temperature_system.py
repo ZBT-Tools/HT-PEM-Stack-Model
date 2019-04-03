@@ -397,6 +397,8 @@ class TemperatureSystem:
         self.g_fluid[0] = g_func.interpolate_to_elements_2d(g_gas[0])
         self.g_fluid[1] = g_func.interpolate_to_elements_2d(g_gas[1])
         self.k_gas_ch = k_alpha_ch
+        print('k_alpha_ch: ', k_alpha_ch)
+        print('g_fluid: ', self.g_fluid)
         self.cond_rate = gamma
         self.i = i
         self.v_loss = v_loss
@@ -414,7 +416,7 @@ class TemperatureSystem:
             -self.v_loss
             -self.k_gas_ch
         """
-        print(self.k_gas_ch)
+        print('k_gas_ch: ', self.k_gas_ch)
         print(g_func.interpolate_to_elements_2d(self.k_gas_ch[0]))
         self.k_gas_ch[0] = g_func.interpolate_to_elements_2d(self.k_gas_ch[0])
         self.k_gas_ch[1] = g_func.interpolate_to_elements_2d(self.k_gas_ch[1])
@@ -453,6 +455,9 @@ class TemperatureSystem:
 
         self.temp_fluid[0].fill(self.temp_gas_in[0])
         self.temp_fluid[1].fill(self.temp_gas_in[1])
+        self.temp_fluid_ele[0].fill(self.temp_gas_in[0])
+        self.temp_fluid_ele[1].fill(self.temp_gas_in[1])
+
         for i in range(self.n_cells):
 
             # cathode
@@ -465,6 +470,7 @@ class TemperatureSystem:
 
             dtemp = self.k_gas_ch[0, i] / self.g_fluid[0, i] \
                 * (self.temp_layer[i][1, :] - self.temp_fluid_ele[0, i])
+            print('cathode dtemp: ', dtemp)
             self.add_source(self.temp_fluid[0, i], dtemp, 1)
             temp_fluid_ele = \
                 g_func.interpolate_to_elements_1d(self.temp_fluid[0, i])
@@ -480,7 +486,9 @@ class TemperatureSystem:
             #                                    self.k_gas_ch[1, i, w])
             dtemp = self.k_gas_ch[1, i] / self.g_fluid[1, i] \
                 * (self.temp_layer[i][4, :] - self.temp_fluid_ele[1, i])
+            print('anode dtemp_conv: ', self.temp_layer[i][4, :] - self.temp_fluid_ele[1, i])
             # dtemp = q_conv/self.g_fluid[1, i]
+            print('anode dtemp: ', dtemp)
             self.add_source(self.temp_fluid[1, i], dtemp, -1)
             temp_fluid_ele = \
                 g_func.interpolate_to_elements_1d(self.temp_fluid[1, i])
@@ -494,7 +502,7 @@ class TemperatureSystem:
                 g_func.interpolate_to_nodes_2d(self.temp_fluid_ele[1])
             self.temp_fluid[1, :, -1] = self.temp_gas_in[1]
 
-        # print(self.temp_fluid)
+        print('temp_fluid: ', self.temp_fluid)
 
     def update_coolant_channel_lin(self):
         """
@@ -521,7 +529,7 @@ class TemperatureSystem:
             self.add_source(self.temp_cool[-1], dtemp, 1)
             self.temp_cool_ele[-1] = \
                 g_func.interpolate_to_elements_1d(self.temp_cool[-1])
-        # print(self.temp_cool_ele)
+        print('temp_cool: ', self.temp_cool)
 
     # @jit(nopython=True)
     def update_rhs(self):
@@ -625,9 +633,9 @@ class TemperatureSystem:
                 self.dyn_vec[ct + 1] = -self.k_gas_ch[0, q, w]
                 self.dyn_vec[ct + 4] = -self.k_gas_ch[1, q, w]
                 ct += cr
-        # self.mat_dyn = \
-        #    self.mat_const_sp + sparse.diags([self.dyn_vec], [0], format='csr')
-        self.mat_dyn = self.mat_const + np.diag(self.dyn_vec)
+        self.mat_dyn = \
+           self.mat_const_sp + sparse.diags([self.dyn_vec], [0], format='csr')
+        # self.mat_dyn = self.mat_const + np.diag(self.dyn_vec)
 
     def solve_system(self):
         """
@@ -640,8 +648,8 @@ class TemperatureSystem:
             Manipulate:
             -self.temp_layer_vec
         """
-        self.temp_layer_vec = np.linalg.tensorsolve(self.mat_dyn, self.rhs)
-        # self.temp_layer_vec = spsolve(self.mat_dyn, self.rhs)
+        # self.temp_layer_vec = np.linalg.tensorsolve(self.mat_dyn, self.rhs)
+        self.temp_layer_vec = spsolve(self.mat_dyn, self.rhs)
 
     def sort_results(self):
         """

@@ -56,7 +56,7 @@ class ElectricalCoupling:
             - np.diag(c_x_stack) \
             + np.diag(c_x_stack_sr[:-1], 1) \
             + np.diag(c_x_stack_sr[:-1], -1)
-        # self.mat_const = sparse.csr_matrix(self.mat_const)
+        self.mat_const = sparse.csr_matrix(self.mat_const)
 
     def update_values(self, cell_r, v_loss):
         """
@@ -104,7 +104,7 @@ class ElectricalCoupling:
             - np.diag(self.cell_c_mid, 0) \
             + np.diag(self.cell_c[:-self.n_ele][self.n_ele:], self.n_ele) \
             + np.diag(self.cell_c[:-self.n_ele][self.n_ele:], -self.n_ele)
-        # mat_dyn = sparse.csr_matrix(mat_dyn)
+        mat_dyn = sparse.csr_matrix(mat_dyn)
         self.mat = self.mat_const + mat_dyn
 
     def update_right_side(self):
@@ -146,8 +146,8 @@ class ElectricalCoupling:
             -self.i_ca
         """
 
-        v_new = np.linalg.tensorsolve(self.mat, self.rhs)
-        # v_new = spsolve(self.mat, self.rhs)
+        # v_new = np.linalg.tensorsolve(self.mat, self.rhs)
+        v_new = spsolve(self.mat, self.rhs)
         v_new = np.hstack((np.full(self.n_ele, self.v_end_plate),
                            v_new, np.full(self.n_ele, 0.)))
         v_diff = v_new[:-self.n_ele] - v_new[self.n_ele:]

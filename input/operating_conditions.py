@@ -5,7 +5,7 @@ import numpy as np
 
 """Electrochemistry"""
 # target current density [A/m^2]
-target_current_density = 10000.
+target_current_density = 6000.
 # open circuit voltage [V]
 open_circuit_voltage = 1.00
 # cathode stoichiometry
@@ -17,17 +17,17 @@ is_ht_pem = False
 
 """"Thermal Settings"""
 # air inlet temperature [K]
-temp_air_in = 298.15
+temp_air_in = 340.
 # anode gas inlet temperature [K]
-temp_anode_gas_in = 298.15
+temp_anode_gas_in = 340.
 # coolant inlet temperature [K]
-temp_coolant_in = 298.15
+temp_coolant_in = 340.
 # environment temperature [K]
 temp_environment = 298.15
 # heat power of the endplates [W]
 endplates_heat_power = 0.
 # initial temperature [K]
-temp_initial = 298.15
+temp_initial = 350.
 
 """Humidification"""
 # cathode inlet gas relative humidity

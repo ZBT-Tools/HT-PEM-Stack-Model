@@ -16,6 +16,7 @@ warnings.filterwarnings("ignore")
 class HalfCell:
 
     def __init__(self, dict_hc, dict_cell):
+        self.name = dict_hc['name']
         self.n_nodes = g_par.dict_case['nodes']
         n_nodes = self.n_nodes
         n_ele = n_nodes - 1
@@ -113,6 +114,8 @@ class HalfCell:
         """general parameter"""
         area_fac = self.cell_length * self.cell_width\
             / (self.channel.active_area * self.n_chl)
+        print('area_fac:', area_fac)
+        area_fac = 1.0
         # factor active area with racks / active channel area
         self.active_area_dx_ch = area_fac * self.channel.active_area_dx
         # active area belonging to the channel plan area dx
@@ -221,9 +224,7 @@ class HalfCell:
         """
         self.calc_temp_fluid_ele()
         self.calc_mass_balance()
-        self.calc_voltage_losses_parameter()
         if not self.break_program:
-            self.update_voltage_loss()
             self.calc_liquid_water_flow()
             self.sum_flows()
             self.calc_cond_rates()
@@ -238,6 +239,7 @@ class HalfCell:
             self.calc_re()
             self.calc_heat_transfer_coeff()
             self.calc_pressure()
+            self.update_voltage_loss()
 
     def calc_mass_balance(self):
         self.calc_reac_flow()
@@ -245,9 +247,6 @@ class HalfCell:
         self.calc_concentrations()
 
     def update_voltage_loss(self):
-        self.calc_activation_loss()
-        self.calc_transport_loss_catalyst_layer()
-        self.calc_transport_loss_diffusion_layer()
         self.calc_electrode_loss()
 
     def add_source(self, var, source, direction=1):
@@ -342,6 +341,7 @@ class HalfCell:
         """
         sat_p = w_prop.water.calc_p_sat(self.channel.temp_in)
         i_cd = self.i_cd
+        print(self.name, 'current density: ', i_cd)
         area = self.active_area_dx_ch
         if self.is_cathode:
             reac_ratio = self.n2o2ratio
@@ -377,7 +377,7 @@ class HalfCell:
         else:
             self.mol_flow[2] = \
                 np.full(self.n_nodes, self.mol_flow[0][-1] * self.n2h2ratio)
-        print('water_flow: ', self.mol_flow[1])
+        print(self.name, 'water_flow: ', self.mol_flow[1])
 
     # def calc_pressure_drop_bends(self, rho, u):
     #     """
@@ -624,6 +624,8 @@ class HalfCell:
         """
         self.cp_fluid = (self.m_flow_gas * self.cp_gas + self.m_flow_liq_w
                          * g_par.dict_case['cp_liq']) / self.m_flow_fluid
+        print(self.name, 'm_flow_gas: ', self.m_flow_gas)
+        print(self.name, 'cp_gas: ', self.cp_gas)
         self.g_fluid = self.m_flow_fluid * self.cp_fluid
 
     def calc_re(self):
@@ -705,7 +707,6 @@ class HalfCell:
         """
         self.humidity = self.gas_con[1] * g_par.dict_uni['R'] \
             * self.temp_fluid / w_prop.water.calc_p_sat(self.temp_fluid)
-        print('temp_fluid:', self.temp_fluid)
 
     def sum_flows(self):
         """
@@ -739,9 +740,12 @@ class HalfCell:
         """
         i_lim = 4. * g_par.dict_uni['F'] * self.gas_con[0, :-1] \
             * self.diff_coeff_gdl / self.th_gdl
+        print(self.name, i_lim)
+        print(self.name, self.gas_con[0, :])
         self.var = \
             1. - self.i_cd / (i_lim * self.gas_con_ele / self.gas_con[0, :-1])
         self.i_ca_square = np.square(self.i_cd)
+        print(self.name, self.var)
 
     def calc_activation_loss(self):
         """
@@ -827,6 +831,10 @@ class HalfCell:
             Manipulate:
             -self.v_loss
         """
+        self.calc_voltage_losses_parameter()
+        self.calc_activation_loss()
+        self.calc_transport_loss_catalyst_layer()
+        self.calc_transport_loss_diffusion_layer()
         if not self.calc_gdl_diff_loss:
             self.gdl_diff_loss = 0.
         if not self.calc_cl_diff_loss:
@@ -834,3 +842,7 @@ class HalfCell:
         if not self.calc_act_loss:
             self.act_loss = 0.
         self.v_loss = self.act_loss + self.cl_diff_loss + self.gdl_diff_loss
+        print(self.name, 'gdl loss: ', self.gdl_diff_loss)
+        print(self.name, 'cl loss: ', self.cl_diff_loss)
+        print(self.name, 'activation loss: ', self.act_loss)
+        print(self.name, 'electrode loss: ', self.v_loss)

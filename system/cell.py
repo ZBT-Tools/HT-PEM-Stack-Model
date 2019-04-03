@@ -85,9 +85,11 @@ class Cell:
             + 2. * self.cathode.th_bpp\
             + 2. * self.cathode.th_gde
         # height of the cell
-        n_nodes = g_par.dict_case['nodes']
+        self.n_nodes = g_par.dict_case['nodes']
+        n_nodes = self.n_nodes
         # number of nodes along the channel
-        n_ele = n_nodes - 1
+        self.n_ele = n_nodes - 1
+        n_ele = self.n_ele
         self.w_cross_flow = np.zeros(n_ele)
         # water cross flux through the membrane
         self.omega_ca = np.zeros(n_nodes)
@@ -96,7 +98,7 @@ class Cell:
         # voltage loss
         self.temp = np.full((5, n_ele), dict_cell['temp_init'])
         # layer temperature
-        self.temp_mem = np.zeros(n_nodes)
+        self.temp_mem = np.zeros(n_ele)
         # membrane temperature
         self.i_cd = np.full(n_ele, 0.)
         # current density
@@ -133,7 +135,8 @@ class Cell:
         else:
             if not is_ht_pem:
                 self.calc_cross_water_flux()
-                self.calc_mem_resistivity_springer()
+                #self.calc_mem_resistivity_springer()
+                self.calc_mem_resistivity_gossling()
             else:
                 self.calc_mem_resistivity_kvesic()
             self.calc_membrane_loss()
@@ -159,16 +162,16 @@ class Cell:
             -self.w_cross_flow
         """
         vap_coeff = g_par.dict_case['vap_m_temp_coeff']
-        humidity = [self.cathode.humidity, self.anode.humidity]
-        humidity_ele = np.array([g_func.interpolate_to_elements_1d(humidity[0]),
-                                 g_func.interpolate_to_elements_1d(humidity[1])])
+        humidity = np.asarray([self.cathode.humidity, self.anode.humidity])
+        humidity_ele = \
+           np.array([g_func.interpolate_to_elements_1d(humidity[0]),
+                     g_func.interpolate_to_elements_1d(humidity[1])])
         a = 0.043 + 17.81 * humidity_ele
         b = -39.85 * humidity_ele ** 2. + 36. * humidity_ele ** 3.
         free_w_content = a + b
         zeta_plus = free_w_content[0] + free_w_content[1] \
-                    + self.i_cd / (2. * vap_coeff
-                                   * g_par.dict_case['mol_con_m']
-                                   * g_par.dict_uni['F'])
+            + self.i_cd / (2. * vap_coeff * g_par.dict_case['mol_con_m']
+                           * g_par.dict_uni['F'])
         zeta_negative =\
             (free_w_content[0]
              - free_w_content[1]
@@ -207,10 +210,11 @@ class Cell:
         """
         Calculates the membrane resitace for NT-PEMFC according to Goßling
         """
-        lambda_x = np.full(g_par.dict_case['nodes'], 0.)
+        lambda_x = np.full(self.n_ele, 0.)
+        #temp_mem_ele = g_func.interpolate_to_elements_1d(self.temp_mem)
         res_t = np.exp(self.fac_m * 1.e3 / self.temp_mem + self.fac_n)
         r_avg = (self.cathode.humidity + self.anode.humidity) * 0.5
-        for q in range(g_par.dict_case['nodes']):
+        for q in range(self.n_ele):
             if r_avg[q] > 0:
                 lambda_x[q] = 0.3 + 6. * r_avg[q] * (
                             1. - np.tanh(r_avg[q] - 0.5)) + 3.9 * np.sqrt(
@@ -245,8 +249,8 @@ class Cell:
             -self.omega_ca
             -self.omega
         """
-        print('anode humidity:', self.anode.humidity)
-        print('cathode humidity:', self.cathode.humidity)
+        #print('anode humidity:', self.anode.humidity)
+        #print('cathode humidity:', self.cathode.humidity)
         humidity = (self.cathode.humidity + self.anode.humidity) * 0.5
         humidity_ele = g_func.interpolate_to_elements_1d(humidity)
         print('humidity_ele: ', humidity_ele)

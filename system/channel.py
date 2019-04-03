@@ -33,6 +33,7 @@ class Channel:
         self.active_area = self.width * self.length
         # planar area of the channel
         self.active_area_dx = self.width * self.dx
+        print('active_area: ', self.active_area)
         # planar area of an element of the channel
         self.cross_area = self.width * self.height
         # channel cross area
