@@ -207,7 +207,6 @@ class Stack:
         """
         This function updates current distribution over the stack cells
         """
-
         self.el_cpl_stack.update_values(self.v_loss, self.stack_cell_r)
         self.el_cpl_stack.update()
         self.i_cd = self.el_cpl_stack.i_cd
@@ -216,7 +215,6 @@ class Stack:
         """
         This function updates the layer and fluid temperatures of the stack
         """
-
         current = self.i_cd * self.cells[0].active_area_dx
         n_ch = self.cells[0].cathode.n_chl
         self.temp_sys.update_values(self.k_alpha_ch,
@@ -234,7 +232,6 @@ class Stack:
         necessary to calculate the flow distribution,
         the electrical coupling or the temperature coupling
         """
-
         v_alarm = []
         k_alpha_cat, k_alpha_ano = [], []
         g_fluid_cat, g_fluid_ano = [], []

@@ -177,17 +177,6 @@ class Cell:
         """
         Calculates the membrane resistivity and resistance
         according to (Kvesic, 2013).
-
-            Access to:
-            -self.mem_base_r
-            -self.mem_acl_r
-            -self.temp_mem
-            -self.omega_ca
-            -self.cathode.cathode.active_area_dx_ch
-
-            Manipulate:
-            -self.omega_ca
-            -self.omega
         """
         self.omega_ca = (self.mem_base_r
                          - self.mem_acl_r * self.temp_mem) * 1.e-4
@@ -253,16 +242,14 @@ class Cell:
 
     def calc_voltage(self):
         """
-            Calculates the cell voltage loss.
-            Calculates the cell voltage
-            If the cell voltage loss is larger than the
-            open circuit cell voltage, the cell voltage is set to zero.
+        Calculates the cell voltage loss. If the cell voltage loss is larger
+        than the open circuit cell voltage, the cell voltage is set to zero.
         """
         print('mem loss: ', self.mem_loss)
         print('cat loss: ', self.cathode.v_loss)
         print('ano loss: ', self.anode.v_loss)
         self.v_loss = self.mem_loss + self.cathode.v_loss + self.anode.v_loss
-        if any(self.v_loss) >= g_par.dict_case['e_0']:
+        if np.any(self.v_loss) >= g_par.dict_case['e_0']:
             self.v_alarm = True
         self.v_loss = np.minimum(self.v_loss, g_par.dict_case['e_0'])
         self.v = g_par.dict_case['e_0'] - self.v_loss

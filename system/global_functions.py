@@ -63,51 +63,67 @@ def calc_head_p_drop(rho, v1, v2, f, kf, le, dh):
     return rho * (a + b)
 
 
-def calc_visc_mix(visc, mol_f, mol_m):
+def calc_visc_mix(species_viscosity, mol_fraction, mol_mass):
     """
     Calculates the mixture viscosity of a gas acording to Herning ad Zipperer.
     """
-    visc = np.array(visc).transpose()
-    mol_f = np.array(mol_f).transpose()
-    visc_mix = []
-    for q, item in enumerate(visc):
-        denominator = sum(item * mol_f[q] * np.sqrt(mol_m))
-        divisor = sum(mol_f[q] * np.sqrt(mol_m))
-        visc_mix.append(denominator / divisor)
-    return visc_mix
+    #species_viscosity_t = np.asarray(species_viscosity).transpose()
+    # mol_fraction_t = np.array(mol_fraction).transpose()
+    #mw_mix = np.sum(mol_fraction * mol_mass, axis=-1)
+    # visc_mix = []
+    # for q, item in enumerate(visc):
+    #     denominator = sum(item * mol_fraction_t[q] * np.sqrt(mw))
+    #     divisor = sum(mol_fraction[q] * np.sqrt(mw))
+    #     visc_mix.append(denominator / divisor)
+    # return visc_mix
+    spec_visc = np.asarray(species_viscosity).transpose()
+    x_sqrt_mw = (mol_fraction.transpose() * np.sqrt(mol_mass))
+    return np.sum(spec_visc * x_sqrt_mw, axis=-1)/np.sum(x_sqrt_mw, axis=-1)
 
 
-def calc_psi(visc, mol_w):
+def calc_wilke_coefficients(species_viscosity, mol_mass):
     """
     Calculates the wilke coefficients for each species combination of a gas.
     """
     psi = []
-    for q in range(len(visc)):
-        for w in range(len(visc)):
-            a = (1. + np.power((visc[q] / visc[w]), 0.5)
-                 * np.power(np.power((mol_w[w] / mol_w[q]), 0.25), 2.))
-            b = np.sqrt(8.) * np.power((1. + mol_w[q] / mol_w[w]), 0.5)
+    n = len(mol_mass)
+    for i in range(n):
+        for j in range(n):
+            a = (1. + np.power(species_viscosity[i] / species_viscosity[j],
+                               0.5)
+                 * np.power(np.power((mol_mass[j] / mol_mass[i]), 0.25), 2.))
+            b = np.sqrt(8.) * np.power((1. + mol_mass[i] / mol_mass[j]), 0.5)
             psi.append(a / b)
-    return psi
+    return np.asarray(psi)
 
 
-def calc_lambda_mix(lambdax, mol_f, visc, mol_w):
+def calc_lambda_mix(species_lambda, mol_fraction, species_viscosity, mol_mass):
     """
     Calculates the heat conductivity of a gas mixture,
     according to Wilkes equation.
     """
-    mol_f[1:] = np.minimum(1.e-20, mol_f[1:])
-    psi = calc_psi(visc, mol_w)
-    counter = 0
-    outcome = 0.
-    for i in range(len(visc)):
-        a = mol_f[i] * lambdax[i]
+    # mol_f[1:] = np.minimum(1.e-20, mol_f[1:])
+    psi = calc_wilke_coefficients(species_viscosity, mol_mass)
+    n = len(mol_mass)
+    lambda_mix = np.zeros_like(mol_fraction[0])
+    for i in range(n):
+        a = mol_fraction[i] * species_lambda[i]
         b = 1.e-20
-        for w in range(len(visc)):
-            b = b + mol_f[i] * psi[counter]
-            counter = counter + 1
-        outcome = outcome + a / b
-    return outcome
+        for j in range(n):
+            b += mol_fraction[i] * psi[j + n * i]
+        lambda_mix += a / b
+    return lambda_mix
+    #
+    # mol_fraction[1:] = np.maximum(1e-16, mol_fraction[1:])
+    # wilke_coeffs = calc_wilke_coefficients(species_viscosity, mol_mass)
+    # lambda_mix = np.zeros_like(mol_fraction[0])
+    # a = mol_fraction * species_lambda
+    # for i in range(len(mol_mass)):
+    #     a = mol_fraction[i] * species_lambda[i]
+    #     b = np.sum(mol_fraction * wilke_coeffs[i], axis=0)
+    #     b += 1e-16
+    #     lambda_mix += a / b
+    # return lambda_mix
 
 
 def interpolate_to_elements_1d(nodes):

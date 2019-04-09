@@ -196,8 +196,6 @@ class HalfCell:
         # viscosity of the species in the gas phase
         # self.temp_fluid_ele = np.zeros(n_ele)
         # element based temperature of the gas phase
-        self.cp_ele = np.zeros(n_ele)
-        # element based heat capacity of the reactant
         self.cp_gas = np.zeros(n_nodes)
         # heat capacity of the gas phase
         self.ht_coeff = np.zeros(n_ele)
@@ -223,11 +221,11 @@ class HalfCell:
             self.calc_cond_rates()
             self.calc_species_properties()
             self.calc_gas_properties()
-            self.calc_rel_humidity()
             self.calc_flow_velocity()
+            self.calc_pressure()
+            self.calc_humidity()
             self.calc_fluid_properties()
             self.calc_heat_transfer_coeff()
-            self.calc_pressure()
             self.update_voltage_loss()
 
     def calc_mass_balance(self):
@@ -413,11 +411,6 @@ class HalfCell:
         self.mol_fraction_gas = self.calc_fraction(self.mol_flow_gas)
         self.mass_fraction_gas = self.calc_fraction(self.mass_flow_gas)
 
-        #mass_flow_vap_w = \
-        #    (self.mol_flow[1] - self.mol_flow_liq_w) * self.mol_mass[1]
-        #self.mass_flow_reac_delta = abs(g_func.calc_diff(self.mass_flow[0]))
-        #self.mass_flow_vap_water_delta = abs(g_func.calc_diff(mass_flow_vap_w))
-
     def calc_species_properties(self):
         """
         Calculates the properties of the species in the gas phase
@@ -438,7 +431,6 @@ class HalfCell:
         self.lambdas[2] = g_fit.nitrogen.calc_lambda(self.temp_fluid, self.p)
         self.visc[1] = g_fit.water.calc_visc(self.temp_fluid)
         self.visc[2] = g_fit.nitrogen.calc_visc(self.temp_fluid)
-        self.cp_ele = g_func.interpolate_to_elements_1d(self.cp[0])
 
     def calc_gas_properties(self):
         """
@@ -452,9 +444,11 @@ class HalfCell:
         self.visc_gas = \
             g_func.calc_visc_mix(self.visc, self.mol_fraction_gas,
                                  self.mol_mass)
+        print(self.name, 'visc_gas: ', self.visc_gas)
         self.lambda_gas = \
             g_func.calc_lambda_mix(self.lambdas, self.mol_fraction_gas,
                                    self.visc, self.mol_mass)
+        print(self.name, 'lambda_gas: ', self.lambda_gas)
         self.lambda_gas_ele = g_func.interpolate_to_elements_1d(self.lambda_gas)
         self.rho_gas = g_func.calc_rho(self.p, self.r_gas, self.temp_fluid)
         # self.Pr = self.visc_gas * self.cp_gas / self.lambda_gas
@@ -464,9 +458,8 @@ class HalfCell:
         Calculates the gas phase velocity.
         The gas phase velocity is taken to be the liquid water velocity as well.
         """
-        self.u = \
-            self.q_gas * g_par.dict_uni['R'] * self.temp_fluid \
-            / (self.p * self.channel.cross_area)
+        self.u = self.mass_flow_gas_total / self.rho_gas \
+            * self.channel.cross_area
 
     def calc_fluid_properties(self):
         """
@@ -500,12 +493,14 @@ class HalfCell:
             self.flow_direction \
             * g_func.interpolate_to_nodes_1d(np.ediff1d(self.mol_flow_liq[1]))
 
-    def calc_rel_humidity(self):
+    def calc_humidity(self):
         """
         Calculates the relative humidity of the fluid.
         """
-        self.humidity = self.gas_con[1] * g_par.dict_uni['R'] \
-            * self.temp_fluid / w_prop.water.calc_p_sat(self.temp_fluid)
+        # self.humidity = self.gas_con[1] * g_par.dict_uni['R'] \
+        #     * self.temp_fluid / w_prop.water.calc_p_sat(self.temp_fluid)
+        p_sat = w_prop.water.calc_p_sat(self.temp_fluid)
+        self.humidity = self.mol_fraction_gas[1] * self.p / p_sat
 
     def calc_voltage_losses_parameter(self):
         """
@@ -556,8 +551,7 @@ class HalfCell:
         """
         self.gdl_diff_loss = -self.tafel_slope * np.log10(self.var)
         nan_list = np.isnan(self.gdl_diff_loss)
-        bol = nan_list.any()
-        if bol:
+        if nan_list.any():
             self.gdl_diff_loss[np.argwhere(nan_list)[0, 0]:] = 1.e50
 
     def calc_electrode_loss(self):
