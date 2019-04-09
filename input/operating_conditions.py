@@ -31,7 +31,7 @@ temp_initial = 350.
 
 """Humidification"""
 # cathode inlet gas relative humidity
-inlet_humidity_cathode = 1.
+inlet_humidity_cathode = 0.
 # anode inlet gas relative humidity
 inlet_humidity_anode = 0.
 

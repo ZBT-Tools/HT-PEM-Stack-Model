@@ -397,29 +397,27 @@ class TemperatureSystem:
         self.g_fluid[0] = g_func.interpolate_to_elements_2d(g_gas[0])
         self.g_fluid[1] = g_func.interpolate_to_elements_2d(g_gas[1])
         self.k_gas_ch = k_alpha_ch
-        print('k_alpha_ch: ', k_alpha_ch)
-        print('g_fluid: ', self.g_fluid)
         self.cond_rate = gamma
         self.i = i
         self.v_loss = v_loss
         self.omega = omega
 
-    def change_value_shape(self):
-        """
-        Changes the array shape
-
-            Access to:
-            -self.v_loss
-            -self.k_gas_ch
-
-            Manipulate:
-            -self.v_loss
-            -self.k_gas_ch
-        """
-        print('k_gas_ch: ', self.k_gas_ch)
-        print(g_func.interpolate_to_elements_2d(self.k_gas_ch[0]))
-        self.k_gas_ch[0] = g_func.interpolate_to_elements_2d(self.k_gas_ch[0])
-        self.k_gas_ch[1] = g_func.interpolate_to_elements_2d(self.k_gas_ch[1])
+    # def change_value_shape(self):
+    #     """
+    #     Changes the array shape
+    #
+    #         Access to:
+    #         -self.v_loss
+    #         -self.k_gas_ch
+    #
+    #         Manipulate:
+    #         -self.v_loss
+    #         -self.k_gas_ch
+    #     """
+    #     print('k_gas_ch: ', self.k_gas_ch)
+    #     print(g_func.interpolate_to_elements_2d(self.k_gas_ch[0]))
+    #     self.k_gas_ch[0] = g_func.interpolate_to_elements_2d(self.k_gas_ch[0])
+    #     self.k_gas_ch[1] = g_func.interpolate_to_elements_2d(self.k_gas_ch[1])
 
     def update(self):
         """
@@ -467,10 +465,8 @@ class TemperatureSystem:
             #                                    self.temp_layer[i][1, w - 1],
             #                                    self.g_fluid[0, i, w - 1],
             #                                    self.k_gas_ch[0, i, w - 1])
-
             dtemp = self.k_gas_ch[0, i] / self.g_fluid[0, i] \
                 * (self.temp_layer[i][1, :] - self.temp_fluid_ele[0, i])
-            print('cathode dtemp: ', dtemp)
             self.add_source(self.temp_fluid[0, i], dtemp, 1)
             temp_fluid_ele = \
                 g_func.interpolate_to_elements_1d(self.temp_fluid[0, i])
@@ -486,9 +482,6 @@ class TemperatureSystem:
             #                                    self.k_gas_ch[1, i, w])
             dtemp = self.k_gas_ch[1, i] / self.g_fluid[1, i] \
                 * (self.temp_layer[i][4, :] - self.temp_fluid_ele[1, i])
-            print('anode dtemp_conv: ', self.temp_layer[i][4, :] - self.temp_fluid_ele[1, i])
-            # dtemp = q_conv/self.g_fluid[1, i]
-            print('anode dtemp: ', dtemp)
             self.add_source(self.temp_fluid[1, i], dtemp, -1)
             temp_fluid_ele = \
                 g_func.interpolate_to_elements_1d(self.temp_fluid[1, i])
@@ -501,8 +494,6 @@ class TemperatureSystem:
             self.temp_fluid[1] = \
                 g_func.interpolate_to_nodes_2d(self.temp_fluid_ele[1])
             self.temp_fluid[1, :, -1] = self.temp_gas_in[1]
-
-        print('temp_fluid: ', self.temp_fluid)
 
     def update_coolant_channel_lin(self):
         """
@@ -529,7 +520,6 @@ class TemperatureSystem:
             self.add_source(self.temp_cool[-1], dtemp, 1)
             self.temp_cool_ele[-1] = \
                 g_func.interpolate_to_elements_1d(self.temp_cool[-1])
-        print('temp_cool: ', self.temp_cool)
 
     # @jit(nopython=True)
     def update_rhs(self):

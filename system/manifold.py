@@ -7,16 +7,16 @@ import copy as copy
 class Manifold:
 
     def __init__(self, dict_manifold_const):
-        self.cell_num = dict_manifold_const['cell_num']
-        self.channel_num = dict_manifold_const['channel_numb']
+        self.n_cells = dict_manifold_const['cell_num']
+        self.n_chl = dict_manifold_const['channel_numb']
         self.head_width = dict_manifold_const['header_width']
         self.head_height = dict_manifold_const['header_height']
         self.kf = dict_manifold_const['kf']
         self.cell_height = dict_manifold_const['cell_height']
         self.cell_ch_length = dict_manifold_const['cell_channel_length']
         self.cell_ch_ca = dict_manifold_const['cell_channel_cross_area']
-        self.head_p = np.full((2, self.cell_num), dict_manifold_const['p_out'])
-        self.head_stoi = 1.5
+        self.head_p = np.full((2, self.n_cells), dict_manifold_const['p_out'])
+        self.head_stoi = None
         self.cell_mass_flow = None
         self.cell_mol_flow = None
         self.cell_temp = None
@@ -33,25 +33,25 @@ class Manifold:
         self.cell_ref_p_drop_cor = 0.
         self.p_cor_fac = 0.
         # Initialize arrays
-        self.fwd_mat = np.tril(np.full((self.cell_num, self.cell_num), 1.))
+        self.fwd_mat = np.tril(np.full((self.n_cells, self.n_cells), 1.))
         self.fwd_mat_ele = self.fwd_mat[:-1, :-1]
-        self.head_mol_flow = np.full((2, self.cell_num), 0.)
-        self.head_f_mass_flow = np.full((2, self.cell_num), 0.)
-        self.head_g_mass_flow = np.full((2, self.cell_num), 0.)
-        self.head_temp = np.full((2, self.cell_num), 0.)
-        self.head_u = np.full((2, self.cell_num), 0.)
-        self.head_cp = np.full((2, self.cell_num), 0.)
-        self.head_r = np.full((2, self.cell_num), 0.)
-        self.head_density = np.full((2, self.cell_num), 0.)
-        self.head_Re = np.full((2, self.cell_num), 0.)
-        self.head_fan_fri = np.full((2, self.cell_num), 0.)
-        self.p_dist_fac = np.full(self.cell_num, 0.)
-        self.cell_stoi = np.full(self.cell_num, 1.5)
-        self.cell_mol_flow_old = np.full(self.cell_num, 0.)
+        self.head_mol_flow = np.full((2, self.n_cells), 0.)
+        self.head_f_mass_flow = np.full((2, self.n_cells), 0.)
+        self.head_g_mass_flow = np.full((2, self.n_cells), 0.)
+        self.head_temp = np.full((2, self.n_cells), 0.)
+        self.head_u = np.full((2, self.n_cells), 0.)
+        self.head_cp = np.full((2, self.n_cells), 0.)
+        self.head_r = np.full((2, self.n_cells), 0.)
+        self.head_density = np.full((2, self.n_cells), 0.)
+        self.head_Re = np.full((2, self.n_cells), 0.)
+        self.head_fan_fri = np.full((2, self.n_cells), 0.)
+        self.p_dist_fac = np.full(self.n_cells, 0.)
+        self.cell_stoi = np.full(self.n_cells, 1.5)
+        self.cell_mol_flow_old = np.full(self.n_cells, 0.)
         self.criteria = 0.
 
     def update_values(self, mol_flow, cell_temp, cell_cp, cell_visc,
-             cell_p, cell_r, f_mass_flow, g_mass_flow):
+                      cell_p, cell_r, f_mass_flow, g_mass_flow):
         self.cell_f_mass_flow = f_mass_flow
         self.cell_g_mass_flow = g_mass_flow
         self.cell_mol_flow = mol_flow
@@ -98,12 +98,11 @@ class Manifold:
             - self.head_mass_flow, 2-D-array, [head inlet/outlet][cell number]
         """
 
-        for q in range(2):
-            self.head_f_mass_flow[q] = np.matmul(self.fwd_mat,
-                                                 self.cell_f_mass_flow[q])
-            self.head_g_mass_flow[q] = np.matmul(self.fwd_mat,
-                                                 self.cell_g_mass_flow[q])
-
+        for i in range(len(self.head_f_mass_flow)):
+            self.head_f_mass_flow[i] = np.matmul(self.fwd_mat,
+                                                 self.cell_f_mass_flow[i])
+            self.head_g_mass_flow[i] = np.matmul(self.fwd_mat,
+                                                 self.cell_g_mass_flow[i])
 
     def calc_header_mol_flows(self):
         """
@@ -117,9 +116,9 @@ class Manifold:
             - self.head_mol_flow, 2-D-array, [head inlet/outlet][cell number]
         """
 
-        for q in range(2):
-            self.head_mol_flow[q] = np.matmul(self.fwd_mat,
-                                              self.cell_mol_flow[q])
+        for i in range(len(self.head_mol_flow)):
+            self.head_mol_flow[i] = np.matmul(self.fwd_mat,
+                                              self.cell_mol_flow[i])
 
     def calc_header_heat_capacity(self):
         """
@@ -138,8 +137,10 @@ class Manifold:
         """
 
         self.head_cp[0] = self.cell_cp[0]
-        self.head_cp[1] = np.matmul(self.fwd_mat, self.cell_f_mass_flow[1]
-                                    * self.cell_cp[1]) / self.head_f_mass_flow[1]
+        self.head_cp[1] = \
+            np.matmul(self.fwd_mat,
+                      self.cell_f_mass_flow[1] * self.cell_cp[1]) \
+            / self.head_f_mass_flow[1]
 
     def calc_header_temperature(self):
         """
@@ -159,10 +160,11 @@ class Manifold:
         """
 
         self.head_temp[0] = self.cell_temp[0]
-        self.head_temp[1] = np.matmul(self.fwd_mat,
-                                      self.cell_f_mass_flow[1] * self.cell_cp[1] *
-                                      self.cell_temp[1])\
-                            / (self.head_cp[1] * self.head_f_mass_flow[1])
+        self.head_temp[1] = \
+            np.matmul(self.fwd_mat,
+                      self.cell_f_mass_flow[1] * self.cell_cp[1] *
+                      self.cell_temp[1]) \
+            / (self.head_cp[1] * self.head_f_mass_flow[1])
 
     def calc_header_velocity(self):
         """
@@ -180,10 +182,10 @@ class Manifold:
             - self.head_u, 2-D-array, [head inlet/outlet][cell number]
         """
 
-        for q in range(2):
-            self.head_u[q] = self.head_mol_flow[q]\
-                             * g_par.dict_uni['R'] * self.head_temp[q]\
-                             / (self.cross_area * self.head_p[q])
+        for i in range(2):
+            self.head_u[i] = self.head_mol_flow[i]\
+                             * g_par.dict_uni['R'] * self.head_temp[i]\
+                             / (self.cross_area * self.head_p[i])
 
     def calc_header_gas_constant(self):
         """
@@ -203,7 +205,8 @@ class Manifold:
 
         self.head_r[0] = self.cell_R_avg[0]
         self.head_r[1] = np.matmul(self.fwd_mat,
-                                   self.cell_g_mass_flow[1] * self.cell_R_avg[1])\
+                                   self.cell_g_mass_flow[1] *
+                                   self.cell_R_avg[1]) \
             / self.head_g_mass_flow[1]
 
     def calc_header_gas_density(self):
@@ -220,10 +223,10 @@ class Manifold:
             - self.head_density, 2-D-array, [head inlet/outlet][cell number]
         """
 
-        for q in range(2):
-            self.head_density[q] = g_func.calc_rho(self.head_p[q],
-                                                   self.head_r[q],
-                                                   self.head_temp[q])
+        for i in range(len(self.head_density)):
+            self.head_density[i] = g_func.calc_rho(self.head_p[i],
+                                                   self.head_r[i],
+                                                   self.head_temp[i])
 
     def calc_header_reynolds_numb(self):
         """
@@ -240,11 +243,12 @@ class Manifold:
         """
         # it should be considered to use self.head_visc
         #  here for the molar fraction and molar mass is needed
-        for q in range(2):
-            self.head_Re[q] = g_func.calc_reynolds_number(self.head_density[q],
-                                                          self.head_u[q],
-                                                          self.hydraulic_diameter,
-                                                          self.cell_visc[q])
+        for i in range(len(self.head_Re)):
+            self.head_Re[i] = \
+                g_func.calc_reynolds_number(self.head_density[i],
+                                            self.head_u[i],
+                                            self.hydraulic_diameter,
+                                            self.cell_visc[i])
 
     def calc_header_fanning_friction_factor(self):
         """
@@ -258,8 +262,8 @@ class Manifold:
             - self.head_fan_fri, 2-D-array, [head inlet/outlet][cell number]
         """
 
-        for q in range(2):
-            self.head_fan_fri[q] = g_func.calc_fan_fri_fac(self.head_Re[q])
+        for i in range(len(self.head_fan_fri)):
+            self.head_fan_fri[i] = g_func.calc_fan_fri_fac(self.head_Re[i])
 
     def calc_header_p_out(self):
         """
@@ -321,10 +325,10 @@ class Manifold:
 
         self.ref_perm = np.average(self.cell_visc[:, 0]) \
             * self.cell_ch_length[0] * np.average(self.cell_mol_flow[:, 0]) \
-            / (self.cell_ch_ca[0] * self.cell_ref_p_drop) / self.channel_num
-        self.cell_ref_p_drop_cor = np.average(self.cell_mol_flow[:, 0])\
-            / self.channel_num * np.average(self.cell_visc[:, 0])\
-            * self.cell_ch_length[0] / (self.cell_ch_ca[0] * self.ref_perm)
+            / (self.cell_ch_ca[0] * self.cell_ref_p_drop) / self.n_chl
+        self.cell_ref_p_drop_cor = np.average(self.cell_mol_flow[:, 0]) \
+                                   / self.n_chl * np.average(self.cell_visc[:, 0]) \
+                                   * self.cell_ch_length[0] / (self.cell_ch_ca[0] * self.ref_perm)
         self.p_cor_fac = self.cell_ref_p_drop / self.cell_ref_p_drop_cor
 
     def calc_header_p_in(self):
@@ -391,12 +395,9 @@ class Manifold:
         """
 
         self.cell_ref_p_drop = self.head_mol_flow[0, -1]\
-            * np.average(self.cell_visc[:, 0])\
-            * self.cell_ch_length[0]\
-            * 1\
-            / (self.ref_perm
-               * np.sum(self.p_dist_fac)
-               * self.cell_ch_ca[0] * self.channel_num)
+            * np.average(self.cell_visc[:, 0]) * self.cell_ch_length[0]\
+            / (self.ref_perm * np.sum(self.p_dist_fac) * self.cell_ch_ca[0] *
+               self.n_chl)
 
     def calc_new_cell_flows(self):
         """
@@ -417,11 +418,11 @@ class Manifold:
         """
 
         self.cell_mol_flow_old = copy.deepcopy(self.cell_mol_flow[0])
-        self.cell_mol_flow[0] = (self.head_p[0] - self.head_p[1]) \
-            * self.ref_perm * self.cell_ch_ca[0] / (np.average(self.cell_visc)
-                                                    * self.cell_ch_length[0]
-                                                    * self.p_cor_fac)\
-            * self.channel_num
+        self.cell_mol_flow[0] = \
+            (self.head_p[0] - self.head_p[1]) * self.ref_perm \
+            * self.cell_ch_ca[0] / (np.average(self.cell_visc)
+                                    * self.cell_ch_length[0] * self.p_cor_fac) \
+            * self.n_chl
 
     def calc_new_cell_stoi(self):
         """
@@ -437,7 +438,8 @@ class Manifold:
             -self.cell_stoi, 1-D-array, [cell number]
         """
 
-        self.cell_stoi = self.cell_mol_flow[0] * self.cell_num * self.head_stoi\
+        self.cell_stoi = \
+            self.cell_mol_flow[0] * self.n_cells * self.head_stoi \
             / self.head_mol_flow[0, -1]
 
     def calc_criteria(self):

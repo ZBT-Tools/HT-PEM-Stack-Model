@@ -135,8 +135,8 @@ class Cell:
         else:
             if not is_ht_pem:
                 self.calc_cross_water_flux()
-                #self.calc_mem_resistivity_springer()
-                self.calc_mem_resistivity_gossling()
+                self.calc_mem_resistivity_springer()
+                # self.calc_mem_resistivity_gossling()
             else:
                 self.calc_mem_resistivity_kvesic()
             self.calc_membrane_loss()
@@ -147,19 +147,6 @@ class Cell:
         """
         Calculates the water cross flux through the membrane
         according to (Springer, 1991).
-
-            Access to:
-            -g_par.dict_case['vap_m_t_coef']
-            -self.cathode.free_w
-            -self.anode.free_w
-            -g_par.dict_case['mol_con_m']
-            -g_par.dict_uni['F']
-            -self.i_ca
-            -self.temp_mem
-            -self.th_mem
-
-            Manipulate:
-            -self.w_cross_flow
         """
         vap_coeff = g_par.dict_case['vap_m_temp_coeff']
         humidity = np.asarray([self.cathode.humidity, self.anode.humidity])
@@ -237,17 +224,6 @@ class Cell:
         """
         Calculates the membrane resistivity
         for NT-PEMFC according to (Springer, 1991).
-
-            Access to:
-            -self.cathode.humidity
-            -self.anode.humidity
-            -self.temp_mem
-            -self.th_mem
-            -self.cathode.cathode.active_area_dx_ch
-
-            Manipulate:
-            -self.omega_ca
-            -self.omega
         """
         #print('anode humidity:', self.anode.humidity)
         #print('cathode humidity:', self.cathode.humidity)
@@ -268,15 +244,7 @@ class Cell:
     def calc_membrane_loss(self):
         """
         Calculates the voltage loss at the membrane.
-
-            Access to:
-            -self.omega_ca
-            -self.i_ca
-
-            Manipulate:
-            -self.mem_los
         """
-        #self.mem_loss = self.omega_ca * self.i_cd
         if not self.calc_mem_loss:
             self.mem_loss = 0.
         else:
@@ -289,17 +257,6 @@ class Cell:
             Calculates the cell voltage
             If the cell voltage loss is larger than the
             open circuit cell voltage, the cell voltage is set to zero.
-
-            Access to:
-            -self.mem_loss
-            -self.cathode.v_loss
-            -self.anode.v_loss
-            -g_par.dict_case['e_0']
-
-            Manipulate:
-            -self.v_loss
-            -self.v
-            -self.v_alarm
         """
         print('mem loss: ', self.mem_loss)
         print('cat loss: ', self.cathode.v_loss)
@@ -313,16 +270,6 @@ class Cell:
     def calc_resistance(self):
         """
             Calculates the electrical resistance of the element in z-direction
-
-            Access to:
-            -self.v_loss
-            -self.i_ca
-            -self.cathode.th_bpp
-            -g_par.dict_case['plate_resistivity']
-
-            Manipulate:
-            -self.resistance
         """
         self.resistance = self.v_loss / self.i_cd + 2. \
-                          * g_par.dict_case['bpp_resistivity'] \
-                          * self.cathode.th_bpp
+            * g_par.dict_case['bpp_resistivity'] * self.cathode.th_bpp
