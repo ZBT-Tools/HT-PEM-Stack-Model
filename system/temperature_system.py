@@ -5,6 +5,7 @@ from scipy.sparse.linalg import spsolve
 import data.global_parameters as g_par
 import system.global_functions as g_func
 import data.water_properties as w_prop
+import system.interpolation as ip
 from numba import jit
 
 np.set_printoptions(linewidth=10000, threshold=None, precision=2)
@@ -364,21 +365,6 @@ class TemperatureSystem:
         self.pos_cat_ch = np.hstack((pos_cat_ch_base, pos_cat_ch_n))
         self.pos_ano_ch = np.hstack((pos_ano_ch_base, pos_ano_ch_n))
 
-        self.fwd_mat = np.tril(np.full((self.n_ele, self.n_ele), 1.))
-        # forward matrix
-        self.bwd_mat = np.triu(np.full((self.n_ele, self.n_ele), 1.))
-        # backward matrix
-
-    def add_source(self, var, source, direction=1):
-        n = len(var) - 1
-        if len(source) != n:
-            raise ValueError('source variable must be of length (var-1)')
-        if direction == 1:
-            var[1:] += np.matmul(self.fwd_mat, source)
-        elif direction == -1:
-            var[:-1] += np.matmul(self.bwd_mat, source)
-        return var
-
     def update_values(self, k_alpha_ch, gamma, omega, v_loss, g_gas, i):
         """
         Updates the dynamic parameters
@@ -394,30 +380,13 @@ class TemperatureSystem:
             -self.v_loss
             -self.omega
         """
-        self.g_fluid[0] = g_func.interpolate_to_elements_2d(g_gas[0])
-        self.g_fluid[1] = g_func.interpolate_to_elements_2d(g_gas[1])
+        self.g_fluid[0] = ip.interpolate_along_axis(g_gas[0], axis=1)
+        self.g_fluid[1] = ip.interpolate_along_axis(g_gas[1], axis=1)
         self.k_gas_ch = k_alpha_ch
         self.cond_rate = gamma
         self.i = i
         self.v_loss = v_loss
         self.omega = omega
-
-    # def change_value_shape(self):
-    #     """
-    #     Changes the array shape
-    #
-    #         Access to:
-    #         -self.v_loss
-    #         -self.k_gas_ch
-    #
-    #         Manipulate:
-    #         -self.v_loss
-    #         -self.k_gas_ch
-    #     """
-    #     print('k_gas_ch: ', self.k_gas_ch)
-    #     print(g_func.interpolate_to_elements_2d(self.k_gas_ch[0]))
-    #     self.k_gas_ch[0] = g_func.interpolate_to_elements_2d(self.k_gas_ch[0])
-    #     self.k_gas_ch[1] = g_func.interpolate_to_elements_2d(self.k_gas_ch[1])
 
     def update(self):
         """
@@ -458,41 +427,27 @@ class TemperatureSystem:
 
         for i in range(self.n_cells):
 
-            # cathode
-            # for w in range(1, self.n_nodes):
-            #     self.temp_fluid[0, i, w] =\
-            #         g_func.calc_fluid_temp_out(self.temp_fluid[0, i, w - 1],
-            #                                    self.temp_layer[i][1, w - 1],
-            #                                    self.g_fluid[0, i, w - 1],
-            #                                    self.k_gas_ch[0, i, w - 1])
             dtemp = self.k_gas_ch[0, i] / self.g_fluid[0, i] \
                 * (self.temp_layer[i][1, :] - self.temp_fluid_ele[0, i])
-            self.add_source(self.temp_fluid[0, i], dtemp, 1)
-            temp_fluid_ele = \
-                g_func.interpolate_to_elements_1d(self.temp_fluid[0, i])
+            g_func.add_source(self.temp_fluid[0, i], dtemp, 1)
+            temp_fluid_ele = ip.interpolate_1d(self.temp_fluid[0, i])
             self.temp_fluid_ele[0, i] = \
                 np.minimum(temp_fluid_ele, self.temp_layer[i][0])
 
-            # anode
-            # for w in range(self.n_ele - 1, -1, -1):
-            #     self.temp_fluid[1, i, w] =\
-            #         g_func.calc_fluid_temp_out(self.temp_fluid[1, i, w + 1],
-            #                                    self.temp_layer[i][4, w],
-            #                                    self.g_fluid[1, i, w],
-            #                                    self.k_gas_ch[1, i, w])
             dtemp = self.k_gas_ch[1, i] / self.g_fluid[1, i] \
                 * (self.temp_layer[i][4, :] - self.temp_fluid_ele[1, i])
-            self.add_source(self.temp_fluid[1, i], dtemp, -1)
-            temp_fluid_ele = \
-                g_func.interpolate_to_elements_1d(self.temp_fluid[1, i])
+            g_func.add_source(self.temp_fluid[1, i], dtemp, -1)
+            temp_fluid_ele = ip.interpolate_1d(self.temp_fluid[1, i])
             self.temp_fluid_ele[1, i] = \
                 np.minimum(temp_fluid_ele, self.temp_layer[i][4])
 
             self.temp_fluid[0] = \
-                g_func.interpolate_to_nodes_2d(self.temp_fluid_ele[0])
+                ip.interpolate_along_axis(self.temp_fluid_ele[0], axis=1,
+                                          add_edge_points=True)
             self.temp_fluid[0, :, 0] = self.temp_gas_in[0]
             self.temp_fluid[1] = \
-                g_func.interpolate_to_nodes_2d(self.temp_fluid_ele[1])
+                ip.interpolate_along_axis(self.temp_fluid_ele[1], axis=1,
+                                          add_edge_points=True)
             self.temp_fluid[1, :, -1] = self.temp_gas_in[1]
 
     def update_coolant_channel_lin(self):
@@ -511,15 +466,13 @@ class TemperatureSystem:
         for i in range(self.n_cells):
             dtemp = self.k_cool / self.g_cool \
                 * (self.temp_layer[i][0, :] - self.temp_cool_ele[i])
-            self.add_source(self.temp_cool[i], dtemp, 1)
-            self.temp_cool_ele[i] = \
-                g_func.interpolate_to_elements_1d(self.temp_cool[i])
+            g_func.add_source(self.temp_cool[i], dtemp, 1)
+            self.temp_cool_ele[i] = ip.interpolate_1d(self.temp_cool[i])
         if self.cool_ch_bc:
             dtemp = self.k_cool / self.g_cool \
                 * (self.temp_layer[-1][-1, :] - self.temp_cool_ele[-1])
-            self.add_source(self.temp_cool[-1], dtemp, 1)
-            self.temp_cool_ele[-1] = \
-                g_func.interpolate_to_elements_1d(self.temp_cool[-1])
+            g_func.add_source(self.temp_cool[-1], dtemp, 1)
+            self.temp_cool_ele[-1] = ip.interpolate_1d(self.temp_cool[-1])
 
     # @jit(nopython=True)
     def update_rhs(self):

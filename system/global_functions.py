@@ -4,18 +4,17 @@ import os
 from numba import jit
 
 
-def dw(t):
-    """
-    Calculates the free water content diffusion coefficient in the membrane.
-    """
-    return 2.1e-7 * np.exp(-2436. / t)
-
-
-def to_array(var, m, n):
-    """
-    Changes a sorted 1-d-array to an sorted 2-d-array.
-    """
-    return np.reshape(var.flatten(order='C'), (m, n))
+def add_source(var, source, direction=1):
+    n = len(var) - 1
+    if len(source) != n:
+        raise ValueError('source variable must be of length (var-1)')
+    if direction == 1:
+        fwd_mat = np.tril(np.full((n, n), 1.))
+        var[1:] += np.matmul(fwd_mat, source)
+    elif direction == -1:
+        bwd_mat = np.triu(np.full((n, n), 1.))
+        var[:-1] += np.matmul(bwd_mat, source)
+    return var
 
 
 def calc_diff(vec):
@@ -39,18 +38,13 @@ def calc_reynolds_number(roh, v, d, visc):
     return roh * v * d / visc
 
 
-def calc_fan_fri_fac(re):
+def calc_fan_fri_fac(reynolds_number):
     """
     Calculates the fanning friction factor between a wall
     and a fluid for the laminar and turbulent case.
     """
-    f = np.full(len(re), 0.)
-    for q, item in enumerate(re):
-        if 0. <= re[q] <= 2100.:
-            f[q] = 16./re[q]
-        else:
-            f[q] = 0.079 * re[q]**-0.25
-    return f
+    return np.where(reynolds_number < 2100.0, 16. / reynolds_number,
+                    0.0791 * reynolds_number ** (-0.25))
 
 
 def calc_head_p_drop(rho, v1, v2, f, kf, le, dh):
@@ -113,63 +107,11 @@ def calc_lambda_mix(species_lambda, mol_fraction, species_viscosity, mol_mass):
             b += mol_fraction[i] * psi[j + n * i]
         lambda_mix += a / b
     return lambda_mix
-    #
-    # mol_fraction[1:] = np.maximum(1e-16, mol_fraction[1:])
-    # wilke_coeffs = calc_wilke_coefficients(species_viscosity, mol_mass)
-    # lambda_mix = np.zeros_like(mol_fraction[0])
-    # a = mol_fraction * species_lambda
-    # for i in range(len(mol_mass)):
-    #     a = mol_fraction[i] * species_lambda[i]
-    #     b = np.sum(mol_fraction * wilke_coeffs[i], axis=0)
-    #     b += 1e-16
-    #     lambda_mix += a / b
-    # return lambda_mix
-
-
-def interpolate_to_elements_1d(nodes):
-    """
-    Calculates an element 1-d-array from a node 1-d-array.
-    """
-    return np.asarray((nodes[:-1] + nodes[1:])) * .5
-
-
-def interpolate_to_nodes_1d(elements):
-    """
-    Calculates an node 1-d-array from an element 1-d-array,
-    uses the [:, 1], [:, -2] entries of the calculated node 1-d-array
-    to fill the first als last row of the node 1-d-array.
-    """
-    nodes = np.asarray((elements[:-1] + elements[1:])) * .5
-    return np.hstack([elements[0], nodes, elements[-1]])
-
-
-def interpolate_to_elements_2d(node_mtx):
-    """
-    Calculates an element 2-d-array from a node 2-d-array.
-    """
-    return np.asarray((node_mtx[:, :-1] + node_mtx[:, 1:])) * .5
-
-
-def interpolate_to_nodes_2d(element_mtx):
-    """
-    Calculates an node 2-d-array from an element 2-d-array,
-    uses the [:, 1], [:, -2] entries of the calculated node 2-d-array
-    to fill the first als last row of the node 2-d-array.
-    """
-    node_mtx = np.asarray((element_mtx[:, :-1] + element_mtx[:, 1:])) * .5
-    return np.hstack([element_mtx[:, [0]], node_mtx, element_mtx[:, [-1]]])
-
-
-# def calc_fluid_water_enthalpy(t):
-#     """
-#     Calculates the enthalpy of fluid water by a given temperature.
-#     """
-#     return (t-273.15) * 4182.
 
 
 def output(y_values, y_label, x_label, y_scale, color,
            title, xlim_low, xlim_up, val_label, path):
-    if val_label is not False:
+    if val_label:
         for l in range(len(y_values)):
             plt.plot(y_values[l], color=color[l],
                      marker='.', label=val_label[l])
@@ -183,7 +125,7 @@ def output(y_values, y_label, x_label, y_scale, color,
     plt.xlim(xlim_low, xlim_up)
     plt.tight_layout()
     plt.grid()
-    if val_label is not False:
+    if val_label:
         plt.legend()
     plt.savefig(os.path.join(path + title + '.png'))
     plt.close()
@@ -191,7 +133,7 @@ def output(y_values, y_label, x_label, y_scale, color,
 
 def output_x(y_values, x_values, y_label, x_label,
              y_scale, title, val_label, lim, path):
-    if val_label is not False:
+    if val_label:
         for l in range(len(y_values)):
             plt.plot(x_values, y_values[l],
                      color=plt.cm.coolwarm(l/len(y_values)),
@@ -209,16 +151,7 @@ def output_x(y_values, x_values, y_label, x_label,
     plt.xlim(lim[0], lim[1])
     plt.tight_layout()
     plt.grid()
-    if val_label is not False:
+    if val_label:
         plt.legend()
     plt.savefig(os.path.join(path + title + '.png'))
     plt.close()
-
-
-def calc_fluid_temp_out(temp_in, temp_wall, g, k):
-    """
-    Calculates the linearised fluid outlet temperature
-    of an element by the wall temperature and the fluid inlet temperature.
-    The function is limited to cases with g > 0.5 * k.
-    """
-    return (temp_in * (g - .5 * k) + temp_wall * k) / (g + k * .5)

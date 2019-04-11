@@ -3,6 +3,7 @@ import system.global_functions as g_func
 import data.global_parameters as g_par
 import system.half_cell as h_c
 import data.half_cell_dict as hc_dict
+import system.interpolation as ip
 
 
 class Cell:
@@ -149,29 +150,28 @@ class Cell:
         according to (Springer, 1991).
         """
         vap_coeff = g_par.dict_case['vap_m_temp_coeff']
+
+        dw = 2.1e-7 * np.exp(-2436. / self.temp_mem)
         humidity = np.asarray([self.cathode.humidity, self.anode.humidity])
         humidity_ele = \
-           np.array([g_func.interpolate_to_elements_1d(humidity[0]),
-                     g_func.interpolate_to_elements_1d(humidity[1])])
-        a = 0.043 + 17.81 * humidity_ele
-        b = -39.85 * humidity_ele ** 2. + 36. * humidity_ele ** 3.
-        free_w_content = a + b
-        zeta_plus = free_w_content[0] + free_w_content[1] \
+            np.array([ip.interpolate_1d(humidity[0]),
+                      ip.interpolate_1d(humidity[1])])
+
+        water_content = 0.043 + 17.81 * humidity_ele \
+            - 39.85 * humidity_ele ** 2. + 36. * humidity_ele ** 3.
+        zeta_plus = water_content[0] + water_content[1] \
             + self.i_cd / (2. * vap_coeff * g_par.dict_case['mol_con_m']
                            * g_par.dict_uni['F'])
-        zeta_negative =\
-            (free_w_content[0]
-             - free_w_content[1]
+        zeta_negative = \
+            (water_content[0] - water_content[1]
              + 5. * self.i_cd / (2. * vap_coeff * g_par.dict_case['mol_con_m']
-                                 * g_par.dict_uni['F'])) \
-            / (1. + g_func.dw(self.temp_mem) * zeta_plus
-               / (self.th_mem * vap_coeff))
+             * g_par.dict_uni['F'])) \
+            / (1. + dw * zeta_plus / (self.th_mem * vap_coeff))
         m_c = 0.5 * (zeta_plus + zeta_negative)
         m_a = 0.5 * (zeta_plus - zeta_negative)
         self.w_cross_flow = \
             self.i_cd / g_par.dict_uni['F'] + g_par.dict_case['mol_con_m'] \
-            * g_func.dw(self.temp_mem) * (m_a ** 2. - m_c ** 2.) \
-            / (2. * self.th_mem)
+            * dw * (m_a ** 2. - m_c ** 2.) / (2. * self.th_mem)
 
     def calc_mem_resistivity_kvesic(self):
         """
@@ -186,23 +186,15 @@ class Cell:
         """
         Calculates the membrane resitace for NT-PEMFC according to Goßling
         """
-        lambda_x = np.full(self.n_ele, 0.)
-        #temp_mem_ele = g_func.interpolate_to_elements_1d(self.temp_mem)
         res_t = np.exp(self.fac_m * 1.e3 / self.temp_mem + self.fac_n)
         r_avg = (self.cathode.humidity + self.anode.humidity) * 0.5
-        for q in range(self.n_ele):
-            if r_avg[q] > 0:
-                lambda_x[q] = 0.3 + 6. * r_avg[q] * (
-                            1. - np.tanh(r_avg[q] - 0.5)) + 3.9 * np.sqrt(
-                    r_avg[q]) * (1. + np.tanh((r_avg[q] - 0.89) / 0.23))
-            else:
-                lambda_x[q] = -1. / (r_avg[q] - (3. + 1. / 3.))
-        a = -0.007442
-        b = 0.006053
-        c = 0.0004702
-        d = 1.144
-        e = 8.
-        res_lambda = a + b * lambda_x + c * np.exp(d * (lambda_x - e))
+        lambda_x = np.where(r_avg > 0,
+                            0.3 + 6. * r_avg * (1. - np.tanh(r_avg - 0.5))
+                            + 3.9 * np.sqrt(r_avg)
+                            * (1. + np.tanh((r_avg - 0.89) / 0.23)),
+                            -1. / (r_avg - (3. + 1. / 3.)))
+        res_lambda = -0.007442 + 0.006053 * lambda_x \
+            + 0.0004702 * np.exp(1.144 * (lambda_x - 8.))
         res = res_lambda * res_t / 0.01415
         rp = self.th_mem / res
         self.omega_ca = 1.e-4 * (self.fac_res_basic
@@ -214,21 +206,17 @@ class Cell:
         Calculates the membrane resistivity
         for NT-PEMFC according to (Springer, 1991).
         """
-        #print('anode humidity:', self.anode.humidity)
-        #print('cathode humidity:', self.cathode.humidity)
         humidity = (self.cathode.humidity + self.anode.humidity) * 0.5
-        humidity_ele = g_func.interpolate_to_elements_1d(humidity)
-        print('humidity_ele: ', humidity_ele)
-        a = 0.043 + 17.81 * humidity_ele
-        b = -39.85 * humidity_ele ** 2. + 36. * humidity_ele ** 3.
-        free_water_content = a + b
-        print('free_water_content: ', free_water_content)
-        mem_el_con = 0.005139 * free_water_content - 0.00326
-        print('mem_el_con: ', mem_el_con)
-        mem_el_con_temp =\
-            np.exp(1268 * (0.0033 - 1. / self.temp_mem)) * mem_el_con
-        print('mem_el_con_temp: ', mem_el_con_temp)
-        self.omega_ca = self.th_mem / mem_el_con_temp * 1.e-4
+        humidity_ele = ip.interpolate_1d(humidity)
+        lambda_springer = \
+            np.where(humidity_ele < 1.0,
+                     0.043 + 17.81 * humidity_ele
+                     - 39.85 * humidity_ele ** 2. + 36. * humidity_ele ** 3.,
+                     14.0 + 1.4 * (humidity_ele - 1.0))
+        lambda_springer[lambda_springer < 1.0] = 1.0
+        mem_cond = (0.005139 * lambda_springer - 0.00326) \
+            * np.exp(1268 * (0.0033 - 1. / self.temp_mem))
+        self.omega_ca = self.th_mem / mem_cond * 1.e-4
 
     def calc_membrane_loss(self):
         """
@@ -238,16 +226,12 @@ class Cell:
             self.mem_loss = 0.
         else:
             self.mem_loss = self.omega_ca * self.i_cd
-        print('omega_ca: ', self.omega_ca)
 
     def calc_voltage(self):
         """
         Calculates the cell voltage loss. If the cell voltage loss is larger
         than the open circuit cell voltage, the cell voltage is set to zero.
         """
-        print('mem loss: ', self.mem_loss)
-        print('cat loss: ', self.cathode.v_loss)
-        print('ano loss: ', self.anode.v_loss)
         self.v_loss = self.mem_loss + self.cathode.v_loss + self.anode.v_loss
         if np.any(self.v_loss) >= g_par.dict_case['e_0']:
             self.v_alarm = True

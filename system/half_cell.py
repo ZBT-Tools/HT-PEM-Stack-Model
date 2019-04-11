@@ -8,6 +8,7 @@ import system.channel as ch
 import data.channel_dict as ch_dict
 import input.physical_properties as phy_prop
 import sys
+import system.interpolation as ip
 
 
 warnings.filterwarnings("ignore")
@@ -27,29 +28,41 @@ class HalfCell:
         if self.flow_direction not in (-1, 1):
             raise sys.exit('Member variable flow_direction of class HalfCell '
                            'must be either 1 or -1')
+
+        self.id_reac = 0
+        self.id_h2o = 1
+        self.id_inert = 2
         # check if the object is an anode or a cathode
         # catalyst layer specific handover
         if dict_hc['is_cathode']:
             self.channel = ch.Channel(ch_dict.dict_cathode_channel)
-            self.o2_con_in = phy_prop.oxygen_inlet_concentration
+            reac_con_in = phy_prop.oxygen_inlet_concentration
             # volumetric inlet oxygen ratio
-            self.n2o2ratio = (1. - self.o2_con_in) / self.o2_con_in
+            self.inert_reac_ratio = (1. - reac_con_in) / reac_con_in
             # volumetric nitrogen to oxygen ratio
             self.n_species = 3
             # number of  species in the gas mixture
-            self.n_val = 4.
+            self.n_charge = 4.
+            self.n_stoi = np.zeros(self.n_species)
+            self.n_stoi[self.id_reac] = -1.0
+            self.n_stoi[self.id_h2o] = 2.0
+            self.n_stoi[self.id_inert] = 0.0
             # electrical charge number
             self.mol_mass = np.array([32., 18., 28.]) * 1.e-3
             # molar mass
         else:
             self.channel = ch.Channel(ch_dict.dict_anode_channel)
-            self.h2_con_in = phy_prop.hydrogen_inlet_concentration
+            reac_con_in = phy_prop.hydrogen_inlet_concentration
             # volumetric inlet hydrogen ratio
-            self.n2h2ratio = (1. - self.h2_con_in) / self.h2_con_in
+            self.inert_reac_ratio = (1. - reac_con_in) / reac_con_in
             # volumetric hydrogen to oxygen ratio
             self.n_species = 3
             # number of species in the gas mixture
-            self.n_val = 2.
+            self.n_charge = 4.
+            self.n_stoi = np.zeros(self.n_species)
+            self.n_stoi[self.id_reac] = -2.0
+            self.n_stoi[self.id_h2o] = 0.0
+            self.n_stoi[self.id_inert] = 0.0
             # electrical charge number
             self.mol_mass = np.array([2., 18., 28.]) * 1.e-3
             # molar mass
@@ -166,7 +179,7 @@ class HalfCell:
         # molar and mass flows of each species
         # (0: Reactant, 1: Water, 2: Inert Species
 
-        self.gas_con = np.array(self.mol_flow)
+        self.gas_conc = np.array(self.mol_flow)
         # molar concentration of each species
         # 0: Reactant, 1: Water, 2: Inert Species
         self.reac_con_ele = np.full(n_ele, 0.)
@@ -231,6 +244,7 @@ class HalfCell:
     def calc_mass_balance(self):
         self.calc_reac_flow()
         self.calc_water_flow()
+        self.mol_flow = np.maximum(self.mol_flow, 0.)
         self.mol_flow_total = np.sum(self.mol_flow, axis=0)
         self.mol_fraction = self.calc_fraction(self.mol_flow)
         self.mass_fraction = \
@@ -242,22 +256,13 @@ class HalfCell:
     def update_voltage_loss(self):
         self.calc_electrode_loss()
 
-    def add_source(self, var, source, direction=1):
-        n = len(var) - 1
-        if len(source) != n:
-            raise ValueError('source variable must be of length (var-1)')
-        if direction == 1:
-            var[1:] += np.matmul(self.fwd_mat, source)
-        elif direction == -1:
-            var[:-1] += np.matmul(self.bwd_mat, source)
-        return var
-
     def set_layer_temperature(self, var):
         """
         This function sets the layer Temperatures,
         they can be obtained from the temperature system.
         """
-        var = g_func.interpolate_to_nodes_2d(np.array(var))
+        var = ip.interpolate_along_axis(np.array(var), axis=1,
+                                        add_edge_points=True)
         if self.is_cathode:
             self.temp = np.array([var[0], var[1], var[2]])
         else:
@@ -269,13 +274,13 @@ class HalfCell:
         """
         faraday = g_par.dict_uni['F']
         chl = self.channel
-
-        self.mol_flow[0] = self.stoi * g_par.dict_case['tar_cd'] \
-            * chl.active_area / (self.n_val * faraday)
-        dmol = -1 * self.i_cd * chl.active_area_dx / (self.n_val * faraday)
-        self.add_source(self.mol_flow[0], dmol, self.flow_direction)
-        self.mol_flow[0] = np.maximum(self.mol_flow[0], 0.0)
-        # print(self.mol_flow[0])
+        tar_cd = g_par.dict_case['tar_cd']
+        self.mol_flow[self.id_reac] = self.stoi * tar_cd * chl.active_area * \
+            abs(self.n_stoi[self.id_reac]) / (self.n_charge * faraday)
+        dmol = self.i_cd * chl.active_area_dx * self.n_stoi[self.id_reac] / \
+            (self.n_charge * faraday)
+        g_func.add_source(self.mol_flow[self.id_reac], dmol,
+                          self.flow_direction)
 
     def calc_water_flow(self):
         """"
@@ -283,42 +288,30 @@ class HalfCell:
         """
         sat_p = w_prop.water.calc_p_sat(self.channel.temp_in)
         i_cd = self.i_cd
-        # print(self.name, 'current density: ', i_cd)
         area = self.channel.active_area_dx
-        if self.is_cathode:
-            reac_ratio = self.n2o2ratio
-        else:
-            reac_ratio = self.n2h2ratio
-
         chl = self.channel
         q_0_water = \
-            self.mol_flow[0][0] * (1. + reac_ratio) * sat_p * chl.humidity_in \
-            / (chl.p_out - chl.humidity_in * sat_p)
+            self.mol_flow[self.id_reac][0] * (1. + self.inert_reac_ratio) * \
+            sat_p * chl.humidity_in / (chl.p_out - chl.humidity_in * sat_p)
         h2o_in = q_0_water
         h2o_source = np.zeros_like(i_cd)
-        if self.is_cathode:
-            h2o_prod = area / (self.n_val * g_par.dict_uni['F'] * 0.5) * i_cd
-            h2o_source += h2o_prod
-            # production
-            if not self.is_ht_pem:
-                h2o_cross = area * self.w_cross_flow
-                h2o_source += h2o_cross
-                # crossover
-        else:
-            if not self.is_ht_pem:
-                h2o_cross = area * self.w_cross_flow * -1
-                h2o_source += h2o_cross
-
-        self.mol_flow[1] = h2o_in
-        self.add_source(self.mol_flow[1], h2o_source, self.flow_direction)
-        self.mol_flow[1] = np.maximum(self.mol_flow[1], 0.)
+        h2o_prod = area * self.n_stoi[self.id_h2o] * i_cd \
+            / (self.n_charge * g_par.dict_uni['F'])
+        h2o_source += h2o_prod
+        h2o_cross = area * self.w_cross_flow * self.flow_direction
+        h2o_source += h2o_cross
+        self.mol_flow[self.id_h2o] = h2o_in
+        g_func.add_source(self.mol_flow[self.id_h2o],
+                          h2o_source, self.flow_direction)
 
         if self.is_cathode:
-            self.mol_flow[2] = \
-                np.full(self.n_nodes, self.mol_flow[0][0] * self.n2o2ratio)
+            self.mol_flow[self.id_inert] = \
+                np.full(self.n_nodes,
+                        self.mol_flow[self.id_reac][0] * self.inert_reac_ratio)
         else:
-            self.mol_flow[2] = \
-                np.full(self.n_nodes, self.mol_flow[0][-1] * self.n2h2ratio)
+            self.mol_flow[self.id_inert] = \
+                np.full(self.n_nodes,
+                        self.mol_flow[self.id_reac][-1] * self.inert_reac_ratio)
 
     def calc_mass_flow(self):
         """
@@ -333,17 +326,17 @@ class HalfCell:
         Calculates the total channel pressure for each element.
         """
         chl = self.channel
-        rho_ele = g_func.interpolate_to_elements_1d(self.rho_gas)
-        u_ele = g_func.interpolate_to_elements_1d(self.u)
+        rho_ele = ip.interpolate_1d(self.rho_gas)
+        u_ele = ip.interpolate_1d(self.u)
         reynolds = self.rho_gas * chl.d_h * self.u / self.visc_gas
-        reynolds_ele = g_func.interpolate_to_elements_1d(reynolds)
+        reynolds_ele = ip.interpolate_1d(reynolds)
         zeta_bends = chl.bend_fri_fac * chl.n_bends / self.n_ele
         friction_factor = 64.0 / reynolds_ele
         dp = (friction_factor * chl.dx / chl.d_h + zeta_bends) \
             * rho_ele * 0.5 * u_ele ** 2.0
         pressure_direction = -self.flow_direction
         self.p.fill(chl.p_out)
-        self.add_source(self.p, dp, pressure_direction)
+        g_func.add_source(self.p, dp, pressure_direction)
 
     @staticmethod
     def molar_to_mass_fraction(mol_fraction, mol_mass):
@@ -368,41 +361,47 @@ class HalfCell:
         """
         Calculates the gas phase molar concentrations.
         """
+        id_reac = 0
+        id_h2o = 1
+        id_inert = 2
+
         gas_constant = g_par.dict_uni['R']
-        total_molar_concentration = self.p / (gas_constant * self.temp_fluid)
-        conc = total_molar_concentration * self.mol_fraction
+        total_mol_conc = self.p / (gas_constant * self.temp_fluid)
+        conc = total_mol_conc * self.mol_fraction
         p_sat = w_prop.water.calc_p_sat(self.temp_fluid)
-        sat_concentration = np.full_like(conc, 1.0e12)
-        sat_concentration[1] = p_sat / (gas_constant * self.temp_fluid)
-        for i in range(self.n_nodes):
-            id_lw = self.p[i] / (g_par.dict_uni['R'] * self.temp_fluid[i])
-            var4 = np.sum(self.mol_flow[:, i])
-            var2 = self.mol_flow[1][i] / var4
-            self.gas_con[1][i] = id_lw * var2
-            a = w_prop.water.calc_p_sat(self.temp_fluid[i])
-            e = g_par.dict_uni['R'] * self.temp_fluid[i]
-            if self.gas_con[1][i] >= a / e:  # saturated
-                b = self.mol_flow[0][i] + self.mol_flow[2][i]
-                c = self.mol_flow[0][i] / b
-                d = self.mol_flow[2][i] / b
-                self.gas_con[0][i] = (self.p[i] - a) / e * c
-                self.gas_con[2][i] = (self.p[i] - a) / e * d
-                self.gas_con[1][i] = a / e
-            else:  # not saturated
-                var5 = id_lw / var4
-                self.gas_con[0][i] = var5 * self.mol_flow[0][i]
-                self.gas_con[2][i] = var5 * self.mol_flow[2][i]
-        self.reac_con_ele = g_func.interpolate_to_elements_1d(self.gas_con[0])
+        sat_conc = p_sat / (gas_constant * self.temp_fluid)
+        dry_air_mol_flow = np.copy(self.mol_flow)
+        dry_air_mol_flow[id_h2o] = 0.0
+        dry_air_fraction = self.calc_fraction(dry_air_mol_flow)
+        print(self.name, 'dry_air_fraction: ', dry_air_fraction)
+        self.gas_conc = conc
+        self.gas_conc[id_reac] = \
+            np.where(self.gas_conc[id_h2o] > sat_conc,
+                     (total_mol_conc - sat_conc) * dry_air_fraction[id_reac],
+                     self.gas_conc[id_reac])
+        self.gas_conc[id_inert] = \
+            np.where(self.gas_conc[id_h2o] > sat_conc,
+                     (total_mol_conc - sat_conc) * dry_air_fraction[id_inert],
+                     self.gas_conc[id_inert])
+        self.gas_conc[id_h2o] = \
+            np.where(self.gas_conc[id_h2o] > sat_conc,
+                     sat_conc, self.gas_conc[id_h2o])
+        self.reac_con_ele = ip.interpolate_1d(self.gas_conc[id_reac])
+        print(self.name, 'gas_conc: ', self.gas_conc)
 
     def calc_two_phase_flow(self):
         """
         Calculates the condensed phase flow and updates mole and mass fractions
         """
+        id_reac = 0
+        id_h2o = 1
         self.mol_flow_liq = np.zeros_like(self.mol_flow)
-        self.mol_flow_liq[1] = self.mol_flow[1] \
-            - self.gas_con[1] / self.gas_con[0] * self.mol_flow[0]
+        self.mol_flow_liq[id_h2o] = self.mol_flow[id_h2o] \
+            - self.gas_conc[id_h2o] / \
+            self.gas_conc[id_reac] * self.mol_flow[id_reac]
         self.mass_flow_liq = np.zeros_like(self.mass_flow)
-        self.mass_flow_liq[1] = self.mol_flow_liq[1] * self.mol_mass[1]
+        self.mass_flow_liq[id_h2o] = \
+            self.mol_flow_liq[id_h2o] * self.mol_mass[id_h2o]
         self.mol_flow_gas = self.mol_flow - self.mol_flow_liq
         self.mass_flow_gas = self.mass_flow - self.mass_flow_liq
         self.mol_flow_gas_total = np.sum(self.mol_flow_gas, axis=0)
@@ -415,22 +414,25 @@ class HalfCell:
         """
         Calculates the properties of the species in the gas phase
         """
+        id_reac = 0
+        id_h2o = 1
+        id_inert = 2
         if self.is_cathode:
-            self.cp[0] = g_fit.oxygen.calc_cp(self.temp_fluid)
-            self.lambdas[0] = \
+            self.cp[id_reac] = g_fit.oxygen.calc_cp(self.temp_fluid)
+            self.lambdas[id_reac] = \
                 g_fit.oxygen.calc_lambda(self.temp_fluid, self.p)
-            self.visc[0] = g_fit.oxygen.calc_visc(self.temp_fluid)
+            self.visc[id_reac] = g_fit.oxygen.calc_visc(self.temp_fluid)
         else:
-            self.cp[0] = g_fit.hydrogen.calc_cp(self.temp_fluid)
-            self.lambdas[0] = \
+            self.cp[id_reac] = g_fit.hydrogen.calc_cp(self.temp_fluid)
+            self.lambdas[id_reac] = \
                 g_fit.hydrogen.calc_lambda(self.temp_fluid, self.p)
-            self.visc[0] = g_fit.hydrogen.calc_visc(self.temp_fluid)
-        self.cp[1] = g_fit.water.calc_cp(self.temp_fluid)
-        self.cp[2] = g_fit.nitrogen.calc_cp(self.temp_fluid)
-        self.lambdas[1] = g_fit.water.calc_lambda(self.temp_fluid, self.p)
-        self.lambdas[2] = g_fit.nitrogen.calc_lambda(self.temp_fluid, self.p)
-        self.visc[1] = g_fit.water.calc_visc(self.temp_fluid)
-        self.visc[2] = g_fit.nitrogen.calc_visc(self.temp_fluid)
+            self.visc[id_reac] = g_fit.hydrogen.calc_visc(self.temp_fluid)
+        self.cp[id_h2o] = g_fit.water.calc_cp(self.temp_fluid)
+        self.cp[id_inert] = g_fit.nitrogen.calc_cp(self.temp_fluid)
+        self.lambdas[id_h2o] = g_fit.water.calc_lambda(self.temp_fluid, self.p)
+        self.lambdas[id_inert] = g_fit.nitrogen.calc_lambda(self.temp_fluid, self.p)
+        self.visc[id_h2o] = g_fit.water.calc_visc(self.temp_fluid)
+        self.visc[id_inert] = g_fit.nitrogen.calc_visc(self.temp_fluid)
 
     def calc_gas_properties(self):
         """
@@ -440,16 +442,14 @@ class HalfCell:
             np.sum(self.mass_fraction_gas.transpose() * self.r_species, axis=1)
         self.cp_gas = \
             np.sum(self.mass_fraction_gas * self.cp, axis=0)
-        self.cp_gas_ele = g_func.interpolate_to_elements_1d(self.cp_gas)
+        self.cp_gas_ele = ip.interpolate_1d(self.cp_gas)
         self.visc_gas = \
             g_func.calc_visc_mix(self.visc, self.mol_fraction_gas,
                                  self.mol_mass)
-        print(self.name, 'visc_gas: ', self.visc_gas)
         self.lambda_gas = \
             g_func.calc_lambda_mix(self.lambdas, self.mol_fraction_gas,
                                    self.visc, self.mol_mass)
-        print(self.name, 'lambda_gas: ', self.lambda_gas)
-        self.lambda_gas_ele = g_func.interpolate_to_elements_1d(self.lambda_gas)
+        self.lambda_gas_ele = ip.interpolate_1d(self.lambda_gas)
         self.rho_gas = g_func.calc_rho(self.p, self.r_gas, self.temp_fluid)
         # self.Pr = self.visc_gas * self.cp_gas / self.lambda_gas
 
@@ -489,9 +489,11 @@ class HalfCell:
         """
         Calculates the molar condensation rate of water in the channel.
         """
+        id_h2o = 1
+        cond_rate_ele = np.ediff1d(self.mol_flow_liq[id_h2o])
         self.cond_rate = \
-            self.flow_direction \
-            * g_func.interpolate_to_nodes_1d(np.ediff1d(self.mol_flow_liq[1]))
+            self.flow_direction * ip.interpolate_1d(cond_rate_ele,
+                                                    add_edge_points=True)
 
     def calc_humidity(self):
         """
@@ -507,12 +509,12 @@ class HalfCell:
         Calculates multiply used supporting parameters
         to calculate the voltage loss according to (Kulikovsky, 2013).
         """
-        i_lim = 4. * g_par.dict_uni['F'] * self.gas_con[0, :-1] \
+        i_lim = 4. * g_par.dict_uni['F'] * self.gas_conc[0, :-1] \
             * self.diff_coeff_gdl / self.th_gdl
         # print(self.name, i_lim)
         # print(self.name, self.gas_con[0, :])
         self.var = \
-            1. - self.i_cd / (i_lim * self.reac_con_ele / self.gas_con[0, :-1])
+            1. - self.i_cd / (i_lim * self.reac_con_ele / self.gas_conc[0, :-1])
         self.i_ca_square = np.square(self.i_cd)
         # print(self.name, self.var)
 
@@ -523,7 +525,7 @@ class HalfCell:
         """
         self.act_loss = self.tafel_slope \
             * np.arcsinh((self.i_cd / self.i_sigma) ** 2.
-                         / (2. * (self.reac_con_ele / self.gas_con[0, :-1])
+                         / (2. * (self.reac_con_ele / self.gas_conc[0, :-1])
                             * (1. - np.exp(-self.i_cd /
                                            (2. * self.i_ca_char)))))
 
