@@ -183,17 +183,17 @@ class Stack:
         """
         This function updates the flow distribution of gas over the stack cells
         """
+        n_ch = self.cells[0].cathode.n_chl
         self.manifold[0].update_values(
-            self.q_sum_cat * self.cells[0].cathode.n_chl, self.temp_fluid_cat,
+            self.q_sum_cat * n_ch, self.temp_fluid_cat,
             self.cp_cat, self.visc_cat, self.p_cat, self.r_cat,
-            self.m_sum_f_cat * self.cells[0].cathode.n_chl,
-            self.m_sum_g_cat * self.cells[0].cathode.n_chl)
+            self.m_sum_f_cat * n_ch,
+            self.m_sum_g_cat * n_ch)
         self.manifold[1].update_values(
-            self.q_sum_ano[::-1] * self.cells[0].cathode.n_chl,
-            self.temp_fluid_ano[::-1], self.cp_ano[::-1],
-            self.visc_ano[::-1], self.p_ano[::-1], self.r_ano[::-1],
-            self.m_sum_f_ano[::-1] * self.cells[0].cathode.n_chl,
-            self.m_sum_g_ano[::-1] * self.cells[0].cathode.n_chl)
+            self.q_sum_ano[::-1] * n_ch, self.temp_fluid_ano[::-1],
+            self.cp_ano[::-1], self.visc_ano[::-1], self.p_ano[::-1],
+            self.r_ano[::-1], self.m_sum_f_ano[::-1] * n_ch,
+            self.m_sum_g_ano[::-1] * n_ch)
         self.manifold[0].update()
         self.manifold[1].update()
         self.set_stoichiometry(self.manifold[0].cell_stoi,
@@ -269,10 +269,14 @@ class Stack:
             v_loss_ano.append(cell.anode.v_loss)
             omega.append(cell.omega)
             resistance = np.hstack((resistance, cell.resistance))
-            q_sum_cat_in = np.hstack((q_sum_cat_in, cell.cathode.q_gas[0]))
-            q_sum_cat_out = np.hstack((q_sum_cat_out, cell.cathode.q_gas[-1]))
-            q_sum_ano_in = np.hstack((q_sum_ano_in, cell.anode.q_gas[0]))
-            q_sum_ano_out = np.hstack((q_sum_ano_out, cell.anode.q_gas[-1]))
+            q_sum_cat_in = \
+                np.hstack((q_sum_cat_in, cell.cathode.vol_flow_gas[0]))
+            q_sum_cat_out = \
+                np.hstack((q_sum_cat_out, cell.cathode.vol_flow_gas[-1]))
+            q_sum_ano_in = \
+                np.hstack((q_sum_ano_in, cell.anode.vol_flow_gas[0]))
+            q_sum_ano_out = \
+                np.hstack((q_sum_ano_out, cell.anode.vol_flow_gas[-1]))
             m_sum_f_cat_in = np.hstack((m_sum_f_cat_in,
                                         cell.cathode.mass_flow_total[0]))
             m_sum_f_cat_out = np.hstack((m_sum_f_cat_out,

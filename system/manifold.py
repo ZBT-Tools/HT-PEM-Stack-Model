@@ -6,17 +6,18 @@ import copy as copy
 
 class Manifold:
 
-    def __init__(self, dict_manifold_const):
-        self.n_cells = dict_manifold_const['cell_num']
-        self.n_chl = dict_manifold_const['channel_numb']
-        self.head_width = dict_manifold_const['header_width']
-        self.head_height = dict_manifold_const['header_height']
-        self.kf = dict_manifold_const['kf']
-        self.cell_height = dict_manifold_const['cell_height']
-        self.cell_ch_length = dict_manifold_const['cell_channel_length']
-        self.cell_ch_ca = dict_manifold_const['cell_channel_cross_area']
-        self.head_p = np.full((2, self.n_cells), dict_manifold_const['p_out'])
-        self.head_stoi = None
+    def __init__(self, dict_manifold):
+        self.name = dict_manifold['name']
+        self.n_cell = dict_manifold['cell_number']
+        self.n_ch = dict_manifold['channel_number']
+        self.head_width = dict_manifold['header_width']
+        self.head_height = dict_manifold['header_height']
+        self.kf = dict_manifold['kf']
+        self.cell_height = dict_manifold['cell_height']
+        self.cell_ch_length = dict_manifold['cell_channel_length']
+        self.cell_ch_ca = dict_manifold['cell_channel_cross_area']
+        self.head_p = np.full((2, self.n_cell), dict_manifold['p_out'])
+        self.head_stoi = 1.5
         self.cell_mass_flow = None
         self.cell_mol_flow = None
         self.cell_temp = None
@@ -33,33 +34,33 @@ class Manifold:
         self.cell_ref_p_drop_cor = 0.
         self.p_cor_fac = 0.
         # Initialize arrays
-        self.fwd_mat = np.tril(np.full((self.n_cells, self.n_cells), 1.))
+        self.fwd_mat = np.tril(np.full((self.n_cell, self.n_cell), 1.))
         self.fwd_mat_ele = self.fwd_mat[:-1, :-1]
-        self.head_mol_flow = np.full((2, self.n_cells), 0.)
-        self.head_f_mass_flow = np.full((2, self.n_cells), 0.)
-        self.head_g_mass_flow = np.full((2, self.n_cells), 0.)
-        self.head_temp = np.full((2, self.n_cells), 0.)
-        self.head_u = np.full((2, self.n_cells), 0.)
-        self.head_cp = np.full((2, self.n_cells), 0.)
-        self.head_r = np.full((2, self.n_cells), 0.)
-        self.head_density = np.full((2, self.n_cells), 0.)
-        self.head_Re = np.full((2, self.n_cells), 0.)
-        self.head_fan_fri = np.full((2, self.n_cells), 0.)
-        self.p_dist_fac = np.full(self.n_cells, 0.)
-        self.cell_stoi = np.full(self.n_cells, 1.5)
-        self.cell_mol_flow_old = np.full(self.n_cells, 0.)
+        self.head_mol_flow = np.full((2, self.n_cell), 0.)
+        self.head_f_mass_flow = np.full((2, self.n_cell), 0.)
+        self.head_g_mass_flow = np.full((2, self.n_cell), 0.)
+        self.head_temp = np.full((2, self.n_cell), 0.)
+        self.head_u = np.full((2, self.n_cell), 0.)
+        self.head_cp = np.full((2, self.n_cell), 0.)
+        self.head_r = np.full((2, self.n_cell), 0.)
+        self.head_density = np.full((2, self.n_cell), 0.)
+        self.head_Re = np.full((2, self.n_cell), 0.)
+        self.head_fan_fri = np.full((2, self.n_cell), 0.)
+        self.p_dist_fac = np.full(self.n_cell, 0.)
+        self.cell_stoi = np.full(self.n_cell, 1.5)
+        self.cell_mol_flow_old = np.full(self.n_cell, 0.)
         self.criteria = 0.
 
-    def update_values(self, mol_flow, cell_temp, cell_cp, cell_visc,
-                      cell_p, cell_r, f_mass_flow, g_mass_flow):
-        self.cell_f_mass_flow = f_mass_flow
-        self.cell_g_mass_flow = g_mass_flow
+    def update_values(self, mol_flow, temp, cp, visc, p, r, mass_flow,
+                      gas_mass_flow):
+        self.cell_f_mass_flow = mass_flow
+        self.cell_g_mass_flow = gas_mass_flow
         self.cell_mol_flow = mol_flow
-        self.cell_temp = cell_temp
-        self.cell_cp = cell_cp
-        self.cell_visc = cell_visc
-        self.cell_p = cell_p
-        self.cell_R_avg = cell_r
+        self.cell_temp = temp
+        self.cell_cp = cp
+        self.cell_visc = visc
+        self.cell_p = p
+        self.cell_R_avg = r
 
     def update(self):
         """
@@ -90,35 +91,30 @@ class Manifold:
         """
         This function sums up the given cell mass inlet and outlet flows
         to the total header inlet and outlet flows over the z-axis.
-
             Access to:
             - self.cell_mass_flow, 2-D-array, [cell inlet/outlet][cell number]
-
             Manipulate:
             - self.head_mass_flow, 2-D-array, [head inlet/outlet][cell number]
         """
+        for q in range(2):
+            self.head_f_mass_flow[q] = np.matmul(self.fwd_mat,
+                                                 self.cell_f_mass_flow[q])
+            self.head_g_mass_flow[q] = np.matmul(self.fwd_mat,
+                                                 self.cell_g_mass_flow[q])
 
-        for i in range(len(self.head_f_mass_flow)):
-            self.head_f_mass_flow[i] = np.matmul(self.fwd_mat,
-                                                 self.cell_f_mass_flow[i])
-            self.head_g_mass_flow[i] = np.matmul(self.fwd_mat,
-                                                 self.cell_g_mass_flow[i])
 
     def calc_header_mol_flows(self):
         """
         This function sums up the given cell molar inlet and outlet flows
         to the total header inlet and outlet flows over the z-axis.
-
             Access to:
             - self.cell_mol_flow, 2-D-array, [cell inlet/outlet][cell number]
-
             Manipulate:
             - self.head_mol_flow, 2-D-array, [head inlet/outlet][cell number]
         """
-
-        for i in range(len(self.head_mol_flow)):
-            self.head_mol_flow[i] = np.matmul(self.fwd_mat,
-                                              self.cell_mol_flow[i])
+        for q in range(2):
+            self.head_mol_flow[q] = np.matmul(self.fwd_mat,
+                                              self.cell_mol_flow[q])
 
     def calc_header_heat_capacity(self):
         """
@@ -126,21 +122,16 @@ class Manifold:
         to the total header outlet heat capacity over the z-axis.
         The given cell inlet heat capacities
         are used as the header inlet heat capacities.
-
             Access to:
             - self.cell_cell_cp, 2-D-array, [cell inlet/outlet][cell number]
             - self.cell_mass_flow, 2-D-array, [cell inlet/outlet][cell number]
             - self.head_mass_flow, 2-D-array, [cell inlet/outlet][cell number]
-
             Manipulate:
             - self.head_cp, 2-D-array, [head inlet/outlet][cell number]
         """
-
         self.head_cp[0] = self.cell_cp[0]
-        self.head_cp[1] = \
-            np.matmul(self.fwd_mat,
-                      self.cell_f_mass_flow[1] * self.cell_cp[1]) \
-            / self.head_f_mass_flow[1]
+        self.head_cp[1] = np.matmul(self.fwd_mat, self.cell_f_mass_flow[1]
+                                    * self.cell_cp[1]) / self.head_f_mass_flow[1]
 
     def calc_header_temperature(self):
         """
@@ -148,44 +139,38 @@ class Manifold:
         to the total header outlet temperatures over the z-axis.
         The given cell inlet temperatures
         are used as the header inlet temperatures.
-
             Access to:
             - self.cell_cell_cp, 2-D-array, [cell inlet/outlet][cell number]
             - self.cell_mass_flow, 2-D-array, [cell inlet/outlet][cell number]
             - self.head_mass_flow, 2-D-array, [cell inlet/outlet][cell number]
             - self.cell_t 2-D-array, [cell inlet/outlet][cell number]
-
             Manipulate:
             - self.head_t, 2-D-array, [head inlet/outlet][cell number]
         """
-
         self.head_temp[0] = self.cell_temp[0]
-        self.head_temp[1] = \
-            np.matmul(self.fwd_mat,
-                      self.cell_f_mass_flow[1] * self.cell_cp[1] *
-                      self.cell_temp[1]) \
-            / (self.head_cp[1] * self.head_f_mass_flow[1])
+        self.head_temp[1] = np.matmul(self.fwd_mat,
+                                      self.cell_f_mass_flow[1] * self.cell_cp[1] *
+                                      self.cell_temp[1])\
+                            / (self.head_cp[1] * self.head_f_mass_flow[1])
 
     def calc_header_velocity(self):
         """
         This function calculates the header inlet and outlet
         velocities over the z-axis, based on the ideal gas law
-
             Access to:
             - g_par.dict_uni['R], the universal gas constant
             - self.cross_area, cross area of the header channel
             - self.head_mol_flow, 2-D-array, [cell inlet/outlet][cell number]
             - self.head_t 2-D-array, [cell inlet/outlet][cell number]
             - self.head_p 2-D-array, [cell inlet/outlet][cell number]
-
             Manipulate:
             - self.head_u, 2-D-array, [head inlet/outlet][cell number]
         """
 
-        for i in range(2):
-            self.head_u[i] = self.head_mol_flow[i]\
-                             * g_par.dict_uni['R'] * self.head_temp[i]\
-                             / (self.cross_area * self.head_p[i])
+        for q in range(2):
+            self.head_u[q] = self.head_mol_flow[q]\
+                             * g_par.dict_uni['R'] * self.head_temp[q]\
+                             / (self.cross_area * self.head_p[q])
 
     def calc_header_gas_constant(self):
         """
@@ -193,82 +178,68 @@ class Manifold:
         to the total header outlet gas constant over the z-axis.
         The given cell inlet gas constants are used as
         the header inlet gas constants.
-
             Access to:
             - self.cell_cell_r, 2-D-array, [cell inlet/outlet][cell number]
             - self.cell_mass_flow, 2-D-array, [cell inlet/outlet][cell number]
             - self.head_mass_flow, 2-D-array, [cell inlet/outlet][cell number]
-
             Manipulate:
             - self.head_r, 2-D-array, [head inlet/outlet][cell number]
         """
-
         self.head_r[0] = self.cell_R_avg[0]
         self.head_r[1] = np.matmul(self.fwd_mat,
-                                   self.cell_g_mass_flow[1] *
-                                   self.cell_R_avg[1]) \
+                                   self.cell_g_mass_flow[1] * self.cell_R_avg[1])\
             / self.head_g_mass_flow[1]
 
     def calc_header_gas_density(self):
         """
         This function calculates the header gas densities over the z axis,
         based on the ideal gas law.
-
             Access to:
             - self.head_p, 2-D-array, [cell inlet/outlet][cell number]
             - self.head_r, 2-D-array, [cell inlet/outlet][cell number]
             - self.head_t, 2-D-array, [cell inlet/outlet][cell number]
-
             Manipulate:
             - self.head_density, 2-D-array, [head inlet/outlet][cell number]
         """
-
-        for i in range(len(self.head_density)):
-            self.head_density[i] = g_func.calc_rho(self.head_p[i],
-                                                   self.head_r[i],
-                                                   self.head_temp[i])
+        for q in range(2):
+            self.head_density[q] = g_func.calc_rho(self.head_p[q],
+                                                   self.head_r[q],
+                                                   self.head_temp[q])
 
     def calc_header_reynolds_numb(self):
         """
         This function calculates the header gas reynolds number.
-
             Access to:
             - self.head_density, 2-D-array, [cell inlet/outlet][cell number]
             - self.head_u, 2-D-array, [cell inlet/outlet][cell number]
             - self.cell_visc, 2-D-array, [cell inlet/outlet][cell number]
             - self.hydraulic_diameter, hydraulic diameter of the header channel
-
             Manipulate:
             - self.head_Re, 2-D-array, [head inlet/outlet][cell number]
         """
         # it should be considered to use self.head_visc
         #  here for the molar fraction and molar mass is needed
-        for i in range(len(self.head_Re)):
-            self.head_Re[i] = \
-                g_func.calc_reynolds_number(self.head_density[i],
-                                            self.head_u[i],
-                                            self.hydraulic_diameter,
-                                            self.cell_visc[i])
+        for q in range(2):
+            self.head_Re[q] = g_func.calc_reynolds_number(self.head_density[q],
+                                                          self.head_u[q],
+                                                          self.hydraulic_diameter,
+                                                          self.cell_visc[q])
 
     def calc_header_fanning_friction_factor(self):
         """
         This function calculates the header fanning friction factor.
-
             Access to:
             - self.head_Re, 2-D-array, [head inlet/outlet][cell number]
-
-
             Manipulate:
             - self.head_fan_fri, 2-D-array, [head inlet/outlet][cell number]
         """
 
-        for i in range(len(self.head_fan_fri)):
-            self.head_fan_fri[i] = g_func.calc_fan_fri_fac(self.head_Re[i])
+        for q in range(2):
+            self.head_fan_fri[q] = g_func.calc_fan_fri_fac(self.head_Re[q])
 
     def calc_header_p_out(self):
         """
         This function calculates the the header outlet pressure.
-
             Access to:
             - self.head_density, 2-D-array, [head inlet/outlet][cell number]
             - self.head_u, 2-D-array, [head inlet/outlet][cell number]
@@ -277,7 +248,6 @@ class Manifold:
             - self.cell_height, combined height of all cell_layer,
               2-D-array, [head inlet/outlet][cell number]
             - self.hydraulic_diameter, hydraulic diameter of the header channel
-
             Manipulate:
             self.head_p[1], 2-D-array, [head_outlet][cell_number]
         """
@@ -295,47 +265,41 @@ class Manifold:
         """
         This function calculates the pressure drop of the zeroth cell
         of the stack, the reference cell.
-
             Access to:
             - self.cell_p, 2-D-array, [cell inlet/outlet][cell number]
-
             Manipulate:
             self.cell_ref_p_drop, reference pressure drop in Pa
         """
-
         self.cell_ref_p_drop = self.cell_p[0, 0] - self.cell_p[1, 0]
 
     def calc_ref_permeability(self):
         """"
         This function calculates the permeability of the reference cell
         and a pressure drop correction factor.
-
              Access to:
              - self.cell_visc, 2-D-array, [cell inlet/outlet][cell number]
              - self.cell_ch_length, 1-D-array, [cell number]
              - self.cell_ch_ca, 1-D-array, [cell number]
              - self.cell_mol_flow, 2-D-array, [cell inlet/outlet][cell number]
              - self.cell_ref_p_drop, reference pressure drop in Pa
-
              Manipulate:
              - self.cell_perm , reference cell permeability
              - self.cell_ref_p_drop_cor, corrected reference cell pressure drop
              - self.p_cor_fac, correction factor
-             """
-
+        """
         self.ref_perm = np.average(self.cell_visc[:, 0]) \
             * self.cell_ch_length[0] * np.average(self.cell_mol_flow[:, 0]) \
-            / (self.cell_ch_ca[0] * self.cell_ref_p_drop) / self.n_chl
-        self.cell_ref_p_drop_cor = np.average(self.cell_mol_flow[:, 0]) \
-                                   / self.n_chl * np.average(self.cell_visc[:, 0]) \
-                                   * self.cell_ch_length[0] / (self.cell_ch_ca[0] * self.ref_perm)
+            / (self.cell_ch_ca[0] * self.cell_ref_p_drop) / self.n_ch
+        self.cell_ref_p_drop_cor = \
+            np.average(self.cell_mol_flow[:, 0]) \
+            / self.n_ch * np.average(self.cell_visc[:, 0]) \
+            * self.cell_ch_length[0] / (self.cell_ch_ca[0] * self.ref_perm)
         self.p_cor_fac = self.cell_ref_p_drop / self.cell_ref_p_drop_cor
 
     def calc_header_p_in(self):
         """
         This function calculates the pressure of the inlet header
         from the reference cell to the inlet of the inlet header.
-
            Access to:
            -self.cell_ref_p_drop, reference cell pressure drop
            -self.head_p, 2-D-Array, [head inlet/outlet][cell number]
@@ -345,7 +309,6 @@ class Manifold:
            -self.kf, pressure loss coefficient
            -self.cell_height, 1-a-Array, [cell number]
            self.hydraulic_diameter, hydraulic diameter of the header channel
-
            Manipulate:
            -self.head_p, 2-D-array, [head inlet/outlet][cell number]
         """
@@ -364,11 +327,9 @@ class Manifold:
     def calc_pressure_distribution_factor(self):
         """
         This function calculates the pressure distributions factor.
-
             Access to:
             -self.head_p, 2-D-array, [head inlet/outlet][cell number]
             -self.cell_ref_p_drop, reference cell pressure drop
-
             Manipulate:
             - self.p_dist_fac, 1-D-Array [cell number]
         """
@@ -379,7 +340,6 @@ class Manifold:
     def calc_new_ref_p_drop(self):
         """
         This function calculates the updated cell_ref_p_drop.
-
             Access to:
             -self.head_mol_flow,
              2-D-array, [head inlet/outlet][cell number]
@@ -389,20 +349,21 @@ class Manifold:
             -self.ref_perm, permeability of the reference cell
             -self.p_dist_fac, pressure distribution factor
             -self.cell_ch_ca, header channel cross area
-
             Manipulate:
             -self.cell_ref_p_drop, 1-D-array, [cell number]
         """
 
         self.cell_ref_p_drop = self.head_mol_flow[0, -1]\
-            * np.average(self.cell_visc[:, 0]) * self.cell_ch_length[0]\
-            / (self.ref_perm * np.sum(self.p_dist_fac) * self.cell_ch_ca[0] *
-               self.n_chl)
+            * np.average(self.cell_visc[:, 0])\
+            * self.cell_ch_length[0]\
+            * 1\
+            / (self.ref_perm
+               * np.sum(self.p_dist_fac)
+               * self.cell_ch_ca[0] * self.n_ch)
 
     def calc_new_cell_flows(self):
         """
         This function calculates the new inlet cell molar flows.
-
             Access to:
             - self.cell_mol_flow, 2-D-array, [cell inlet/outlet][cell number]
             - self.head_p,  2-D-array, [head inlet/outlet][cell number]
@@ -411,48 +372,40 @@ class Manifold:
             -self.cell_visc, 2-D-array, [cell inlet/outlet][cell number]
             -self.cell_ch_length, 1-D-array [cell number]
             -self.p_cor_fac, correction factor
-
             Manipulate:
             - self.cell_mol_flow, 2-D-array, [cell inlet/outlet][cell number]
             - self.cell_mol_flow_old, 1-D-array, [cell number]
         """
-
         self.cell_mol_flow_old = copy.deepcopy(self.cell_mol_flow[0])
-        self.cell_mol_flow[0] = \
-            (self.head_p[0] - self.head_p[1]) * self.ref_perm \
-            * self.cell_ch_ca[0] / (np.average(self.cell_visc)
-                                    * self.cell_ch_length[0] * self.p_cor_fac) \
-            * self.n_chl
+        self.cell_mol_flow[0] = (self.head_p[0] - self.head_p[1]) \
+            * self.ref_perm * self.cell_ch_ca[0] / (np.average(self.cell_visc)
+                                                    * self.cell_ch_length[0]
+                                                    * self.p_cor_fac)\
+            * self.n_ch
 
     def calc_new_cell_stoi(self):
         """
         This function calculates the new cell inlet stoichiometries.
-
             Access to:
             -self.head_stoi, stoichiometry at the header inlet
             -self.cell_num, number of cells
             -self.cell_mol_flow, 2-D-array, [cell inlet/outlet][cell number]
             -self.head_mol_flow, 2-D-array, [head inlet/outlet][cell number]
-
             Manipulate:
             -self.cell_stoi, 1-D-array, [cell number]
         """
-
-        self.cell_stoi = \
-            self.cell_mol_flow[0] * self.n_cells * self.head_stoi \
-            / self.head_mol_flow[0, -1]
+        self.cell_stoi = self.cell_mol_flow[0] * self.n_cell * self.head_stoi \
+                         / self.head_mol_flow[0, -1]
 
     def calc_criteria(self):
         """
         This function calculates the convergence of the flow distribution.
-
             Access to:
             -self.cell_mol_flow, 2-D-array, [cell inlet/outlet][cell number]
             -self.cell_mol_flow, 1-D-array, [cell number]
-
             Manipulate:
             -self.criteria, convergence criteria
          """
-
-        self.criteria = np.sum(((self.cell_mol_flow[0] - self.cell_mol_flow_old)
-                                / self.cell_mol_flow_old)**2)
+        self.criteria = \
+            np.sum(((self.cell_mol_flow[0] - self.cell_mol_flow_old)
+                    / self.cell_mol_flow_old)**2)

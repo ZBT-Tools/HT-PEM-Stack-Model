@@ -167,7 +167,7 @@ class HalfCell:
         self.mol_flow_gas_total = np.zeros(n_nodes)
         self.mass_flow_gas_total = np.zeros(n_nodes)
         # fluid mass flow
-        self.q_gas = np.zeros(n_nodes)
+        self.vol_flow_gas = np.zeros(n_nodes)
         # molar flux of the gas phase
         self.mol_flow = np.full((self.n_species, n_nodes), 0.)
         self.mol_flow_liq = np.array(self.mol_flow)
@@ -406,7 +406,6 @@ class HalfCell:
         self.mass_flow_gas = self.mass_flow - self.mass_flow_liq
         self.mol_flow_gas_total = np.sum(self.mol_flow_gas, axis=0)
         self.mass_flow_gas_total = np.sum(self.mass_flow_gas, axis=0)
-        self.q_gas = self.mol_flow_gas_total
         self.mol_fraction_gas = self.calc_fraction(self.mol_flow_gas)
         self.mass_fraction_gas = self.calc_fraction(self.mass_flow_gas)
 
@@ -458,8 +457,8 @@ class HalfCell:
         Calculates the gas phase velocity.
         The gas phase velocity is taken to be the liquid water velocity as well.
         """
-        self.u = self.mass_flow_gas_total / self.rho_gas \
-            * self.channel.cross_area
+        self.vol_flow_gas = self.mass_flow_gas_total / self.rho_gas
+        self.u = self.vol_flow_gas / self.channel.cross_area
 
     def calc_fluid_properties(self):
         """

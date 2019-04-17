@@ -6,8 +6,9 @@ import input.physical_properties as phy_prop
 
 
 dict_mfold_cat = {
-    'cell_num': op_con.cell_number,
-    'channel_numb': geom.gas_channel_number,
+    'name': 'cathode manifold',
+    'cell_number': op_con.cell_number,
+    'channel_number': geom.gas_channel_number,
     'header_width': geom.manifold_width,
     'header_height': geom.manifold_height,
     'kf': phy_prop.manifold_pressure_loss_coefficient,
@@ -24,8 +25,8 @@ dict_mfold_cat = {
     }
 
 dict_mfold_ano = copy.copy(dict_mfold_cat)
+dict_mfold_ano['name'] = 'anode manifold'
 dict_mfold_ano['p_out'] = op_con.p_manifold_anode_out
-
 
 def manifold(mol_flow, cell_temp, cell_cp, cell_visc,
              cell_p, cell_r, f_mass_flow, g_mass_flow):
