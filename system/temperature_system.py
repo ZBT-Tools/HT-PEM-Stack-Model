@@ -139,8 +139,6 @@ class TemperatureSystem:
 
         conv_coeff_ch = nu_ch * self.lambda_cool / d_h_cool
         # convection coefficient between the coolant and the channel wall
-        #print('Coolant channel convection coefficient:',
-           #   conv_coeff_ch, 'W/(m²K)')
         conv_area = d_h_cool * np.pi * ch_length / self.n_ele
         # convection area of the channel wall
         self.k_cool = conv_coeff_ch * conv_area * n_cool_cell
@@ -153,9 +151,6 @@ class TemperatureSystem:
         for q in range(self.n_cells - 1):
             self.temp_layer.append(temp_layer)
         self.temp_layer.append(temp_layer_n)
-        # layer temperature list cell, layer, element
-        #temp_cool_out = temp_cool_in + op_con.tar
-
         self.temp_cool = np.full((self.n_cool, self.n_nodes), temp_cool_in)
         self.temp_cool_ele = np.full((self.n_cool, self.n_ele), temp_cool_in)
         # coolant temperature array cell, element
@@ -368,17 +363,6 @@ class TemperatureSystem:
     def update_values(self, k_alpha_ch, gamma, omega, v_loss, g_gas, i):
         """
         Updates the dynamic parameters
-
-            Access to:
-            -dict_temp_sys_dyn
-
-            Manipulate:
-            -self.g_fluid
-            -self.k_gas_ch
-            -self.cond_rate
-            -self.i
-            -self.v_loss
-            -self.omega
         """
         self.g_fluid[0] = ip.interpolate_along_axis(g_gas[0], axis=1)
         self.g_fluid[1] = ip.interpolate_along_axis(g_gas[1], axis=1)
@@ -510,7 +494,6 @@ class TemperatureSystem:
         k_alpha_env = self.k_alpha_env
 
         ct = 0
-        # print(self.cond_rate)
         for i in range(self.n_cells):
             for j in range(self.n_ele):
                 if i is 0:
@@ -550,21 +533,11 @@ class TemperatureSystem:
                         rhs[ct + 5] -= self.k_cool * self.temp_cool_ele[-1, j]
                     cr = 6
                 ct += cr
-        # print(self.rhs)
 
     # @jit(nopython=True)
     def update_matrix(self):
         """
         Updates the thermal conductance matrix
-
-            Access to:
-            -self.elements
-            -self.cell_numb
-            -self.k_gas_ch
-            -self.mat_const
-
-            Manipulate:
-            -self.mat_dyn
         """
         ct = 0
         for q in range(self.n_cells):
@@ -583,13 +556,6 @@ class TemperatureSystem:
     def solve_system(self):
         """
         Solves the layer temperatures.
-
-            Access to:
-            -self.mat_dyn
-            -self.rhs
-
-            Manipulate:
-            -self.temp_layer_vec
         """
         # self.temp_layer_vec = np.linalg.tensorsolve(self.mat_dyn, self.rhs)
         self.temp_layer_vec = spsolve(self.mat_dyn, self.rhs)
@@ -598,14 +564,6 @@ class TemperatureSystem:
         """
         Sorts the temperatures in the 1-d-array self.temp_layer_vec
         to the 3-d-list self.temp_layer
-
-            Access to:
-            -self.cell_numb
-            -self.elements
-            -self.temp_layer_vec
-
-            Manipulate:
-            -self.temp_layer
         """
         ct = 0
         for q in range(self.n_cells):
@@ -616,4 +574,3 @@ class TemperatureSystem:
             for w in range(self.n_ele):
                 self.temp_layer[q][:, w] = self.temp_layer_vec[ct: ct + cr]
                 ct += cr
-        # print(self.temp_layer)

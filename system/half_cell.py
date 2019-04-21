@@ -361,9 +361,9 @@ class HalfCell:
         """
         Calculates the gas phase molar concentrations.
         """
-        id_reac = 0
-        id_h2o = 1
-        id_inert = 2
+        # id_reac = 0
+        # id_h2o = 1
+        # id_inert = 2
 
         gas_constant = g_par.dict_uni['R']
         total_mol_conc = self.p / (gas_constant * self.temp_fluid)
@@ -371,37 +371,35 @@ class HalfCell:
         p_sat = w_prop.water.calc_p_sat(self.temp_fluid)
         sat_conc = p_sat / (gas_constant * self.temp_fluid)
         dry_air_mol_flow = np.copy(self.mol_flow)
-        dry_air_mol_flow[id_h2o] = 0.0
+        dry_air_mol_flow[self.id_h2o] = 0.0
         dry_air_fraction = self.calc_fraction(dry_air_mol_flow)
-        print(self.name, 'dry_air_fraction: ', dry_air_fraction)
         self.gas_conc = conc
-        self.gas_conc[id_reac] = \
-            np.where(self.gas_conc[id_h2o] > sat_conc,
-                     (total_mol_conc - sat_conc) * dry_air_fraction[id_reac],
-                     self.gas_conc[id_reac])
-        self.gas_conc[id_inert] = \
-            np.where(self.gas_conc[id_h2o] > sat_conc,
-                     (total_mol_conc - sat_conc) * dry_air_fraction[id_inert],
-                     self.gas_conc[id_inert])
-        self.gas_conc[id_h2o] = \
-            np.where(self.gas_conc[id_h2o] > sat_conc,
-                     sat_conc, self.gas_conc[id_h2o])
-        self.reac_con_ele = ip.interpolate_1d(self.gas_conc[id_reac])
-        print(self.name, 'gas_conc: ', self.gas_conc)
+        self.gas_conc[self.id_reac] = \
+            np.where(self.gas_conc[self.id_h2o] > sat_conc,
+                     (total_mol_conc - sat_conc)
+                     * dry_air_fraction[self.id_reac],
+                     self.gas_conc[self.id_reac])
+        self.gas_conc[self.id_inert] = \
+            np.where(self.gas_conc[self.id_h2o] > sat_conc,
+                     (total_mol_conc - sat_conc)
+                     * dry_air_fraction[self.id_inert],
+                     self.gas_conc[self.id_inert])
+        self.gas_conc[self.id_h2o] = \
+            np.where(self.gas_conc[self.id_h2o] > sat_conc,
+                     sat_conc, self.gas_conc[self.id_h2o])
+        self.reac_con_ele = ip.interpolate_1d(self.gas_conc[self.id_reac])
 
     def calc_two_phase_flow(self):
         """
         Calculates the condensed phase flow and updates mole and mass fractions
         """
-        id_reac = 0
-        id_h2o = 1
         self.mol_flow_liq = np.zeros_like(self.mol_flow)
-        self.mol_flow_liq[id_h2o] = self.mol_flow[id_h2o] \
-            - self.gas_conc[id_h2o] / \
-            self.gas_conc[id_reac] * self.mol_flow[id_reac]
+        self.mol_flow_liq[self.id_h2o] = self.mol_flow[self.id_h2o] \
+            - self.gas_conc[self.id_h2o] / \
+            self.gas_conc[self.id_reac] * self.mol_flow[self.id_reac]
         self.mass_flow_liq = np.zeros_like(self.mass_flow)
-        self.mass_flow_liq[id_h2o] = \
-            self.mol_flow_liq[id_h2o] * self.mol_mass[id_h2o]
+        self.mass_flow_liq[self.id_h2o] = \
+            self.mol_flow_liq[self.id_h2o] * self.mol_mass[self.id_h2o]
         self.mol_flow_gas = self.mol_flow - self.mol_flow_liq
         self.mass_flow_gas = self.mass_flow - self.mass_flow_liq
         self.mol_flow_gas_total = np.sum(self.mol_flow_gas, axis=0)
@@ -413,25 +411,24 @@ class HalfCell:
         """
         Calculates the properties of the species in the gas phase
         """
-        id_reac = 0
-        id_h2o = 1
-        id_inert = 2
         if self.is_cathode:
-            self.cp[id_reac] = g_fit.oxygen.calc_cp(self.temp_fluid)
-            self.lambdas[id_reac] = \
+            self.cp[self.id_reac] = g_fit.oxygen.calc_cp(self.temp_fluid)
+            self.lambdas[self.id_reac] = \
                 g_fit.oxygen.calc_lambda(self.temp_fluid, self.p)
-            self.visc[id_reac] = g_fit.oxygen.calc_visc(self.temp_fluid)
+            self.visc[self.id_reac] = g_fit.oxygen.calc_visc(self.temp_fluid)
         else:
-            self.cp[id_reac] = g_fit.hydrogen.calc_cp(self.temp_fluid)
-            self.lambdas[id_reac] = \
+            self.cp[self.id_reac] = g_fit.hydrogen.calc_cp(self.temp_fluid)
+            self.lambdas[self.id_reac] = \
                 g_fit.hydrogen.calc_lambda(self.temp_fluid, self.p)
-            self.visc[id_reac] = g_fit.hydrogen.calc_visc(self.temp_fluid)
-        self.cp[id_h2o] = g_fit.water.calc_cp(self.temp_fluid)
-        self.cp[id_inert] = g_fit.nitrogen.calc_cp(self.temp_fluid)
-        self.lambdas[id_h2o] = g_fit.water.calc_lambda(self.temp_fluid, self.p)
-        self.lambdas[id_inert] = g_fit.nitrogen.calc_lambda(self.temp_fluid, self.p)
-        self.visc[id_h2o] = g_fit.water.calc_visc(self.temp_fluid)
-        self.visc[id_inert] = g_fit.nitrogen.calc_visc(self.temp_fluid)
+            self.visc[self.id_reac] = g_fit.hydrogen.calc_visc(self.temp_fluid)
+        self.cp[self.id_h2o] = g_fit.water.calc_cp(self.temp_fluid)
+        self.cp[self.id_inert] = g_fit.nitrogen.calc_cp(self.temp_fluid)
+        self.lambdas[self.id_h2o] = \
+            g_fit.water.calc_lambda(self.temp_fluid, self.p)
+        self.lambdas[self.id_inert] = \
+            g_fit.nitrogen.calc_lambda(self.temp_fluid, self.p)
+        self.visc[self.id_h2o] = g_fit.water.calc_visc(self.temp_fluid)
+        self.visc[self.id_inert] = g_fit.nitrogen.calc_visc(self.temp_fluid)
 
     def calc_gas_properties(self):
         """
@@ -510,12 +507,9 @@ class HalfCell:
         """
         i_lim = 4. * g_par.dict_uni['F'] * self.gas_conc[0, :-1] \
             * self.diff_coeff_gdl / self.th_gdl
-        # print(self.name, i_lim)
-        # print(self.name, self.gas_con[0, :])
         self.var = \
             1. - self.i_cd / (i_lim * self.reac_con_ele / self.gas_conc[0, :-1])
         self.i_ca_square = np.square(self.i_cd)
-        # print(self.name, self.var)
 
     def calc_activation_loss(self):
         """
@@ -570,7 +564,3 @@ class HalfCell:
         if not self.calc_act_loss:
             self.act_loss = 0.
         self.v_loss = self.act_loss + self.cl_diff_loss + self.gdl_diff_loss
-        # print(self.name, 'gdl loss: ', self.gdl_diff_loss)
-        # print(self.name, 'cl loss: ', self.cl_diff_loss)
-        # print(self.name, 'activation loss: ', self.act_loss)
-        # print(self.name, 'electrode loss: ', self.v_loss)

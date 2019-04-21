@@ -177,7 +177,7 @@ class Stack:
             self.i_cd_old = copy.deepcopy(self.i_cd)
             if self.calc_cd:
                 self.update_electrical_coupling()
-        print(self.i_cd)
+        print('Current density', self.i_cd)
 
     def update_flows(self):
         """
@@ -345,10 +345,6 @@ class Stack:
         """
         This function sets up the inlet stoichiometry
         of the cathode and anode channels.
-
-            Manipulate:
-            -.cathode.stoi
-            -.anode.stoi
         """
         for i, cell in enumerate(self.cells):
             cell.cathode.stoi = stoi_cat[i]
@@ -358,12 +354,7 @@ class Stack:
         """
         This function sets up the inlet pressure
         of the cathode and the anode channels.
-
-            Manipulate:
-            -.cathode.channel.p_in
-            -.anode.channel.p_in
         """
-
         for i, item in enumerate(self.cells):
             item.cathode.channel.p_out = p_cat[i]
             item.anode.channel.p_out = p_ano[i]
@@ -371,13 +362,7 @@ class Stack:
     def set_temperature(self):
         """
         This function sets up the layer and fluid temperatures in the cells.
-
-            Manipulate:
-            -.temp
-            -.cathode.temp_fluid
-            -.anode.temp_fluid
         """
-
         for i, item in enumerate(self.cells):
             item.temp = self.temp_sys.temp_layer[i][0:5, :]
             item.cathode.temp_fluid = self.temp_sys.temp_fluid[0, i]

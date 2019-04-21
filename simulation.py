@@ -223,7 +223,6 @@ class Simulation:
                     self.output_csv(str(i))
             else:
                 target_current_density = target_current_density[0:-i]
-                print(target_current_density, self.v)
                 break
         if len(target_current_density) > 1:
             self.plot_polarization_curve()
@@ -610,7 +609,7 @@ class Simulation:
         plt.savefig(os.path.join(self.path_plot+'Z-Cut-Temperature' + '.png'))
         plt.close()
 
-        for q in range(self.stack.cell_numb):
+        for q in range(self.stack.n_cells):
             print(np.average(self.stack.i_cd[q, :]))
 
     def output_csv(self, q):
