@@ -385,17 +385,14 @@ class Simulation:
             g_func.output([self.stack.manifold[0].cell_stoi,
                            self.stack.manifold[1].cell_stoi],
                           'Stoichiometry', 'Cell Number', 'linear', ['k', 'r'],
-                          'Stoichimetry Distribution', 0.,
-                          n_cells - 1, ['Cathode', 'Anode'],
-                          self.plot_path)
+                          'Stoichimetry Distribution', 0., n_cells - 1,
+                          ['Cathode', 'Anode'], self.plot_path)
             g_func.output([self.stack.manifold[0].cell_stoi/2.5],
                           'Flow Distribution', 'Cell Number', 'linear', ['k'],
-                          'Distribution', 0.,
-                          n_cells - 1, ['Cathode'],
+                          'Distribution', 0., n_cells - 1, ['Cathode'],
                           self.plot_path)
         self.plot_cell_var('v', 'Voltage $[V]$', 'Channel Location $[m]$',
-                           'linear', 'Cell Voltage',
-                           x_lims, x_ele, [0.52, 0.54])
+                           'Cell Voltage', x_lims, x_ele, [0.52, 0.54])
         g_func.output_x(self.stack.temp_sys.temp_cool, x_node,
                         'Coolant Temperature [K]', 'Channel Location $[m]$',
                         'linear', 'Coolant Temperature', False,
