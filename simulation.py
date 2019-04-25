@@ -1,17 +1,17 @@
-import data.stack_dict as st_dict
-import data.channel_dict as ch_dict
-import data.simulation_dict as sim
 import input.operating_conditions as op_con
-import system.stack as st
+import system.stack as stack
 import numpy as np
 import data.global_parameters as g_par
 import system.global_functions as g_func
+import system.interpolation as ip
 import input.geometry as geom
 import cProfile
 import matplotlib.pyplot as plt
 import os
 import errno
 import timeit
+import data.input_dicts as input_dicts
+
 np.set_printoptions(threshold=np.nan, linewidth=10000,
                     precision=9, suppress=True)
 np.seterr(all='raise')
@@ -43,9 +43,9 @@ class Simulation:
         # switch to save the plot data
         self.show_loss = dict_simulation['show_loss']
         # switch to show the single voltage losses in the u-i-graph
-        cell_numb = st_dict.dict_stack['cell_numb']
+        n_cells = input_dicts.dict_stack['cell_number']
         # number of stack cells
-        nodes = g_par.dict_case['nodes']
+        n_nodes = g_par.dict_case['nodes']
         # node points of the x-grid
 
         """General variables"""
@@ -53,7 +53,7 @@ class Simulation:
         self.csv_format = '%.9e'
         self.stack = None
         # object of the class Stack
-        self.path_plot = None
+        self.plot_path = None
         # path where the plots of the results gets saved
         self.path_csv_data = None
         # path where the csv data of the results gets saved
@@ -75,99 +75,99 @@ class Simulation:
         # convergence criteria of the temperature
         self.v = []
         # cell voltage
-        self.mol_flow = np.full((6, cell_numb, nodes), 0.)
+        self.mol_flow = np.full((6, n_cells, n_nodes), 0.)
         # molar flow of the species in the channels
         # 0: oxygen, 1: cathode water, 2: cathode nitrogen,
         # 3: hydrogen, 4: anode water, 5: anode nitrogen
-        self.gas_con = np.full((6, cell_numb, nodes), 0.)
+        self.gas_con = np.full((6, n_cells, n_nodes), 0.)
         # molar concentration of the species in the gas mixture
-        self.m_f = np.full((6, cell_numb, nodes), 0.)
+        self.m_f = np.full((6, n_cells, n_nodes), 0.)
         # mass fraction of the species in the gas mixture
-        self.mol_f = np.full((6, cell_numb, nodes), 0.)
+        self.mol_f = np.full((6, n_cells, n_nodes), 0.)
         # molar fraction of the species in the gas mixture
-        self.act_loss_cat = np.full((cell_numb, nodes - 1), 0.)
+        self.act_loss_cat = np.full((n_cells, n_nodes - 1), 0.)
         # cathodic activation voltage loss
-        self.act_loss_ano = np.full((cell_numb, nodes - 1), 0.)
+        self.act_loss_ano = np.full((n_cells, n_nodes - 1), 0.)
         # anodic activation voltage loss
-        self.cl_diff_loss_cat = np.full((cell_numb, nodes - 1), 0.)
+        self.cl_diff_loss_cat = np.full((n_cells, n_nodes - 1), 0.)
         # cathodic catalyst layer diffusion voltage loss
-        self.cl_diff_loss_ano = np.full((cell_numb, nodes - 1), 0.)
+        self.cl_diff_loss_ano = np.full((n_cells, n_nodes - 1), 0.)
         # anodic catalyst layer diffusion voltage loss
-        self.gdl_diff_loss_cat = np.full((cell_numb, nodes - 1), 0.)
+        self.gdl_diff_loss_cat = np.full((n_cells, n_nodes - 1), 0.)
         # cathodic gas diffusion layer diffusion voltage loss
-        self.gdl_diff_loss_ano = np.full((cell_numb, nodes - 1), 0.)
+        self.gdl_diff_loss_ano = np.full((n_cells, n_nodes - 1), 0.)
         # anodic gas diffusion layer diffusion voltage loss
-        self.mem_loss = np.full((cell_numb, nodes - 1), 0.)
+        self.mem_loss = np.full((n_cells, n_nodes - 1), 0.)
         # membrane voltage loss
-        self.v_loss = np.full((cell_numb, nodes - 1), 0.)
+        self.v_loss = np.full((n_cells, n_nodes - 1), 0.)
         # voltage loss over the stack
-        self.v_cell = np.full((cell_numb, nodes - 1), 0.)
+        self.v_cell = np.full((n_cells, n_nodes - 1), 0.)
         # cell voltage
-        self.cp = np.full((6, cell_numb, nodes), 0.)
+        self.cp = np.full((6, n_cells, n_nodes), 0.)
         # heat capacity of the species in the gas phase
-        self.lambda_gas = np.full((6, cell_numb, nodes), 0.)
+        self.lambda_gas = np.full((6, n_cells, n_nodes), 0.)
         # heat conductivity of the species in the gas phase
-        self.visc = np.full((6, cell_numb, nodes), 0.)
+        self.visc = np.full((6, n_cells, n_nodes), 0.)
         # viscosity of the species in the gas phase
-        self.r_gas_cat = np.full((cell_numb, nodes), 0.)
+        self.r_gas_cat = np.full((n_cells, n_nodes), 0.)
         # gas constant of the gas phase in the cathode channels
-        self.r_gas_ano = np.full((cell_numb, nodes), 0.)
+        self.r_gas_ano = np.full((n_cells, n_nodes), 0.)
         # gas constant of the gas phase in the anode channels
-        self.cp_gas_cat = np.full((cell_numb, nodes), 0.)
+        self.cp_gas_cat = np.full((n_cells, n_nodes), 0.)
         # heat capacitiy of the gas phase in the cathode channels
-        self.cp_gas_ano = np.full((cell_numb, nodes), 0.)
+        self.cp_gas_ano = np.full((n_cells, n_nodes), 0.)
         # heat capacity of the gas phase in the anode channels
-        self.visc_gas_cat = np.full((cell_numb, nodes), 0.)
+        self.visc_gas_cat = np.full((n_cells, n_nodes), 0.)
         # viscosity of the gas phase in the cathode channels
-        self.visc_gas_ano = np.full((cell_numb, nodes), 0.)
+        self.visc_gas_ano = np.full((n_cells, n_nodes), 0.)
         # viscosity of the gas phase in the anode channels
-        self.lambda_gas_cat = np.full((cell_numb, nodes), 0.)
+        self.lambda_gas_cat = np.full((n_cells, n_nodes), 0.)
         # heat conductivity of the gas phase in the cathode channels
-        self.lambda_gas_ano = np.full((cell_numb, nodes), 0.)
+        self.lambda_gas_ano = np.full((n_cells, n_nodes), 0.)
         # heat conductivity of the gas phase in the anode channels
-        self.rho_gas_cat = np.full((cell_numb, nodes), 0.)
+        self.rho_gas_cat = np.full((n_cells, n_nodes), 0.)
         # density of the gas in the cathode channels
-        self.rho_gas_cat = np.full((cell_numb, nodes), 0.)
+        self.rho_gas_cat = np.full((n_cells, n_nodes), 0.)
         # density of the gas in the anode channels
-        self.pr_gas_cat = np.full((cell_numb, nodes), 0.)
+        self.pr_gas_cat = np.full((n_cells, n_nodes), 0.)
         # prandtl number of the gas in the cathode channels
-        self.pr_gas_ano = np.full((cell_numb, nodes), 0.)
+        self.pr_gas_ano = np.full((n_cells, n_nodes), 0.)
         # prandtl number of the gas in the anode channels
-        self.u_gas_cat = np.full((cell_numb, nodes), 0.)
+        self.u_gas_cat = np.full((n_cells, n_nodes), 0.)
         # velocity of the fluid in the cathode channels
-        self.u_gas_ano = np.full((cell_numb, nodes), 0.)
+        self.u_gas_ano = np.full((n_cells, n_nodes), 0.)
         # velocity of the fluid in the anode channels
-        self.re_gas_cat = np.full((cell_numb, nodes), 0.)
+        self.re_gas_cat = np.full((n_cells, n_nodes), 0.)
         # reynolds number of the fluid in the cathode channels
-        self.re_gas_ano = np.full((cell_numb, nodes), 0.)
+        self.re_gas_ano = np.full((n_cells, n_nodes), 0.)
         # reynolds number of the fluid in the anode channels
-        self.p_cat = np.full((cell_numb, nodes), 0.)
+        self.p_cat = np.full((n_cells, n_nodes), 0.)
         # pressure in the cathode channels
-        self.p_ano = np.full((cell_numb, nodes), 0.)
+        self.p_ano = np.full((n_cells, n_nodes), 0.)
         # pressure in the anode channels
-        self.ht_coef_cat = np.full((cell_numb, nodes), 0.)
+        self.ht_coef_cat = np.full((n_cells, n_nodes), 0.)
         # heat convection coefficient in the cathode channels
-        self.ht_coef_ano = np.full((cell_numb, nodes), 0.)
+        self.ht_coef_ano = np.full((n_cells, n_nodes), 0.)
         # heat convection coefficient in the anode channels
-        self.m_flow_fluid_cat = np.full((cell_numb, nodes), 0.)
+        self.m_flow_fluid_cat = np.full((n_cells, n_nodes), 0.)
         # mass flow of the fluid in the cathode channels
-        self.m_flow_fluid_ano = np.full((cell_numb, nodes), 0.)
+        self.m_flow_fluid_ano = np.full((n_cells, n_nodes), 0.)
         # mass flow of the fluid in the anode channels
-        self.cp_fluid_cat = np.full((cell_numb, nodes), 0.)
+        self.cp_fluid_cat = np.full((n_cells, n_nodes), 0.)
         # heat capacity of the cathode fluid
-        self.cp_fluid_ano = np.full((cell_numb, nodes), 0.)
+        self.cp_fluid_ano = np.full((n_cells, n_nodes), 0.)
         # heat capacity of the anode fluid
         self.temp_layer = []
         # temperature layer of the stack
-        self.temp_fluid_ano = np.full((cell_numb, nodes), 0.)
+        self.temp_fluid_ano = np.full((n_cells, n_nodes), 0.)
         # temperature of the fluid in the anode channels
-        self.temp_fluid_cat = np.full((cell_numb, nodes), 0.)
+        self.temp_fluid_cat = np.full((n_cells, n_nodes), 0.)
         # temperature of the fluid in the cathode channels
-        self.temp_cool = np.full((cell_numb, nodes), 0.)
+        self.temp_cool = np.full((n_cells, n_nodes), 0.)
         # temperature of the coolant
-        self.stoi_cat = np.full(cell_numb, 0.)
+        self.stoi_cat = np.full(n_cells, 0.)
         # inlet stoichiometry of the cathode channels
-        self.stoi_ano = np.full(cell_numb, 0.)
+        self.stoi_ano = np.full(n_cells, 0.)
         # inlet stoichiometry of the anode channels
         self.act_loss_ui_ano = []
         # average activation voltage loss of the anode
@@ -184,6 +184,25 @@ class Simulation:
         self.mem_loss_ui = []
         # average membrane voltage losses
 
+        # load input dictionaries
+        stack_dict = input_dicts.dict_stack
+        cell_dict = input_dicts.dict_cell
+        anode_dict = input_dicts.dict_anode
+        cathode_dict = input_dicts.dict_cathode
+        ano_channel_dict = input_dicts.dict_anode_channel
+        cat_channel_dict = input_dicts.dict_cathode_channel
+        ano_manifold_dict = input_dicts.dict_mfold_ano
+        cat_manifold_dict = input_dicts.dict_mfold_cat
+        electrical_dict = input_dicts.dict_electrical_coupling
+        temperature_dict = input_dicts.dict_temp_sys
+
+        # initialize stack object
+        self.stack = stack.Stack(stack_dict, cell_dict, anode_dict,
+                                 cathode_dict, ano_channel_dict,
+                                 cat_channel_dict, ano_manifold_dict,
+                                 cat_manifold_dict, electrical_dict,
+                                 temperature_dict)
+
     # @do_c_profile
     def update(self):
         """
@@ -192,11 +211,9 @@ class Simulation:
         target_current_density = op_con.target_current_density
         if not isinstance(target_current_density, (list, tuple, np.ndarray)):
             target_current_density = [target_current_density]
-        #target_current_density = [float(i) for i in target_current_density]
 
         for i, tar_cd in enumerate(target_current_density):
             g_par.dict_case['tar_cd'] = tar_cd
-            self.stack = st.Stack(st_dict.dict_stack)
             statement = True
             counter = 0
             while statement:
@@ -311,15 +328,15 @@ class Simulation:
         """
         self.temp_old = self.stack.temp_sys.temp_layer[0][0, 0]
 
-    def plot_cell_var(self, y_var, y_label, x_label,
-                      y_scale, title, x_lim, x_var, y_lim):
+    def plot_cell_var(self, y_var, y_label, x_label, title, x_lim, x_var,
+                      y_lim=False, y_scale='linear'):
         """
         Creates plots by given input values
         """
-        for l, item in enumerate(self.stack.cells):
+        for i, item in enumerate(self.stack.cells):
             plt.plot(x_var, eval('self.stack.cells' +
-                                 '['+str(l)+']'+'.' + y_var),
-                     color=plt.cm.coolwarm(l / self.stack.cell_numb),
+                                 '['+str(i)+']'+'.' + y_var),
+                     color=plt.cm.coolwarm(i / self.stack.n_cells),
                      marker='.')
         plt.xlabel(x_label, fontsize=16)
         plt.ylabel(y_label, fontsize=16)
@@ -327,33 +344,34 @@ class Simulation:
         plt.tick_params(labelsize=14)
         plt.autoscale(tight=True, axis='both', enable=True)
         plt.xlim(x_lim[0], x_lim[1])
-        if y_lim is not False:
+        if y_lim:
             plt.ylim(y_lim[0], y_lim[1])
         plt.tight_layout()
         plt.grid()
-        plt.savefig(self.path_plot + title + '.png')
+        plt.savefig(self.plot_path + title + '.png')
         plt.close()
 
     def output_plots(self, q):
         """
         Coordinates the plot sequence
         """
-        self.path_plot = os.path.join(os.path.dirname(__file__),
+        self.plot_path = os.path.join(os.path.dirname(__file__),
                                       'output/' + 'case' + q + '/plots' + '/')
         try:
-            os.makedirs(self.path_plot)
+            os.makedirs(self.plot_path)
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
-        x_node = np.linspace(0., ch_dict.dict_cathode_channel['channel_length'],
-                             g_par.dict_case['nodes'])
-        x_ele = g_func.interpolate_to_elements_1d(x_node)
+        length = self.stack.cells[0].cathode.channel.length
+        x_lims = [0.0, length]
+        x_node = self.stack.cells[0].cathode.channel.x
+        x_ele = ip.interpolate_1d(x_node)
         g_func.output([self.mdf_criteria_process, self.i_ca_criteria_process,
                        self.temp_criteria_process], 'ERR', 'Iteration', 'log',
                       ['k', 'r', 'b'], 'Convergence', 0.,
                       len(self.temp_criteria_process),
                       ['Flow Distribution', 'Current Density', 'Temperature'],
-                      self.path_plot)
+                      self.plot_path)
         self.mdf_criteria_process = []
         self.mdf_criteria_ano_process = []
         self.mdf_criteria_cat_process = []
@@ -361,205 +379,139 @@ class Simulation:
         self.i_ca_criteria_process = []
         g_func.output_x(self.stack.i_cd, x_ele, 'Current Density $[A/m²]$',
                         'Channel Location $[m]$', 'linear', 'Current Density',
-                        False,
-                        [0., ch_dict.dict_cathode_channel['channel_length']],
-                        self.path_plot)
-        if self.stack.cell_numb > 1:
+                        False, x_lims, self.plot_path)
+        n_cells = self.stack.n_cells
+        if n_cells > 1:
             g_func.output([self.stack.manifold[0].cell_stoi,
                            self.stack.manifold[1].cell_stoi],
                           'Stoichiometry', 'Cell Number', 'linear', ['k', 'r'],
                           'Stoichimetry Distribution', 0.,
-                          self.stack.cell_numb - 1, ['Cathode', 'Anode'],
-                          self.path_plot)
+                          n_cells - 1, ['Cathode', 'Anode'],
+                          self.plot_path)
             g_func.output([self.stack.manifold[0].cell_stoi/2.5],
                           'Flow Distribution', 'Cell Number', 'linear', ['k'],
                           'Distribution', 0.,
-                          self.stack.cell_numb - 1, ['Cathode'],
-                          self.path_plot)
+                          n_cells - 1, ['Cathode'],
+                          self.plot_path)
         self.plot_cell_var('v', 'Voltage $[V]$', 'Channel Location $[m]$',
                            'linear', 'Cell Voltage',
-                           [0., ch_dict.dict_cathode_channel['channel_length']],
-                           x_ele, [0.52, 0.54])
+                           x_lims, x_ele, [0.52, 0.54])
         g_func.output_x(self.stack.temp_sys.temp_cool, x_node,
                         'Coolant Temperature [K]', 'Channel Location $[m]$',
                         'linear', 'Coolant Temperature', False,
-                        [0., ch_dict.dict_cathode_channel['channel_length']],
-                        self.path_plot)
-        self.plot_cell_var('temp[-1]',
-                           'Anode BPP - GDE Temperature $[K]$',
-                           'Channel Location $[m]$', 'linear',
-                           'Anode Plate - GDE Temperature',
-                           [0., ch_dict.dict_cathode_channel['channel_length']],
-                           x_ele, False)
+                        x_lims, self.plot_path)
+        self.plot_cell_var('temp[-1]', 'Anode BPP - GDE Temperature $[K]$',
+                           'Channel Location $[m]$',
+                           'Anode Plate - GDE Temperature', x_lims, x_ele)
         self.plot_cell_var('temp[-2]', 'Anode GDE - MEM Temperature $[K]$',
-                           'Channel Location $[m]$', 'linear',
-                           'Anode GDE - Membrane Temperature',
-                           [0., ch_dict.dict_cathode_channel['channel_length']],
-                           x_ele, False)
+                           'Channel Location $[m]$',
+                           'Anode GDE - Membrane Temperature', x_lims, x_ele)
         self.plot_cell_var('temp[2]',
                            'Cathode GDE - MEM Temperature $[K]$',
-                           'Channel Location $[m]$', 'linear',
-                           'Cathode GDL Temperature',
-                           [0., ch_dict.dict_cathode_channel['channel_length']],
-                           x_ele, False)
+                           'Channel Location $[m]$', 'Cathode GDL Temperature',
+                           x_lims, x_ele)
         self.plot_cell_var('cathode.temp_fluid',
                            'Cathode Fluid Temperature $[K]$',
-                           'Channel Location $[m]$', 'linear',
-                           'Cathode_Channel_Temperature',
-                           [0., ch_dict.dict_cathode_channel['channel_length']],
-                           x_node, False)
+                           'Channel Location $[m]$',
+                           'Cathode_Channel_Temperature', x_lims, x_node)
         self.plot_cell_var('temp[1]', 'Cathode BPP-GDE Temperature $[K]$',
-                           'Channel Location $[m]$', 'linear',
-                           'Cathode GDE - Plate Temperature',
-                           [0., ch_dict.dict_cathode_channel['channel_length']],
-                           x_ele, False)
+                           'Channel Location $[m]$',
+                           'Cathode GDE - Plate Temperature', x_lims, x_ele)
         self.plot_cell_var('anode.temp_fluid', 'Anode Fluid Temperature $[K]$',
-                           'Channel Location $[m]$', 'linear',
-                           'Anode_Channel_Temperature',
-                           [0., ch_dict.dict_cathode_channel['channel_length']],
-                           x_node, False)
-        self.plot_cell_var('temp[0]',
-                           'BPP - BPP Temperature $[K]$',
-                           'Channel Location $[m]$', 'linear',
-                           'Coolant Plate Temperature',
-                           [0., ch_dict.dict_cathode_channel['channel_length']],
-                           x_ele, False)
+                           'Channel Location $[m]$',
+                           'Anode_Channel_Temperature', x_lims, x_node)
+        self.plot_cell_var('temp[0]', 'BPP - BPP Temperature $[K]$',
+                           'Channel Location $[m]$',
+                           'Coolant Plate Temperature', x_lims, x_ele)
         self.plot_cell_var('cathode.mol_flow[0] * 1.e3',
                            'Cathode Oxygen Molar Flow $[mmol/s]$',
-                           'Channel Location $[m]$', 'linear',
-                           'Cathode Oxygen Molar Flow',
-                           [0., ch_dict.dict_cathode_channel['channel_length']],
-                           x_node, False)
+                           'Channel Location $[m]$',
+                           'Cathode Oxygen Molar Flow', x_lims, x_node)
         self.plot_cell_var('cathode.mol_flow[1] * 1.e3',
                            'Cathode Water Molar Flow $[mmol/s]$',
-                           'Channel Location $[m]$', 'linear',
-                           'Cathode Water Molar Flow',
-                           [0., ch_dict.dict_cathode_channel['channel_length']],
-                           x_node, False)
+                           'Channel Location $[m]$',
+                           'Cathode Water Molar Flow', x_lims, x_node)
         self.plot_cell_var('cathode.mol_flow[2] * 1.e3',
                            'Cathode Nitrogen Molar Flow $[mmol/s]$',
-                           'Channel Location $[m]$', 'linear',
-                           'Cathode Nitrogen Molar Flow',
-                           [0., ch_dict.dict_cathode_channel['channel_length']],
-                           x_node, False)
+                           'Channel Location $[m]$',
+                           'Cathode Nitrogen Molar Flow', x_lims, x_node)
         self.plot_cell_var('anode.mol_flow[0] * 1.e3',
                            'Anode Hydrogen Molar Flow $[mmol/s]$',
-                           'Channel Location $[m]$', 'linear',
-                           'Anode Hydrogen Molar Flow',
-                           [0., ch_dict.dict_cathode_channel['channel_length']],
-                           x_node, False)
+                           'Channel Location $[m]$',
+                           'Anode Hydrogen Molar Flow', x_lims, x_node)
         self.plot_cell_var('anode.mol_flow[1] * 1.e3',
                            'Anode Water Molar Flow $[mmol/s]$',
-                           'Channel Location $[m]$', 'linear',
-                           'Anode Water Molar Flow',
-                           [0., ch_dict.dict_cathode_channel['channel_length']],
-                           x_node, False)
+                           'Channel Location $[m]$',
+                           'Anode Water Molar Flow', x_lims, x_node)
         self.plot_cell_var('anode.mol_flow[2] * 1.e3',
                            'Anode Nitrogen Molar Flow $[mmol/s]$',
-                           'Channel Location $[m]$', 'linear',
-                           'Anode Nitrogen Molar Flow',
-                           [0., ch_dict.dict_cathode_channel['channel_length']],
-                           x_node, False)
+                           'Channel Location $[m]$',
+                           'Anode Nitrogen Molar Flow', x_lims, x_node)
         self.plot_cell_var('cathode.mol_f[0]', 'Oxygen  Molar Fraction',
-                           'Channel Location $[m]$', 'linear',
-                           'Oxygen_Molar_Fraction',
-                           [0., ch_dict.dict_cathode_channel['channel_length']],
-                           x_node, False)
+                           'Channel Location $[m]$',
+                           'Oxygen Molar Fraction', x_lims, x_node)
         self.plot_cell_var('cathode.mol_f[1]',
                            'Cathode Gas Water Molar Fraction',
-                           'Channel Location $[m]$', 'linear',
+                           'Channel Location $[m]$',
                            'Water Molar Fraction Cathode',
-                           [0., ch_dict.dict_cathode_channel['channel_length']],
-                           x_node, False)
+                           x_lims, x_node)
         self.plot_cell_var('cathode.mol_f[2]',
                            'Cathode Nitrogen Molar Fraction',
-                           'Channel Location $[m]$', 'linear',
-                           'Nitrogen_Molar_Fraction_Cathode',
-                           [0., ch_dict.dict_cathode_channel['channel_length']],
-                           x_node, False)
+                           'Channel Location $[m]$',
+                           'Nitrogen Molar Fraction Cathode', x_lims, x_node)
         self.plot_cell_var('anode.mol_f[0]', 'Hydrogen Molar Fraction',
-                           'Channel Location $[m]$', 'linear',
-                           'Hydrogen_Molar_Fraction_Anode',
-                           [0., ch_dict.dict_cathode_channel['channel_length']],
-                           x_node, False)
+                           'Channel Location $[m]$',
+                           'Hydrogen_Molar_Fraction_Anode', x_lims, x_node)
         self.plot_cell_var('anode.mol_f[1]', 'Anode Gas Water  Molar Fraction',
-                           'Channel Location $[m]$', 'linear',
-                           'Water_Molar_Fraction_Anode',
-                           [0., ch_dict.dict_cathode_channel['channel_length']],
-                           x_node, False)
+                           'Channel Location $[m]$',
+                           'Water_Molar_Fraction_Anode', x_lims, x_node)
         self.plot_cell_var('anode.mol_f[2]', 'Anode Nitrogen Molar Fraction',
-                           'Channel Location $[m]$', 'linear',
-                           'Nitrogen_Molar_Fraction_Anode',
-                           [0., ch_dict.dict_cathode_channel['channel_length']],
-                           x_node, False)
+                           'Channel Location $[m]$',
+                           'Nitrogen_Molar_Fraction_Anode', x_lims, x_node)
         self.plot_cell_var('cathode.liq_w_flow * 1.e3',
                            'Cathode Liquid Water Flow $[mmol/s]$',
-                           'Channel Location $[m]$', 'linear',
-                           'Liquid Water Flow Cathode',
-                           [0., ch_dict.dict_cathode_channel['channel_length']],
-                           x_node, False)
+                           'Channel Location $[m]$',
+                           'Liquid Water Flow Cathode', x_lims, x_node)
         self.plot_cell_var('cathode.cond_rate * 1.e3',
                            'Cathode Water Condensation Rate $[mmol/s]$',
-                           'Channel Location $[m]$', 'linear',
-                           'Water Condensation Rate Cathode',
-                           [0., ch_dict.dict_cathode_channel['channel_length']],
-                           x_node, False)
+                           'Channel Location $[m]$',
+                           'Water Condensation Rate Cathode', x_lims, x_node)
         self.plot_cell_var('cathode.humidity', 'Cathode Relative Humidity',
                            'Channel Location $[m]$', 'linear',
-                           'Relative Humidity Cathode',
-                           [0., ch_dict.dict_cathode_channel['channel_length']],
-                           x_node, False)
+                           'Relative Humidity Cathode', x_lims, x_node)
         self.plot_cell_var('cathode.m_flow_gas * 1.e6',
                            'Cathode Channel Gas Massflow $[mg/s]$',
                            'Channel Location $[m]$', 'linear',
-                           'Cathode_Channel__Gas_Massflow',
-                           [0., ch_dict.dict_cathode_channel['channel_length']],
-                           x_node, False)
+                           'Cathode_Channel__Gas_Massflow', x_lims, x_node)
         self.plot_cell_var('cathode.m_flow_fluid * 1.e6',
                            'Cathode Channel Fluid Massflow $[mg/s]$',
                            'Channel Location $[m]$', 'linear',
-                           'Cathode_Channel_Fluid_Massflow',
-                           [0., ch_dict.dict_cathode_channel['channel_length']],
-                           x_node, False)
+                           'Cathode_Channel_Fluid_Massflow', x_lims, x_node)
         self.plot_cell_var('cathode.g_fluid * 1.e3',
                            'Cathode Capacity Flow $[mW/K]$',
                            'Channel Location $[m]$', 'linear',
-                           'Cathode Capacity Flow',
-                           [0., ch_dict.dict_cathode_channel['channel_length']],
-                           x_node, False)
+                           'Cathode Capacity Flow', x_lims, x_node)
         self.plot_cell_var('cathode.m_flow_reac * 1.e6',
                            'Oxygen Massflow $[mg/s]$', 'Channel Location $[m]$',
-                           'linear', 'Oxygen_massflow',
-                           [0., ch_dict.dict_cathode_channel['channel_length']],
-                           x_node, False)
+                           'linear', 'Oxygen_massflow', x_lims, x_node)
         self.plot_cell_var('cathode.m_flow_vap_w * 1.e6',
                            'Cathode Vapour Massflow $[mg/s]$',
                            'Channel Location $[m]$',
-                           'linear', 'Vapour Massflow',
-                           [0., ch_dict.dict_cathode_channel['channel_length']],
-                           x_node, False)
+                           'linear', 'Vapour Massflow', x_lims, x_node)
         self.plot_cell_var('anode.m_flow_reac * 1.e6',
                            'Hydrogen Massflow $[mg/s]$',
                            'Channel Location $[m]$', 'linear',
-                           'Hydrogen_massflow',
-                           [0., ch_dict.dict_cathode_channel['channel_length']],
-                           x_node, False)
+                           'Hydrogen_massflow', x_lims, x_node)
         self.plot_cell_var('cathode.cp_fluid',
                            'Cathode Heat Capacity $[J/(kgK)]$',
                            'Channel Location $[m]$', 'linear',
-                           'Cathode Heat Capacity',
-                           [0., ch_dict.dict_cathode_channel['channel_length']],
-                           x_node, False)
+                           'Cathode Heat Capacity', x_lims, x_node)
         self.plot_cell_var('cathode.p', 'Cathode Channel Pressure $[Pa]$',
                            'Channel Location $[m]$', 'linear',
-                           'Cathode Channel Pressure',
-                           [0., ch_dict.dict_cathode_channel['channel_length']],
-                           x_node, False)
+                           'Cathode Channel Pressure', x_lims, x_node)
         self.plot_cell_var('anode.p', 'Anode Channel Pressure $[Pa]$',
                            'Channel Location $[m]$', 'linear',
-                           'Anode Channel Pressure',
-                           [0., ch_dict.dict_cathode_channel['channel_length']],
-                           x_node, False)
+                           'Anode Channel Pressure', x_lims, x_node)
         # Z-Axis-Temperature Plot
         x_vec_z = np.array([0.,
                            geom.bipolar_plate_thickness,
@@ -578,10 +530,10 @@ class Simulation:
                             geom.gas_diffusion_layer_thickness,
                             geom.bipolar_plate_thickness])
         x = []
-        for l in range(self.stack.cell_numb):
+        for l in range(self.stack.n_cells):
             if l is 0:
                 x.append(x_vec_z)
-            elif 0 < l < self.stack.cell_numb - 1:
+            elif 0 < l < self.stack.n_cells - 1:
                 x.append(x_vec_e)
             else:
                 x.append(x_vec_l)
@@ -589,8 +541,8 @@ class Simulation:
         t = self.stack.temp_sys.temp_layer
         for w in range(g_par.dict_case['nodes'] - 1):
             t_vec = []
-            for l in range(self.stack.cell_numb):
-                if l is not self.stack.cell_numb - 1:
+            for l in range(self.stack.n_cells):
+                if l is not self.stack.n_cells - 1:
                     t_vec.append(np.array([t[l][0, w], t[l][1, w],
                                            t[l][2, w], t[l][3, w], t[l][4, w]]))
                 else:
@@ -606,7 +558,7 @@ class Simulation:
         plt.tick_params(labelsize=14)
         plt.autoscale(tight=True, axis='both', enable=True)
         plt.tight_layout()
-        plt.savefig(os.path.join(self.path_plot+'Z-Cut-Temperature' + '.png'))
+        plt.savefig(os.path.join(self.plot_path + 'Z-Cut-Temperature' + '.png'))
         plt.close()
 
         for q in range(self.stack.n_cells):
@@ -901,7 +853,7 @@ class Simulation:
 
 
 start = timeit.default_timer()
-simulation = Simulation(sim.simulation_dict)
+simulation = Simulation(input_dicts.simulation_dict)
 simulation.update()
 stop = timeit.default_timer()
 print('Simulation time:', stop-start)

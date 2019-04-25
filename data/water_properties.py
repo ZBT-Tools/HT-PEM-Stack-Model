@@ -13,7 +13,7 @@ vaporization_enthalpy_param =\
      9.69666280e+06, -3.95999179e+08)
 
 
-class Fluid:
+class TwoPhaseSpecies:
 
     def __init__(self, p_sat_param, h_vap_param):
         self.p_sat_param = p_sat_param
@@ -26,4 +26,4 @@ class Fluid:
         return np.polyval(self.h_vap_param, t_in)
 
 
-water = Fluid(p_saturation_param, vaporization_enthalpy_param)
+water = TwoPhaseSpecies(p_saturation_param, vaporization_enthalpy_param)

@@ -7,18 +7,18 @@ import input.physical_properties as phy_prop
 
 dict_mfold_cat = {
     'name': 'cathode manifold',
-    'cell_number': op_con.cell_number,
+    'cell_number': geom.cell_number,
     'channel_number': geom.gas_channel_number,
     'header_width': geom.manifold_width,
     'header_height': geom.manifold_height,
-    'kf': phy_prop.manifold_pressure_loss_coefficient,
-    'cell_height': np.full(op_con.cell_number,
+    'kf': geom.manifold_pressure_loss_coefficient,
+    'cell_height': np.full(geom.cell_number,
                            2. * (geom.bipolar_plate_thickness
                                  + geom.gas_diffusion_layer_thickness
                                  + geom.catalyst_layer_thickness)
                            + geom.membrane_thickness),
-    'cell_channel_length': np.full(op_con.cell_number, geom.channel_length),
-    'cell_channel_cross_area': np.full(op_con.cell_number,
+    'cell_channel_length': np.full(geom.cell_number, geom.channel_length),
+    'cell_channel_cross_area': np.full(geom.cell_number,
                                        geom.channel_width
                                        * geom.channel_height),
     'p_out': op_con.p_manifold_cathode_out
@@ -27,9 +27,3 @@ dict_mfold_cat = {
 dict_mfold_ano = copy.copy(dict_mfold_cat)
 dict_mfold_ano['name'] = 'anode manifold'
 dict_mfold_ano['p_out'] = op_con.p_manifold_anode_out
-
-def manifold(mol_flow, cell_temp, cell_cp, cell_visc,
-             cell_p, cell_r, f_mass_flow, g_mass_flow):
-    return {'mol_flow': mol_flow, 'cell_temp': cell_temp, 'cell_cp': cell_cp,
-            'cell_visc': cell_visc, 'cell_p': cell_p, 'cell_r': cell_r,
-            'f_mass_flow': f_mass_flow, 'g_mass_flow': g_mass_flow}

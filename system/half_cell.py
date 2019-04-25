@@ -1,12 +1,10 @@
 import warnings
 import system.global_functions as g_func
 import data.water_properties as w_prop
-import data.gas_properties as g_fit
+import data.gas_properties as g_prop
 import numpy as np
 import data.global_parameters as g_par
 import system.channel as ch
-import data.channel_dict as ch_dict
-import input.physical_properties as phy_prop
 import sys
 import system.interpolation as ip
 
@@ -16,89 +14,76 @@ warnings.filterwarnings("ignore")
 
 class HalfCell:
 
-    def __init__(self, dict_hc, dict_cell):
-        self.name = dict_hc['name']
+    def __init__(self, halfcell_dict, cell_dict, channel_dict):
+        self.name = halfcell_dict['name']
         self.n_nodes = g_par.dict_case['nodes']
         n_nodes = self.n_nodes
         n_ele = n_nodes - 1
         self.n_ele = n_ele
         # discretization in elements and nodes along the x-axis (flow axis)
+        self.channel = ch.Channel(channel_dict)
 
-        self.flow_direction = dict_hc['flow_direction']
+        self.flow_direction = halfcell_dict['flow_direction']
         if self.flow_direction not in (-1, 1):
-            raise sys.exit('Member variable flow_direction of class HalfCell '
-                           'must be either 1 or -1')
-
+            sys.exit('Member variable flow_direction of class HalfCell '
+                     'must be either 1 or -1')
+        if self.flow_direction == 1:
+            self.ele_in = 0
+        else:
+            self.ele_in = -1
         self.id_reac = 0
         self.id_h2o = 1
         self.id_inert = 2
+        self.species_names = halfcell_dict['species_names']
+        self.species = []
+        for i, name in enumerate(self.species_names):
+            for j in range(len(g_prop.species)):
+                if name == g_prop.species[j].name:
+                    self.species.append(g_prop.species[j])
+                    break
+        self.n_species = len(self.species_names)
+        self.n_charge = halfcell_dict['charge_number']
+        self.n_stoi = np.asarray(halfcell_dict['reaction_stoichiometry'])
+        self.mol_mass = np.asarray(halfcell_dict['molar_mass'])
         # check if the object is an anode or a cathode
         # catalyst layer specific handover
-        if dict_hc['is_cathode']:
-            self.channel = ch.Channel(ch_dict.dict_cathode_channel)
-            reac_con_in = phy_prop.oxygen_inlet_concentration
-            # volumetric inlet oxygen ratio
-            self.inert_reac_ratio = (1. - reac_con_in) / reac_con_in
-            # volumetric nitrogen to oxygen ratio
-            self.n_species = 3
-            # number of  species in the gas mixture
-            self.n_charge = 4.
-            self.n_stoi = np.zeros(self.n_species)
-            self.n_stoi[self.id_reac] = -1.0
-            self.n_stoi[self.id_h2o] = 2.0
-            self.n_stoi[self.id_inert] = 0.0
-            # electrical charge number
-            self.mol_mass = np.array([32., 18., 28.]) * 1.e-3
-            # molar mass
-        else:
-            self.channel = ch.Channel(ch_dict.dict_anode_channel)
-            reac_con_in = phy_prop.hydrogen_inlet_concentration
-            # volumetric inlet hydrogen ratio
-            self.inert_reac_ratio = (1. - reac_con_in) / reac_con_in
-            # volumetric hydrogen to oxygen ratio
-            self.n_species = 3
-            # number of species in the gas mixture
-            self.n_charge = 4.
-            self.n_stoi = np.zeros(self.n_species)
-            self.n_stoi[self.id_reac] = -2.0
-            self.n_stoi[self.id_h2o] = 0.0
-            self.n_stoi[self.id_inert] = 0.0
-            # electrical charge number
-            self.mol_mass = np.array([2., 18., 28.]) * 1.e-3
-            # molar mass
+        self.inlet_composition = halfcell_dict['inlet_composition']
 
-        self.is_cathode = dict_hc['is_cathode']
+        self.is_cathode = halfcell_dict['is_cathode']
+        self.inert_reac_ratio = (1. - self.inlet_composition[self.id_reac]) \
+            / self.inlet_composition[self.id_reac]
+
         # anode is false; Cathode is true
-        self.calc_act_loss = dict_hc['calc_act_loss']
-        self.calc_cl_diff_loss = dict_hc['calc_cl_diff_loss']
-        self.calc_gdl_diff_loss = dict_hc['calc_gdl_diff_loss']
+        self.calc_act_loss = halfcell_dict['calc_act_loss']
+        self.calc_cl_diff_loss = halfcell_dict['calc_cl_diff_loss']
+        self.calc_gdl_diff_loss = halfcell_dict['calc_gdl_diff_loss']
 
         """geometry"""
-        self.n_chl = dict_hc['channel_numb']
+        self.n_chl = halfcell_dict['channel_numb']
         # number of channels of each cell
-        self.cell_width = dict_hc['cell_width']
+        self.cell_width = halfcell_dict['cell_width']
         # height of the cell
-        self.cell_length = dict_hc['cell_length']
+        self.cell_length = halfcell_dict['cell_length']
         # length of the cell
-        self.th_gdl = dict_hc['th_gdl']
+        self.th_gdl = halfcell_dict['th_gdl']
         # thickness of the gas diffusion layer
-        self.th_bpp = dict_hc['th_bpp']
+        self.th_bpp = halfcell_dict['th_bpp']
         # thickness of the bipolar plate
-        self.th_cl = dict_hc['th_cl']
+        self.th_cl = halfcell_dict['th_cl']
         # thickness of the catalyst layer
         self.th_gde = self.th_gdl + self.th_cl
         # thickness gas diffusion electrode
 
         """voltage loss parameter, (Kulikovsky, 2013)"""
-        self.vol_ex_cd = dict_hc['vol_ex_cd']
+        self.vol_ex_cd = halfcell_dict['vol_ex_cd']
         # exchange current density
-        self.prot_con_cl = dict_hc['prot_con_cl']
+        self.prot_con_cl = halfcell_dict['prot_con_cl']
         # proton conductivity of the catalyst layer
-        self.diff_coeff_cl = dict_hc['diff_coeff_cl']
+        self.diff_coeff_cl = halfcell_dict['diff_coeff_cl']
         # diffusion coefficient of the reactant in the catalyst layer
-        self.diff_coeff_gdl = dict_hc['diff_coeff_gdl']
+        self.diff_coeff_gdl = halfcell_dict['diff_coeff_gdl']
         # diffusion coefficient of the reactant in the gas diffusion layer
-        self.tafel_slope = dict_hc['tafel_slope']
+        self.tafel_slope = halfcell_dict['tafel_slope']
         # tafel slope of the electrode
         self.i_sigma = np.sqrt(2. * self.vol_ex_cd * self.prot_con_cl
                                * self.tafel_slope)
@@ -134,7 +119,7 @@ class HalfCell:
         # active area belonging to the channel plan area
         self.break_program = False
         # boolean to hint if the cell voltage runs below zero
-        self.is_ht_pem = dict_cell['is_ht_pem']
+        self.is_ht_pem = cell_dict['is_ht_pem']
         # if HT-PEMFC True; if NT-PEMFC False
         self.stoi = None
         # stoichiometry of the reactant at the channel inlet
@@ -281,6 +266,8 @@ class HalfCell:
             (self.n_charge * faraday)
         g_func.add_source(self.mol_flow[self.id_reac], dmol,
                           self.flow_direction)
+        self.mol_flow[self.id_inert] = \
+            self.mol_flow[self.id_reac][self.ele_in] * self.inert_reac_ratio
 
     def calc_water_flow(self):
         """"
@@ -291,8 +278,10 @@ class HalfCell:
         area = self.channel.active_area_dx
         chl = self.channel
         q_0_water = \
-            self.mol_flow[self.id_reac][0] * (1. + self.inert_reac_ratio) * \
-            sat_p * chl.humidity_in / (chl.p_out - chl.humidity_in * sat_p)
+            (self.mol_flow[self.id_reac][self.ele_in]
+             + self.mol_flow[self.id_inert][self.ele_in]) \
+            * sat_p * chl.humidity_in \
+            / (self.p[self.ele_in] - chl.humidity_in * sat_p)
         h2o_in = q_0_water
         h2o_source = np.zeros_like(i_cd)
         h2o_prod = area * self.n_stoi[self.id_h2o] * i_cd \
@@ -303,15 +292,6 @@ class HalfCell:
         self.mol_flow[self.id_h2o] = h2o_in
         g_func.add_source(self.mol_flow[self.id_h2o],
                           h2o_source, self.flow_direction)
-
-        if self.is_cathode:
-            self.mol_flow[self.id_inert] = \
-                np.full(self.n_nodes,
-                        self.mol_flow[self.id_reac][0] * self.inert_reac_ratio)
-        else:
-            self.mol_flow[self.id_inert] = \
-                np.full(self.n_nodes,
-                        self.mol_flow[self.id_reac][-1] * self.inert_reac_ratio)
 
     def calc_mass_flow(self):
         """
@@ -411,24 +391,29 @@ class HalfCell:
         """
         Calculates the properties of the species in the gas phase
         """
-        if self.is_cathode:
-            self.cp[self.id_reac] = g_fit.oxygen.calc_cp(self.temp_fluid)
-            self.lambdas[self.id_reac] = \
-                g_fit.oxygen.calc_lambda(self.temp_fluid, self.p)
-            self.visc[self.id_reac] = g_fit.oxygen.calc_visc(self.temp_fluid)
-        else:
-            self.cp[self.id_reac] = g_fit.hydrogen.calc_cp(self.temp_fluid)
-            self.lambdas[self.id_reac] = \
-                g_fit.hydrogen.calc_lambda(self.temp_fluid, self.p)
-            self.visc[self.id_reac] = g_fit.hydrogen.calc_visc(self.temp_fluid)
-        self.cp[self.id_h2o] = g_fit.water.calc_cp(self.temp_fluid)
-        self.cp[self.id_inert] = g_fit.nitrogen.calc_cp(self.temp_fluid)
-        self.lambdas[self.id_h2o] = \
-            g_fit.water.calc_lambda(self.temp_fluid, self.p)
-        self.lambdas[self.id_inert] = \
-            g_fit.nitrogen.calc_lambda(self.temp_fluid, self.p)
-        self.visc[self.id_h2o] = g_fit.water.calc_visc(self.temp_fluid)
-        self.visc[self.id_inert] = g_fit.nitrogen.calc_visc(self.temp_fluid)
+        for i in range(len(self.species)):
+            self.cp[i] = self.species[i].calc_cp(self.temp_fluid)
+            self.lambdas[i] = \
+                self.species[i].calc_lambda(self.temp_fluid, self.p)
+            self.visc[i] = self.species[i].calc_visc(self.temp_fluid)
+        # if self.is_cathode:
+        #     self.cp[self.id_reac] = g_prop.oxygen.calc_cp(self.temp_fluid)
+        #     self.lambdas[self.id_reac] = \
+        #         g_prop.oxygen.calc_lambda(self.temp_fluid, self.p)
+        #     self.visc[self.id_reac] = g_prop.oxygen.calc_visc(self.temp_fluid)
+        # else:
+        #     self.cp[self.id_reac] = g_prop.hydrogen.calc_cp(self.temp_fluid)
+        #     self.lambdas[self.id_reac] = \
+        #         g_prop.hydrogen.calc_lambda(self.temp_fluid, self.p)
+        #     self.visc[self.id_reac] = g_prop.hydrogen.calc_visc(self.temp_fluid)
+        # self.cp[self.id_h2o] = g_prop.water.calc_cp(self.temp_fluid)
+        # self.cp[self.id_inert] = g_prop.nitrogen.calc_cp(self.temp_fluid)
+        # self.lambdas[self.id_h2o] = \
+        #     g_prop.water.calc_lambda(self.temp_fluid, self.p)
+        # self.lambdas[self.id_inert] = \
+        #     g_prop.nitrogen.calc_lambda(self.temp_fluid, self.p)
+        # self.visc[self.id_h2o] = g_prop.water.calc_visc(self.temp_fluid)
+        # self.visc[self.id_inert] = g_prop.nitrogen.calc_visc(self.temp_fluid)
 
     def calc_gas_properties(self):
         """
@@ -485,8 +470,7 @@ class HalfCell:
         """
         Calculates the molar condensation rate of water in the channel.
         """
-        id_h2o = 1
-        cond_rate_ele = np.ediff1d(self.mol_flow_liq[id_h2o])
+        cond_rate_ele = np.ediff1d(self.mol_flow_liq[self.id_h2o])
         self.cond_rate = \
             self.flow_direction * ip.interpolate_1d(cond_rate_ele,
                                                     add_edge_points=True)

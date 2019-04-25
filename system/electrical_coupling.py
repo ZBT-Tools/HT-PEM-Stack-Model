@@ -7,15 +7,15 @@ from scipy.sparse.linalg import spsolve
 
 class ElectricalCoupling:
 
-    def __init__(self, dict_electrical_coupling_const):
+    def __init__(self, electrical_dict):
         # Handover
-        self.n_cells = dict_electrical_coupling_const['cell_numb']
+        self.n_cells = electrical_dict['cell_number']
         # number of the stack cells
-        self.dx = dict_electrical_coupling_const['dx']
+        self.dx = electrical_dict['dx']
         # length of an element
-        self.th_plate = dict_electrical_coupling_const['th_bpp']
+        self.th_plate = electrical_dict['th_bpp']
         # thickness of the bipolar plate
-        self.width_channels = dict_electrical_coupling_const['width_channels']
+        self.width_channels = electrical_dict['width_channels']
         # width of the channel
         # Variables
         self.nodes = g_par.dict_case['nodes']

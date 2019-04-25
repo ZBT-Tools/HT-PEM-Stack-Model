@@ -2,9 +2,7 @@ import numpy as np
 import copy as copy
 import data.global_parameters as g_par
 import system.cell as cl
-import data.cell_dict as c_dict
 import system.manifold as m_fold
-import data.manifold_dict as m_fold_dict
 import system.electrical_coupling as el_cpl
 import data.electrical_coupling_dict as el_cpl_dict
 import system.temperature_system as therm_cpl
@@ -13,42 +11,43 @@ import data.temperature_system_dict as therm_dict
 
 class Stack:
 
-    def __init__(self, dict_stack):
+    def __init__(self, stack_dict, cell_dict, anode_dict, cathode_dict,
+                 ano_channel_dict, cat_channel_dict, ano_manifold_dict,
+                 cat_manifold_dict, electrical_dict, temperature_dict):
         # Handover
-        self.n_cells = dict_stack['cell_numb']
+        self.n_cells = stack_dict['cell_number']
         # number of cells of the stack
-        self.stoi_cat = dict_stack['stoi_cat']
+        self.stoi_cat = stack_dict['stoi_cat']
         # inlet stoichiometry of the cathode header
-        self.stoi_ano = dict_stack['stoi_ano']
+        self.stoi_ano = stack_dict['stoi_ano']
         # inlet stoichiometry of the anode header
         n_nodes = g_par.dict_case['nodes']
         # node points along the x-axis
-        self.alpha_env = dict_stack['alpha_env']
+        self.alpha_env = stack_dict['alpha_env']
         # environment convection coefficient
-        self.calc_temp = dict_stack['calc_temperature']
+        self.calc_temp = stack_dict['calc_temperature']
         # switch to calculate the temperature distribution
-        self.calc_cd = dict_stack['calc_current_density']
+        self.calc_cd = stack_dict['calc_current_density']
         # switch to calculate the current density distribution
-        self.calc_flow_dis = dict_stack['calc_flow_distribution']
+        self.calc_flow_dis = stack_dict['calc_flow_distribution']
         # switch to calculate the flow distribution
 
         self.cells = []
         # list of the stack cells
         for i in range(self.n_cells):
-            x = cl.Cell(c_dict.dict_cell)
-            self.cells.append(x)
+            self.cells.append(cl.Cell(cell_dict, anode_dict, cathode_dict,
+                                      ano_channel_dict, cat_channel_dict))
         self.set_stoichiometry(np.full(self.n_cells, self.stoi_cat),
                                np.full(self.n_cells, self.stoi_ano))
 
         # Initialize the manifolds
-        self.manifold = [m_fold.Manifold(m_fold_dict.dict_mfold_cat),
-                         m_fold.Manifold(m_fold_dict.dict_mfold_ano)]
+        self.manifold = [m_fold.Manifold(cat_manifold_dict),
+                         m_fold.Manifold(ano_manifold_dict)]
         self.manifold[0].head_stoi = self.stoi_cat
         self.manifold[1].head_stoi = self.stoi_ano
 
         # Initialize the electrical coupling
-        self.el_cpl_stack = el_cpl\
-            .ElectricalCoupling(el_cpl_dict.dict_electrical_coupling)
+        self.el_cpl_stack = el_cpl.ElectricalCoupling(electrical_dict)
 
         """boolean alarms"""
         self.v_alarm = False
@@ -151,10 +150,9 @@ class Stack:
             self.k_alpha_env[0, 2, q] = \
                 self.alpha_env * avg_dx * item.cathode.th_bpp / fac
         # Initialize the thermal coupling
-        therm_dict.dict_temp_sys['k_layer'] = self.k_layer
-        therm_dict.dict_temp_sys['k_alpha_env'] = self.k_alpha_env
-        self.temp_sys = therm_cpl.\
-            TemperatureSystem(therm_dict.dict_temp_sys)
+        temperature_dict['k_layer'] = self.k_layer
+        temperature_dict['k_alpha_env'] = self.k_alpha_env
+        self.temp_sys = therm_cpl.TemperatureSystem(temperature_dict)
 
     def update(self):
         """

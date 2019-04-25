@@ -2,34 +2,34 @@ import numpy as np
 import system.global_functions as g_func
 import data.global_parameters as g_par
 import system.half_cell as h_c
-import data.half_cell_dict as hc_dict
 import system.interpolation as ip
 
 
 class Cell:
 
-    def __init__(self, dict_cell):
-        self.dict_cell = dict_cell
+    def __init__(self, cell_dict, anode_dict, cathode_dict,
+                 ano_channel_dict, cat_channel_dict):
+        self.dict_cell = cell_dict
         # Handover
-        self.anode = h_c.HalfCell(hc_dict.dict_anode, dict_cell)
+        self.anode = h_c.HalfCell(anode_dict, cell_dict, ano_channel_dict)
         # anode - object of the class HalfCell
-        self.cathode = h_c.HalfCell(hc_dict.dict_cathode, dict_cell)
+        self.cathode = h_c.HalfCell(cathode_dict, cell_dict, cat_channel_dict)
         # cathode - object of the class HalfCell
-        self.th_mem = dict_cell['th_mem']
+        self.th_mem = cell_dict['th_mem']
         # thickness membrane
-        self.lambda_bpp = [dict_cell['lambda_z_bpp'], dict_cell['lambda_x_bpp']]
+        self.lambda_bpp = [cell_dict['lambda_z_bpp'], cell_dict['lambda_x_bpp']]
         # heat conductivity of the bipolar plate
-        self.lambda_gde = [dict_cell['lambda_z_gde'], dict_cell['lambda_x_gde']]
+        self.lambda_gde = [cell_dict['lambda_z_gde'], cell_dict['lambda_x_gde']]
         # heat conductivity of the gas diffusion layer
-        self.lambda_mem = [dict_cell['lambda_z_mem'], dict_cell['lambda_x_mem']]
+        self.lambda_mem = [cell_dict['lambda_z_mem'], cell_dict['lambda_x_mem']]
         # heat conductivity of the membrane
-        self.temp_cool_in = dict_cell['temp_cool_in']
+        self.temp_cool_in = cell_dict['temp_cool_in']
         # coolant inlet temperature
-        self.mem_base_r = dict_cell['mem_base_r']
+        self.mem_base_r = cell_dict['mem_base_r']
         # basic electrical resistance of the membrane
-        self.mem_acl_r = dict_cell['mem_acl_r']
+        self.mem_acl_r = cell_dict['mem_acl_r']
         # thermal related electrical resistance gain of the membrane
-        self.calc_mem_loss = dict_cell['calc_mem_loss']
+        self.calc_mem_loss = cell_dict['calc_mem_loss']
 
         """membrane resistance parameter (Goßling)"""
         self.fac_res_fit = 0.5913
@@ -47,7 +47,7 @@ class Cell:
         """heat conductivity along and through the cell layers"""
         self.width_channels = self.cathode.channel.width\
             * self.cathode.n_chl\
-            + self.cathode.channel.rack_width\
+            + self.cathode.channel.rib_width\
             * (self.cathode.n_chl + 1)
         self.active_area_dx = self.width_channels * self.cathode.channel.dx
         self.k_bpp_z = self.lambda_bpp[0] * self.active_area_dx \
@@ -97,7 +97,7 @@ class Cell:
         # area specific membrane resistance
         self.v_loss = np.full(n_ele, 0.)
         # voltage loss
-        self.temp = np.full((5, n_ele), dict_cell['temp_init'])
+        self.temp = np.full((5, n_ele), cell_dict['temp_init'])
         # layer temperature
         self.temp_mem = np.zeros(n_ele)
         # membrane temperature

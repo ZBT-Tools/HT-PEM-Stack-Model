@@ -8,21 +8,31 @@ channel_width = 1.e-3
 # channel height [m]
 channel_height = 1.e-3
 # rack width [m]
-rack_width = 1.e-3
+rib_width = 1.e-3
 # number of channels
 gas_channel_number = 10.
 # channel bends [n]
 channel_bends = 48.
-
+# bend pressure loss coefficient of the channel bends
+bend_pressure_loss_coefficient = 0.1
+# flow direction in cathode channel along x-axis
+cathode_flow_direction = 1
+# flow direction in anode channel along x-axis
+anode_flow_direction = -1
 
 """Coolant Channel Geometry"""
+# channel length [m]
+coolant_channel_length = 0.651
 # height of the coolant channel [m]
 coolant_channel_height = 1.e-3
 # width of the coolant channel [m]
-coolant_channel_widht = 1.e-3
+coolant_channel_width = 1.e-3
 # number of coolant channels
 coolant_channel_number = 10.
-
+# channel bends [n]
+coolant_channel_bends = 48.
+# bend pressure loss coefficient of the channel bends
+coolant_bend_pressure_loss_coefficient = 0.1
 
 
 """"Cell Geometry """
@@ -38,9 +48,24 @@ bipolar_plate_thickness = 1.11275e-3
 cell_length = 67.e-3
 # height of the cell, b side of the active area [m]
 cell_width = 67.e-3
+# number of gas channels
+gas_channel_number = 10
+# number of coolant channels
+coolant_channel_number = 10
+# number of channel bends
+channel_bends = 48
+
 
 """Manifold Geometry"""
 # manifold height [m]
 manifold_height = 10.5e-3
 # manifold width [m]
 manifold_width = 5.5e-3
+# geometrical pressure loss coefficient of the manifold header
+manifold_pressure_loss_coefficient = 0.1
+
+"""Stack Settings"""
+# number of the pemfc
+cell_number = 3
+# coolant channel configuration (no cooling channel at the endplates = False)
+cooling_bc = True
