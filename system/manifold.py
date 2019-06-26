@@ -7,6 +7,7 @@ import copy as copy
 class Manifold:
 
     def __init__(self, dict_manifold_const):
+        self.name = dict_manifold_const['name']
         self.n_cells = dict_manifold_const['cell_num']
         self.n_chl = dict_manifold_const['channel_numb']
         self.head_width = dict_manifold_const['header_width']
@@ -264,6 +265,8 @@ class Manifold:
 
         for i in range(len(self.head_fan_fri)):
             self.head_fan_fri[i] = g_func.calc_fan_fri_fac(self.head_Re[i])
+        # self.head_fan_fri = g_func.calc_fan_fri_fac(self.head_Re)
+        print('head_fan_fri: ',  self.head_fan_fri)
 
     def calc_header_p_out(self):
         """
@@ -423,6 +426,7 @@ class Manifold:
             * self.cell_ch_ca[0] / (np.average(self.cell_visc)
                                     * self.cell_ch_length[0] * self.p_cor_fac) \
             * self.n_chl
+        print(self.name, 'cell_mold_flow: ', self.cell_mol_flow)
 
     def calc_new_cell_stoi(self):
         """

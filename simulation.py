@@ -15,6 +15,7 @@ import timeit
 np.set_printoptions(threshold=np.nan, linewidth=10000,
                     precision=9, suppress=True)
 
+np.seterr(all='raise')
 
 def do_c_profile(func):
     def profiled_func(*args, **kwargs):

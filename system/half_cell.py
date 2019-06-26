@@ -347,15 +347,20 @@ class HalfCell:
         array with the different species molar masses.
         """
         x_mw = mol_fraction.transpose() * mol_mass
-        return x_mw.transpose() / np.sum(x_mw, axis=1)
+        sum_x_mw = np.sum(x_mw, axis=1)
+        sum_x_mw = np.where(sum_x_mw == 0, 1.0, sum_x_mw)
+        return x_mw.transpose() / sum_x_mw
 
     @staticmethod
-    def calc_fraction(species_flow):
+    def calc_fraction(species_flow, out_array=None):
         """
         Calculates the species mixture fractions based on a multi-dimensional
         array with different species along the first (0th) axis.
         """
-        return species_flow / np.sum(species_flow, axis=0)
+        total_species_flow = np.sum(species_flow, axis=0)
+        total_species_flow = \
+            np.where(total_species_flow == 0, 1.0, total_species_flow)
+        return species_flow/total_species_flow
 
     def calc_concentrations(self):
         """
@@ -373,7 +378,6 @@ class HalfCell:
         dry_air_mol_flow = np.copy(self.mol_flow)
         dry_air_mol_flow[id_h2o] = 0.0
         dry_air_fraction = self.calc_fraction(dry_air_mol_flow)
-        print(self.name, 'dry_air_fraction: ', dry_air_fraction)
         self.gas_conc = conc
         self.gas_conc[id_reac] = \
             np.where(self.gas_conc[id_h2o] > sat_conc,
@@ -387,7 +391,6 @@ class HalfCell:
             np.where(self.gas_conc[id_h2o] > sat_conc,
                      sat_conc, self.gas_conc[id_h2o])
         self.reac_con_ele = ip.interpolate_1d(self.gas_conc[id_reac])
-        print(self.name, 'gas_conc: ', self.gas_conc)
 
     def calc_two_phase_flow(self):
         """

@@ -65,7 +65,7 @@ convection_coefficient_stack_environment = 0.
 
 """Fluid Mechanic Settings"""
 # geometrical pressure loss coefficient of the manifold header
-manifold_pressure_loss_coefficient = 0.1
+manifold_pressure_loss_coefficient = 0.4
 # bend pressure loss coefficient of the channel bends
 bend_pressure_loss_coefficient = 0.1
 # number of channel bends
