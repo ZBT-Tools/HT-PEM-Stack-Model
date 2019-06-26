@@ -6,6 +6,7 @@ import system.fluid as fluid
 class Channel:
 
     def __init__(self, dict_ch):
+        self.name = dict_ch['name']
         self.length = dict_ch['channel_length']
         # channel length
         n_ele = g_par.dict_case['elements']

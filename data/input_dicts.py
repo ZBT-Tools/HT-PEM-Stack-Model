@@ -23,10 +23,7 @@ dict_stack = {
 
 simulation_dict = {
     'maximal_iteration': sim.maximal_number_iteration,
-    'iteration_criteria': sim.convergence_criteria,
-    'save_csv': sim.save_csv_data,
-    'save_plot': sim.save_plot_data,
-    'show_loss': sim.show_voltage_loss
+    'iteration_criteria': sim.convergence_criteria
     }
 
 dict_cell = {
@@ -96,6 +93,7 @@ dict_anode = {
     }
 
 dict_cathode_channel = {
+    'name': 'cathode channel',
     'channel_length': geom.channel_length,
     'p_out': op_con.p_manifold_cathode_out,
     'temp_in': op_con.temp_air_in,
@@ -109,6 +107,7 @@ dict_cathode_channel = {
     }
 
 dict_anode_channel = {
+    'name': 'anode channel',
     'channel_length': geom.channel_length,
     'p_out': op_con.p_manifold_anode_out,
     'temp_in': op_con.temp_anode_gas_in,
@@ -172,4 +171,10 @@ dict_temp_sys = {
     'temp_layer_init': op_con.temp_initial,
     'cool_lambda': phy_prop.thermal_conductivity_coolant,
     'cool_temp_in': op_con.temp_coolant_in
+    }
+
+dict_output = {
+    'save_csv': sim.save_csv_data,
+    'save_plot': sim.save_plot_data,
+    'show_loss': sim.show_voltage_loss
     }

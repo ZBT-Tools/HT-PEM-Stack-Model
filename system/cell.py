@@ -9,11 +9,12 @@ class Cell:
 
     def __init__(self, cell_dict, anode_dict, cathode_dict,
                  ano_channel_dict, cat_channel_dict):
-        self.dict_cell = cell_dict
+        self.cell_dict = cell_dict
         # Handover
         self.anode = h_c.HalfCell(anode_dict, cell_dict, ano_channel_dict)
         # anode - object of the class HalfCell
         self.cathode = h_c.HalfCell(cathode_dict, cell_dict, cat_channel_dict)
+        self.half_cells = [self.anode, self.cathode]
         # cathode - object of the class HalfCell
         self.th_mem = cell_dict['th_mem']
         # thickness membrane
@@ -116,7 +117,7 @@ class Cell:
         """
         This function coordinates the program sequence
         """
-        is_ht_pem = self.dict_cell['is_ht_pem']
+        is_ht_pem = self.cell_dict['is_ht_pem']
         self.temp_mem = .5 * (self.temp[2] + self.temp[3])
         if not is_ht_pem:
             self.cathode.is_ht_pem = False
