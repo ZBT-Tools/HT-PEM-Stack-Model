@@ -63,22 +63,4 @@ dynamic_viscosity_coolant = 56.e-3
 convection_coefficient_stack_environment = 0.
 
 
-"""Fluid Mechanic Settings"""
-# geometrical pressure loss coefficient of the manifold header
-manifold_pressure_loss_coefficient = 0.4
-# bend pressure loss coefficient of the channel bends
-bend_pressure_loss_coefficient = 0.1
-# number of channel bends
-channel_bends = 48
-# cathode channel gas flow direction
-cathode_channel_flow_direction = True
-# anode channel gas flow direction
-anode_channel_flow_direction = False
-
-
-"""Species settings"""
-# oxygen concentration at the cathode inlet
-oxygen_inlet_concentration = 0.21
-# hydrogen concentration at the anode inlet
-hydrogen_inlet_concentration = 1.
 

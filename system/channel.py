@@ -1,10 +1,12 @@
 import numpy as np
 import data.global_parameters as g_par
+import system.fluid as fluid
 
 
 class Channel:
 
     def __init__(self, dict_ch):
+        self.name = dict_ch['name']
         self.length = dict_ch['channel_length']
         # channel length
         n_ele = g_par.dict_case['elements']
@@ -24,11 +26,11 @@ class Channel:
         # channel width
         self.height = dict_ch['channel_height']
         # channel height
-        self.n_bends = dict_ch['bend_numb']
+        self.n_bends = dict_ch['bend_number']
         # number of channel bends
         self.bend_fri_fac = dict_ch['bend_fri_fac']
         # bend friction factor
-        self.rack_width = dict_ch['rack_width']
+        self.rib_width = dict_ch['rib_width']
         # rack width
         self.active_area = self.width * self.length
         # planar area of the channel
@@ -42,6 +44,12 @@ class Channel:
         # channel hydraulic diameter
         self.velocity = np.zeros(n_nodes)
         # flow velocity
+        self.fluid = \
+            fluid.Fluid(n_ele, {'O2': 'gas', 'N2': 'gas', 'H2O': 'gas-liquid'},
+                        mole_fractions_init=[0.205, 0.785, 0.01],
+                        liquid_props=
+                        {'H2O': fluid.LiquidProperties(1000.0, 1e-3,
+                                                       4000.0, 0.2)})
 
     # def calc_flow_velocity(self):
     #     """

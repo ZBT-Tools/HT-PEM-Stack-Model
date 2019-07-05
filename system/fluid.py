@@ -402,7 +402,7 @@ press = 101325.0
 #print(species.coeff_dict_arr['Thermal Conductivity'][0][0])
 temp = np.linspace(300, 400, 10)
 #press = np.linspace(100000, 100000, 10)
-air = Fluid(10, {'O2':'gas', 'N2': 'gas'}, [0.21, 0.79])
+air = Fluid(10, {'O2': 'gas', 'N2': 'gas'}, [0.21, 0.79])
 print(temp)
 #print(gas.calc_viscosity(temp))
 #print(gas.calc_thermal_conductivity(temp, press))

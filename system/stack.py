@@ -2,9 +2,7 @@ import numpy as np
 import copy as copy
 import data.global_parameters as g_par
 import system.cell as cl
-import data.cell_dict as c_dict
 import system.manifold as m_fold
-import data.manifold_dict as m_fold_dict
 import system.electrical_coupling as el_cpl
 import data.electrical_coupling_dict as el_cpl_dict
 import system.temperature_system as therm_cpl
@@ -13,42 +11,43 @@ import data.temperature_system_dict as therm_dict
 
 class Stack:
 
-    def __init__(self, dict_stack):
+    def __init__(self, stack_dict, cell_dict, anode_dict, cathode_dict,
+                 ano_channel_dict, cat_channel_dict, ano_manifold_dict,
+                 cat_manifold_dict, electrical_dict, temperature_dict):
         # Handover
-        self.n_cells = dict_stack['cell_numb']
+        self.n_cells = stack_dict['cell_number']
         # number of cells of the stack
-        self.stoi_cat = dict_stack['stoi_cat']
+        self.stoi_cat = stack_dict['stoi_cat']
         # inlet stoichiometry of the cathode header
-        self.stoi_ano = dict_stack['stoi_ano']
+        self.stoi_ano = stack_dict['stoi_ano']
         # inlet stoichiometry of the anode header
         n_nodes = g_par.dict_case['nodes']
         # node points along the x-axis
-        self.alpha_env = dict_stack['alpha_env']
+        self.alpha_env = stack_dict['alpha_env']
         # environment convection coefficient
-        self.calc_temp = dict_stack['calc_temperature']
+        self.calc_temp = stack_dict['calc_temperature']
         # switch to calculate the temperature distribution
-        self.calc_cd = dict_stack['calc_current_density']
+        self.calc_cd = stack_dict['calc_current_density']
         # switch to calculate the current density distribution
-        self.calc_flow_dis = dict_stack['calc_flow_distribution']
+        self.calc_flow_dis = stack_dict['calc_flow_distribution']
         # switch to calculate the flow distribution
 
         self.cells = []
         # list of the stack cells
         for i in range(self.n_cells):
-            x = cl.Cell(c_dict.dict_cell)
-            self.cells.append(x)
+            self.cells.append(cl.Cell(cell_dict, anode_dict, cathode_dict,
+                                      ano_channel_dict, cat_channel_dict))
         self.set_stoichiometry(np.full(self.n_cells, self.stoi_cat),
                                np.full(self.n_cells, self.stoi_ano))
 
         # Initialize the manifolds
-        self.manifold = [m_fold.Manifold(m_fold_dict.dict_mfold_cat),
-                         m_fold.Manifold(m_fold_dict.dict_mfold_ano)]
+        self.manifold = [m_fold.Manifold(cat_manifold_dict),
+                         m_fold.Manifold(ano_manifold_dict)]
         self.manifold[0].head_stoi = self.stoi_cat
         self.manifold[1].head_stoi = self.stoi_ano
 
         # Initialize the electrical coupling
-        self.el_cpl_stack = el_cpl\
-            .ElectricalCoupling(el_cpl_dict.dict_electrical_coupling)
+        self.el_cpl_stack = el_cpl.ElectricalCoupling(electrical_dict)
 
         """boolean alarms"""
         self.v_alarm = False
@@ -57,10 +56,6 @@ class Stack:
         # True if the program aborts because of some critical impact
 
         """General data"""
-        self.cathode_mfd_criteria = 0.
-        # convergence criteria of the air manifold
-        self.anode_mfd_criteria = 0.
-        # convergence criteria of the h2 gas mix manifold
         self.i_cd = np.full((self.n_cells, n_nodes - 1),
                             g_par.dict_case['tar_cd'])
         # current density
@@ -151,10 +146,9 @@ class Stack:
             self.k_alpha_env[0, 2, q] = \
                 self.alpha_env * avg_dx * item.cathode.th_bpp / fac
         # Initialize the thermal coupling
-        therm_dict.dict_temp_sys['k_layer'] = self.k_layer
-        therm_dict.dict_temp_sys['k_alpha_env'] = self.k_alpha_env
-        self.temp_sys = therm_cpl.\
-            TemperatureSystem(therm_dict.dict_temp_sys)
+        temperature_dict['k_layer'] = self.k_layer
+        temperature_dict['k_alpha_env'] = self.k_alpha_env
+        self.temp_sys = therm_cpl.TemperatureSystem(temperature_dict)
 
     def update(self):
         """
@@ -177,31 +171,29 @@ class Stack:
             self.i_cd_old = copy.deepcopy(self.i_cd)
             if self.calc_cd:
                 self.update_electrical_coupling()
-        print(self.i_cd)
+        print('Current density', self.i_cd)
 
     def update_flows(self):
         """
         This function updates the flow distribution of gas over the stack cells
         """
+        n_ch = self.cells[0].cathode.n_chl
         self.manifold[0].update_values(
-            self.q_sum_cat * self.cells[0].cathode.n_chl, self.temp_fluid_cat,
+            self.q_sum_cat * n_ch, self.temp_fluid_cat,
             self.cp_cat, self.visc_cat, self.p_cat, self.r_cat,
-            self.m_sum_f_cat * self.cells[0].cathode.n_chl,
-            self.m_sum_g_cat * self.cells[0].cathode.n_chl)
+            self.m_sum_f_cat * n_ch,
+            self.m_sum_g_cat * n_ch)
         self.manifold[1].update_values(
-            self.q_sum_ano[::-1] * self.cells[0].cathode.n_chl,
-            self.temp_fluid_ano[::-1], self.cp_ano[::-1],
-            self.visc_ano[::-1], self.p_ano[::-1], self.r_ano[::-1],
-            self.m_sum_f_ano[::-1] * self.cells[0].cathode.n_chl,
-            self.m_sum_g_ano[::-1] * self.cells[0].cathode.n_chl)
+            self.q_sum_ano[::-1] * n_ch, self.temp_fluid_ano[::-1],
+            self.cp_ano[::-1], self.visc_ano[::-1], self.p_ano[::-1],
+            self.r_ano[::-1], self.m_sum_f_ano[::-1] * n_ch,
+            self.m_sum_g_ano[::-1] * n_ch)
         self.manifold[0].update()
         self.manifold[1].update()
         self.set_stoichiometry(self.manifold[0].cell_stoi,
                                self.manifold[1].cell_stoi)
         self.set_channel_outlet_pressure(self.manifold[0].head_p[-1],
                                          self.manifold[1].head_p[-1])
-        self.cathode_mfd_criteria = self.manifold[0].criteria
-        self.anode_mfd_criteria = self.manifold[1].criteria
 
     def update_electrical_coupling(self):
         """
@@ -269,10 +261,14 @@ class Stack:
             v_loss_ano.append(cell.anode.v_loss)
             omega.append(cell.omega)
             resistance = np.hstack((resistance, cell.resistance))
-            q_sum_cat_in = np.hstack((q_sum_cat_in, cell.cathode.q_gas[0]))
-            q_sum_cat_out = np.hstack((q_sum_cat_out, cell.cathode.q_gas[-1]))
-            q_sum_ano_in = np.hstack((q_sum_ano_in, cell.anode.q_gas[0]))
-            q_sum_ano_out = np.hstack((q_sum_ano_out, cell.anode.q_gas[-1]))
+            q_sum_cat_in = \
+                np.hstack((q_sum_cat_in, cell.cathode.vol_flow_gas[0]))
+            q_sum_cat_out = \
+                np.hstack((q_sum_cat_out, cell.cathode.vol_flow_gas[-1]))
+            q_sum_ano_in = \
+                np.hstack((q_sum_ano_in, cell.anode.vol_flow_gas[0]))
+            q_sum_ano_out = \
+                np.hstack((q_sum_ano_out, cell.anode.vol_flow_gas[-1]))
             m_sum_f_cat_in = np.hstack((m_sum_f_cat_in,
                                         cell.cathode.mass_flow_total[0]))
             m_sum_f_cat_out = np.hstack((m_sum_f_cat_out,
@@ -341,10 +337,6 @@ class Stack:
         """
         This function sets up the inlet stoichiometry
         of the cathode and anode channels.
-
-            Manipulate:
-            -.cathode.stoi
-            -.anode.stoi
         """
         for i, cell in enumerate(self.cells):
             cell.cathode.stoi = stoi_cat[i]
@@ -354,12 +346,7 @@ class Stack:
         """
         This function sets up the inlet pressure
         of the cathode and the anode channels.
-
-            Manipulate:
-            -.cathode.channel.p_in
-            -.anode.channel.p_in
         """
-
         for i, item in enumerate(self.cells):
             item.cathode.channel.p_out = p_cat[i]
             item.anode.channel.p_out = p_ano[i]
@@ -367,13 +354,7 @@ class Stack:
     def set_temperature(self):
         """
         This function sets up the layer and fluid temperatures in the cells.
-
-            Manipulate:
-            -.temp
-            -.cathode.temp_fluid
-            -.anode.temp_fluid
         """
-
         for i, item in enumerate(self.cells):
             item.temp = self.temp_sys.temp_layer[i][0:5, :]
             item.cathode.temp_fluid = self.temp_sys.temp_fluid[0, i]

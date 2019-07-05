@@ -16,6 +16,8 @@ stoichiometry_anode = 2.
 is_ht_pem = False
 
 """"Thermal Settings"""
+# mass flow of the coolant per channel [kg/s]
+mass_flow_coolant = 1.e-3
 # air inlet temperature [K]
 temp_air_in = 340.
 # anode gas inlet temperature [K]
@@ -40,20 +42,20 @@ inlet_humidity_anode = 0.
 p_manifold_cathode_out = 1.e5
 # pressure at the outlet of the anode manifold [Pa]
 p_manifold_anode_out = 1.e5
-# mass flow of the coolant per channel [kg/s]
-mass_flow_coolant = 1.e-3
 
-cathode_flow_direction = 1
-anode_flow_direction = -1
-
-"""Cell Settings"""
-# number of gas channels
-gas_channel_number = 10
-# number of coolant channels
-coolant_channel_number = 10
-
-"""Stack Settings"""
-# number of the pemfc
-cell_number = 3
-# coolant channel configuration (no cooling channel at the endplates = False)
-cooling_bc = True
+"""Species settings"""
+# species names
+cathode_species = ['O2', 'N2', 'H2O']
+anode_species = ['H2', 'N2', 'H2O']
+# molar masses (kg/mol)
+cathode_molar_mass = [0.032, 0.018, 0.028]
+anode_molar_mass = [0.002, 0.018, 0.028]
+# inlet composition (molar fractions)
+cathode_inlet_composition = [0.21, 0.79, 0.0]
+anode_inlet_composition = [0.5, 0.5, 0.0]
+# reaction stoichiometry
+cathode_reaction_stoich = [-1.0, 2.0, 0.0]
+anode_reaction_stoich = [-2.0, 0.0, 0.0]
+# reaction charge number
+cathode_charge_number = 4.0
+anode_charge_number = 4.0

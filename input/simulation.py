@@ -8,9 +8,9 @@ convergence_criteria = 1.e-6
 # maximal number of iterations
 maximal_number_iteration = 50
 # output csv data
-save_csv_data = False
+save_csv_data = True
 # output plots
-save_plot_data = False
+save_plot_data = True
 # calculate the PEMFC stack temperatures
 calc_temperature = True
 # calculate the current density distribution
