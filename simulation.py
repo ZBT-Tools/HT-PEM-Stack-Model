@@ -212,7 +212,7 @@ class Simulation:
                     (np.array(self.mdf_criteria_ano_process)
                      + np.array(self.mdf_criteria_cat_process)) * .5
                 self.save_voltages()
-                print(item)
+                # print(item)
                 if self.save_plot is True:
                     self.output_plots(str(i))
                 if self.save_csv is True:
@@ -220,7 +220,7 @@ class Simulation:
             else:
                 op_con.target_current_density = \
                     op_con.target_current_density[0:-i]
-                print(op_con.target_current_density, self.v)
+                # print(op_con.target_current_density, self.v)
                 break
         if len(op_con.target_current_density) > 1:
             self.plot_polarization_curve()
@@ -261,7 +261,7 @@ class Simulation:
         plt.ylim(0., 1.)
         plt.tight_layout()
         plt.savefig(os.path.join(os.path.dirname(__file__),
-                                 'output/' + 'Polarization_curve' + '.jpg'))
+                                 'output/' + 'Polarization_curve' + '.png'))
         plt.close()
 
     def save_voltages(self):
@@ -607,8 +607,8 @@ class Simulation:
         plt.savefig(os.path.join(self.path_plot+'Z-Cut-Temperature' + '.png'))
         plt.close()
 
-        for q in range(self.stack.cell_numb):
-            print(np.average(self.stack.i_cd[q, :]))
+        # for q in range(self.stack.cell_numb):
+            # print(np.average(self.stack.i_cd[q, :]))
 
     def output_csv(self, q):
         self.path_csv_data = os.path.join(os.path.dirname(__file__),

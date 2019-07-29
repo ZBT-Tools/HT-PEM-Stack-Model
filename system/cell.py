@@ -45,7 +45,7 @@ class Cell:
         """heat conductivity along and through the cell layers"""
         self.width_channels = self.cathode.channel.width\
             * self.cathode.channel_numb\
-            + self.cathode.channel.rack_width\
+            + self.cathode.channel.rib_width\
             * (self.cathode.channel_numb + 1)
         self.active_area_dx = self.width_channels * self.cathode.channel.dx
         self.k_bpp_z = self.lambda_bpp[0] * self.active_area_dx \

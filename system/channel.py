@@ -24,7 +24,7 @@ class Channel:
         # number of channel bends
         self.bend_fri_fac = dict_ch['bend_fri_fac']
         # bend friction factor
-        self.rack_width = dict_ch['rack_width']
+        self.rib_width = dict_ch['rib_width']
         # rack width
         self.active_area = self.width * self.length
         # planar area of the channel
