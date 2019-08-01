@@ -12,7 +12,8 @@ import matplotlib.pyplot as plt
 import os
 import errno
 import timeit
-np.set_printoptions(threshold=np.nan, linewidth=10000,
+import sys
+np.set_printoptions(threshold=sys.maxsize, linewidth=10000,
                     precision=9, suppress=True)
 
 
