@@ -1,5 +1,7 @@
 import numpy as np
-import scipy.linalg as sp_l
+from scipy import linalg as sp_la
+from scipy import sparse
+from scipy.sparse.linalg import spsolve
 import data.global_parameters as g_par
 import system.global_functions as g_func
 import data.water_properties as w_prop
@@ -190,7 +192,7 @@ class TemperatureSystem:
                     list_mat.append(mat_base)
         # list of all the heat conductance matrix in z-direction
         # for all cells and all elements
-        self.mat_const = sp_l.block_diag(*list_mat)
+        self.mat_const = sp_la.block_diag(*list_mat)
         # uncoupled heat conductance matrix in z-direction
 
         """Setting the coolant channel heat conductance"""
@@ -317,6 +319,7 @@ class TemperatureSystem:
                        np.tile(env_con_n, self.n_ele)))
         # vector of the main diagonal of the heat conductance matrix
         self.mat_const = self.mat_const + np.diag(env_con_vec)
+        self.mat_const_sp = sparse.csr_matrix(self.mat_const)
         self.mat_dyn = self.mat_const
 
         """Calculating the coordinates of the gas channel heat conductance"""
@@ -548,7 +551,8 @@ class TemperatureSystem:
             Manipulate:
             -self.mat_dyn
         """
-        dyn_vec = np.full(self.n_ele * (5 * (self.n_cells - 1) + 6), 0.)
+        #dyn_vec = np.full(self.n_ele * (5 * (self.n_cells - 1) + 6), 0.)
+        dyn_vec = np.zeros_like(self.temp_layer_vec)
         ct = 0
         for q in range(self.n_cells):
             if q is not self.n_cells - 1:
@@ -559,7 +563,9 @@ class TemperatureSystem:
                 dyn_vec[ct + 1] = -self.k_gas_ch[0, q, w]
                 dyn_vec[ct + 4] = -self.k_gas_ch[1, q, w]
                 ct += cr
-        self.mat_dyn = self.mat_const + np.diag(dyn_vec)
+        #self.mat_dyn = self.mat_const + np.diag(dyn_vec)
+        self.mat_dyn = \
+            self.mat_const_sp + sparse.diags([dyn_vec], [0], format='csr')
 
     def solve_system(self):
         """
@@ -572,7 +578,9 @@ class TemperatureSystem:
             Manipulate:
             -self.temp_layer_vec
         """
-        self.temp_layer_vec = np.linalg.tensorsolve(self.mat_dyn, self.rhs)
+        #self.temp_layer_vec = np.linalg.tensorsolve(self.mat_dyn, self.rhs)
+        self.temp_layer_vec = spsolve(self.mat_dyn, self.rhs)
+
 
     def sort_results(self):
         """
