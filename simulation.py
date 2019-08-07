@@ -691,14 +691,14 @@ class Simulation:
             self.stoi_ano[w] = item.anode.stoi
             for q in range(5):
                 self.temp_layer.append(
-                    self.stack.temp_cpl_stack.temp_layer[w][q, :])
+                    self.stack.temp_sys.temp_layer[w][q, :])
         np.savetxt(self.path_csv_data + 'Temperature Layer.csv',
                    self.temp_layer, delimiter=self.delimiter,
                    fmt=self.csv_format)
         np.savetxt(self.path_csv_data + 'Coolant Temperature.csv',
-                   self.stack.temp_cpl_stack.temp_cool,
+                   self.stack.temp_sys.temp_cool,
                    delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Current Density.csv', self.stack.i_ca,
+        np.savetxt(self.path_csv_data + 'Current Density.csv', self.stack.i,
                    delimiter=self.delimiter, fmt=self.csv_format)
         np.savetxt(self.path_csv_data + 'Cathode Gas Temperature.csv',
                    self.temp_fluid_cat, delimiter=self.delimiter,
