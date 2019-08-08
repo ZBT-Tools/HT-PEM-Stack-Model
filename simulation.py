@@ -378,7 +378,7 @@ class Simulation:
         self.plot_cell_var('v', 'Voltage $[V]$', 'Channel Location $[m]$',
                            'linear', 'Cell Voltage',
                            [0., ch_dict.dict_cathode_channel['channel_length']],
-                           x_ele, [0.52, 0.54])
+                           x_ele, [0.0, 1.0])
         g_func.output_x(self.stack.temp_sys.temp_cool, x_node,
                         'Coolant Temperature [K]', 'Channel Location $[m]$',
                         'linear', 'Coolant Temperature', False,
