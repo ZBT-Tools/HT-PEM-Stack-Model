@@ -17,6 +17,22 @@ def add_source(var, source, direction=1):
     return var
 
 
+def construct_empty_stack_array(cell_array, n_cells):
+    """
+    Construct zeroed stack array from one- or multidimensional cell variable
+    array and number of cells
+    :param cell_array: array of variable discretized for a unit cell
+    :param n_cells: number of cells in stack
+    :return:
+    """
+    if isinstance(cell_array, np.ndarray):
+        cell_array_shape = cell_array.shape
+    else:
+        cell_array_shape = (len(cell_array))
+    stack_array_shape = (n_cells,) + cell_array_shape
+    return np.full(stack_array_shape, 0.0)
+
+
 def calc_diff(vec):
     """
     Calculates the difference between the i+1 and i position of an 1-d-array.

@@ -5,7 +5,7 @@ import input.operating_conditions as op_con
 
 
 dict_cathode = {
-    'name': 'cathode',
+    'name': 'Cathode',
     'flow_direction': geom.cathode_flow_direction,
     'cell_width': geom.cell_width,
     'cell_length': geom.cell_length,
@@ -30,7 +30,7 @@ dict_cathode = {
     }
 
 dict_anode = {
-    'name': 'anode',
+    'name': 'Anode',
     'flow_direction': geom.anode_flow_direction,
     'cell_width': geom.cell_width,
     'cell_length': geom.cell_length,

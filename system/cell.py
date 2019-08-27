@@ -87,8 +87,8 @@ class Cell:
             + 2. * self.cathode.th_bpp\
             + 2. * self.cathode.th_gde
         # height of the cell
-        self.n_nodes = g_par.dict_case['nodes']
-        n_nodes = self.n_nodes
+        #self.n_nodes = g_par.dict_case['nodes']
+        n_nodes = g_par.dict_case['nodes']
         # number of nodes along the channel
         self.n_ele = n_nodes - 1
         n_ele = self.n_ele
@@ -102,16 +102,21 @@ class Cell:
         # layer temperature
         self.temp_mem = np.zeros(n_ele)
         # membrane temperature
-        self.i_cd = np.full(n_ele, 0.)
+        self.i_cd = np.full(n_ele, 1.)
         # current density
         self.omega = np.full(n_ele, 0.)
         # membrane resistance
-        self.mem_loss = np.full(n_ele, 0.)#
+        self.mem_loss = np.full(n_ele, 0.)
         # voltage loss at the membrane
         self.v = np.full(n_ele, 0.)
         # cell voltage
         self.resistance = np.full(n_ele, 0.)
         # cell resistance
+        self.print_data = \
+            {
+                'Current Density': {'value': self.i_cd, 'units': 'A/m²'},
+                'Layer Temperature': {'value': self.temp, 'units': 'K'}
+            }
 
     def update(self):
         """
@@ -126,8 +131,7 @@ class Cell:
             self.anode.w_cross_flow = self.w_cross_flow
         self.cathode.i_cd = self.i_cd
         self.anode.i_cd = self.i_cd
-        self.cathode.set_layer_temperature([self.temp[2],
-                                            self.temp[3],
+        self.cathode.set_layer_temperature([self.temp[2], self.temp[3],
                                             self.temp[4]])
         self.anode.set_layer_temperature([self.temp[0], self.temp[1]])
         self.cathode.update()

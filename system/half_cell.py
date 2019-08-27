@@ -8,7 +8,6 @@ import system.channel as ch
 import sys
 import system.interpolation as ip
 
-
 warnings.filterwarnings("ignore")
 
 
@@ -16,8 +15,7 @@ class HalfCell:
 
     def __init__(self, halfcell_dict, cell_dict, channel_dict):
         self.name = halfcell_dict['name']
-        self.n_nodes = g_par.dict_case['nodes']
-        n_nodes = self.n_nodes
+        n_nodes = g_par.dict_case['nodes']
         n_ele = n_nodes - 1
         self.n_ele = n_ele
         # discretization in elements and nodes along the x-axis (flow axis)
@@ -89,7 +87,7 @@ class HalfCell:
                                * self.tafel_slope)
         # could use a better name see (Kulikovsky, 2013) not sure if 2-D
         # exchange current densisty
-        self.index_cat = self.n_nodes - 1
+        self.index_cat = n_nodes - 1
         # index of the first element with negative cell voltage
         self.i_ca_char = self.prot_con_cl * self.tafel_slope / self.th_cl
         # not sure if the name is ok, i_ca_char is the characteristic current
@@ -209,6 +207,13 @@ class HalfCell:
         for i, item in enumerate(self.mol_mass):
             self.r_species[i] = g_par.dict_uni['R'] / item
 
+        self.print_data = \
+            {
+                'Mol Fraction': {'value': self.mol_fraction, 'units': '-'},
+                'Gas Mol Fraction': {'value': self.mol_fraction_gas,
+                                     'units': '-'}
+            }
+
     def update(self):
         """
         This function coordinates the program sequence
@@ -229,10 +234,10 @@ class HalfCell:
     def calc_mass_balance(self):
         self.calc_reac_flow()
         self.calc_water_flow()
-        self.mol_flow = np.maximum(self.mol_flow, 0.)
-        self.mol_flow_total = np.sum(self.mol_flow, axis=0)
-        self.mol_fraction = self.calc_fraction(self.mol_flow)
-        self.mass_fraction = \
+        self.mol_flow[:] = np.maximum(self.mol_flow, 0.)
+        self.mol_flow_total[:] = np.sum(self.mol_flow, axis=0)
+        self.mol_fraction[:] = self.calc_fraction(self.mol_flow)
+        self.mass_fraction[:] = \
             self.molar_to_mass_fraction(self.mol_fraction, self.mol_mass)
         self.calc_mass_flow()
         self.calc_concentrations()

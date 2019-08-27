@@ -6,10 +6,13 @@ import cProfile
 import timeit
 import data.input_dicts as input_dicts
 import output
+import os
+import sys
 
-np.set_printoptions(threshold=np.nan, linewidth=10000,
+np.set_printoptions(threshold=sys.maxsize, linewidth=10000,
                     precision=9, suppress=True)
 np.seterr(all='raise')
+
 
 def do_c_profile(func):
     def profiled_func(*args, **kwargs):
@@ -210,12 +213,23 @@ class Simulation:
                         or counter > self.max_it:
                     break
             if not self.stack.break_program:
+                voltage_loss = self.save_voltages(self.stack)
+                cell_voltages.append(np.average(self.stack.v_cell))
+
                 mfd_criteria = \
                     (np.array(self.mfd_ano_criteria)
                      + np.array(self.mfd_cat_criteria)) * .5
-                voltage_loss = self.save_voltages(self.stack)
-                cell_voltages.append(np.average(self.stack.v_cell))
-                self.output.save('Case'+str(i))
+                case_name = 'Case'+str(i)
+                self.output.save(case_name, self.stack)
+                path = os.path.join(self.output.output_dir, case_name, 'plots')
+                self.output.plot([mfd_criteria,
+                                  self.i_ca_criteria_process,
+                                  self.temp_criteria_process],
+                                 'ERR', 'Iteration', 'log', ['k', 'r', 'b'],
+                                 'Convergence', 0.,
+                                 len(self.temp_criteria_process),
+                                 ['Flow Distribution', 'Current Density',
+                                  'Temperature'], path)
             else:
                 target_current_density = target_current_density[0:-i]
                 break
@@ -274,9 +288,9 @@ class Simulation:
         """
         Calculates the convergence criteria according to (Koh, 2003)
         """
-        self.i_ca_criteria = np.abs(sum(((self.stack.i_cd.flatten()
-                                          - self.stack.i_cd_old.flatten())
-                                         / self.stack.i_cd.flatten()) ** 2.))
+        self.i_ca_criteria = np.abs(np.sum(((self.stack.i_cd.flatten()
+                                             - self.stack.i_cd_old.flatten())
+                                            / self.stack.i_cd.flatten()) ** 2.))
         self.temp_criteria =\
             np.abs(np.sum(((self.temp_old
                             - self.stack.temp_sys.temp_layer[0][0, 0]))

@@ -103,8 +103,7 @@ class Stack:
         # inlet and outlet temperature of the cathode channel fluid
         self.temp_fluid_ano = np.zeros(self.n_cells)
         # inlet and outlet temperature of the anode channel fluid
-        self.k_alpha_env = np.full((2, 3, self.n_cells), 0.)
-        # convection conductance to the environment
+
         self.k_alpha_ch = None
         # convection conductance between the channel and the fluid
         self.cond_rate = np.full((2, self.n_cells, n_nodes), 0.)
@@ -125,7 +124,7 @@ class Stack:
             k_pp = np.hstack((k_pp, self.cells[i].k_bpp_x))
             k_gp = np.hstack((k_gp, self.cells[i].k_gp))
             k_gm = np.hstack((k_gm, self.cells[i].k_gm))
-        self.k_layer = np.array([[k_m, k_g, k_p], [k_gm, k_gp, k_pp]])
+        k_layer = np.array([[k_m, k_g, k_p], [k_gm, k_gp, k_pp]])
         # heat conductivity of the cell layer
 
         """"Calculation of the environment heat conductivity"""
@@ -135,19 +134,21 @@ class Stack:
         fac = (cell_width + cell_height)\
             / (self.cells[0].cathode.channel.length
                * self.cells[0].width_channels)
+        k_alpha_env = np.full((2, 3, self.n_cells), 0.)
+        # convection conductance to the environment
         for q, item in enumerate(self.cells):
             avg_dx = np.average(item.cathode.channel.dx)
-            self.k_alpha_env[0, 1, q] =\
+            k_alpha_env[0, 1, q] =\
                 .5 * self.alpha_env * avg_dx\
                 * (item.cathode.th_bpp + item.cathode.th_gde) / fac
-            self.k_alpha_env[0, 0, q] =\
+            k_alpha_env[0, 0, q] =\
                 .5 * (self.alpha_env * avg_dx
                       * (item.cathode.th_bpp + item.th_mem)) / fac
-            self.k_alpha_env[0, 2, q] = \
+            k_alpha_env[0, 2, q] = \
                 self.alpha_env * avg_dx * item.cathode.th_bpp / fac
         # Initialize the thermal coupling
-        temperature_dict['k_layer'] = self.k_layer
-        temperature_dict['k_alpha_env'] = self.k_alpha_env
+        temperature_dict['k_layer'] = k_layer
+        temperature_dict['k_alpha_env'] = k_alpha_env
         self.temp_sys = therm_cpl.TemperatureSystem(temperature_dict)
 
     def update(self):
@@ -156,7 +157,7 @@ class Stack:
         """
         for i in range(self.n_cells):
             #self.cells[j].set_current_density(self.i_cd[j, :])
-            self.cells[i].i_cd = self.i_cd[i, :]
+            self.cells[i].i_cd[:] = self.i_cd[i, :]
             self.cells[i].update()
             if self.cells[i].break_program:
                 self.break_program = True
@@ -171,7 +172,7 @@ class Stack:
             self.i_cd_old = copy.deepcopy(self.i_cd)
             if self.calc_cd:
                 self.update_electrical_coupling()
-        print('Current density', self.i_cd)
+        #print('Current density', self.i_cd)
 
     def update_flows(self):
         """
@@ -356,6 +357,6 @@ class Stack:
         This function sets up the layer and fluid temperatures in the cells.
         """
         for i, item in enumerate(self.cells):
-            item.temp = self.temp_sys.temp_layer[i][0:5, :]
-            item.cathode.temp_fluid = self.temp_sys.temp_fluid[0, i]
-            item.anode.temp_fluid = self.temp_sys.temp_fluid[1, i]
+            item.temp[:] = self.temp_sys.temp_layer[i][0:5, :]
+            item.cathode.temp_fluid[:] = self.temp_sys.temp_fluid[0, i]
+            item.anode.temp_fluid[:] = self.temp_sys.temp_fluid[1, i]

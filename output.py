@@ -4,6 +4,9 @@ import os
 import errno
 import system.interpolation as ip
 import input.geometry as geom
+import shutil
+import data.global_parameters as g_par
+import system.global_functions as g_func
 
 
 class Output:
@@ -18,75 +21,101 @@ class Output:
         self.delimiter = ','
         self.csv_format = '%.9e'
         # object of the class Stack
-        self.plot_path = None
-        # path where the plots of the results gets saved
-        self.path_csv_data = None
-        # path where the csv data of the results gets saved
+        self.output_dir = os.path.join(os.path.dirname(__file__), 'output')
+        if os.path.exists(self.output_dir):
+            shutil.rmtree(self.output_dir)
+        os.makedirs(self.output_dir)
 
-    def save(self, folder_name):
+    def save(self, folder_name, fc_stack):
         if self.save_plot:
-            self.output_plots(folder_name)
+            self.output_plots(folder_name, fc_stack)
         if self.save_csv:
-            self.output_csv(folder_name)
+            self.output_csv(folder_name, fc_stack)
 
     @staticmethod
-    def output(y_values, y_label, x_label, y_scale, color,
-               title, xlim_low, xlim_up, val_label, path):
+    def plot(y_values, y_label, x_label, y_scale, color,
+             title, xlim_low, xlim_up, val_label, path):
         if val_label:
-            for l in range(len(y_values)):
-                plt.plot(y_values[l], color=color[l],
-                         marker='.', label=val_label[l])
+            for i in range(len(y_values)):
+                plt.plot(y_values[i], color=color[i],
+                         marker='.', label=val_label[i])
         else:
-            for l in range(len(y_values)):
-                plt.plot(y_values[l], color=color[l], marker='.')
+            for i in range(len(y_values)):
+                plt.plot(y_values[i], color=color[i], marker='.')
 
-        plt.xlabel(x_label)
-        plt.ylabel(y_label)
+        plt.xlabel(x_label, fontsize=16)
+        plt.ylabel(y_label, fontsize=16)
         plt.yscale(y_scale)
+        plt.tick_params(labelsize=14)
         plt.xlim(xlim_low, xlim_up)
         plt.tight_layout()
         plt.grid()
         if val_label:
             plt.legend()
-        plt.savefig(os.path.join(path + title + '.png'))
+        plt.savefig(os.path.join(path, title + '.png'))
         plt.close()
 
     @staticmethod
-    def output_x(y_values, x_values, y_label, x_label,
-                 y_scale, title, val_label, lim, path):
-        if val_label:
-            for l in range(len(y_values)):
-                plt.plot(x_values, y_values[l],
-                         color=plt.cm.coolwarm(l / len(y_values)),
-                         marker='.', label=val_label[l])
+    def x_plot(fig, x, y, x_label, y_label, x_scale='linear',
+               y_scale='linear', xlim=None, ylim=None, title=None, labels=None):
+        if labels:
+            for i in range(len(y)):
+                plt.plot(x, y[i],
+                         color=plt.cm.coolwarm(i / len(y)),
+                         marker='.', label=labels[i])
         else:
-            for l in range(len(y_values)):
-                plt.plot(x_values, y_values[l],
-                         color=plt.cm.coolwarm(l / len(y_values)), marker='.')
+            for i in range(len(y)):
+                plt.plot(x, y[i],
+                         color=plt.cm.coolwarm(i / len(y)), marker='.')
 
         plt.xlabel(x_label, fontsize=16)
         plt.ylabel(y_label, fontsize=16)
         plt.yscale(y_scale)
         plt.tick_params(labelsize=14)
         plt.autoscale(tight=True, axis='both', enable=True)
-        plt.xlim(lim[0], lim[1])
+        if xlim:
+            plt.xlim(xlim[0], xlim[1])
+        if ylim:
+            plt.ylim(ylim[0], ylim[1])
         plt.tight_layout()
         plt.grid()
-        if val_label:
+        if labels:
             plt.legend()
-        plt.savefig(os.path.join(path + title + '.png'))
+        plt.savefig(os.path.join(path, title + '.png'))
         plt.close()
 
-    def plot_cell_var(self, y_var, y_label, x_label, title, x_lim, x_var,
-                      y_lim=False, y_scale='linear'):
+    def write_array_to_csv(self, file_path, array,
+                           header='', separator_lines=None):
+        with open(file_path, 'w') as file:
+            if header:
+                file.write('# ' + header + '\n')
+            if separator_lines:
+                for i in range(len(separator_lines)):
+                    file.write(separator_lines[i])
+                    np.savetxt(file, array[i], delimiter=self.delimiter,
+                               fmt=self.csv_format)
+            else:
+                np.savetxt(file, array, delimiter=self.delimiter,
+                           fmt=self.csv_format)
+        return file
+
+    def write_stack_array_to_csv(self, file_path, stack_array,
+                                 header='', separator_lines=None):
+        if not separator_lines:
+            n = stack_array.shape[0]
+            separator_lines = ['# Cell ' + str(i) + '\n' for i in range(n)]
+        return self.write_array_to_csv(file_path, stack_array,
+                                       header, separator_lines)
+
+    def plot_cell_var(self, path, cells, y_var, y_label,
+                      title, x_lim, x_var=None, y_lim=None,
+                      x_label='Channel Location $[m]$', y_scale='linear'):
         """
         Creates plots by given input values
         """
-        for i, item in enumerate(self.stack.cells):
-            plt.plot(x_var, eval('self.stack.cells' +
-                                 '['+str(i)+']'+'.' + y_var),
-                     color=plt.cm.coolwarm(i / self.stack.n_cells),
-                     marker='.')
+        for i, cell in enumerate(cells):
+            plt.plot(x_var, eval('cell.' + y_var),
+                     color=plt.cm.coolwarm(i / len(cells)), marker='.')
         plt.xlabel(x_label, fontsize=16)
         plt.ylabel(y_label, fontsize=16)
         plt.yscale(y_scale)
@@ -97,160 +126,196 @@ class Output:
             plt.ylim(y_lim[0], y_lim[1])
         plt.tight_layout()
         plt.grid()
-        plt.savefig(self.plot_path + title + '.png')
+        plt.savefig(os.path.join(path, title + '.png'))
         plt.close()
 
-    def output_plots(self, folder_name):
+    def plot_cell_var_2(self, path, cells, y_var, y_label,
+                      title, x_lim, x_var=None, y_lim=None,
+                      x_label='Channel Location $[m]$', y_scale='linear'):
+        """
+        Creates plots by given input values
+        """
+        for i, cell in enumerate(cells):
+            plt.plot(x_var, eval('cell.' + y_var),
+                     color=plt.cm.coolwarm(i / len(cells)), marker='.')
+        plt.xlabel(x_label, fontsize=16)
+        plt.ylabel(y_label, fontsize=16)
+        plt.yscale(y_scale)
+        plt.tick_params(labelsize=14)
+        plt.autoscale(tight=True, axis='both', enable=True)
+        plt.xlim(x_lim[0], x_lim[1])
+        if y_lim:
+            plt.ylim(y_lim[0], y_lim[1])
+        plt.tight_layout()
+        plt.grid()
+        plt.savefig(os.path.join(path, title + '.png'))
+        plt.close()
+
+    def output_plots(self, folder_name, fc_stack):
         """
         Coordinates the plot sequence
         """
-        plot_path = os.path.join(os.path.dirname(__file__), 'output',
-                                 folder_name, 'plots')
-        try:
-            os.makedirs(plot_path)
-        except OSError as e:
-            if e.errno != errno.EEXIST:
-                raise
-        length = self.stack.cells[0].cathode.channel.length
+        path = os.path.join(self.output_dir, folder_name, 'plots')
+
+        if os.path.exists(path):
+            shutil.rmtree(path)
+        os.makedirs(path)
+        length = fc_stack.cells[0].cathode.channel.length
         x_lims = [0.0, length]
-        x_node = self.stack.cells[0].cathode.channel.x
+        x_node = fc_stack.cells[0].cathode.channel.x
         x_ele = ip.interpolate_1d(x_node)
-        self.output([self.mdf_criteria_process, self.i_ca_criteria_process,
-                     self.temp_criteria_process], 'ERR', 'Iteration', 'log',
-                    ['k', 'r', 'b'], 'Convergence', 0.,
-                    len(self.temp_criteria_process),
-                    ['Flow Distribution', 'Current Density', 'Temperature'],
-                    self.plot_path)
-        self.output_x(self.stack.i_cd, x_ele, 'Current Density $[A/m²]$',
-                        'Channel Location $[m]$', 'linear', 'Current Density',
-                        False, x_lims, plot_path)
-        n_cells = self.stack.n_cells
+        # self.plot([self.mdf_criteria_process, self.i_ca_criteria_process,
+        #            self.temp_criteria_process], 'ERR', 'Iteration', 'log',
+        #           ['k', 'r', 'b'], 'Convergence', 0.,
+        #           len(self.temp_criteria_process),
+        #           ['Flow Distribution', 'Current Density', 'Temperature'], path)
+        self.x_plot(fc_stack.i_cd, x_ele, 'Current Density $[A/m²]$',
+                    'Channel Location $[m]$', 'linear', 'Current Density',
+                    False, x_lims, path)
+        n_cells = fc_stack.n_cells
         if n_cells > 1:
-            self.output([self.stack.manifold[0].cell_stoi,
-                         self.stack.manifold[1].cell_stoi],
-                        'Stoichiometry', 'Cell Number', 'linear', ['k', 'r'],
-                        'Stoichimetry Distribution', 0., n_cells - 1,
-                        ['Cathode', 'Anode'], plot_path)
-            self.output([self.stack.manifold[0].cell_stoi/2.5],
-                        'Flow Distribution', 'Cell Number', 'linear', ['k'],
-                        'Distribution', 0., n_cells - 1, ['Cathode'], plot_path)
-        self.plot_cell_var('v', 'Voltage $[V]$', 'Channel Location $[m]$',
-                           'Cell Voltage', x_lims, x_ele, [0.52, 0.54])
-        self.output_x(self.stack.temp_sys.temp_cool, x_node,
-                        'Coolant Temperature [K]', 'Channel Location $[m]$',
-                        'linear', 'Coolant Temperature', False,
-                        x_lims, plot_path)
-        self.plot_cell_var('temp[-1]', 'Anode BPP - GDE Temperature $[K]$',
+            self.plot([fc_stack.manifold[0].cell_stoi,
+                       fc_stack.manifold[1].cell_stoi],
+                      'Stoichiometry', 'Cell Number', 'linear', ['k', 'r'],
+                      'Stoichimetry Distribution', 0., n_cells - 1,
+                      ['Cathode', 'Anode'], path)
+            self.plot([fc_stack.manifold[0].cell_stoi / 2.5],
+                      'Flow Distribution', 'Cell Number', 'linear', ['k'],
+                      'Distribution', 0., n_cells - 1, ['Cathode'], path)
+        self.plot_cell_var(path, fc_stack.cells, 'v',
+                           'Cell Voltage $[V]$', 'Channel Location $[m]$',
+                           'Cell Voltage', x_lims, x_ele, [0.0, 1.0])
+        self.x_plot(fc_stack.temp_sys.temp_cool, x_node,
+                    'Coolant Temperature [K]', 'Channel Location $[m]$',
+                    'linear', 'Coolant Temperature', False,
+                    x_lims, path)
+        self.plot_cell_var(path, fc_stack.cells, 'temp[-1]',
+                           'Anode BPP - GDE Temperature $[K]$',
                            'Channel Location $[m]$',
                            'Anode Plate - GDE Temperature', x_lims, x_ele)
-        self.plot_cell_var('temp[-2]', 'Anode GDE - MEM Temperature $[K]$',
+        self.plot_cell_var(path, fc_stack.cells, 'temp[-2]',
+                           'Anode GDE - MEM Temperature $[K]$',
                            'Channel Location $[m]$',
                            'Anode GDE - Membrane Temperature', x_lims, x_ele)
-        self.plot_cell_var('temp[2]',
+        self.plot_cell_var(path, fc_stack.cells, 'temp[2]',
                            'Cathode GDE - MEM Temperature $[K]$',
                            'Channel Location $[m]$', 'Cathode GDL Temperature',
                            x_lims, x_ele)
-        self.plot_cell_var('cathode.temp_fluid',
+        self.plot_cell_var(path, fc_stack.cells, 'cathode.temp_fluid',
                            'Cathode Fluid Temperature $[K]$',
                            'Channel Location $[m]$',
                            'Cathode_Channel_Temperature', x_lims, x_node)
-        self.plot_cell_var('temp[1]', 'Cathode BPP-GDE Temperature $[K]$',
+        self.plot_cell_var(path, fc_stack.cells, 'temp[1]',
+                           'Cathode BPP-GDE Temperature $[K]$',
                            'Channel Location $[m]$',
                            'Cathode GDE - Plate Temperature', x_lims, x_ele)
-        self.plot_cell_var('anode.temp_fluid', 'Anode Fluid Temperature $[K]$',
+        self.plot_cell_var(path, fc_stack.cells, 'anode.temp_fluid',
+                           'Anode Fluid Temperature $[K]$',
                            'Channel Location $[m]$',
                            'Anode_Channel_Temperature', x_lims, x_node)
-        self.plot_cell_var('temp[0]', 'BPP - BPP Temperature $[K]$',
+        self.plot_cell_var(path, fc_stack.cells, 'temp[0]',
+                           'BPP - BPP Temperature $[K]$',
                            'Channel Location $[m]$',
                            'Coolant Plate Temperature', x_lims, x_ele)
-        self.plot_cell_var('cathode.mol_flow[0] * 1.e3',
+        self.plot_cell_var(path, fc_stack.cells, 'cathode.mol_flow[0] * 1.e3',
                            'Cathode Oxygen Molar Flow $[mmol/s]$',
                            'Channel Location $[m]$',
                            'Cathode Oxygen Molar Flow', x_lims, x_node)
-        self.plot_cell_var('cathode.mol_flow[1] * 1.e3',
+        self.plot_cell_var(path, fc_stack.cells, 'cathode.mol_flow[1] * 1.e3',
                            'Cathode Water Molar Flow $[mmol/s]$',
                            'Channel Location $[m]$',
                            'Cathode Water Molar Flow', x_lims, x_node)
-        self.plot_cell_var('cathode.mol_flow[2] * 1.e3',
+        self.plot_cell_var(path, fc_stack.cells, 'cathode.mol_flow[2] * 1.e3',
                            'Cathode Nitrogen Molar Flow $[mmol/s]$',
                            'Channel Location $[m]$',
                            'Cathode Nitrogen Molar Flow', x_lims, x_node)
-        self.plot_cell_var('anode.mol_flow[0] * 1.e3',
+        self.plot_cell_var(path, fc_stack.cells, 'anode.mol_flow[0] * 1.e3',
                            'Anode Hydrogen Molar Flow $[mmol/s]$',
                            'Channel Location $[m]$',
                            'Anode Hydrogen Molar Flow', x_lims, x_node)
-        self.plot_cell_var('anode.mol_flow[1] * 1.e3',
+        self.plot_cell_var(path, fc_stack.cells, 'anode.mol_flow[1] * 1.e3',
                            'Anode Water Molar Flow $[mmol/s]$',
                            'Channel Location $[m]$',
                            'Anode Water Molar Flow', x_lims, x_node)
-        self.plot_cell_var('anode.mol_flow[2] * 1.e3',
+        self.plot_cell_var(path, fc_stack.cells, 'anode.mol_flow[2] * 1.e3',
                            'Anode Nitrogen Molar Flow $[mmol/s]$',
                            'Channel Location $[m]$',
                            'Anode Nitrogen Molar Flow', x_lims, x_node)
-        self.plot_cell_var('cathode.mol_f[0]', 'Oxygen Molar Fraction',
+        self.plot_cell_var(path, fc_stack.cells, 'cathode.mol_fraction[0]',
+                           'Oxygen Molar Fraction',
                            'Channel Location $[m]$',
                            'Oxygen Molar Fraction', x_lims, x_node)
-        self.plot_cell_var('cathode.mol_f[1]',
+        self.plot_cell_var(path, fc_stack.cells, 'cathode.mol_fraction[1]',
                            'Cathode Gas Water Molar Fraction',
                            'Channel Location $[m]$',
                            'Water Molar Fraction Cathode',
                            x_lims, x_node)
-        self.plot_cell_var('cathode.mol_f[2]',
+        self.plot_cell_var(path, fc_stack.cells, 'cathode.mol_fraction[2]',
                            'Cathode Nitrogen Molar Fraction',
                            'Channel Location $[m]$',
                            'Nitrogen Molar Fraction Cathode', x_lims, x_node)
-        self.plot_cell_var('anode.mol_f[0]', 'Hydrogen Molar Fraction',
+        self.plot_cell_var(path, fc_stack.cells, 'anode.mol_fraction[0]',
+                           'Hydrogen Molar Fraction',
                            'Channel Location $[m]$',
                            'Hydrogen_Molar_Fraction_Anode', x_lims, x_node)
-        self.plot_cell_var('anode.mol_f[1]', 'Anode Gas Water  Molar Fraction',
+        self.plot_cell_var(path, fc_stack.cells, 'anode.mol_fraction[1]',
+                           'Anode Gas Water Molar Fraction',
                            'Channel Location $[m]$',
                            'Water_Molar_Fraction_Anode', x_lims, x_node)
-        self.plot_cell_var('anode.mol_f[2]', 'Anode Nitrogen Molar Fraction',
+        self.plot_cell_var(path, fc_stack.cells, 'anode.mol_fraction[2]',
+                           'Anode Nitrogen Molar Fraction',
                            'Channel Location $[m]$',
                            'Nitrogen_Molar_Fraction_Anode', x_lims, x_node)
-        self.plot_cell_var('cathode.liq_w_flow * 1.e3',
+        self.plot_cell_var(path, fc_stack.cells,
+                           'cathode.mol_flow_liq[1] * 1.e3',
                            'Cathode Liquid Water Flow $[mmol/s]$',
                            'Channel Location $[m]$',
                            'Liquid Water Flow Cathode', x_lims, x_node)
-        self.plot_cell_var('cathode.cond_rate * 1.e3',
+        self.plot_cell_var(path, fc_stack.cells, 'cathode.cond_rate * 1.e3',
                            'Cathode Water Condensation Rate $[mmol/s]$',
                            'Channel Location $[m]$',
                            'Water Condensation Rate Cathode', x_lims, x_node)
-        self.plot_cell_var('cathode.humidity', 'Cathode Relative Humidity',
-                           'Channel Location $[m]$', 'linear',
-                           'Relative Humidity Cathode', x_lims, x_node)
-        self.plot_cell_var('cathode.m_flow_gas * 1.e6',
-                           'Cathode Channel Gas Massflow $[mg/s]$',
-                           'Channel Location $[m]$', 'linear',
-                           'Cathode_Channel__Gas_Massflow', x_lims, x_node)
-        self.plot_cell_var('cathode.m_flow_fluid * 1.e6',
-                           'Cathode Channel Fluid Massflow $[mg/s]$',
-                           'Channel Location $[m]$', 'linear',
-                           'Cathode_Channel_Fluid_Massflow', x_lims, x_node)
-        self.plot_cell_var('cathode.g_fluid * 1.e3',
-                           'Cathode Capacity Flow $[mW/K]$',
-                           'Channel Location $[m]$', 'linear',
-                           'Cathode Capacity Flow', x_lims, x_node)
-        self.plot_cell_var('cathode.m_flow_reac * 1.e6',
-                           'Oxygen Massflow $[mg/s]$', 'Channel Location $[m]$',
-                           'linear', 'Oxygen_massflow', x_lims, x_node)
-        self.plot_cell_var('cathode.m_flow_vap_w * 1.e6',
-                           'Cathode Vapour Massflow $[mg/s]$',
+        self.plot_cell_var(path, fc_stack.cells, 'cathode.humidity',
+                           'Cathode Relative Humidity $[-]$',
                            'Channel Location $[m]$',
-                           'linear', 'Vapour Massflow', x_lims, x_node)
-        self.plot_cell_var('anode.m_flow_reac * 1.e6',
+                           'Relative Humidity Cathode', x_lims, x_node)
+        self.plot_cell_var(path, fc_stack.cells,
+                           'cathode.mass_flow_gas_total * 1.e6',
+                           'Cathode Channel Gas Massflow $[mg/s]$',
+                           'Channel Location $[m]$',
+                           'Cathode_Channel_Gas_Massflow', x_lims, x_node)
+        self.plot_cell_var(path, fc_stack.cells,
+                           'cathode.mass_flow_total * 1.e6',
+                           'Cathode Channel Fluid Massflow $[mg/s]$',
+                           'Channel Location $[m]$',
+                           'Cathode_Channel_Fluid_Massflow', x_lims, x_node)
+        self.plot_cell_var(path, fc_stack.cells, 'cathode.g_fluid * 1.e3',
+                           'Cathode Capacity Flow $[mW/K]$',
+                           'Channel Location $[m]$',
+                           'Cathode Capacity Flow', x_lims, x_node)
+        self.plot_cell_var(path, fc_stack.cells, 'cathode.mass_flow[0] * 1.e6',
+                           'Oxygen Massflow $[mg/s]$', 'Channel Location $[m]$',
+                           'Oxygen_massflow', x_lims, x_node)
+        self.plot_cell_var(path, fc_stack.cells,
+                           'cathode.mass_flow_gas[1] * 1.e6',
+                           'Cathode H2O Vapour Massflow $[mg/s]$',
+                           'Channel Location $[m]$',
+                           'Cathode H2O Vapour Massflow', x_lims, x_node)
+        self.plot_cell_var(path, fc_stack.cells, 'anode.mass_flow[0] * 1.e6',
                            'Hydrogen Mass Flow $[mg/s]$',
-                           'Channel Location $[m]$', 'linear',
+                           'Channel Location $[m]$',
                            'Hydrogen Mass Flow', x_lims, x_node)
-        self.plot_cell_var('cathode.cp_fluid',
+        self.plot_cell_var(path, fc_stack.cells, 'cathode.cp_fluid',
                            'Cathode Heat Capacity $[J/(kgK)]$',
-                           'Channel Location $[m]$', 'linear',
+                           'Channel Location $[m]$',
                            'Cathode Heat Capacity', x_lims, x_node)
-        self.plot_cell_var('cathode.p', 'Cathode Channel Pressure $[Pa]$',
-                           'Channel Location $[m]$', 'linear',
+        self.plot_cell_var(path, fc_stack.cells, 'cathode.p',
+                           'Cathode Channel Pressure $[Pa]$',
+                           'Channel Location $[m]$',
                            'Cathode Channel Pressure', x_lims, x_node)
-        self.plot_cell_var('anode.p', 'Anode Channel Pressure $[Pa]$',
-                           'Channel Location $[m]$', 'linear',
+        self.plot_cell_var(path, fc_stack.cells, 'anode.p',
+                           'Anode Channel Pressure $[Pa]$',
+                           'Channel Location $[m]$',
                            'Anode Channel Pressure', x_lims, x_node)
         # Z-Axis-Temperature Plot
         x_vec_z = np.array([0.,
@@ -270,325 +335,361 @@ class Output:
                             geom.gas_diffusion_layer_thickness,
                             geom.bipolar_plate_thickness])
         x = []
-        for i in range(self.stack.n_cells):
-            if i is 0:
+        n_cells = fc_stack.n_cells
+        n_ele = g_par.dict_case['elements']
+        for j in range(n_cells):
+            if j is 0:
                 x.append(x_vec_z)
-            elif 0 < i < self.stack.n_cells - 1:
+            elif 0 < j < n_cells - 1:
                 x.append(x_vec_e)
             else:
                 x.append(x_vec_l)
         x = np.cumsum(np.block(x))
-        t = self.stack.temp_sys.temp_layer
-        for w in range(g_par.dict_case['nodes'] - 1):
+        t = fc_stack.temp_sys.temp_layer
+        for i in range(n_ele):
             t_vec = []
-            for i in range(self.stack.n_cells):
-                if i is not self.stack.n_cells - 1:
-                    t_vec.append(np.array([t[i][0, w], t[i][1, w],
-                                           t[i][2, w], t[i][3, w], t[i][4, w]]))
+            for j in range(n_cells):
+                if j is not n_cells - 1:
+                    t_vec.append(np.array([t[j][0, i], t[j][1, i],
+                                           t[j][2, i], t[j][3, i], t[j][4, i]]))
                 else:
-                    t_vec.append(np.array([t[i][0, w], t[i][1, w], t[i][2, w],
-                                           t[i][3, w], t[i][4, w], t[i][5, w]]))
+                    t_vec.append(np.array([t[j][0, i], t[j][1, i], t[j][2, i],
+                                           t[j][3, i], t[j][4, i], t[j][5, i]]))
             plt.plot(x, np.block(t_vec),
-                     color=plt.cm.coolwarm((w + 1.e-20)
-                                           / float(g_par.dict_case['nodes']
-                                                   - 1.)))
+                     color=plt.cm.coolwarm((i + 1.e-20) / float(n_ele)))
         plt.xlim(0, x[-1])
         plt.xlabel('Stack Location $[m]$', fontsize=16)
         plt.ylabel('Temperature $[K]$', fontsize=16)
         plt.tick_params(labelsize=14)
         plt.autoscale(tight=True, axis='both', enable=True)
         plt.tight_layout()
-        plt.savefig(os.path.join(self.plot_path + 'z-Cut-Temperature' + '.png'))
+        plt.savefig(os.path.join(path, 'z-Cut-Temperature.png'), format='png')
         plt.close()
 
-        for i in range(self.stack.n_cells):
-            print(np.average(self.stack.i_cd[i, :]))
+        # for j in range(n_cells):
+        #     print(np.average(fc_stack.i_cd[j, :]))
 
-    def output_csv(self, folder_name):
-        self.path_csv_data = os.path.join(os.path.dirname(__file__),
-                                          'output', folder_name, 'csv_data')
+    def output_csv(self, folder_name, fc_stack):
+        path = os.path.join(self.output_dir, folder_name, 'csv_data')
         try:
-            os.makedirs(self.path_csv_data)
+            os.makedirs(path)
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
-        for i, item in enumerate(self.stack.cells):
-            self.mol_flow[0, i] = item.cathode.mol_flow[0]
-            self.mol_flow[1, i] = item.cathode.mol_flow[1]
-            self.mol_flow[2, i] = item.cathode.mol_flow[2]
-            self.mol_flow[3, i] = item.anode.mol_flow[0]
-            self.mol_flow[4, i] = item.anode.mol_flow[1]
-            self.mol_flow[5, i] = item.anode.mol_flow[2]
-            self.gas_con[0, i] = item.cathode.gas_con[0]
-            self.gas_con[1, i] = item.cathode.gas_con[1]
-            self.gas_con[2, i] = item.cathode.gas_con[2]
-            self.gas_con[3, i] = item.anode.gas_con[0]
-            self.gas_con[4, i] = item.anode.gas_con[1]
-            self.gas_con[5, i] = item.anode.gas_con[2]
-            self.m_f[0, i] = item.cathode.mass_f[0]
-            self.m_f[1, i] = item.cathode.mass_f[1]
-            self.m_f[2, i] = item.cathode.mass_f[2]
-            self.m_f[3, i] = item.anode.mass_f[0]
-            self.m_f[4, i] = item.anode.mass_f[1]
-            self.m_f[5, i] = item.anode.mass_f[2]
-            self.mol_f[0, i] = item.cathode.mol_f[0]
-            self.mol_f[1, i] = item.cathode.mol_f[1]
-            self.mol_f[2, i] = item.cathode.mol_f[2]
-            self.mol_f[3, i] = item.anode.mol_f[0]
-            self.mol_f[4, i] = item.anode.mol_f[1]
-            self.mol_f[5, i] = item.anode.mol_f[2]
-            self.v_loss[i] = item.v_loss
-            self.v_cell[i] = item.v
-            self.cp[0, i] = item.cathode.cp[0]
-            self.cp[1, i] = item.cathode.cp[1]
-            self.cp[2, i] = item.cathode.cp[2]
-            self.cp[3, i] = item.anode.cp[0]
-            self.cp[4, i] = item.anode.cp[1]
-            self.cp[5, i] = item.anode.cp[2]
-            self.lambda_gas[0, i] = item.cathode.lambda_gas[0]
-            self.lambda_gas[1, i] = item.cathode.lambda_gas[1]
-            self.lambda_gas[2, i] = item.cathode.lambda_gas[2]
-            self.lambda_gas[3, i] = item.anode.lambda_gas[0]
-            self.lambda_gas[4, i] = item.anode.lambda_gas[1]
-            self.lambda_gas[5, i] = item.anode.lambda_gas[2]
-            self.visc[0, i] = item.cathode.visc[0]
-            self.visc[1, i] = item.cathode.visc[1]
-            self.visc[2, i] = item.cathode.visc[2]
-            self.visc[3, i] = item.anode.visc[0]
-            self.visc[4, i] = item.anode.visc[1]
-            self.visc[5, i] = item.anode.visc[2]
-            self.r_gas_cat[i] = item.cathode.r_gas
-            self.r_gas_ano[i] = item.anode.r_gas
-            self.cp_gas_cat[i] = item.cathode.cp_gas
-            self.cp_gas_ano[i] = item.anode.cp_gas
-            self.visc_gas_cat[i] = item.cathode.visc_gas
-            self.visc_gas_ano[i] = item.anode.visc_gas
-            self.lambda_gas_cat[i] = item.cathode.lambda_gas
-            self.lambda_gas_ano[i] = item.anode.lambda_gas
-            self.rho_gas_cat[i] = item.cathode.rho_gas
-            self.rho_gas_cat[i] = item.anode.rho_gas
-            self.u_gas_cat[i] = item.cathode.u
-            self.u_gas_ano[i] = item.anode.u
-            self.p_cat[i] = item.cathode.p
-            self.p_ano[i] = item.anode.p
-            self.ht_coef_cat[i] = item.cathode.ht_coef
-            self.ht_coef_ano[i] = item.anode.ht_coef
-            self.cp_fluid_cat[i] = item.cathode.cp_fluid
-            self.cp_fluid_ano[i] = item.anode.cp_fluid
-            self.m_flow_fluid_cat[i] = item.cathode.m_flow_fluid
-            self.m_flow_fluid_ano[i] = item.anode.m_flow_fluid
-            self.temp_fluid_cat[i] = item.cathode.temp_fluid
-            self.temp_fluid_ano[i] = item.anode.temp_fluid
-            self.stoi_cat[i] = item.cathode.stoi
-            self.stoi_ano[i] = item.anode.stoi
-            for folder_name in range(5):
-                self.temp_layer.append(
-                    self.stack.temp_cpl_stack.temp_layer[i][folder_name, :])
-        np.savetxt(self.path_csv_data + 'Temperature Layer.csv',
-                   self.temp_layer, delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Coolant Temperature.csv',
-                   self.stack.temp_cpl_stack.temp_cool,
-                   delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Current Density.csv', self.stack.i_ca,
-                   delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Cathode Gas Temperature.csv',
-                   self.temp_fluid_cat, delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Anode Gas Temperature.csv',
-                   self.temp_fluid_ano, delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Cathode Channel Average Velocity.csv',
-                   self.u_gas_cat, delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Anode Channel Average Velocity.csv',
-                   self.u_gas_ano, delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Cathode Channel Pressure.csv',
-                   self.p_cat, delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Anode Channel Pressure.csv',
-                   self.p_ano, delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Oxygen Molar Flow.csv',
-                   self.mol_flow[0], delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Cathode Water Molar Flow.csv',
-                   self.mol_flow[1], delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Cathode Nitrogen Molar Flow.csv',
-                   self.mol_flow[2], delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Hydrogen Molar Flow.csv',
-                   self.mol_flow[3], delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Anode Water Molar Flow.csv',
-                   self.mol_flow[4], delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Oxygen Molar Concentration.csv',
-                   self.gas_con[0], delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Cathode Water Molar Concentration.csv',
-                   self.gas_con[1], delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Nitrogen Molar Concentration.csv',
-                   self.gas_con[2], delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Hydrogen Molar Concentration.csv',
-                   self.gas_con[3], delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Anode Water Molar Concentration.csv',
-                   self.gas_con[4], delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Oxygen Molar Fraction.csv',
-                   self.mol_f[0], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Cathode Water Molar Fraction.csv',
-                   self.mol_f[1], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Nitrogen Molar Fraction.csv',
-                   self.mol_f[2], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Hydrogen Molar Fraction.csv',
-                   self.mol_f[3], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Anode Water Molar Fraction.csv',
-                   self.mol_f[4], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Oxygen Mass Fraction.csv',
-                   self.mol_f[0], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Cathode Mass Fraction.csv',
-                   self.m_f[1], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Nitrogen Mass Fraction.csv',
-                   self.m_f[2], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Hydrogen Mass Fraction.csv',
-                   self.m_f[3], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Anode Water Mass Fraction.csv',
-                   self.m_f[4], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Cathode Activation Loss.csv',
-                   self.act_loss_cat, delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Anode Activation Loss.csv',
-                   self.act_loss_ano, delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Cathode Layer Diffusion Loss.csv',
-                   self.cl_diff_loss_cat, delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Anode Layer Diffusion Loss.csv',
-                   self.cl_diff_loss_ano, delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Cathode GDL Diffusion Loss.csv',
-                   self.gdl_diff_loss_cat, delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Anode GDL Diffusion ´Loss.csv',
-                   self.gdl_diff_loss_ano, delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Membrane Conductivity Loss.csv',
-                   self.mem_loss, delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Voltage Loss.csv', self.v_loss,
-                   delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Cell Voltage.csv', self.v_cell,
-                   delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Oxygen Heat Capacity.csv',
-                   self.cp[0], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Cathode Gas Water Heat Capacity.csv',
-                   self.cp[1], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Nitrogen Heat Capacity.csv',
-                   self.cp[2], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Hydrogen Heat Capacity.csv',
-                   self.cp[3], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Anode Gas Water Heat Capacity.csv',
-                   self.cp[4], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Oxygen Dynamic Viscosity.csv',
-                   self.visc[0], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(self.path_csv_data
-                   + 'Cathode Gas Water Dynamic Viscosity.csv',
-                   self.visc[1], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Nitrogen Dynamic Viscosity.csv',
-                   self.visc[2], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Hydrogen Dynamic Viscosity.csv',
-                   self.visc[3], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Anode Gas Water Dynamic Viscosity.csv',
-                   self.visc[4], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Oxygen Thermal Conductivity.csv',
-                   self.lambda_gas[0], delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data
-                   + 'Cathode Gas Water Thermal Conductivity.csv',
-                   self.lambda_gas[1], delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Nitrogen Thermal Conductivity.csv',
-                   self.lambda_gas[2], delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Hydrogen Thermal Conductivity.csv',
-                   self.lambda_gas[3], delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data
-                   + 'Anode Water Gas Thermal Conductivity.csv',
-                   self.lambda_gas[4], delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data
-                   + 'Cathode Channel Mixture Heat Capacity.csv',
-                   self.cp_gas_cat, delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data
-                   + 'Anode Channel Mixture Heat Capacity.csv',
-                   self.cp_gas_ano, delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data
-                   + 'Cathode Channel Mixture Gas Constant.csv',
-                   self.r_gas_cat, delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data
-                   + 'Anode Channel Mixture Gas Constant.csv',
-                   self.r_gas_ano, delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data
-                   + 'Cathode Channel Mixture Dynamic Viscosity.csv',
-                   self.visc_gas_cat,
-                   delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(self.path_csv_data
-                   + 'Anode Channel Mixture Dynamic Viscosity.csv',
-                   self.visc_gas_ano, delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data
-                   + 'Cathode Channel Mixture Heat Conductivity.csv',
-                   self.lambda_gas_cat, delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data
-                   + 'Anode Channel Mixture Heat Conductivity.csv',
-                   self.lambda_gas_ano, delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data
-                   + 'Cathode Channel Two Phase Heat Capacity.csv',
-                   self.cp_fluid_cat, delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data
-                   + 'Anode Channel Two Phase Heat Capacity.csv',
-                   self.cp_fluid_ano, delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Cathode Channel Gas Phase Density.csv',
-                   self.rho_gas_cat, delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Anode Channel Gas Phase Density.csv',
-                   self.rho_gas_cat, delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data
-                   + 'Cathode Channel Two Phase Mass Flow.csv',
-                   self.m_flow_fluid_cat, delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Anode Channel Two Phase Mass Flow.csv',
-                   self.m_flow_fluid_ano, delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data + 'Air Stoichiometry Distribution.csv',
-                   self.stoi_cat, delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data
-                   + 'Hydrogen Stoichiometry Distribution.csv',
-                   self.stoi_ano, delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data
-                   + 'Cathode Channel Heat Convection Coefficient.csv',
-                   self.ht_coef_cat, delimiter=self.delimiter,
-                   fmt=self.csv_format)
-        np.savetxt(self.path_csv_data
-                   + 'Anode Channel Heat Convection Coefficient.csv',
-                   self.ht_coef_ano, delimiter=self.delimiter,
-                   fmt=self.csv_format)
+
+        cells = fc_stack.cells
+        # Write cell values
+        for name, content in cells[0].print_data.items():
+            value = content['value']
+            var_array = \
+                g_func.construct_empty_stack_array(value, fc_stack.n_cells)
+            for i, cell in enumerate(cells):
+                var_array[i] = cell.print_data[name]['value']
+            file_name = name.replace(' ', '_') + '.csv'
+            file_path = os.path.join(path, file_name)
+            header = name + ', ' + 'Units: ' + content['units'].strip('$')
+            self.write_stack_array_to_csv(file_path, var_array,
+                                          header=header)
+
+            fig = plt.figure()
+
+
+
+        # Write half cell values
+        for i in range(len(cells[0].half_cells)):
+            electrode_name = cells[0].half_cells[i].name
+            for name, content in cells[0].half_cells[i].print_data.items():
+                value = content['value']
+                var_array = \
+                    g_func.construct_empty_stack_array(value, fc_stack.n_cells)
+                for j, cell in enumerate(cells):
+                    var_array[j] = cell.half_cells[i].print_data[name]['value']
+
+                file_name = electrode_name + '_' \
+                    + name.replace(' ', '_') + '.csv'
+                file_path = os.path.join(path, file_name)
+                header = electrode_name + ' ' + name + ', ' + 'Units: ' \
+                    + content['units'].strip('$')
+                self.write_stack_array_to_csv(file_path, var_array,
+                                              header=header)
+
+        # for i, item in enumerate(fc_stack.cells):
+        #     self.mol_flow[0, i] = item.cathode.mol_flow[0]
+        #     self.mol_flow[1, i] = item.cathode.mol_flow[1]
+        #     self.mol_flow[2, i] = item.cathode.mol_flow[2]
+        #     self.mol_flow[3, i] = item.anode.mol_flow[0]
+        #     self.mol_flow[4, i] = item.anode.mol_flow[1]
+        #     self.mol_flow[5, i] = item.anode.mol_flow[2]
+        #     self.gas_con[0, i] = item.cathode.gas_con[0]
+        #     self.gas_con[1, i] = item.cathode.gas_con[1]
+        #     self.gas_con[2, i] = item.cathode.gas_con[2]
+        #     self.gas_con[3, i] = item.anode.gas_con[0]
+        #     self.gas_con[4, i] = item.anode.gas_con[1]
+        #     self.gas_con[5, i] = item.anode.gas_con[2]
+        #     self.m_f[0, i] = item.cathode.mass_f[0]
+        #     self.m_f[1, i] = item.cathode.mass_f[1]
+        #     self.m_f[2, i] = item.cathode.mass_f[2]
+        #     self.m_f[3, i] = item.anode.mass_f[0]
+        #     self.m_f[4, i] = item.anode.mass_f[1]
+        #     self.m_f[5, i] = item.anode.mass_f[2]
+        #     self.mol_f[0, i] = item.cathode.mol_f[0]
+        #     self.mol_f[1, i] = item.cathode.mol_f[1]
+        #     self.mol_f[2, i] = item.cathode.mol_f[2]
+        #     self.mol_f[3, i] = item.anode.mol_f[0]
+        #     self.mol_f[4, i] = item.anode.mol_f[1]
+        #     self.mol_f[5, i] = item.anode.mol_f[2]
+        #     self.v_loss[i] = item.v_loss
+        #     self.v_cell[i] = item.v
+        #     self.cp[0, i] = item.cathode.cp[0]
+        #     self.cp[1, i] = item.cathode.cp[1]
+        #     self.cp[2, i] = item.cathode.cp[2]
+        #     self.cp[3, i] = item.anode.cp[0]
+        #     self.cp[4, i] = item.anode.cp[1]
+        #     self.cp[5, i] = item.anode.cp[2]
+        #     self.lambda_gas[0, i] = item.cathode.lambda_gas[0]
+        #     self.lambda_gas[1, i] = item.cathode.lambda_gas[1]
+        #     self.lambda_gas[2, i] = item.cathode.lambda_gas[2]
+        #     self.lambda_gas[3, i] = item.anode.lambda_gas[0]
+        #     self.lambda_gas[4, i] = item.anode.lambda_gas[1]
+        #     self.lambda_gas[5, i] = item.anode.lambda_gas[2]
+        #     self.visc[0, i] = item.cathode.visc[0]
+        #     self.visc[1, i] = item.cathode.visc[1]
+        #     self.visc[2, i] = item.cathode.visc[2]
+        #     self.visc[3, i] = item.anode.visc[0]
+        #     self.visc[4, i] = item.anode.visc[1]
+        #     self.visc[5, i] = item.anode.visc[2]
+        #     self.r_gas_cat[i] = item.cathode.r_gas
+        #     self.r_gas_ano[i] = item.anode.r_gas
+        #     self.cp_gas_cat[i] = item.cathode.cp_gas
+        #     self.cp_gas_ano[i] = item.anode.cp_gas
+        #     self.visc_gas_cat[i] = item.cathode.visc_gas
+        #     self.visc_gas_ano[i] = item.anode.visc_gas
+        #     self.lambda_gas_cat[i] = item.cathode.lambda_gas
+        #     self.lambda_gas_ano[i] = item.anode.lambda_gas
+        #     self.rho_gas_cat[i] = item.cathode.rho_gas
+        #     self.rho_gas_cat[i] = item.anode.rho_gas
+        #     self.u_gas_cat[i] = item.cathode.u
+        #     self.u_gas_ano[i] = item.anode.u
+        #     self.p_cat[i] = item.cathode.p
+        #     self.p_ano[i] = item.anode.p
+        #     self.ht_coef_cat[i] = item.cathode.ht_coef
+        #     self.ht_coef_ano[i] = item.anode.ht_coef
+        #     self.cp_fluid_cat[i] = item.cathode.cp_fluid
+        #     self.cp_fluid_ano[i] = item.anode.cp_fluid
+        #     self.m_flow_fluid_cat[i] = item.cathode.m_flow_fluid
+        #     self.m_flow_fluid_ano[i] = item.anode.m_flow_fluid
+        #     self.temp_fluid_cat[i] = item.cathode.temp_fluid
+        #     self.temp_fluid_ano[i] = item.anode.temp_fluid
+        #     self.stoi_cat[i] = item.cathode.stoi
+        #     self.stoi_ano[i] = item.anode.stoi
+        #     for folder_name in range(5):
+        #         self.temp_layer.append(
+        #             fc_stack.temp_cpl_stack.temp_layer[i][folder_name, :])
+        # np.savetxt(path + 'Temperature Layer.csv',
+        #            self.temp_layer, delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path + 'Coolant Temperature.csv',
+        #            fc_stack.temp_cpl_stack.temp_cool,
+        #            delimiter=self.delimiter, fmt=self.csv_format)
+        # np.savetxt(path + 'Current Density.csv', fc_stack.i_ca,
+        #            delimiter=self.delimiter, fmt=self.csv_format)
+        # np.savetxt(path + 'Cathode Gas Temperature.csv',
+        #            self.temp_fluid_cat, delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path + 'Anode Gas Temperature.csv',
+        #            self.temp_fluid_ano, delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path + 'Cathode Channel Average Velocity.csv',
+        #            self.u_gas_cat, delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path + 'Anode Channel Average Velocity.csv',
+        #            self.u_gas_ano, delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path + 'Cathode Channel Pressure.csv',
+        #            self.p_cat, delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path + 'Anode Channel Pressure.csv',
+        #            self.p_ano, delimiter=self.delimiter, fmt=self.csv_format)
+        # np.savetxt(path + 'Oxygen Molar Flow.csv',
+        #            self.mol_flow[0], delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path + 'Cathode Water Molar Flow.csv',
+        #            self.mol_flow[1], delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path + 'Cathode Nitrogen Molar Flow.csv',
+        #            self.mol_flow[2], delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path + 'Hydrogen Molar Flow.csv',
+        #            self.mol_flow[3], delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path + 'Anode Water Molar Flow.csv',
+        #            self.mol_flow[4], delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path + 'Oxygen Molar Concentration.csv',
+        #            self.gas_con[0], delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path + 'Cathode Water Molar Concentration.csv',
+        #            self.gas_con[1], delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path + 'Nitrogen Molar Concentration.csv',
+        #            self.gas_con[2], delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path + 'Hydrogen Molar Concentration.csv',
+        #            self.gas_con[3], delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path + 'Anode Water Molar Concentration.csv',
+        #            self.gas_con[4], delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path + 'Oxygen Molar Fraction.csv',
+        #            self.mol_f[0], delimiter=self.delimiter, fmt=self.csv_format)
+        # np.savetxt(path + 'Cathode Water Molar Fraction.csv',
+        #            self.mol_f[1], delimiter=self.delimiter, fmt=self.csv_format)
+        # np.savetxt(path + 'Nitrogen Molar Fraction.csv',
+        #            self.mol_f[2], delimiter=self.delimiter, fmt=self.csv_format)
+        # np.savetxt(path + 'Hydrogen Molar Fraction.csv',
+        #            self.mol_f[3], delimiter=self.delimiter, fmt=self.csv_format)
+        # np.savetxt(path + 'Anode Water Molar Fraction.csv',
+        #            self.mol_f[4], delimiter=self.delimiter, fmt=self.csv_format)
+        # np.savetxt(path + 'Oxygen Mass Fraction.csv',
+        #            self.mol_f[0], delimiter=self.delimiter, fmt=self.csv_format)
+        # np.savetxt(path + 'Cathode Mass Fraction.csv',
+        #            self.m_f[1], delimiter=self.delimiter, fmt=self.csv_format)
+        # np.savetxt(path + 'Nitrogen Mass Fraction.csv',
+        #            self.m_f[2], delimiter=self.delimiter, fmt=self.csv_format)
+        # np.savetxt(path + 'Hydrogen Mass Fraction.csv',
+        #            self.m_f[3], delimiter=self.delimiter, fmt=self.csv_format)
+        # np.savetxt(path + 'Anode Water Mass Fraction.csv',
+        #            self.m_f[4], delimiter=self.delimiter, fmt=self.csv_format)
+        # np.savetxt(path + 'Cathode Activation Loss.csv',
+        #            self.act_loss_cat, delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path + 'Anode Activation Loss.csv',
+        #            self.act_loss_ano, delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path + 'Cathode Layer Diffusion Loss.csv',
+        #            self.cl_diff_loss_cat, delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path + 'Anode Layer Diffusion Loss.csv',
+        #            self.cl_diff_loss_ano, delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path + 'Cathode GDL Diffusion Loss.csv',
+        #            self.gdl_diff_loss_cat, delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path + 'Anode GDL Diffusion ´Loss.csv',
+        #            self.gdl_diff_loss_ano, delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path + 'Membrane Conductivity Loss.csv',
+        #            self.mem_loss, delimiter=self.delimiter, fmt=self.csv_format)
+        # np.savetxt(path + 'Voltage Loss.csv', self.v_loss,
+        #            delimiter=self.delimiter, fmt=self.csv_format)
+        # np.savetxt(path + 'Cell Voltage.csv', self.v_cell,
+        #            delimiter=self.delimiter, fmt=self.csv_format)
+        # np.savetxt(path + 'Oxygen Heat Capacity.csv',
+        #            self.cp[0], delimiter=self.delimiter, fmt=self.csv_format)
+        # np.savetxt(path + 'Cathode Gas Water Heat Capacity.csv',
+        #            self.cp[1], delimiter=self.delimiter, fmt=self.csv_format)
+        # np.savetxt(path + 'Nitrogen Heat Capacity.csv',
+        #            self.cp[2], delimiter=self.delimiter, fmt=self.csv_format)
+        # np.savetxt(path + 'Hydrogen Heat Capacity.csv',
+        #            self.cp[3], delimiter=self.delimiter, fmt=self.csv_format)
+        # np.savetxt(path + 'Anode Gas Water Heat Capacity.csv',
+        #            self.cp[4], delimiter=self.delimiter, fmt=self.csv_format)
+        # np.savetxt(path + 'Oxygen Dynamic Viscosity.csv',
+        #            self.visc[0], delimiter=self.delimiter, fmt=self.csv_format)
+        # np.savetxt(path
+        #            + 'Cathode Gas Water Dynamic Viscosity.csv',
+        #            self.visc[1], delimiter=self.delimiter, fmt=self.csv_format)
+        # np.savetxt(path + 'Nitrogen Dynamic Viscosity.csv',
+        #            self.visc[2], delimiter=self.delimiter, fmt=self.csv_format)
+        # np.savetxt(path + 'Hydrogen Dynamic Viscosity.csv',
+        #            self.visc[3], delimiter=self.delimiter, fmt=self.csv_format)
+        # np.savetxt(path + 'Anode Gas Water Dynamic Viscosity.csv',
+        #            self.visc[4], delimiter=self.delimiter, fmt=self.csv_format)
+        # np.savetxt(path + 'Oxygen Thermal Conductivity.csv',
+        #            self.lambda_gas[0], delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path
+        #            + 'Cathode Gas Water Thermal Conductivity.csv',
+        #            self.lambda_gas[1], delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path + 'Nitrogen Thermal Conductivity.csv',
+        #            self.lambda_gas[2], delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path + 'Hydrogen Thermal Conductivity.csv',
+        #            self.lambda_gas[3], delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path
+        #            + 'Anode Water Gas Thermal Conductivity.csv',
+        #            self.lambda_gas[4], delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path
+        #            + 'Cathode Channel Mixture Heat Capacity.csv',
+        #            self.cp_gas_cat, delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path
+        #            + 'Anode Channel Mixture Heat Capacity.csv',
+        #            self.cp_gas_ano, delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path
+        #            + 'Cathode Channel Mixture Gas Constant.csv',
+        #            self.r_gas_cat, delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path
+        #            + 'Anode Channel Mixture Gas Constant.csv',
+        #            self.r_gas_ano, delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path
+        #            + 'Cathode Channel Mixture Dynamic Viscosity.csv',
+        #            self.visc_gas_cat,
+        #            delimiter=self.delimiter, fmt=self.csv_format)
+        # np.savetxt(path
+        #            + 'Anode Channel Mixture Dynamic Viscosity.csv',
+        #            self.visc_gas_ano, delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path
+        #            + 'Cathode Channel Mixture Heat Conductivity.csv',
+        #            self.lambda_gas_cat, delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path
+        #            + 'Anode Channel Mixture Heat Conductivity.csv',
+        #            self.lambda_gas_ano, delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path
+        #            + 'Cathode Channel Two Phase Heat Capacity.csv',
+        #            self.cp_fluid_cat, delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path
+        #            + 'Anode Channel Two Phase Heat Capacity.csv',
+        #            self.cp_fluid_ano, delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path + 'Cathode Channel Gas Phase Density.csv',
+        #            self.rho_gas_cat, delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path + 'Anode Channel Gas Phase Density.csv',
+        #            self.rho_gas_cat, delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path
+        #            + 'Cathode Channel Two Phase Mass Flow.csv',
+        #            self.m_flow_fluid_cat, delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path + 'Anode Channel Two Phase Mass Flow.csv',
+        #            self.m_flow_fluid_ano, delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path + 'Air Stoichiometry Distribution.csv',
+        #            self.stoi_cat, delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path
+        #            + 'Hydrogen Stoichiometry Distribution.csv',
+        #            self.stoi_ano, delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path
+        #            + 'Cathode Channel Heat Convection Coefficient.csv',
+        #            self.ht_coef_cat, delimiter=self.delimiter,
+        #            fmt=self.csv_format)
+        # np.savetxt(path
+        #            + 'Anode Channel Heat Convection Coefficient.csv',
+        #            self.ht_coef_ano, delimiter=self.delimiter,
+        #            fmt=self.csv_format)
 
     def plot_polarization_curve(self, voltage_loss,
                                 cell_voltages, target_current_density):

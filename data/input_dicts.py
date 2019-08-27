@@ -43,7 +43,7 @@ dict_cell = {
     }
 
 dict_cathode = {
-    'name': 'cathode',
+    'name': 'Cathode',
     'flow_direction': geom.cathode_flow_direction,
     'cell_width': geom.cell_width,
     'cell_length': geom.cell_length,
@@ -68,7 +68,7 @@ dict_cathode = {
     }
 
 dict_anode = {
-    'name': 'anode',
+    'name': 'Anode',
     'flow_direction': geom.anode_flow_direction,
     'cell_width': geom.cell_width,
     'cell_length': geom.cell_length,
@@ -93,7 +93,7 @@ dict_anode = {
     }
 
 dict_cathode_channel = {
-    'name': 'cathode channel',
+    'name': 'Cathode Channel',
     'channel_length': geom.channel_length,
     'p_out': op_con.p_manifold_cathode_out,
     'temp_in': op_con.temp_air_in,
@@ -107,7 +107,7 @@ dict_cathode_channel = {
     }
 
 dict_anode_channel = {
-    'name': 'anode channel',
+    'name': 'Anode Channel',
     'channel_length': geom.channel_length,
     'p_out': op_con.p_manifold_anode_out,
     'temp_in': op_con.temp_anode_gas_in,
@@ -121,7 +121,7 @@ dict_anode_channel = {
     }
 
 dict_mfold_cat = {
-    'name': 'cathode manifold',
+    'name': 'Cathode Manifold',
     'cell_number': geom.cell_number,
     'channel_number': geom.gas_channel_number,
     'header_width': geom.manifold_width,
@@ -140,7 +140,7 @@ dict_mfold_cat = {
     }
 
 dict_mfold_ano = copy.copy(dict_mfold_cat)
-dict_mfold_ano['name'] = 'anode manifold'
+dict_mfold_ano['name'] = 'Anode Manifold'
 dict_mfold_ano['p_out'] = op_con.p_manifold_anode_out
 
 dict_electrical_coupling =\
