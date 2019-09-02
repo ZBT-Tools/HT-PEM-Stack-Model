@@ -46,7 +46,7 @@ thermal_conductivity_bipolar_plate_x = 1.e2
 # thermal conductivity of the gde through plane  [W/(mK)]
 thermal_conductivity_gas_diffusion_electrode_z = 1.e0
 # thermal conductivity of the gde in plane  [W/(mK)]
-thermal_conductivity_gas_diffusion_electrode_x = 0.
+thermal_conductivity_gas_diffusion_electrode_x = 1.e0
 # thermal conductivity of the membrane through plane  [W/(mK)]
 thermal_conductivity_membrane_z = .26e0
 # thermal conductivity of the membrane in plane  [W/(mK)]

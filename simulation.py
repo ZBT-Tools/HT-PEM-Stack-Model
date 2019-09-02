@@ -291,9 +291,9 @@ class Simulation:
         Calculates the convergence criteria according to (Koh, 2003)
         """
         i_cd_vec = self.stack.i_cd.flatten()
-        self.i_ca_criteria = np.abs(np.sum(((self.stack.i_cd.flatten()
-                                             - self.stack.i_cd_old.flatten())
-                                            / self.stack.i_cd.flatten()) ** 2.))
+        self.i_ca_criteria = \
+            np.abs(np.sum(((i_cd_vec - self.stack.i_cd_old.flatten())
+                           / i_cd_vec) ** 2.))
         # self.temp_criteria =\
         #     np.abs(np.sum(((self.temp_old
         #                     - self.stack.temp_sys.temp_layer[0][0, 0]))
@@ -315,7 +315,6 @@ class Simulation:
         """
         #self.temp_old = self.stack.temp_sys.temp_layer[0][0, 0]
         self.temp_old[:] = self.stack.temp_sys.temp_layer_vec
-
 
 
 start = timeit.default_timer()

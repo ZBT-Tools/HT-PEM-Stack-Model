@@ -48,13 +48,13 @@ p_manifold_anode_out = 1.e5
 cathode_species = ['O2', 'N2', 'H2O']
 anode_species = ['H2', 'N2', 'H2O']
 # molar masses (kg/mol)
-cathode_molar_mass = [0.032, 0.018, 0.028]
-anode_molar_mass = [0.002, 0.018, 0.028]
+cathode_molar_mass = [0.032, 0.028, 0.018]
+anode_molar_mass = [0.002, 0.028, 0.018]
 # inlet composition (molar fractions)
 cathode_inlet_composition = [0.21, 0.79, 0.0]
 anode_inlet_composition = [0.5, 0.5, 0.0]
 # reaction stoichiometry
-cathode_reaction_stoich = [-1.0, 2.0, 0.0]
+cathode_reaction_stoich = [-1.0, 0.0, 2.0]
 anode_reaction_stoich = [-2.0, 0.0, 0.0]
 # reaction charge number
 cathode_charge_number = 4.0

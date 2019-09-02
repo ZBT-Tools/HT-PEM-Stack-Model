@@ -17,10 +17,10 @@ class Stack:
         # Handover
         self.n_cells = stack_dict['cell_number']
         # number of cells of the stack
-        self.stoi_cat = stack_dict['stoi_cat']
-        # inlet stoichiometry of the cathode header
-        self.stoi_ano = stack_dict['stoi_ano']
-        # inlet stoichiometry of the anode header
+        # self.stoi_cat = stack_dict['stoi_cat']
+        # # inlet stoichiometry of the cathode header
+        # self.stoi_ano = stack_dict['stoi_ano']
+        # # inlet stoichiometry of the anode header
         n_nodes = g_par.dict_case['nodes']
         # node points along the x-axis
         self.alpha_env = stack_dict['alpha_env']
@@ -35,16 +35,18 @@ class Stack:
         self.cells = []
         # list of the stack cells
         for i in range(self.n_cells):
-            self.cells.append(cl.Cell(cell_dict, anode_dict, cathode_dict,
+            name = 'Cell ' + str(i+1)
+            self.cells.append(cl.Cell(name, cell_dict, anode_dict, cathode_dict,
                                       ano_channel_dict, cat_channel_dict))
-        self.set_stoichiometry(np.full(self.n_cells, self.stoi_cat),
-                               np.full(self.n_cells, self.stoi_ano))
+
+        # self.set_stoichiometry(np.full(self.n_cells, self.stoi_cat),
+        #                        np.full(self.n_cells, self.stoi_ano))
 
         # Initialize the manifolds
         self.manifold = [m_fold.Manifold(cat_manifold_dict),
                          m_fold.Manifold(ano_manifold_dict)]
-        self.manifold[0].head_stoi = self.stoi_cat
-        self.manifold[1].head_stoi = self.stoi_ano
+        self.manifold[0].head_stoi = self.cells[0].cathode.stoi
+        self.manifold[1].head_stoi = self.cells[0].anode.stoi
 
         # Initialize the electrical coupling
         self.el_cpl_stack = el_cpl.ElectricalCoupling(electrical_dict)
@@ -117,7 +119,7 @@ class Stack:
         self.cp_h2 = np.full((self.n_cells, n_nodes), 0.)
         k_p, k_g, k_m = [], [], []
         k_pp, k_gp, k_gm = [], [], []
-        for i, item in enumerate(self.cells):
+        for i, cell in enumerate(self.cells):
             k_p = np.hstack((k_p, self.cells[i].k_bpp_z))
             k_g = np.hstack((k_g, self.cells[i].k_gde_z))
             k_m = np.hstack((k_m, self.cells[i].k_mem_z))
@@ -136,16 +138,16 @@ class Stack:
                * self.cells[0].width_channels)
         k_alpha_env = np.full((2, 3, self.n_cells), 0.)
         # convection conductance to the environment
-        for q, item in enumerate(self.cells):
-            avg_dx = np.average(item.cathode.channel.dx)
-            k_alpha_env[0, 1, q] =\
+        for i, cell in enumerate(self.cells):
+            avg_dx = np.average(cell.cathode.channel.dx)
+            k_alpha_env[0, 1, i] =\
                 .5 * self.alpha_env * avg_dx\
-                * (item.cathode.th_bpp + item.cathode.th_gde) / fac
-            k_alpha_env[0, 0, q] =\
+                * (cell.cathode.th_bpp + cell.cathode.th_gde) / fac
+            k_alpha_env[0, 0, i] =\
                 .5 * (self.alpha_env * avg_dx
-                      * (item.cathode.th_bpp + item.th_mem)) / fac
-            k_alpha_env[0, 2, q] = \
-                self.alpha_env * avg_dx * item.cathode.th_bpp / fac
+                      * (cell.cathode.th_bpp + cell.th_mem)) / fac
+            k_alpha_env[0, 2, i] = \
+                self.alpha_env * avg_dx * cell.cathode.th_bpp / fac
         # Initialize the thermal coupling
         temperature_dict['k_layer'] = k_layer
         temperature_dict['k_alpha_env'] = k_alpha_env
@@ -155,11 +157,11 @@ class Stack:
         """
         This function coordinates the program sequence
         """
-        for i in range(self.n_cells):
+        for i, cell in enumerate(self.cells):
             #self.cells[j].set_current_density(self.i_cd[j, :])
-            self.cells[i].i_cd[:] = self.i_cd[i, :]
-            self.cells[i].update()
-            if self.cells[i].break_program:
+            cell.i_cd[:] = self.i_cd[i, :]
+            cell.update()
+            if cell.break_program:
                 self.break_program = True
                 break
         if not self.break_program:

@@ -7,14 +7,15 @@ import system.interpolation as ip
 
 class Cell:
 
-    def __init__(self, cell_dict, anode_dict, cathode_dict,
+    def __init__(self, name, cell_dict, anode_dict, cathode_dict,
                  ano_channel_dict, cat_channel_dict):
         self.cell_dict = cell_dict
         # Handover
+        self.name = name
         self.anode = h_c.HalfCell(anode_dict, cell_dict, ano_channel_dict)
         # anode - object of the class HalfCell
         self.cathode = h_c.HalfCell(cathode_dict, cell_dict, cat_channel_dict)
-        self.half_cells = [self.anode, self.cathode]
+        self.half_cells = [self.cathode, self.anode]
         # cathode - object of the class HalfCell
         self.th_mem = cell_dict['th_mem']
         # thickness membrane
@@ -139,8 +140,8 @@ class Cell:
         if not is_ht_pem:
             self.cathode.is_ht_pem = False
             self.anode.is_ht_pem = False
-            self.cathode.w_cross_flow = self.w_cross_flow
-            self.anode.w_cross_flow = self.w_cross_flow
+            self.cathode.w_cross_flow[:] = self.w_cross_flow
+            self.anode.w_cross_flow[:] = self.w_cross_flow
         self.cathode.i_cd[:] = self.i_cd
         self.anode.i_cd[:] = self.i_cd
         # self.cathode.set_layer_temperature([self.temp[2], self.temp[3],
@@ -173,7 +174,7 @@ class Cell:
         humidity_ele = \
             np.array([ip.interpolate_1d(humidity[0]),
                       ip.interpolate_1d(humidity[1])])
-
+        print(humidity)
         water_content = 0.043 + 17.81 * humidity_ele \
             - 39.85 * humidity_ele ** 2. + 36. * humidity_ele ** 3.
         zeta_plus = water_content[0] + water_content[1] \
@@ -186,7 +187,7 @@ class Cell:
             / (1. + dw * zeta_plus / (self.th_mem * vap_coeff))
         m_c = 0.5 * (zeta_plus + zeta_negative)
         m_a = 0.5 * (zeta_plus - zeta_negative)
-        self.w_cross_flow[:] = \
+        self.w_cross_flow = \
             self.i_cd / g_par.dict_uni['F'] + g_par.dict_case['mol_con_m'] \
             * dw * (m_a ** 2. - m_c ** 2.) / (2. * self.th_mem)
 

@@ -548,8 +548,8 @@ class Output:
             self.clean_directory(csv_path)
         if not os.path.exists(plot_path):
             os.makedirs(plot_path)
-        else:
-            self.clean_directory(plot_path)
+        # else:
+        #    self.clean_directory(plot_path)
 
         cells = fc_stack.cells
         x_node = cells[0].cathode.channel.x
