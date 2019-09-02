@@ -42,8 +42,7 @@ class Simulation:
         # node points of the x-grid
 
         """General variables"""
-        self.temp_old = None
-        # defined temperature of the last iteration
+
         self.mfd_cat_criteria = []
         # array of the cathodic mdf criteria over the iterations
         self.mfd_ano_criteria = []
@@ -186,6 +185,9 @@ class Simulation:
                                  temperature_dict)
         self.output = output.Output(output_dict)
 
+        self.temp_old = np.zeros_like(self.stack.temp_sys.temp_layer_vec)
+        # defined temperature of the last iteration
+
     # @do_c_profile
     def update(self):
         """
@@ -288,13 +290,18 @@ class Simulation:
         """
         Calculates the convergence criteria according to (Koh, 2003)
         """
+        i_cd_vec = self.stack.i_cd.flatten()
         self.i_ca_criteria = np.abs(np.sum(((self.stack.i_cd.flatten()
                                              - self.stack.i_cd_old.flatten())
                                             / self.stack.i_cd.flatten()) ** 2.))
+        # self.temp_criteria =\
+        #     np.abs(np.sum(((self.temp_old
+        #                     - self.stack.temp_sys.temp_layer[0][0, 0]))
+        #                   / self.stack.temp_sys.temp_layer[0][0, 0]))
         self.temp_criteria =\
             np.abs(np.sum(((self.temp_old
-                            - self.stack.temp_sys.temp_layer[0][0, 0]))
-                          / self.stack.temp_sys.temp_layer[0][0, 0]))
+                            - self.stack.temp_sys.temp_layer_vec)
+                          / self.stack.temp_sys.temp_layer_vec) ** 2.0))
 
         self.temp_criteria_process.append(self.temp_criteria)
         self.mfd_cat_criteria.append(self.stack.manifold[0].criteria)
@@ -303,10 +310,12 @@ class Simulation:
 
     def save_old_value(self):
         """
-        Saves an defined temperature value of the current iteration
+        Saves a defined temperature value of the current iteration
         as the old temperature value for the next iteration.
         """
-        self.temp_old = self.stack.temp_sys.temp_layer[0][0, 0]
+        #self.temp_old = self.stack.temp_sys.temp_layer[0][0, 0]
+        self.temp_old[:] = self.stack.temp_sys.temp_layer_vec
+
 
 
 start = timeit.default_timer()

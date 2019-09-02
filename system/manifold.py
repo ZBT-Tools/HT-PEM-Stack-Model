@@ -219,11 +219,12 @@ class Manifold:
         """
         # it should be considered to use self.head_visc
         #  here for the molar fraction and molar mass is needed
-        for q in range(2):
-            self.head_Re[q] = g_func.calc_reynolds_number(self.head_density[q],
-                                                          self.head_u[q],
-                                                          self.hydraulic_diameter,
-                                                          self.cell_visc[q])
+        for i in range(2):
+            self.head_Re[i] = \
+                g_func.calc_reynolds_number(self.head_density[i],
+                                            self.head_u[i],
+                                            self.hydraulic_diameter,
+                                            self.cell_visc[i])
 
     def calc_header_fanning_friction_factor(self):
         """
@@ -234,8 +235,8 @@ class Manifold:
             - self.head_fan_fri, 2-D-array, [head inlet/outlet][cell number]
         """
 
-        for q in range(2):
-            self.head_fan_fri[q] = g_func.calc_fan_fri_fac(self.head_Re[q])
+        for i in range(2):
+            self.head_fan_fri[i] = g_func.calc_fan_fri_fac(self.head_Re[i])
 
     def calc_header_p_out(self):
         """

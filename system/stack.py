@@ -59,9 +59,9 @@ class Stack:
         self.i_cd = np.full((self.n_cells, n_nodes - 1),
                             g_par.dict_case['tar_cd'])
         # current density
-        self.i_cd_old = copy.deepcopy(self.i_cd)
+        self.i_cd_old = np.copy(self.i_cd)
         # current density of the last iteration
-        self.i = np.full((self.n_cells, n_nodes - 1), 20.)
+        #self.i = np.full((self.n_cells, n_nodes - 1), 20.)
         # current
         self.v_cell = []
         # cell voltage
@@ -169,7 +169,7 @@ class Stack:
             if self.n_cells > 1:
                 if self.calc_flow_dis:
                     self.update_flows()
-            self.i_cd_old = copy.deepcopy(self.i_cd)
+            self.i_cd_old[:] = self.i_cd
             if self.calc_cd:
                 self.update_electrical_coupling()
         #print('Current density', self.i_cd)
@@ -348,15 +348,16 @@ class Stack:
         This function sets up the inlet pressure
         of the cathode and the anode channels.
         """
-        for i, item in enumerate(self.cells):
-            item.cathode.channel.p_out = p_cat[i]
-            item.anode.channel.p_out = p_ano[i]
+        for i, cell in enumerate(self.cells):
+            cell.cathode.channel.p_out = p_cat[i]
+            cell.anode.channel.p_out = p_ano[i]
 
     def set_temperature(self):
         """
         This function sets up the layer and fluid temperatures in the cells.
         """
-        for i, item in enumerate(self.cells):
-            item.temp[:] = self.temp_sys.temp_layer[i][0:5, :]
-            item.cathode.temp_fluid[:] = self.temp_sys.temp_fluid[0, i]
-            item.anode.temp_fluid[:] = self.temp_sys.temp_fluid[1, i]
+        for i, cell in enumerate(self.cells):
+            cell.temp_layer[:] = self.temp_sys.temp_layer[i][0:5, :]
+            cell.cathode.temp_fluid[:] = self.temp_sys.temp_fluid[0, i]
+            cell.anode.temp_fluid[:] = self.temp_sys.temp_fluid[1, i]
+            cell.temp_cool[:] = self.temp_sys.temp_cool_ele[i]

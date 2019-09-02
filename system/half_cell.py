@@ -89,7 +89,7 @@ class HalfCell:
         # exchange current densisty
         self.index_cat = n_nodes - 1
         # index of the first element with negative cell voltage
-        self.i_ca_char = self.prot_con_cl * self.tafel_slope / self.th_cl
+        self.i_cd_char = self.prot_con_cl * self.tafel_slope / self.th_cl
         # not sure if the name is ok, i_ca_char is the characteristic current
         # densisty, see (Kulikovsky, 2013)
         self.act_loss = np.zeros(n_ele)
@@ -102,10 +102,6 @@ class HalfCell:
         # sum of the activation and diffusion voltage loss
         self.beta = np.zeros(n_ele)
         # dimensionless parameter
-        self.var = np.zeros(n_ele)
-        # term used in multiple functions
-        self.i_ca_square = np.zeros(n_ele)
-        # current density squared
 
         """general parameter"""
         area_fac = self.cell_length * self.cell_width\
@@ -180,7 +176,7 @@ class HalfCell:
         self.mass_fraction_gas = np.array(self.mass_fraction)
 
         # mass fraction of the species in the gas phase
-        self.r_gas = np.array(self.mol_flow)
+        self.r_gas = np.full(n_nodes, 0.)
         # gas constant of the gas phase
         self.r_species = np.full(self.n_species, 0.)
         # gas constant of the species
@@ -200,19 +196,34 @@ class HalfCell:
         # heat conductivity between the gas phase and the channel
         self.cp_gas_ele = np.zeros(n_ele)
         # element based heat capacity
-        self.lambda_gas = np.zeros(n_ele)
+        self.lambda_gas = np.zeros(n_nodes)
+        self.lambda_gas_ele = np.zeros(n_ele)
         # heat conductivity of the gas phase
         # self.Pr = np.zeros(n_ele)
         # prandtl number of the gas phase
         for i, item in enumerate(self.mol_mass):
             self.r_species[i] = g_par.dict_uni['R'] / item
 
-        self.print_data = \
+        self.print_data = [
             {
-                'Mol Fraction': {'value': self.mol_fraction, 'units': '-'},
-                'Gas Mol Fraction': {'value': self.mol_fraction_gas,
-                                     'units': '-'}
-            }
+                'Fluid Temperature': {'value': self.temp_fluid, 'units': 'K'}
+            },
+            {
+                'Mol Fraction': {self.species_names[i]:
+                                 {'value': self.mol_fraction[i], 'units': '-'}
+                                 for i in range(len(self.mol_fraction))},
+                'Mol Flow': {self.species_names[i]:
+                             {'value': self.mol_flow[i], 'units': 'mol/s'}
+                             for i in range(len(self.mol_fraction))},
+                'Gas Mol Fraction':
+                    {self.species_names[i]:
+                     {'value': self.mol_fraction_gas[i], 'units': '-'}
+                     for i in range(len(self.mol_fraction_gas))},
+                'Gas Mol Flow':
+                    {self.species_names[i]:
+                     {'value': self.mol_flow_gas[i], 'units': 'mol/s'}
+                     for i in range(len(self.mol_flow_gas))}
+            }]
 
     def update(self):
         """
@@ -246,17 +257,17 @@ class HalfCell:
     def update_voltage_loss(self):
         self.calc_electrode_loss()
 
-    def set_layer_temperature(self, var):
-        """
-        This function sets the layer Temperatures,
-        they can be obtained from the temperature system.
-        """
-        var = ip.interpolate_along_axis(np.array(var), axis=1,
-                                        add_edge_points=True)
-        if self.is_cathode:
-            self.temp = np.array([var[0], var[1], var[2]])
-        else:
-            self.temp = np.array([var[0], var[1]])
+    # def set_layer_temperature(self, var):
+    #     """
+    #     This function sets the layer Temperatures,
+    #     they can be obtained from the temperature system.
+    #     """
+    #     var = ip.interpolate_along_axis(np.array(var), axis=1,
+    #                                     add_edge_points=True)
+    #     if self.is_cathode:
+    #         self.temp = np.array([var[0], var[1], var[2]])
+    #     else:
+    #         self.temp = np.array([var[0], var[1]])
 
     def calc_reac_flow(self):
         """
@@ -272,7 +283,8 @@ class HalfCell:
         g_func.add_source(self.mol_flow[self.id_reac], dmol,
                           self.flow_direction)
         self.mol_flow[self.id_inert] = \
-            self.mol_flow[self.id_reac][self.ele_in] * self.inert_reac_ratio
+            self.mol_flow[self.id_inert][self.ele_in]
+        print(self.mol_flow[self.id_inert])
 
     def calc_water_flow(self):
         """"
@@ -302,9 +314,10 @@ class HalfCell:
         """
         Calculates the relevant mass flows
         """
-        self.mass_flow = (self.mol_flow.transpose() * self.mol_mass).transpose()
-        self.mass_flow_total = np.sum(self.mass_flow, axis=0)
-        self.mass_flow_total = np.sum(self.mass_flow, axis=0)
+        self.mass_flow[:] = (self.mol_flow.transpose()
+                             * self.mol_mass).transpose()
+        self.mass_flow_total[:] = np.sum(self.mass_flow, axis=0)
+        self.mass_flow_total[:] = np.sum(self.mass_flow, axis=0)
 
     def calc_pressure(self):
         """
@@ -358,7 +371,7 @@ class HalfCell:
         dry_air_mol_flow = np.copy(self.mol_flow)
         dry_air_mol_flow[self.id_h2o] = 0.0
         dry_air_fraction = self.calc_fraction(dry_air_mol_flow)
-        self.gas_conc = conc
+        self.gas_conc[:] = conc
         self.gas_conc[self.id_reac] = \
             np.where(self.gas_conc[self.id_h2o] > sat_conc,
                      (total_mol_conc - sat_conc)
@@ -378,19 +391,19 @@ class HalfCell:
         """
         Calculates the condensed phase flow and updates mole and mass fractions
         """
-        self.mol_flow_liq = np.zeros_like(self.mol_flow)
+        self.mol_flow_liq[:] = np.zeros_like(self.mol_flow)
         self.mol_flow_liq[self.id_h2o] = self.mol_flow[self.id_h2o] \
             - self.gas_conc[self.id_h2o] / \
             self.gas_conc[self.id_reac] * self.mol_flow[self.id_reac]
-        self.mass_flow_liq = np.zeros_like(self.mass_flow)
+        self.mass_flow_liq[:] = np.zeros_like(self.mass_flow)
         self.mass_flow_liq[self.id_h2o] = \
             self.mol_flow_liq[self.id_h2o] * self.mol_mass[self.id_h2o]
-        self.mol_flow_gas = self.mol_flow - self.mol_flow_liq
-        self.mass_flow_gas = self.mass_flow - self.mass_flow_liq
-        self.mol_flow_gas_total = np.sum(self.mol_flow_gas, axis=0)
-        self.mass_flow_gas_total = np.sum(self.mass_flow_gas, axis=0)
-        self.mol_fraction_gas = self.calc_fraction(self.mol_flow_gas)
-        self.mass_fraction_gas = self.calc_fraction(self.mass_flow_gas)
+        self.mol_flow_gas[:] = self.mol_flow - self.mol_flow_liq
+        self.mass_flow_gas[:] = self.mass_flow - self.mass_flow_liq
+        self.mol_flow_gas_total[:] = np.sum(self.mol_flow_gas, axis=0)
+        self.mass_flow_gas_total[:] = np.sum(self.mass_flow_gas, axis=0)
+        self.mol_fraction_gas[:] = self.calc_fraction(self.mol_flow_gas)
+        self.mass_fraction_gas[:] = self.calc_fraction(self.mass_flow_gas)
 
     def calc_species_properties(self):
         """
@@ -424,19 +437,20 @@ class HalfCell:
         """
         Calculates the properties of the gas phase
         """
-        self.r_gas = \
-            np.sum(self.mass_fraction_gas.transpose() * self.r_species, axis=1)
-        self.cp_gas = \
+        self.cp_gas[:] = \
             np.sum(self.mass_fraction_gas * self.cp, axis=0)
-        self.cp_gas_ele = ip.interpolate_1d(self.cp_gas)
-        self.visc_gas = \
+        self.cp_gas_ele[:] = ip.interpolate_1d(self.cp_gas)
+        self.visc_gas[:] = \
             g_func.calc_visc_mix(self.visc, self.mol_fraction_gas,
                                  self.mol_mass)
-        self.lambda_gas = \
+        self.lambda_gas[:] = \
             g_func.calc_lambda_mix(self.lambdas, self.mol_fraction_gas,
                                    self.visc, self.mol_mass)
-        self.lambda_gas_ele = ip.interpolate_1d(self.lambda_gas)
-        self.rho_gas = g_func.calc_rho(self.p, self.r_gas, self.temp_fluid)
+        self.lambda_gas_ele[:] = ip.interpolate_1d(self.lambda_gas)
+        self.r_gas[:] = \
+            np.sum(self.mass_fraction_gas.transpose() * self.r_species, axis=1)
+        self.rho_gas[:] = g_func.calc_rho(self.p, self.r_gas,
+                                             self.temp_fluid)
         # self.Pr = self.visc_gas * self.cp_gas / self.lambda_gas
 
     def calc_flow_velocity(self):
@@ -444,18 +458,18 @@ class HalfCell:
         Calculates the gas phase velocity.
         The gas phase velocity is taken to be the liquid water velocity as well.
         """
-        self.vol_flow_gas = self.mass_flow_gas_total / self.rho_gas
-        self.u = self.vol_flow_gas / self.channel.cross_area
+        self.vol_flow_gas[:] = self.mass_flow_gas_total / self.rho_gas
+        self.u[:] = self.vol_flow_gas / self.channel.cross_area
 
     def calc_fluid_properties(self):
         """
         Calculate the fluid flow properties
         """
         cp_liq = g_par.dict_case['cp_liq']
-        self.cp_fluid = \
+        self.cp_fluid[:] = \
             ((self.mass_flow_total - self.mass_flow_gas_total) * cp_liq
              + self.mass_flow_gas_total * self.cp_gas) / self.mass_flow_total
-        self.g_fluid = self.mass_flow_total * self.cp_fluid
+        self.g_fluid[:] = self.mass_flow_total * self.cp_fluid
 
     def calc_heat_transfer_coeff(self):
         """
@@ -467,8 +481,8 @@ class HalfCell:
         """
         nusselt = 3.66
         chl = self.channel
-        self.ht_coeff = self.lambda_gas_ele * nusselt / chl.d_h
-        self.k_ht_coeff_ca = \
+        self.ht_coeff[:] = self.lambda_gas_ele * nusselt / chl.d_h
+        self.k_ht_coeff_ca[:] = \
             self.ht_coeff * chl.dx * 2.0 * (chl.width + chl.height)
 
     def calc_cond_rates(self):
@@ -476,7 +490,7 @@ class HalfCell:
         Calculates the molar condensation rate of water in the channel.
         """
         cond_rate_ele = np.ediff1d(self.mol_flow_liq[self.id_h2o])
-        self.cond_rate = \
+        self.cond_rate[:] = \
             self.flow_direction * ip.interpolate_1d(cond_rate_ele,
                                                     add_edge_points=True)
 
@@ -487,53 +501,42 @@ class HalfCell:
         # self.humidity = self.gas_con[1] * g_par.dict_uni['R'] \
         #     * self.temp_fluid / w_prop.water.calc_p_sat(self.temp_fluid)
         p_sat = w_prop.water.calc_p_sat(self.temp_fluid)
-        self.humidity = self.mol_fraction_gas[1] * self.p / p_sat
-
-    def calc_voltage_losses_parameter(self):
-        """
-        Calculates multiply used supporting parameters
-        to calculate the voltage loss according to (Kulikovsky, 2013).
-        """
-        i_lim = 4. * g_par.dict_uni['F'] * self.gas_conc[0, :-1] \
-            * self.diff_coeff_gdl / self.th_gdl
-        self.var = \
-            1. - self.i_cd / (i_lim * self.reac_con_ele / self.gas_conc[0, :-1])
-        self.i_ca_square = np.square(self.i_cd)
+        self.humidity[:] = self.mol_fraction_gas[1] * self.p / p_sat
 
     def calc_activation_loss(self):
         """
         Calculates the activation voltage loss,
         according to (Kulikovsky, 2013).
         """
-        self.act_loss = self.tafel_slope \
+        self.act_loss[:] = self.tafel_slope \
             * np.arcsinh((self.i_cd / self.i_sigma) ** 2.
                          / (2. * (self.reac_con_ele / self.gas_conc[0, :-1])
                             * (1. - np.exp(-self.i_cd /
-                                           (2. * self.i_ca_char)))))
+                                           (2. * self.i_cd_char)))))
 
-    def calc_transport_loss_catalyst_layer(self):
+    def calc_transport_loss_catalyst_layer(self, var):
         """
         Calculates the diffusion voltage loss in the catalyst layer
         according to (Kulikovsky, 2013).
         """
-        i_hat = self.i_cd / self.i_ca_char
+        i_hat = self.i_cd / self.i_cd_char
         short_save = np.sqrt(2. * i_hat)
         beta = short_save / (1. + np.sqrt(1.12 * i_hat) * np.exp(short_save))\
             + np.pi * i_hat / (2. + i_hat)
-        self.cl_diff_loss = \
+        self.cl_diff_loss[:] = \
             ((self.prot_con_cl * self.tafel_slope ** 2.)
              / (4. * g_par.dict_uni['F']
                 * self.diff_coeff_cl * self.reac_con_ele)
-                * (self.i_cd / self.i_ca_char
-                   - np.log10(1. + self.i_ca_square /
-                              (self.i_ca_char ** 2. * beta ** 2.)))) / self.var
+             * (self.i_cd / self.i_cd_char
+                - np.log10(1. + np.square(self.i_cd) /
+                           (self.i_cd_char ** 2. * beta ** 2.)))) / var
 
-    def calc_transport_loss_diffusion_layer(self):
+    def calc_transport_loss_diffusion_layer(self, var):
         """
         Calculates the diffusion voltage loss in the gas diffusion layer
         according to (Kulikovsky, 2013).
         """
-        self.gdl_diff_loss = -self.tafel_slope * np.log10(self.var)
+        self.gdl_diff_loss[:] = -self.tafel_slope * np.log10(var)
         nan_list = np.isnan(self.gdl_diff_loss)
         if nan_list.any():
             self.gdl_diff_loss[np.argwhere(nan_list)[0, 0]:] = 1.e50
@@ -542,14 +545,17 @@ class HalfCell:
         """
         Calculates the full voltage losses of the electrode
         """
-        self.calc_voltage_losses_parameter()
+        i_lim = 4. * g_par.dict_uni['F'] * self.gas_conc[0, :-1] \
+            * self.diff_coeff_gdl / self.th_gdl
+        var = 1. - self.i_cd \
+            / (i_lim * self.reac_con_ele / self.gas_conc[0, :-1])
         self.calc_activation_loss()
-        self.calc_transport_loss_catalyst_layer()
-        self.calc_transport_loss_diffusion_layer()
+        self.calc_transport_loss_catalyst_layer(var)
+        self.calc_transport_loss_diffusion_layer(var)
         if not self.calc_gdl_diff_loss:
-            self.gdl_diff_loss = 0.
+            self.gdl_diff_loss[:] = 0.
         if not self.calc_cl_diff_loss:
-            self.cl_diff_loss = 0.
+            self.cl_diff_loss[:] = 0.
         if not self.calc_act_loss:
-            self.act_loss = 0.
-        self.v_loss = self.act_loss + self.cl_diff_loss + self.gdl_diff_loss
+            self.act_loss[:] = 0.
+        self.v_loss[:] = self.act_loss + self.cl_diff_loss + self.gdl_diff_loss
