@@ -46,7 +46,6 @@ class HalfCell:
         # check if the object is an anode or a cathode
         # catalyst layer specific handover
         self.inlet_composition = halfcell_dict['inlet_composition']
-        #print(self.inlet_composition)
         self.inert_reac_ratio = \
             self.inlet_composition[self.id_inert] \
             / self.inlet_composition[self.id_fuel]

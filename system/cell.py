@@ -174,7 +174,6 @@ class Cell:
         humidity_ele = \
             np.array([ip.interpolate_1d(humidity[0]),
                       ip.interpolate_1d(humidity[1])])
-        print(humidity)
         water_content = 0.043 + 17.81 * humidity_ele \
             - 39.85 * humidity_ele ** 2. + 36. * humidity_ele ** 3.
         zeta_plus = water_content[0] + water_content[1] \

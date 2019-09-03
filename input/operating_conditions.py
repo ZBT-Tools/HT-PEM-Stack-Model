@@ -11,13 +11,13 @@ open_circuit_voltage = 1.00
 # cathode stoichiometry
 stoichiometry_cathode = 2.
 # anode stoichiometry
-stoichiometry_anode = 2.
+stoichiometry_anode = 200.
 # pem-type (True = HT-PEM, False = NT-PEM)
 is_ht_pem = False
 
 """"Thermal Settings"""
 # mass flow of the coolant per channel [kg/s]
-mass_flow_coolant = 1.e-3
+mass_flow_coolant = 1.e-2
 # air inlet temperature [K]
 temp_air_in = 340.
 # anode gas inlet temperature [K]

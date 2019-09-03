@@ -59,8 +59,8 @@ thermal_conductivity_coolant = 0.22
 density_coolant = 1052.
 # dynamic viscosity of the coolant
 dynamic_viscosity_coolant = 56.e-3
-# convection coefficient between the stack walls and the environment [W/(Km^2)]
-convection_coefficient_stack_environment = 0.
+# convection coefficient between the stack walls and the environment [W/(m^2K)]
+convection_coefficient_stack_environment = 10.0
 
 
 

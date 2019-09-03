@@ -394,16 +394,13 @@ class TemperatureSystem:
         self.temp_fluid[1].fill(self.temp_gas_in[1])
         self.temp_fluid_ele[0].fill(self.temp_gas_in[0])
         self.temp_fluid_ele[1].fill(self.temp_gas_in[1])
-
         for i in range(self.n_cells):
-
             dtemp = self.k_gas_ch[0, i] / self.g_fluid[0, i] \
                 * (self.temp_layer[i][1, :] - self.temp_fluid_ele[0, i])
             g_func.add_source(self.temp_fluid[0, i], dtemp, 1)
             temp_fluid_ele = ip.interpolate_1d(self.temp_fluid[0, i])
             self.temp_fluid_ele[0, i] = \
                 np.minimum(temp_fluid_ele, self.temp_layer[i][0])
-
             dtemp = self.k_gas_ch[1, i] / self.g_fluid[1, i] \
                 * (self.temp_layer[i][4, :] - self.temp_fluid_ele[1, i])
             g_func.add_source(self.temp_fluid[1, i], dtemp, -1)
@@ -449,7 +446,6 @@ class TemperatureSystem:
         rhs = self.rhs
         temp_env = self.temp_env
         k_alpha_env = self.k_alpha_env
-
         ct = 0
         for i in range(self.n_cells):
             for j in range(self.n_ele):
@@ -490,6 +486,7 @@ class TemperatureSystem:
                         rhs[ct + 5] -= self.k_cool * self.temp_cool_ele[-1, j]
                     cr = 6
                 ct += cr
+        #print('after:', self.rhs)
 
     # @jit(nopython=True)
     def update_matrix(self):
