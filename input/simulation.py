@@ -6,7 +6,7 @@ elements = 10
 # convergence criteria of the simulation
 convergence_criteria = 1.e-6
 # maximal number of iterations
-maximal_number_iteration = 100
+maximal_number_iteration = 50
 # output csv data
 save_csv_data = True
 # output plots

@@ -191,8 +191,11 @@ class Simulation:
         """
         This function coordinates the program sequence
         """
-        for i, item in enumerate(op_con.target_current_density):
-            g_par.dict_case['tar_cd'] = op_con.target_current_density[i]
+        target_current_density = op_con.target_current_density
+        if not isinstance(target_current_density, (list, tuple, np.ndarray)):
+            target_current_density = [target_current_density]
+        for i, tar_cd in enumerate(target_current_density):
+            g_par.dict_case['tar_cd'] = tar_cd
             self.stack = st.Stack(st_dict.dict_stack)
             statement = True
             counter = 0
@@ -202,7 +205,7 @@ class Simulation:
                 if self.stack.break_program is True:
                     break
                 self.calc_convergence_criteria()
-                if len(op_con.target_current_density) < 1:
+                if len(target_current_density) < 1:
                     print(counter)
                 counter = counter + 1
                 if ((self.i_ca_criteria < self.it_crit
@@ -220,11 +223,11 @@ class Simulation:
                 if self.save_csv is True:
                     self.output_csv(str(i))
             else:
-                op_con.target_current_density = \
-                    op_con.target_current_density[0:-i]
+                target_current_density = \
+                    target_current_density[0:-i]
                 # print(op_con.target_current_density, self.v)
                 break
-        if len(op_con.target_current_density) > 1:
+        if len(target_current_density) > 1:
             self.plot_polarization_curve()
 
     def plot_polarization_curve(self):
@@ -265,14 +268,14 @@ class Simulation:
         """
         Saves the average voltage losses of the stack
         """
-        for w, item in enumerate(self.stack.cells):
-            self.act_loss_cat[w] = item.cathode.act_loss
-            self.act_loss_ano[w] = item.anode.act_loss
-            self.cl_diff_loss_cat[w] = item.cathode.cl_diff_loss
-            self.cl_diff_loss_ano[w] = item.anode.cl_diff_loss
-            self.gdl_diff_loss_cat[w] = item.cathode.gdl_diff_loss
-            self.gdl_diff_loss_ano[w] = item.anode.gdl_diff_loss
-            self.mem_loss[w] = item.mem_loss
+        for w, cell in enumerate(self.stack.cells):
+            self.act_loss_cat[w] = cell.cathode.act_loss
+            self.act_loss_ano[w] = cell.anode.act_loss
+            self.cl_diff_loss_cat[w] = cell.cathode.cl_diff_loss
+            self.cl_diff_loss_ano[w] = cell.anode.cl_diff_loss
+            self.gdl_diff_loss_cat[w] = cell.cathode.gdl_diff_loss
+            self.gdl_diff_loss_ano[w] = cell.anode.gdl_diff_loss
+            self.mem_loss[w] = cell.mem_loss
         self.v.append(np.average(self.stack.v_cell))
         self.act_loss_ui_ano.append(np.average(self.act_loss_ano))
         self.act_loss_ui_cat.append(np.average(self.act_loss_cat))
@@ -326,7 +329,7 @@ class Simulation:
             plt.ylim(y_lim[0], y_lim[1])
         plt.tight_layout()
         plt.grid()
-        plt.savefig(path + title + '.png', format='png')
+        plt.savefig(os.path.join(path, title + '.png'), format='png')
         plt.close()
 
     def output_plots(self, case_num):
@@ -685,209 +688,209 @@ class Simulation:
             for q in range(5):
                 self.temp_layer.append(
                     self.stack.temp_sys.temp_layer[i][q, :])
-        np.savetxt(path + 'Temperature Layer.csv',
+        np.savetxt(os.path.join(path, 'Temperature Layer.csv'),
                    self.temp_layer, delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path + 'Coolant Temperature.csv',
+        np.savetxt(os.path.join(path, 'Coolant Temperature.csv'),
                    self.stack.temp_sys.temp_cool,
                    delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(path + 'Current Density.csv', self.stack.i,
+        np.savetxt(os.path.join(path, 'Current Density.csv'), self.stack.i,
                    delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(path + 'Cathode Gas Temperature.csv',
+        np.savetxt(os.path.join(path, 'Cathode Gas Temperature.csv'),
                    self.temp_fluid_cat, delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path + 'Anode Gas Temperature.csv',
+        np.savetxt(os.path.join(path, 'Anode Gas Temperature.csv'),
                    self.temp_fluid_ano, delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path + 'Cathode Channel Average Velocity.csv',
+        np.savetxt(os.path.join(path, 'Cathode Channel Average Velocity.csv'),
                    self.u_gas_cat, delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path + 'Anode Channel Average Velocity.csv',
+        np.savetxt(os.path.join(path, 'Anode Channel Average Velocity.csv'),
                    self.u_gas_ano, delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path + 'Cathode Channel Pressure.csv',
+        np.savetxt(os.path.join(path, 'Cathode Channel Pressure.csv'),
                    self.p_cat, delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path + 'Anode Channel Pressure.csv',
+        np.savetxt(os.path.join(path, 'Anode Channel Pressure.csv'),
                    self.p_ano, delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(path + 'Oxygen Molar Flow.csv',
+        np.savetxt(os.path.join(path, 'Oxygen Molar Flow.csv'),
                    self.mol_flow[0], delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path + 'Cathode Water Molar Flow.csv',
+        np.savetxt(os.path.join(path, 'Cathode Water Molar Flow.csv'),
                    self.mol_flow[1], delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path + 'Cathode Nitrogen Molar Flow.csv',
+        np.savetxt(os.path.join(path, 'Cathode Nitrogen Molar Flow.csv'),
                    self.mol_flow[2], delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path + 'Hydrogen Molar Flow.csv',
+        np.savetxt(os.path.join(path, 'Hydrogen Molar Flow.csv'),
                    self.mol_flow[3], delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path + 'Anode Water Molar Flow.csv',
+        np.savetxt(os.path.join(path, 'Anode Water Molar Flow.csv'),
                    self.mol_flow[4], delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path + 'Oxygen Molar Concentration.csv',
+        np.savetxt(os.path.join(path, 'Oxygen Molar Concentration.csv'),
                    self.gas_con[0], delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path + 'Cathode Water Molar Concentration.csv',
+        np.savetxt(os.path.join(path, 'Cathode Water Molar Concentration.csv'),
                    self.gas_con[1], delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path + 'Nitrogen Molar Concentration.csv',
+        np.savetxt(os.path.join(path, 'Nitrogen Molar Concentration.csv'),
                    self.gas_con[2], delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path + 'Hydrogen Molar Concentration.csv',
+        np.savetxt(os.path.join(path, 'Hydrogen Molar Concentration.csv'),
                    self.gas_con[3], delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path + 'Anode Water Molar Concentration.csv',
+        np.savetxt(os.path.join(path, 'Anode Water Molar Concentration.csv'),
                    self.gas_con[4], delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path + 'Oxygen Molar Fraction.csv',
+        np.savetxt(os.path.join(path, 'Oxygen Molar Fraction.csv'),
                    self.mol_f[0], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(path + 'Cathode Water Molar Fraction.csv',
+        np.savetxt(os.path.join(path, 'Cathode Water Molar Fraction.csv'),
                    self.mol_f[1], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(path + 'Nitrogen Molar Fraction.csv',
+        np.savetxt(os.path.join(path, 'Nitrogen Molar Fraction.csv'),
                    self.mol_f[2], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(path + 'Hydrogen Molar Fraction.csv',
+        np.savetxt(os.path.join(path, 'Hydrogen Molar Fraction.csv'),
                    self.mol_f[3], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(path + 'Anode Water Molar Fraction.csv',
+        np.savetxt(os.path.join(path, 'Anode Water Molar Fraction.csv'),
                    self.mol_f[4], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(path + 'Oxygen Mass Fraction.csv',
+        np.savetxt(os.path.join(path, 'Oxygen Mass Fraction.csv'),
                    self.mol_f[0], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(path + 'Cathode Mass Fraction.csv',
+        np.savetxt(os.path.join(path, 'Cathode Mass Fraction.csv'),
                    self.m_f[1], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(path + 'Nitrogen Mass Fraction.csv',
+        np.savetxt(os.path.join(path, 'Nitrogen Mass Fraction.csv'),
                    self.m_f[2], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(path + 'Hydrogen Mass Fraction.csv',
+        np.savetxt(os.path.join(path, 'Hydrogen Mass Fraction.csv'),
                    self.m_f[3], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(path + 'Anode Water Mass Fraction.csv',
+        np.savetxt(os.path.join(path, 'Anode Water Mass Fraction.csv'),
                    self.m_f[4], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(path + 'Cathode Activation Loss.csv',
+        np.savetxt(os.path.join(path, 'Cathode Activation Loss.csv'),
                    self.act_loss_cat, delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path + 'Anode Activation Loss.csv',
+        np.savetxt(os.path.join(path, 'Anode Activation Loss.csv'),
                    self.act_loss_ano, delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path + 'Cathode Layer Diffusion Loss.csv',
+        np.savetxt(os.path.join(path, 'Cathode Layer Diffusion Loss.csv'),
                    self.cl_diff_loss_cat, delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path + 'Anode Layer Diffusion Loss.csv',
+        np.savetxt(os.path.join(path, 'Anode Layer Diffusion Loss.csv'),
                    self.cl_diff_loss_ano, delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path + 'Cathode GDL Diffusion Loss.csv',
+        np.savetxt(os.path.join(path, 'Cathode GDL Diffusion Loss.csv'),
                    self.gdl_diff_loss_cat, delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path + 'Anode GDL Diffusion ´Loss.csv',
+        np.savetxt(os.path.join(path, 'Anode GDL Diffusion ´Loss.csv'),
                    self.gdl_diff_loss_ano, delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path + 'Membrane Conductivity Loss.csv',
+        np.savetxt(os.path.join(path, 'Membrane Conductivity Loss.csv'),
                    self.mem_loss, delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(path + 'Voltage Loss.csv', self.v_loss,
+        np.savetxt(os.path.join(path, 'Voltage Loss.csv'), self.v_loss,
                    delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(path + 'Cell Voltage.csv', self.v_cell,
+        np.savetxt(os.path.join(path, 'Cell Voltage.csv'), self.v_cell,
                    delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(path + 'Oxygen Heat Capacity.csv',
+        np.savetxt(os.path.join(path, 'Oxygen Heat Capacity.csv'),
                    self.cp[0], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(path + 'Cathode Gas Water Heat Capacity.csv',
+        np.savetxt(os.path.join(path, 'Cathode Gas Water Heat Capacity.csv'),
                    self.cp[1], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(path + 'Nitrogen Heat Capacity.csv',
+        np.savetxt(os.path.join(path, 'Nitrogen Heat Capacity.csv'),
                    self.cp[2], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(path + 'Hydrogen Heat Capacity.csv',
+        np.savetxt(os.path.join(path, 'Hydrogen Heat Capacity.csv'),
                    self.cp[3], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(path + 'Anode Gas Water Heat Capacity.csv',
+        np.savetxt(os.path.join(path, 'Anode Gas Water Heat Capacity.csv'),
                    self.cp[4], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(path + 'Oxygen Dynamic Viscosity.csv',
+        np.savetxt(os.path.join(path, 'Oxygen Dynamic Viscosity.csv'),
                    self.visc[0], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(path
-                   + 'Cathode Gas Water Dynamic Viscosity.csv',
+        np.savetxt(os.path.join(path,
+                                'Cathode Gas Water Dynamic Viscosity.csv'),
                    self.visc[1], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(path + 'Nitrogen Dynamic Viscosity.csv',
+        np.savetxt(os.path.join(path, 'Nitrogen Dynamic Viscosity.csv'),
                    self.visc[2], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(path + 'Hydrogen Dynamic Viscosity.csv',
+        np.savetxt(os.path.join(path, 'Hydrogen Dynamic Viscosity.csv'),
                    self.visc[3], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(path + 'Anode Gas Water Dynamic Viscosity.csv',
+        np.savetxt(os.path.join(path, 'Anode Gas Water Dynamic Viscosity.csv'),
                    self.visc[4], delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(path + 'Oxygen Thermal Conductivity.csv',
+        np.savetxt(os.path.join(path, 'Oxygen Thermal Conductivity.csv'),
                    self.lambda_gas[0], delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path
-                   + 'Cathode Gas Water Thermal Conductivity.csv',
+        np.savetxt(os.path.join(path,
+                                'Cathode Gas Water Thermal Conductivity.csv'),
                    self.lambda_gas[1], delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path + 'Nitrogen Thermal Conductivity.csv',
+        np.savetxt(os.path.join(path, 'Nitrogen Thermal Conductivity.csv'),
                    self.lambda_gas[2], delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path + 'Hydrogen Thermal Conductivity.csv',
+        np.savetxt(os.path.join(path, 'Hydrogen Thermal Conductivity.csv'),
                    self.lambda_gas[3], delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path
-                   + 'Anode Water Gas Thermal Conductivity.csv',
+        np.savetxt(os.path.join(path,
+                                'Anode Water Gas Thermal Conductivity.csv'),
                    self.lambda_gas[4], delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path
-                   + 'Cathode Channel Mixture Heat Capacity.csv',
+        np.savetxt(os.path.join(path,
+                                'Cathode Channel Mixture Heat Capacity.csv'),
                    self.cp_gas_cat, delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path
-                   + 'Anode Channel Mixture Heat Capacity.csv',
+        np.savetxt(os.path.join(path,
+                                'Anode Channel Mixture Heat Capacity.csv'),
                    self.cp_gas_ano, delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path
-                   + 'Cathode Channel Mixture Gas Constant.csv',
+        np.savetxt(os.path.join(path,
+                                'Cathode Channel Mixture Gas Constant.csv'),
                    self.r_gas_cat, delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path
-                   + 'Anode Channel Mixture Gas Constant.csv',
+        np.savetxt(os.path.join(path,
+                                'Anode Channel Mixture Gas Constant.csv'),
                    self.r_gas_ano, delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path
-                   + 'Cathode Channel Mixture Dynamic Viscosity.csv',
+        np.savetxt(os.path.join(path,
+                                'Cathode Channel Mixture Dynamic Viscosity.csv'),
                    self.visc_gas_cat,
                    delimiter=self.delimiter, fmt=self.csv_format)
-        np.savetxt(path
-                   + 'Anode Channel Mixture Dynamic Viscosity.csv',
+        np.savetxt(os.path.join(path,
+                                'Anode Channel Mixture Dynamic Viscosity.csv'),
                    self.visc_gas_ano, delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path
-                   + 'Cathode Channel Mixture Heat Conductivity.csv',
+        np.savetxt(os.path.join(path,
+                                'Cathode Channel Mixture Conductivity.csv'),
                    self.lambda_gas_cat, delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path
-                   + 'Anode Channel Mixture Heat Conductivity.csv',
+        np.savetxt(os.path.join(path,
+                                'Anode Channel Mixture Conductivity.csv'),
                    self.lambda_gas_ano, delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path
-                   + 'Cathode Channel Two Phase Heat Capacity.csv',
+        np.savetxt(os.path.join(path,
+                                'Cathode Channel Two Phase Heat Capacity.csv'),
                    self.cp_fluid_cat, delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path
-                   + 'Anode Channel Two Phase Heat Capacity.csv',
+        np.savetxt(os.path.join(path,
+                                'Anode Channel Two Phase Heat Capacity.csv'),
                    self.cp_fluid_ano, delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path + 'Cathode Channel Gas Phase Density.csv',
+        np.savetxt(os.path.join(path, 'Cathode Channel Gas Phase Density.csv'),
                    self.rho_gas_cat, delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path + 'Anode Channel Gas Phase Density.csv',
+        np.savetxt(os.path.join(path, 'Anode Channel Gas Phase Density.csv'),
                    self.rho_gas_cat, delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path
-                   + 'Cathode Channel Two Phase Mass Flow.csv',
+        np.savetxt(os.path.join(path,
+                                'Cathode Channel Two Phase Mass Flow.csv'),
                    self.m_flow_fluid_cat, delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path + 'Anode Channel Two Phase Mass Flow.csv',
+        np.savetxt(os.path.join(path, 'Anode Channel Two Phase Mass Flow.csv'),
                    self.m_flow_fluid_ano, delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path + 'Air Stoichiometry Distribution.csv',
+        np.savetxt(os.path.join(path, 'Air Stoichiometry Distribution.csv'),
                    self.stoi_cat, delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path
-                   + 'Hydrogen Stoichiometry Distribution.csv',
+        np.savetxt(os.path.join(path,
+                                'Hydrogen Stoichiometry Distribution.csv'),
                    self.stoi_ano, delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path
-                   + 'Cathode Channel Heat Convection Coefficient.csv',
+        np.savetxt(os.path.join(path,
+                                'Cathode Channel Convection Coefficient.csv'),
                    self.ht_coef_cat, delimiter=self.delimiter,
                    fmt=self.csv_format)
-        np.savetxt(path
-                   + 'Anode Channel Heat Convection Coefficient.csv',
+        np.savetxt(os.path.join(path,
+                                'Anode Channel Convection Coefficient.csv'),
                    self.ht_coef_ano, delimiter=self.delimiter,
                    fmt=self.csv_format)
 
