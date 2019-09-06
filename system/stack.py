@@ -119,13 +119,13 @@ class Stack:
         self.cp_h2 = np.full((self.n_cells, n_nodes), 0.)
         k_p, k_g, k_m = [], [], []
         k_pp, k_gp, k_gm = [], [], []
-        for i, cell in enumerate(self.cells):
-            k_p = np.hstack((k_p, self.cells[i].k_bpp_z))
-            k_g = np.hstack((k_g, self.cells[i].k_gde_z))
-            k_m = np.hstack((k_m, self.cells[i].k_mem_z))
-            k_pp = np.hstack((k_pp, self.cells[i].k_bpp_x))
-            k_gp = np.hstack((k_gp, self.cells[i].k_gp))
-            k_gm = np.hstack((k_gm, self.cells[i].k_gm))
+        for cell in self.cells:
+            k_m = np.hstack((k_m, cell.k_mem_z))
+            k_g = np.hstack((k_g, cell.k_gde_z))
+            k_p = np.hstack((k_p, cell.k_bpp_z))
+            k_gm = np.hstack((k_gm, cell.k_gm))
+            k_gp = np.hstack((k_gp, cell.k_gp))
+            k_pp = np.hstack((k_pp, cell.k_bpp_x))
         k_layer = np.array([[k_m, k_g, k_p], [k_gm, k_gp, k_pp]])
         # heat conductivity of the cell layer
 

@@ -45,10 +45,9 @@ class Cell:
         self.fac_n = np.log10(self.res_65) - self.fac_m * 1000. / (65. + 273.15)
 
         """heat conductivity along and through the cell layers"""
-        self.width_channels = self.cathode.channel.width\
-            * self.cathode.n_chl\
-            + self.cathode.channel.rib_width\
-            * (self.cathode.n_chl + 1)
+        self.width_channels = \
+            self.cathode.channel.width * self.cathode.n_chl \
+            + self.cathode.channel.rib_width * (self.cathode.n_chl + 1)
         self.active_area_dx = self.width_channels * self.cathode.channel.dx
         self.k_bpp_z = self.lambda_bpp[0] * self.active_area_dx \
             / self.cathode.th_bpp
@@ -103,10 +102,10 @@ class Cell:
         # coolant inlet temperature
         self.temp_cool = np.full(n_ele, cell_dict['temp_cool_in'])
         self.temp_names = ['BPP-BPP',
-                                'Cathode BPP-GDE',
-                                'Cathode GDE-MEM',
-                                'Anode MEM-GDE',
-                                'Anode GDE-BPP']
+                           'Cathode BPP-GDE',
+                           'Cathode GDE-MEM',
+                           'Anode MEM-GDE',
+                           'Anode GDE-BPP']
         # interface names according to temperature array
         self.temp_mem = np.zeros(n_ele)
         # membrane temperature

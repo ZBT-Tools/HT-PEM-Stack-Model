@@ -15,7 +15,7 @@ class ElectricalCoupling:
         # length of an element
         self.th_plate = electrical_dict['th_bpp']
         # thickness of the bipolar plate
-        self.width_channels = electrical_dict['width_channels']
+        self.c_width = electrical_dict['conducting_width']
         # width of the channel
         # Variables
         self.nodes = g_par.dict_case['nodes']
@@ -24,9 +24,9 @@ class ElectricalCoupling:
         # number of the elements along the channel
         self.v_end_plate = 0.
         # accumulated voltage loss over the stack at the lower end plate
-        c_x = self.width_channels * self.th_plate \
-            / (self.dx * g_par.dict_case['bpp_resistivity'])
-        # electrical conductance of the bipolar plate in x-direction
+        c_x = self.c_width * self.th_plate \
+              / (self.dx * g_par.dict_case['bpp_resistivity'])
+        # electrical conductance of a single bipolar plate in x-direction
         self.v_loss = []
         # 2-d-array of of the voltage loss over the stack in z-direction
         self.cell_c = []
@@ -43,8 +43,8 @@ class ElectricalCoupling:
         # right hand side terms, here the current
         self.i_cd = np.full((self.n_cells, self.n_ele), 0.)
         # current density of the elements in z-direction
-        c_x_cell = np.hstack(([c_x],
-                              np.full(self.n_ele - 2, 2. * c_x), [c_x]))
+        c_x_cell = np.full(self.n_ele, c_x)
+        c_x_cell[1:-1] *= 2.0
         # bipolar conductance 1-d-array in x-direction over one cell
         c_x_stack = np.tile(c_x_cell * 2, self.n_cells - 1)
         # bipolar conductance 1-d-array  in x-direction over the stack
@@ -73,7 +73,7 @@ class ElectricalCoupling:
         """
         self.cell_r = cell_r
         self.v_loss = v_loss
-        self.cell_c = self.width_channels * self.th_plate / self.cell_r
+        self.cell_c = self.c_width * self.th_plate / self.cell_r
         self.cell_c_mid = np.hstack((self.cell_c[:-self.n_ele]
                                      + self.cell_c[self.n_ele:]))
         #print(self.cell_r)

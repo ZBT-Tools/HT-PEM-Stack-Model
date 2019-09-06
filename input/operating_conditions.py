@@ -11,7 +11,7 @@ open_circuit_voltage = 1.00
 # cathode stoichiometry
 stoichiometry_cathode = 2.
 # anode stoichiometry
-stoichiometry_anode = 200.
+stoichiometry_anode = 2.
 # pem-type (True = HT-PEM, False = NT-PEM)
 is_ht_pem = False
 
