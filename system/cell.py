@@ -14,7 +14,7 @@ class Cell:
         # Handover
         self.name = 'Cell ' + str(number)
         self.n_layer = 5
-        if cell_dict['end_cell']:
+        if cell_dict['last_cell']:
             self.n_layer += 1
         n_nodes = g_par.dict_case['nodes']
         # number of nodes along the channel
@@ -23,6 +23,9 @@ class Cell:
 
         self.width = self.cell_dict['width']
         self.length = self.cell_dict['length']
+
+        self.first_cell = cell_dict['first_cell']
+        self.last_cell = cell_dict['last_cell']
 
         self.anode = h_c.HalfCell(anode_dict, cell_dict, ano_channel_dict)
         # anode - object of the class HalfCell
@@ -52,7 +55,6 @@ class Cell:
                          cell_dict['lambda_x_mem'],
                          cell_dict['lambda_x_gde'],
                          cell_dict['lambda_x_bpp']]])
-        print(self.lambda_thermal)
 
         self.mem_base_r = cell_dict['mem_base_r']
         # basic electrical resistance of the membrane
@@ -107,7 +109,7 @@ class Cell:
                         self.anode.th_gde,
                         self.anode.th_bpp])
 
-        # if cell_dict['end_cell']:
+        # if cell_dict['last_cell']:
         #     k_layer_z = \
         #         np.asarray([self.k_bpp_z, self.k_gde_z, self.k_mem_z,
         #                     self. k_gde_z, self.k_bpp_z])
@@ -130,13 +132,13 @@ class Cell:
         k_layer_x = np.hstack((k_layer_x, k_layer_x[0]))
         k_layer_x = np.outer(k_layer_x, self.width_channels / self.dx)
 
-        if not cell_dict['end_cell']:
+        if not self.last_cell:
             k_layer_z = np.delete(k_layer_z, -1, 0)
             k_layer_x = np.delete(k_layer_x, -1, 0)
 
-        if cell_dict['first_cell']:
+        if self.first_cell:
             k_layer_x[0] *= 0.5
-        if cell_dict['end_cell']:
+        if self.last_cell:
             k_layer_x[-1] *= 0.5
 
         # print('k_layer')
@@ -146,6 +148,24 @@ class Cell:
         # print(k_layer_x_1)
         self.heat_cond_mtx = \
             mtx.build_cell_conductance_matrix(k_layer_x, k_layer_z, n_ele)
+        self.heat_mtx = self.heat_cond_mtx.copy()
+        self.heat_rhs = np.full(self.n_layer * n_ele, 0.0)
+
+        # Create array for each thermal layer with indices according to
+        # corresponding position in center diagonal of conductance matrix and
+        # right hand side vector
+        index_list = []
+        for i in range(self.n_layer):
+            index_list.append([(j * self.n_layer) + i for j in range(n_ele)])
+        self.index_array = np.asarray(index_list)
+
+        # Set constant thermal boundary conditions
+        if self.first_cell:
+            heat_bc_0 = cell_dict['heat_pow']
+            np.put(self.heat_rhs, self.index_array[0], -heat_bc_0)
+        if self.last_cell:
+            heat_bc_0 = cell_dict['heat_pow']
+            np.put(self.heat_rhs, self.index_array[-1], heat_bc_0)
 
         """boolean alarms"""
         self.v_alarm = False
@@ -154,9 +174,12 @@ class Cell:
         # True if the program aborts because of some critical impact
 
         """general parameter"""
-        self.height = self.th_mem\
-            + 2. * self.cathode.th_bpp\
-            + 2. * self.cathode.th_gde
+        self.height = self.th_mem \
+            + self.cathode.th_bpp \
+            + self.cathode.th_gde \
+            + self.anode.th_bpp \
+            + self.anode.th_gde
+
         # height of the cell
         #self.n_nodes = g_par.dict_case['nodes']
 
@@ -201,7 +224,7 @@ class Cell:
                                 for i in range(len(self.temp_layer))}
             }]
 
-    def calculate_ambient_conductance(self, alpha_amb):
+    def calc_ambient_conductance(self, alpha_amb):
         """
         :param alpha_amb: heat transfer coefficient for free or forced
         convection to the ambient
@@ -209,18 +232,47 @@ class Cell:
         external surface
         """
         # geometry model
-        fac = (self.width + self.length) \
+        ext_surface_factor = (self.width + self.length) \
             / (self.cathode.channel.length * self.width_channels)
         k_amb = np.full((self.n_layer, self.n_ele), 0.)
         # convection conductance to the environment
-        dx = self.cathode.channel.dx
-        k_amb[0, :] = self.cathode.th_bpp
-        k_amb[1, :] = (self.cathode.th_bpp + self.cathode.th_gde)
-        k_amb[1] = 0.5 * alpha_amb * dx\
-            * (self.cathode.th_bpp + self.cathode.th_gde) / fac
-        k_amb[0] = 0.5 * alpha_amb * dx \
-            * (self.cathode.th_bpp + self.th_mem) / fac
-        k_amb[2] = alpha_amb * dx * self.cathode.th_bpp / fac
+        th_layer_amb = (self.th_layer + np.roll(self.th_layer, 1)) * 0.5
+        if self.cell_dict['last_cell']:
+            th_layer_amb = np.hstack((th_layer_amb, th_layer_amb[0]))
+        # k_amb[0, :] = self.cathode.th_bpp
+        # k_amb[1, :] = (self.cathode.th_bpp + self.cathode.th_gde)
+        # k_amb[1] = 0.5 * alpha_amb * self.dx\
+        #     * (self.cathode.th_bpp + self.cathode.th_gde) / ext_surface_factor
+        # k_amb[0] = 0.5 * alpha_amb * self.dx \
+        #     * (self.cathode.th_bpp + self.th_mem) / ext_surface_factor
+        # k_amb[2] = alpha_amb * self.dx * self.cathode.th_bpp / ext_surface_factor
+        k_amb = np.outer(th_layer_amb, self.dx) * alpha_amb / ext_surface_factor
+        if not self.last_cell:
+            k_amb = np.delete(k_amb, -1, 0)
+        return k_amb
+
+    def add_explicit_layer_source(self, source_term, layer_id=None):
+        if not layer_id:
+            if np.isscalar(source_term):
+                source_vector = np.full_like(self.heat_rhs, -source_term)
+            else:
+                source_vector = np.asarray(-source_term)
+        else:
+            source_vector = np.zeros_like(self.heat_rhs)
+            np.put(source_vector, self.index_array[layer_id], -source_term)
+        self.heat_rhs += source_vector
+        return source_vector
+
+    def add_implicit_layer_source(self, coefficient, layer_id=None):
+        if not layer_id:
+            if np.isscalar(coefficient):
+                source_vector = np.full_like(self.heat_rhs, coefficient)
+            else:
+                source_vector = np.asarray(coefficient)
+        else:
+            source_vector = np.zeros_like(self.heat_rhs)
+            np.put(source_vector, self.index_array[layer_id], coefficient)
+        self.heat_mtx += np.diag(source_vector)
 
     def update(self):
         """

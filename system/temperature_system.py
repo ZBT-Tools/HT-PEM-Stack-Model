@@ -61,10 +61,10 @@ class TemperatureSystem:
         # heat conductance from the channel to the coolant
         self.k_layer = temp_dict['k_layer']
         # heat conductance array through and along the control volume
-        self.k_alpha_env = temp_dict['k_alpha_env']
+        self.k_alpha_amb = temp_dict['k_alpha_amb']
         # heat conductance from control volume to the environment
-        self.temp_env = g_par.dict_case['temp_env']
-        # environment temperature
+        self.temp_amb = temp_dict['temp_amb']
+        # ambient temperature
         self.v_tn = g_par.dict_case['v_tn']
         # thermodynamic neutral cell voltage
 
@@ -337,16 +337,16 @@ class TemperatureSystem:
         #                    pos_base_out[i]] -= self.k_layer[0, 2, 0]
         #
         # """Adding the environment heat conductance"""
-        # env_con_base = np.array([-self.k_alpha_env[0, 2, 0],
-        #                          -self.k_alpha_env[0, 1, 0],
-        #                          -self.k_alpha_env[0, 0, 0],
-        #                          -self.k_alpha_env[0, 0, 0],
-        #                          -self.k_alpha_env[0, 1, 0]])
+        # env_con_base = np.array([-self.k_alpha_amb[0, 2, 0],
+        #                          -self.k_alpha_amb[0, 1, 0],
+        #                          -self.k_alpha_amb[0, 0, 0],
+        #                          -self.k_alpha_amb[0, 0, 0],
+        #                          -self.k_alpha_amb[0, 1, 0]])
         # # environment heat conductance for the cells 1-(n-1)
         # env_con_n = np.hstack((env_con_base,
-        #                        - .5 * self.k_alpha_env[0, 2, 0]))
+        #                        - .5 * self.k_alpha_amb[0, 2, 0]))
         # # environment heat conductance for the cell n
-        # env_con_zero = np.hstack((-.5 * self.k_alpha_env[0, 2, 0],
+        # env_con_zero = np.hstack((-.5 * self.k_alpha_amb[0, 2, 0],
         #                           env_con_base[1:]))
         # # environment heat conductance for the zeroth cell
         # env_con_vec = \
@@ -360,7 +360,7 @@ class TemperatureSystem:
 
         self.mat_const = \
             mtx.build_heat_conductance_matrix(self.k_layer, self.k_cool,
-                                              self.k_alpha_env, n_layer,
+                                              self.k_alpha_amb, n_layer,
                                               self.n_ele, self.n_cells,
                                               self.cool_ch_bc, cells)
         self.mat_const_sp = sparse.csr_matrix(self.mat_const)
@@ -392,6 +392,15 @@ class TemperatureSystem:
         # # heat conductance for the n cell
         # self.pos_cat_ch = np.hstack((pos_cat_ch_base, pos_cat_ch_n))
         # self.pos_ano_ch = np.hstack((pos_ano_ch_base, pos_ano_ch_n))
+        alpha_amb = temp_dict['alpha_amb']
+        for cell in self.cells:
+            cell.k_amb = \
+                cell.calc_ambient_conductance(alpha_amb).transpose().flatten()
+            cell.add_implicit_layer_source(-cell.k_amb)
+            cell.add_explicit_layer_source(cell.k_amb * self.temp_amb)
+        #k_amb = np.asarray([cell.k_amb for cell in cells]).flatten()
+
+        self.rhs_const = np.zeros_like(self.rhs)
 
     def update_values(self, k_alpha_ch, gamma, omega, v_loss, g_gas, i):
         """
@@ -483,29 +492,29 @@ class TemperatureSystem:
 
         self.rhs.fill(0.)
         rhs = self.rhs
-        temp_env = self.temp_env
-        k_alpha_env = self.k_alpha_env
+        temp_env = self.temp_amb
+        k_alpha_amb = self.k_alpha_amb
         ct = 0
         for i in range(self.n_cells):
             for j in range(self.n_ele):
                 if i is 0:
-                    rhs[ct] = -.5 * temp_env * k_alpha_env[0, 2, i]
+                    rhs[ct] = -.5 * temp_env * k_alpha_amb[0, 2, i]
                 else:
-                    rhs[ct] = - temp_env * k_alpha_env[0, 2, i]
+                    rhs[ct] = - temp_env * k_alpha_amb[0, 2, i]
 
-                rhs[ct + 1] = -temp_env * k_alpha_env[0, 1, i] \
+                rhs[ct + 1] = -temp_env * k_alpha_amb[0, 1, i] \
                     - self.temp_fluid_ele[0, i, j] * self.k_gas_ch[0, i, j] \
                     - w_prop.water.calc_h_vap(self.temp_fluid[0, i, j]) \
                     * self.cond_rate[0, i, j]
                 rhs[ct + 2] = \
-                    - temp_env * k_alpha_env[0, 0, i] \
+                    - temp_env * k_alpha_amb[0, 0, i] \
                     - (self.v_tn - g_par.dict_case['e_0'] + self.v_loss[0, i, j]
                        + .5 * self.omega[i, j] * self.i[i, j]) * self.i[i, j]
                 rhs[ct + 3] = \
-                    - temp_env * k_alpha_env[0, 0, i] \
+                    - temp_env * k_alpha_amb[0, 0, i] \
                     - (self.v_loss[1, i, j]
                        + self.omega[i, j] * self.i[i, j] * .5) * self.i[i, j]
-                rhs[ct + 4] = - temp_env * k_alpha_env[0, 1, i] \
+                rhs[ct + 4] = - temp_env * k_alpha_amb[0, 1, i] \
                     - self.temp_fluid_ele[1, i, j] * self.k_gas_ch[1, i, j] \
                     - w_prop.water.calc_h_vap(self.temp_fluid[1, i, j]) \
                     * self.cond_rate[1, i, j]
@@ -520,7 +529,7 @@ class TemperatureSystem:
                 else:
                     rhs[ct] -= self.k_cool * self.temp_cool_ele[i, j]
                     rhs[ct + 5] -= heat_pow \
-                        - .5 * self.k_alpha_env[0, 2, 0] * temp_env
+                        - .5 * self.k_alpha_amb[0, 2, 0] * temp_env
                     if self.cool_ch_bc:
                         rhs[ct + 5] -= self.k_cool * self.temp_cool_ele[-1, j]
                     cr = 6

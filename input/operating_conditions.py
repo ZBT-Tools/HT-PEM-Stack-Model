@@ -27,7 +27,9 @@ temp_coolant_in = 340.
 # environment temperature [K]
 temp_environment = 298.15
 # heat power of the endplates [W]
-endplates_heat_power = 0.
+endplates_heat_power = 50.
+# convection coefficient between the stack walls and the environment [W/(m^2K)]
+convection_coefficient_stack_environment = 10.0
 # initial temperature [K]
 temp_initial = 350.
 

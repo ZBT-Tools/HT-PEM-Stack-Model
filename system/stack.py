@@ -23,27 +23,26 @@ class Stack:
         # # inlet stoichiometry of the anode header
         n_nodes = g_par.dict_case['nodes']
         # node points along the x-axis
-        self.alpha_env = stack_dict['alpha_env']
-        # environment convection coefficient
         self.calc_temp = stack_dict['calc_temperature']
         # switch to calculate the temperature distribution
         self.calc_cd = stack_dict['calc_current_density']
         # switch to calculate the current density distribution
         self.calc_flow_dis = stack_dict['calc_flow_distribution']
         # switch to calculate the flow distribution
-
         self.cells = []
         # Initialize individual cells
         for i in range(self.n_cells):
             if i == 0:
                 cell_dict['first_cell'] = True
-                cell_dict['end_cell'] = False
+                cell_dict['last_cell'] = False
+                cell_dict['heat_pow'] = temperature_dict['heat_pow']
             elif i == self.n_cells-1:
                 cell_dict['first_cell'] = False
-                cell_dict['end_cell'] = True
+                cell_dict['last_cell'] = True
             else:
                 cell_dict['first_cell'] = False
-                cell_dict['end_cell'] = False
+                cell_dict['last_cell'] = False
+                cell_dict['heat_pow'] = temperature_dict['heat_pow']
             self.cells.append(cl.Cell(i, cell_dict, anode_dict, cathode_dict,
                                       ano_channel_dict, cat_channel_dict))
 
@@ -144,21 +143,22 @@ class Stack:
         fac = (cell_width + cell_length)\
             / (self.cells[0].cathode.channel.length
                * self.cells[0].width_channels)
-        k_alpha_env = np.full((2, 3, self.n_cells), 0.)
+        k_alpha_amb = np.full((2, 3, self.n_cells), 0.)
         # convection conductance to the environment
+        alpha_amb = temperature_dict['alpha_amb']
         for i, cell in enumerate(self.cells):
             avg_dx = np.average(cell.cathode.channel.dx)
-            k_alpha_env[0, 1, i] =\
-                .5 * self.alpha_env * avg_dx\
+            k_alpha_amb[0, 1, i] =\
+                .5 * alpha_amb * avg_dx\
                 * (cell.cathode.th_bpp + cell.cathode.th_gde) / fac
-            k_alpha_env[0, 0, i] =\
-                .5 * (self.alpha_env * avg_dx
+            k_alpha_amb[0, 0, i] =\
+                .5 * (alpha_amb * avg_dx
                       * (cell.cathode.th_bpp + cell.th_mem)) / fac
-            k_alpha_env[0, 2, i] = \
-                self.alpha_env * avg_dx * cell.cathode.th_bpp / fac
+            k_alpha_amb[0, 2, i] = \
+                alpha_amb * avg_dx * cell.cathode.th_bpp / fac
         # Initialize the thermal coupling
         temperature_dict['k_layer'] = k_layer
-        temperature_dict['k_alpha_env'] = k_alpha_env
+        temperature_dict['k_alpha_amb'] = k_alpha_amb
         self.temp_sys = therm_cpl.TemperatureSystem(temperature_dict,
                                                     self.cells)
 
