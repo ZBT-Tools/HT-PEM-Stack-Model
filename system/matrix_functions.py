@@ -23,49 +23,29 @@ def overlapping_vector(vector, reps, overlap_size):
         start_id = i * non_overlap_size
         end_id = start_id + n_vector
         result[start_id:end_id] += vector
+    return result
 
 
-def build_1d_conductance_matrix(cond_vector):
-    n_layer = len(cond_vector)
-    cond_matrix = np.full((n_layer, n_layer), 0.)
-    center_diag = np.zeros(n_layer + 1)
-    center_diag[:-1] -= cond_vector
-    center_diag[1:] -= cond_vector
+def build_1d_conductance_matrix(cond_vector, offset=1):
+    n_layer = len(cond_vector) + 1
+    center_diag = overlapping_vector(cond_vector, 2, n_layer-2)
+    center_diag *= -1.0
     off_diag = np.copy(cond_vector)
-    cond_matrix = np.diag(center_diag, k=0) \
-        + np.diag(off_diag, k=-1) \
-        + np.diag(off_diag, k=1)
-    return cond_matrix
+    return np.diag(center_diag, k=0) \
+        + np.diag(off_diag, k=-offset) \
+        + np.diag(off_diag, k=offset)
 
 
-def build_cell_conductance_matrix(cond_array, n_cells, n_ele):
-    # cond_array[0]: cathode bpp conductance
-    # cond_array[1]: cathode gde conductance
-    # cond_array[2]: membrane conductance
-    # cond_array[3]: anode gde conductance
-    # cond_array[4]: anode bpp conductance
-    n_layer = len(cond_array)
-    mat_base = np.full((n_layer, n_layer), 0.)
-    mat_base[0, 0] = - cond_array[2]
-    mat_base[0, 1] = cond_array[2]
-    mat_base[1, 0] = cond_array[2]
-    mat_base[1, 1] = - cond_array[2] - cond_array[1]
-    mat_base[1, 2] = + cond_array[1]
-    mat_base[2, 1] = + cond_array[1]
-    mat_base[2, 2] = - cond_array[1] - cond_array[0]
-    mat_base[2, 3] = + cond_array[0]
-    mat_base[3, 2] = + cond_array[0]
-    mat_base[3, 3] = - cond_array[0] - cond_array[1]
-    mat_base[3, 4] = + cond_array[1]
-    mat_base[4, 3] = + cond_array[1]
-    mat_base[4, 4] = - cond_array[1]
+def build_stack_1d_conductance_matrix(cond_array, n_ele, n_cells):
+    n_layer = len(cond_array) + 1
+    mat_base = build_1d_conductance_matrix(cond_array[:-1])
     # heat conductance matrix in z-direction for the cells 0-(n-1)
-    mat_n = np.full((n_layer + 1, n_layer + 1), 0.)
-    mat_n[0:5, 0:5] = mat_base.copy()
-    mat_n[4, 4] -= cond_array[2]
-    mat_n[4, 5] = cond_array[2]
-    mat_n[5, 4] = cond_array[2]
-    mat_n[5, 5] = -cond_array[2]
+    mat_n = np.full((n_layer, n_layer), 0.)
+    mat_n[:-1, :-1] = mat_base.copy()
+    mat_n[-2, -2] -= cond_array[-1]
+    mat_n[-2, -1] += cond_array[-1]
+    mat_n[-1, -2] += cond_array[-1]
+    mat_n[-1, -1] = -cond_array[-1]
     # heat conductance matrix in z-direction for the cell n
 
     list_mat = []
@@ -81,9 +61,32 @@ def build_cell_conductance_matrix(cond_array, n_cells, n_ele):
     return sp_la.block_diag(*list_mat)
 
 
+def build_z_cell_conductance_matrix(cond_vector, n_ele):
+    list_mat = []
+    for i in range(n_ele):
+        list_mat.append(build_1d_conductance_matrix(cond_vector[:, i]))
+    return sp_la.block_diag(*list_mat)
+
+
+def build_x_cell_conductance_matrix(cond_vector, n_ele):
+    n_layer = len(cond_vector)
+    center_diag = np.concatenate([cond_vector[:, i] for i in range(n_ele)])
+    center_diag[n_layer:-n_layer] *= 2.0
+    center_diag *= -1.0
+    off_diag = np.concatenate([cond_vector[:, i] for i in range(n_ele-1)])
+    return np.diag(center_diag, k=0) \
+        + np.diag(off_diag, k=-n_layer) \
+        + np.diag(off_diag, k=n_layer)
+
+
+def build_cell_conductance_matrix(x_cond_vector, z_cond_vector, n_ele):
+    return build_x_cell_conductance_matrix(x_cond_vector, n_ele) \
+        + build_z_cell_conductance_matrix(z_cond_vector, n_ele)
+
+
 def build_heat_conductance_matrix(k_layer, k_cool, k_alpha_env,
                                   n_layer, n_ele, n_cells,
-                                  cool_ch_bc):
+                                  cool_ch_bc, cells):
     mat_base = np.full((n_layer, n_layer), 0.)
     mat_base[0, 0] = - k_layer[0, 2, 0]
     mat_base[0, 1] = k_layer[0, 2, 0]
@@ -119,44 +122,18 @@ def build_heat_conductance_matrix(k_layer, k_cool, k_alpha_env,
     #     print(list_mat[i])
     mat_const = sp_la.block_diag(*list_mat)
     # uncoupled heat conductance matrix in z-direction
-    mat_const_1 = mat_const.copy()
-    print(mat_const_1)
-    """Setting the coolant channel heat conductance"""
-    cool_pos_n_up = \
-        np.arange(n_ele * (n_cells - 1) * n_layer,
-                  n_ele * (n_layer * n_cells + 1),
-                  n_layer + 1)
-    # upper cool ch pos for the n cell
+    #mat_const_1 = mat_const.copy()
+    print(mat_const)
 
-    if cool_ch_bc:
-        cool_pos_base = \
-            np.arange(0, n_ele * (n_cells - 1) * n_layer,
-                      n_layer)
-        # cool ch pos for the 0-(n-1) cell
-        cool_pos_n_down = \
-            np.arange(n_ele * (n_cells - 1) * n_layer +
-                      n_layer,
-                      n_ele * (n_layer * n_cells + 1),
-                      n_layer + 1)
-        # lower cool ch pos for the n cell
-        for pos in cool_pos_n_up:
-            mat_const[pos, pos] -= k_cool
+    cond_array = [k_layer[0, 2, 0],
+                  k_layer[0, 1, 0],
+                  k_layer[0, 0, 0],
+                  k_layer[0, 1, 0],
+                  k_layer[0, 2, 0]]
 
-    else:
-        cool_pos_base = \
-            np.arange(n_ele,
-                      n_ele * (n_cells - 1) * n_layer,
-                      n_layer)
-        # cool ch pos for the 1-(n-1) cell
-    for pos in cool_pos_base:
-        mat_const[pos, pos] -= k_cool
-    if cool_ch_bc:
-        for pos in cool_pos_n_down:
-            mat_const[pos, pos] -= k_cool
-
-    mat_const_2 = mat_const.copy()
-    print(mat_const_2)
-    print(mat_const_2-mat_const_1)
+    mat_const_1 = \
+        build_stack_1d_conductance_matrix(cond_array, n_ele, n_cells)
+    print(np.sum(np.abs(mat_const-mat_const_1)))
     """Setting the x-axis heat conductance"""
     x_con_base = np.array([k_layer[1, 2, 0],
                            k_layer[1, 1, 0],
@@ -226,6 +203,50 @@ def build_heat_conductance_matrix(k_layer, k_cool, k_alpha_env,
         + np.diag(x_con_side_base, -n_layer) \
         + np.diag(x_con_side_n, n_layer + 1) \
         + np.diag(x_con_side_n, -(n_layer + 1))
+    mat_const_2 = mat_const.copy()
+    print(mat_const_2)
+    print(mat_const_2-mat_const_1)
+
+    list_mat = [cell.heat_cond_mtx for cell in cells]
+    mat_const_2_2 = sp_la.block_diag(*list_mat)
+    print(mat_const_2_2 - mat_const_1)
+    print(mat_const_2_2 - mat_const_2)
+    print('mat_const_2_2')
+    print(np.sum(np.abs(mat_const_2-mat_const_2_2)))
+
+    """Setting the coolant channel heat conductance"""
+    cool_pos_n_up = \
+        np.arange(n_ele * (n_cells - 1) * n_layer,
+                  n_ele * (n_layer * n_cells + 1),
+                  n_layer + 1)
+    # upper cool ch pos for the n cell
+
+    if cool_ch_bc:
+        cool_pos_base = \
+            np.arange(0, n_ele * (n_cells - 1) * n_layer,
+                      n_layer)
+        # cool ch pos for the 0-(n-1) cell
+        cool_pos_n_down = \
+            np.arange(n_ele * (n_cells - 1) * n_layer +
+                      n_layer,
+                      n_ele * (n_layer * n_cells + 1),
+                      n_layer + 1)
+        # lower cool ch pos for the n cell
+        for pos in cool_pos_n_up:
+            mat_const[pos, pos] -= k_cool
+
+    else:
+        cool_pos_base = \
+            np.arange(n_ele,
+                      n_ele * (n_cells - 1) * n_layer,
+                      n_layer)
+        # cool ch pos for the 1-(n-1) cell
+    for pos in cool_pos_base:
+        mat_const[pos, pos] -= k_cool
+    if cool_ch_bc:
+        for pos in cool_pos_n_down:
+            mat_const[pos, pos] -= k_cool
+
     mat_const_3 = mat_const.copy()
     print(mat_const_3)
     print(mat_const_3-mat_const_2)

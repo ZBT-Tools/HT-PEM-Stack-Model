@@ -14,8 +14,9 @@ np.set_printoptions(linewidth=10000, threshold=None, precision=2)
 
 class TemperatureSystem:
 
-    def __init__(self, temp_dict):
+    def __init__(self, temp_dict, cells):
         self.dict = temp_dict
+        self.cells = cells
         # Handover
         self.n_cells = temp_dict['cell_numb']
         # cell number
@@ -361,7 +362,7 @@ class TemperatureSystem:
             mtx.build_heat_conductance_matrix(self.k_layer, self.k_cool,
                                               self.k_alpha_env, n_layer,
                                               self.n_ele, self.n_cells,
-                                              self.cool_ch_bc)
+                                              self.cool_ch_bc, cells)
         self.mat_const_sp = sparse.csr_matrix(self.mat_const)
         # self.mat_dyn_sp = sparse.lil_matrix(self.mat_const_sp)
 

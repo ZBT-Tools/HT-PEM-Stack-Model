@@ -3,19 +3,33 @@ import system.global_functions as g_func
 import data.global_parameters as g_par
 import system.half_cell as h_c
 import system.interpolation as ip
+import system.matrix_functions as mtx
 
 
 class Cell:
 
-    def __init__(self, name, cell_dict, anode_dict, cathode_dict,
+    def __init__(self, number, cell_dict, anode_dict, cathode_dict,
                  ano_channel_dict, cat_channel_dict):
         self.cell_dict = cell_dict
         # Handover
-        self.name = name
+        self.name = 'Cell ' + str(number)
+        self.n_layer = 5
+        if cell_dict['end_cell']:
+            self.n_layer += 1
+        n_nodes = g_par.dict_case['nodes']
+        # number of nodes along the channel
+        self.n_ele = n_nodes - 1
+        n_ele = self.n_ele
+
+        self.width = self.cell_dict['width']
+        self.length = self.cell_dict['length']
+
         self.anode = h_c.HalfCell(anode_dict, cell_dict, ano_channel_dict)
         # anode - object of the class HalfCell
         self.cathode = h_c.HalfCell(cathode_dict, cell_dict, cat_channel_dict)
         self.half_cells = [self.cathode, self.anode]
+
+        self.dx = self.cathode.channel.dx
         # cathode - object of the class HalfCell
         self.th_mem = cell_dict['th_mem']
         # thickness membrane
@@ -25,6 +39,21 @@ class Cell:
         # heat conductivity of the gas diffusion layer
         self.lambda_mem = [cell_dict['lambda_z_mem'], cell_dict['lambda_x_mem']]
         # heat conductivity of the membrane
+
+        # reordering thermal conductivities
+        self.lambda_thermal = \
+            np.asarray([[cell_dict['lambda_z_bpp'],
+                         cell_dict['lambda_z_gde'],
+                         cell_dict['lambda_z_mem'],
+                         cell_dict['lambda_z_gde'],
+                         cell_dict['lambda_z_bpp']],
+                        [cell_dict['lambda_x_bpp'],
+                         cell_dict['lambda_x_gde'],
+                         cell_dict['lambda_x_mem'],
+                         cell_dict['lambda_x_gde'],
+                         cell_dict['lambda_x_bpp']]])
+        print(self.lambda_thermal)
+
         self.mem_base_r = cell_dict['mem_base_r']
         # basic electrical resistance of the membrane
         self.mem_acl_r = cell_dict['mem_acl_r']
@@ -48,31 +77,75 @@ class Cell:
         self.width_channels = \
             self.cathode.channel.width * self.cathode.n_chl \
             + self.cathode.channel.rib_width * (self.cathode.n_chl + 1)
-        self.active_area_dx = self.width_channels * self.cathode.channel.dx
-        self.k_bpp_z = self.lambda_bpp[0] * self.active_area_dx \
-            / self.cathode.th_bpp
+        self.active_area_dx = self.width_channels * self.dx
+        self.k_bpp_z = \
+            self.lambda_bpp[0] * self.active_area_dx / self.cathode.th_bpp
         # heat conductivity through the bipolar plate
-        self.k_gde_z = self.lambda_gde[0]\
-            * self.active_area_dx \
-            / self.cathode.th_gde
+        self.k_gde_z = \
+            self.lambda_gde[0] * self.active_area_dx / self.cathode.th_gde
         # heat conductivity through the gas diffusion electrode
-        self.k_mem_z = self.lambda_mem[0]\
-            * self.active_area_dx \
-            / self.th_mem
+        self.k_mem_z = \
+            self.lambda_mem[0] * self.active_area_dx / self.th_mem
         # heat conductivity through the membrane
         self.k_bpp_x = self.width_channels * self.lambda_bpp[1] \
             * self.cathode.th_bpp / self.cathode.channel.dx
         # heat conductivity along the bipolar plate
         self.k_gp = (self.width_channels
                      * (self.lambda_bpp[1] * self.cathode.th_bpp
-                        + self.lambda_gde[1] * self.cathode.th_gde))\
+                        + self.lambda_gde[1] * self.cathode.th_gde)) \
             / (2. * self.cathode.channel.dx)
         # heat conductivity alon the bipolar plate and gas diffusion electrode
         self.k_gm = (self.width_channels
                      * (self.lambda_mem[1] * self.th_mem
-                        + self.lambda_gde[1] * self.cathode.th_gde))\
+                        + self.lambda_gde[1] * self.cathode.th_gde)) \
             / (2. * self.cathode.channel.dx)
-        # heat conductivity alon the gas diffusion electrode and membrane
+        # heat conductivity along the gas diffusion electrode and membrane
+        self.th_layer = \
+            np.asarray([self.cathode.th_bpp,
+                        self.cathode.th_gde,
+                        self.th_mem,
+                        self.anode.th_gde,
+                        self.anode.th_bpp])
+
+        # if cell_dict['end_cell']:
+        #     k_layer_z = \
+        #         np.asarray([self.k_bpp_z, self.k_gde_z, self.k_mem_z,
+        #                     self. k_gde_z, self.k_bpp_z])
+        #     k_layer_x = \
+        #         np.asarray([self.k_bpp_x, self.k_gp, self.k_gm,
+        #                     self. k_gm, self.k_gp, self.k_bpp_x])
+        # else:
+        #     k_layer_z = \
+        #         np.asarray([self.k_bpp_z, self.k_gde_z, self.k_mem_z,
+        #                     self. k_gde_z])
+        #     k_layer_x = \
+        #         np.asarray([self.k_bpp_x, self.k_gp, self.k_gm,
+        #                     self. k_gm, self.k_gp])
+
+        k_layer_z = \
+            np.outer(self.lambda_thermal[0] / self.th_layer,
+                     self.active_area_dx)
+        k_layer_x = self.lambda_thermal[1] * self.th_layer
+        k_layer_x = (k_layer_x + np.roll(k_layer_x, 1)) * 0.5
+        k_layer_x = np.hstack((k_layer_x, k_layer_x[0]))
+        k_layer_x = np.outer(k_layer_x, self.width_channels / self.dx)
+
+        if not cell_dict['end_cell']:
+            k_layer_z = np.delete(k_layer_z, -1, 0)
+            k_layer_x = np.delete(k_layer_x, -1, 0)
+
+        if cell_dict['first_cell']:
+            k_layer_x[0] *= 0.5
+        if cell_dict['end_cell']:
+            k_layer_x[-1] *= 0.5
+
+        # print('k_layer')
+        # print(np.sum(np.abs(k_layer_z - k_layer_z_1)))
+        # print(np.sum(np.abs(k_layer_x - k_layer_x_1)))
+        # print(k_layer_x)
+        # print(k_layer_x_1)
+        self.heat_cond_mtx = \
+            mtx.build_cell_conductance_matrix(k_layer_x, k_layer_z, n_ele)
 
         """boolean alarms"""
         self.v_alarm = False
@@ -86,26 +159,24 @@ class Cell:
             + 2. * self.cathode.th_gde
         # height of the cell
         #self.n_nodes = g_par.dict_case['nodes']
-        n_nodes = g_par.dict_case['nodes']
-        # number of nodes along the channel
-        self.n_ele = n_nodes - 1
-        n_ele = self.n_ele
+
         self.w_cross_flow = np.zeros(n_ele)
         # water cross flux through the membrane
         self.omega_ca = np.zeros(n_ele)
         # area specific membrane resistance
         self.v_loss = np.full(n_ele, 0.)
         # voltage loss
-        self.temp_layer = np.full((5, n_ele), cell_dict['temp_init'])
+        self.temp_layer = np.full((self.n_layer, n_ele), cell_dict['temp_init'])
         # layer temperature
         #self.temp_cool_in = cell_dict['temp_cool_in']
         # coolant inlet temperature
         self.temp_cool = np.full(n_ele, cell_dict['temp_cool_in'])
-        self.temp_names = ['BPP-BPP',
+        self.temp_names = ['Cathode BPP-BPP',
                            'Cathode BPP-GDE',
                            'Cathode GDE-MEM',
                            'Anode MEM-GDE',
-                           'Anode GDE-BPP']
+                           'Anode GDE-BPP',
+                           'Anode BPP-BPP']
         # interface names according to temperature array
         self.temp_mem = np.zeros(n_ele)
         # membrane temperature
@@ -129,6 +200,27 @@ class Cell:
                                 {'value': self.temp_layer[i], 'units': 'K'}
                                 for i in range(len(self.temp_layer))}
             }]
+
+    def calculate_ambient_conductance(self, alpha_amb):
+        """
+        :param alpha_amb: heat transfer coefficient for free or forced
+        convection to the ambient
+        :return: discretized conductance for each layer of cell based on
+        external surface
+        """
+        # geometry model
+        fac = (self.width + self.length) \
+            / (self.cathode.channel.length * self.width_channels)
+        k_amb = np.full((self.n_layer, self.n_ele), 0.)
+        # convection conductance to the environment
+        dx = self.cathode.channel.dx
+        k_amb[0, :] = self.cathode.th_bpp
+        k_amb[1, :] = (self.cathode.th_bpp + self.cathode.th_gde)
+        k_amb[1] = 0.5 * alpha_amb * dx\
+            * (self.cathode.th_bpp + self.cathode.th_gde) / fac
+        k_amb[0] = 0.5 * alpha_amb * dx \
+            * (self.cathode.th_bpp + self.th_mem) / fac
+        k_amb[2] = alpha_amb * dx * self.cathode.th_bpp / fac
 
     def update(self):
         """

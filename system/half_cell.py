@@ -58,11 +58,7 @@ class HalfCell:
 
         """geometry"""
         self.n_chl = halfcell_dict['channel_numb']
-        # number of channels of each cell
-        self.cell_width = halfcell_dict['cell_width']
-        # height of the cell
-        self.cell_length = halfcell_dict['cell_length']
-        # length of the cell
+        # number of channels of each half cell
         self.th_gdl = halfcell_dict['th_gdl']
         # thickness of the gas diffusion layer
         self.th_bpp = halfcell_dict['th_bpp']

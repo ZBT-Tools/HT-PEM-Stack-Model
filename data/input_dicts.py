@@ -27,6 +27,8 @@ simulation_dict = {
 dict_cell = {
     'is_ht_pem': op_con.is_ht_pem,
     'th_mem': geom.membrane_thickness,
+    'width': geom.cell_width,
+    'length': geom.cell_length,
     'lambda_z_bpp': phy_prop.thermal_conductivity_bipolar_plate_z,
     'lambda_z_gde': phy_prop.thermal_conductivity_gas_diffusion_electrode_z,
     'lambda_z_mem': phy_prop.thermal_conductivity_membrane_z,
@@ -43,8 +45,6 @@ dict_cell = {
 dict_cathode = {
     'name': 'Cathode',
     'flow_direction': geom.cathode_flow_direction,
-    'cell_width': geom.cell_width,
-    'cell_length': geom.cell_length,
     'channel_numb': geom.gas_channel_number,
     'stoichiometry': op_con.stoichiometry_cathode,
     'is_cathode': True,
@@ -69,8 +69,6 @@ dict_cathode = {
 dict_anode = {
     'name': 'Anode',
     'flow_direction': geom.anode_flow_direction,
-    'cell_width': geom.cell_width,
-    'cell_length': geom.cell_length,
     'channel_numb': geom.gas_channel_number,
     'stoichiometry': op_con.stoichiometry_anode,
     'is_cathode': False,

@@ -33,10 +33,18 @@ class Stack:
         # switch to calculate the flow distribution
 
         self.cells = []
-        # list of the stack cells
+        # Initialize individual cells
         for i in range(self.n_cells):
-            name = 'Cell ' + str(i+1)
-            self.cells.append(cl.Cell(name, cell_dict, anode_dict, cathode_dict,
+            if i == 0:
+                cell_dict['first_cell'] = True
+                cell_dict['end_cell'] = False
+            elif i == self.n_cells-1:
+                cell_dict['first_cell'] = False
+                cell_dict['end_cell'] = True
+            else:
+                cell_dict['first_cell'] = False
+                cell_dict['end_cell'] = False
+            self.cells.append(cl.Cell(i, cell_dict, anode_dict, cathode_dict,
                                       ano_channel_dict, cat_channel_dict))
 
         # self.set_stoichiometry(np.full(self.n_cells, self.stoi_cat),
@@ -131,9 +139,9 @@ class Stack:
 
         """"Calculation of the environment heat conductivity"""
         # free convection geometry model
-        cell_width = self.cells[0].cathode.cell_width
-        cell_height = self.cells[0].cathode.cell_length
-        fac = (cell_width + cell_height)\
+        cell_width = self.cells[0].width
+        cell_length = self.cells[0].length
+        fac = (cell_width + cell_length)\
             / (self.cells[0].cathode.channel.length
                * self.cells[0].width_channels)
         k_alpha_env = np.full((2, 3, self.n_cells), 0.)
@@ -151,7 +159,8 @@ class Stack:
         # Initialize the thermal coupling
         temperature_dict['k_layer'] = k_layer
         temperature_dict['k_alpha_env'] = k_alpha_env
-        self.temp_sys = therm_cpl.TemperatureSystem(temperature_dict)
+        self.temp_sys = therm_cpl.TemperatureSystem(temperature_dict,
+                                                    self.cells)
 
     def update(self):
         """
@@ -359,7 +368,7 @@ class Stack:
         This function sets up the layer and fluid temperatures in the cells.
         """
         for i, cell in enumerate(self.cells):
-            cell.temp_layer[:] = self.temp_sys.temp_layer[i][0:5, :]
+            cell.temp_layer[:] = self.temp_sys.temp_layer[i][:, :]
             cell.cathode.temp_fluid[:] = self.temp_sys.temp_fluid[0, i]
             cell.anode.temp_fluid[:] = self.temp_sys.temp_fluid[1, i]
             cell.temp_cool[:] = self.temp_sys.temp_cool_ele[i]
