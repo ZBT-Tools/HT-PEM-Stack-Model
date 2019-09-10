@@ -402,6 +402,20 @@ class TemperatureSystem:
 
         self.rhs_const = np.zeros_like(self.rhs)
 
+        k_layer_z = \
+            np.concatenate([cell.k_layer_z.transpose() for cell in self.cells],
+                           axis=-1)
+        k_layer_x = \
+            np.concatenate([cell.k_layer_x.transpose() for cell in self.cells],
+                           axis=-1)
+        print(k_layer_z)
+        print(k_layer_x)
+
+        matrix = mtx.build_cell_conductance_matrix(k_layer_x,
+                                                   k_layer_z,
+                                                   len(self.cells) * n_layer)
+        print(matrix)
+
     def update_values(self, k_alpha_ch, gamma, omega, v_loss, g_gas, i):
         """
         Updates the dynamic parameters

@@ -124,22 +124,22 @@ class Cell:
         #         np.asarray([self.k_bpp_x, self.k_gp, self.k_gm,
         #                     self. k_gm, self.k_gp])
 
-        k_layer_z = \
+        self.k_layer_z = \
             np.outer(self.lambda_thermal[0] / self.th_layer,
                      self.active_area_dx)
-        k_layer_x = self.lambda_thermal[1] * self.th_layer
-        k_layer_x = (k_layer_x + np.roll(k_layer_x, 1)) * 0.5
-        k_layer_x = np.hstack((k_layer_x, k_layer_x[0]))
-        k_layer_x = np.outer(k_layer_x, self.width_channels / self.dx)
+        self.k_layer_x = self.lambda_thermal[1] * self.th_layer
+        self.k_layer_x = (self.k_layer_x + np.roll(self.k_layer_x, 1)) * 0.5
+        self.k_layer_x = np.hstack((self.k_layer_x, self.k_layer_x[0]))
+        self.k_layer_x = np.outer(self.k_layer_x, self.width_channels / self.dx)
 
         if not self.last_cell:
-            k_layer_z = np.delete(k_layer_z, -1, 0)
-            k_layer_x = np.delete(k_layer_x, -1, 0)
+            self.k_layer_z = np.delete(self.k_layer_z, -1, 0)
+            self.k_layer_x = np.delete(self.k_layer_x, -1, 0)
 
         if self.first_cell:
-            k_layer_x[0] *= 0.5
+            self.k_layer_x[0] *= 0.5
         if self.last_cell:
-            k_layer_x[-1] *= 0.5
+            self.k_layer_x[-1] *= 0.5
 
         # print('k_layer')
         # print(np.sum(np.abs(k_layer_z - k_layer_z_1)))
@@ -147,7 +147,8 @@ class Cell:
         # print(k_layer_x)
         # print(k_layer_x_1)
         self.heat_cond_mtx = \
-            mtx.build_cell_conductance_matrix(k_layer_x, k_layer_z, n_ele)
+            mtx.build_cell_conductance_matrix(self.k_layer_x, self.k_layer_z,
+                                              n_ele)
         self.heat_mtx = self.heat_cond_mtx.copy()
         self.heat_rhs = np.full(self.n_layer * n_ele, 0.0)
 
