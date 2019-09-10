@@ -84,6 +84,27 @@ def build_cell_conductance_matrix(x_cond_vector, z_cond_vector, n_ele):
         + build_z_cell_conductance_matrix(z_cond_vector, n_ele)
 
 
+def connect_cells(matrix, cell_ids, layer_ids, values, mtx_ids,
+                  replace=False):
+    if np.isscalar(values):
+        values = np.full(len(cell_ids), values)
+    if not len(cell_ids) == len(layer_ids):
+        raise ValueError('Cell and layer index lists must have equal length')
+    for i in range(len(cell_ids)):
+        mtx_id_0 = mtx_ids[cell_ids[i][0]][:][layer_ids[i][0]]
+        mtx_id_1 = mtx_ids[cell_ids[i][1]][:][layer_ids[i][1]]
+        if replace:
+            matrix[mtx_id_0, mtx_id_1] = values[i]
+            matrix[mtx_id_0, mtx_id_0] = -values[i]
+            matrix[mtx_id_1, mtx_id_1] = -values[i]
+            matrix[mtx_id_1, mtx_id_0] = values[i]
+        else:
+            matrix[mtx_id_0, mtx_id_1] += values[i]
+            matrix[mtx_id_0, mtx_id_0] += -values[i]
+            matrix[mtx_id_1, mtx_id_1] += -values[i]
+            matrix[mtx_id_1, mtx_id_0] += values[i]
+
+
 def build_heat_conductance_matrix(k_layer, k_cool, k_alpha_env,
                                   n_layer, n_ele, n_cells,
                                   cool_ch_bc, cells):
@@ -248,6 +269,7 @@ def build_heat_conductance_matrix(k_layer, k_cool, k_alpha_env,
             mat_const[pos, pos] -= k_cool
 
     mat_const_3 = mat_const.copy()
+    print('mat_const_3: coolant channel addition')
     print(mat_const_3)
     print(mat_const_3-mat_const_2)
 

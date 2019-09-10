@@ -153,7 +153,7 @@ class Stack:
                 * (cell.cathode.th_bpp + cell.cathode.th_gde) / fac
             k_alpha_amb[0, 0, i] =\
                 .5 * (alpha_amb * avg_dx
-                      * (cell.cathode.th_bpp + cell.th_mem)) / fac
+                      * (cell.cathode.th_gde + cell.th_mem)) / fac
             k_alpha_amb[0, 2, i] = \
                 alpha_amb * avg_dx * cell.cathode.th_bpp / fac
         # Initialize the thermal coupling

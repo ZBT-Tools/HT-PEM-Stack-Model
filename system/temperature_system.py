@@ -392,29 +392,71 @@ class TemperatureSystem:
         # # heat conductance for the n cell
         # self.pos_cat_ch = np.hstack((pos_cat_ch_base, pos_cat_ch_n))
         # self.pos_ano_ch = np.hstack((pos_ano_ch_base, pos_ano_ch_n))
+        # Add constant source and sink coefficients to heat conductance matrix
+        # Heat transfer to ambient
         alpha_amb = temp_dict['alpha_amb']
+        mtx_0 = []
+        mtx_1 = []
+        mtx_2 = []
         for cell in self.cells:
             cell.k_amb = \
                 cell.calc_ambient_conductance(alpha_amb).transpose().flatten()
+            mtx_0.append(cell.heat_mtx.copy())
             cell.add_implicit_layer_source(-cell.k_amb)
             cell.add_explicit_layer_source(cell.k_amb * self.temp_amb)
+            mtx_1.append(cell.heat_mtx.copy())
+            # Heat transfer to coolant channels
+            cell.add_implicit_layer_source(-self.k_cool, 0)
+            mtx_2.append(cell.heat_mtx.copy())
+        self.cells[-1].add_implicit_layer_source(-self.k_cool, -1)
+        print(mtx_1[0]-mtx_0[0])
         #k_amb = np.asarray([cell.k_amb for cell in cells]).flatten()
 
         self.rhs_const = np.zeros_like(self.rhs)
+        print(self.cells[0].heat_mtx)
+        print(self.cells[-1].heat_mtx)
+        self.mat_const_2 = \
+            sp_la.block_diag(*[cell.heat_mtx for cell in self.cells])
+        print(self.mat_const - self.mat_const_2)
 
-        k_layer_z = \
-            np.concatenate([cell.k_layer_z.transpose() for cell in self.cells],
-                           axis=-1)
-        k_layer_x = \
-            np.concatenate([cell.k_layer_x.transpose() for cell in self.cells],
-                           axis=-1)
-        print(k_layer_z)
-        print(k_layer_x)
+        self.index_list = []
+        for i in range(len(self.cells)):
+            index_array = \
+                (self.cells[i-1].n_ele * self.cells[i-1].n_layer) * i \
+                + self.cells[i].index_array
+            self.index_list.append(index_array.tolist())
 
-        matrix = mtx.build_cell_conductance_matrix(k_layer_x,
-                                                   k_layer_z,
-                                                   len(self.cells) * n_layer)
-        print(matrix)
+        # self.mat_const_2[index_list[0][:][-1], index_list[1][:][0]] += 109.0
+        # self.mat_const_2[index_list[0][:][-1], index_list[0][:][-1]] += -109.0
+        # self.mat_const_2[index_list[1][:][0], index_list[1][:][0]] += -109.0
+        # self.mat_const_2[index_list[1][:][0], index_list[0][:][-1]] += 109.0
+
+        self.mat_const_2 = self.connect_cells()
+        print(self.mat_const - self.mat_const_2)
+
+        # k_layer_z = \
+        #     np.concatenate([cell.k_layer_z.transpose() for cell in self.cells],
+        #                    axis=-1)
+        # k_layer_x = \
+        #     np.concatenate([cell.k_layer_x.transpose() for cell in self.cells],
+        #                    axis=-1)
+        # print(k_layer_z)
+        # print(k_layer_x)
+        #
+        # matrix = mtx.build_cell_conductance_matrix(k_layer_x,
+        #                                            k_layer_z,
+        #                                            len(k_layer_z))
+        # print(matrix)
+
+    def connect_cells(self):
+        matrix = sp_la.block_diag(*[cell.heat_mtx for cell in self.cells])
+        cell_ids = [list(range(self.n_cells-1)),
+                    list(range(1, self.n_cells))]
+        layer_ids = [(-1, 0) for i in range(self.n_cells-1)]
+        values = [self.cells[i].k_layer_z[0] for i in range(1, self.n_cells)]
+        mtx.connect_cells(matrix, cell_ids, layer_ids,
+                          values, self.index_list)
+        return matrix
 
     def update_values(self, k_alpha_ch, gamma, omega, v_loss, g_gas, i):
         """
@@ -500,7 +542,7 @@ class TemperatureSystem:
         Creates a vector with the right hand side entries,
         add explicit heat sources here.
         Sources from outside the system
-        to the system must to be defined negative.
+        to the system must be defined negative.
         """
         heat_pow = self.dict['heat_pow']
 

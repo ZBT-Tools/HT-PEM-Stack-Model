@@ -250,6 +250,10 @@ class Cell:
         k_amb = np.outer(th_layer_amb, self.dx) * alpha_amb / ext_surface_factor
         if not self.last_cell:
             k_amb = np.delete(k_amb, -1, 0)
+        if self.first_cell:
+            k_amb[0] *= 0.5
+        if self.last_cell:
+            k_amb[-1] *= 0.5
         return k_amb
 
     def add_explicit_layer_source(self, source_term, layer_id=None):
@@ -265,7 +269,7 @@ class Cell:
         return source_vector
 
     def add_implicit_layer_source(self, coefficient, layer_id=None):
-        if not layer_id:
+        if layer_id is None:
             if np.isscalar(coefficient):
                 source_vector = np.full_like(self.heat_rhs, coefficient)
             else:
