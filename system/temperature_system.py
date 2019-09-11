@@ -508,6 +508,9 @@ class TemperatureSystem:
         # Heat transfer guess based on initial temperatures
         avg_wall_temp = np.average(wall_temp)
         avg_fluid_temp = np.average(fluid_temp)
+        avg_fluid_temp = np.where(fluid_temp[0] <= avg_wall_temp,
+                                  np.minimum(avg_fluid_temp, avg_wall_temp),
+                                  np.maximum(avg_fluid_temp, avg_wall_temp))
         avg_k_fluid = np.average(k_fluid)
         avg_heat = avg_k_fluid * (avg_wall_temp - avg_fluid_temp)
         avg_g_fluid = np.average(g_fluid)
@@ -515,8 +518,8 @@ class TemperatureSystem:
         fluid_temp_in = fluid_temp[0]
         fluid_temp_out = fluid_temp_in + delta_fluid_temp
         fluid_temp_out = np.where(fluid_temp_in <= wall_temp,
-                                  np.minimum(fluid_temp_out, wall_temp),
-                                  np.maximum(fluid_temp_out, wall_temp))
+                                  np.minimum(fluid_temp_out, avg_wall_temp),
+                                  np.maximum(fluid_temp_out, avg_wall_temp))
 
         avg_heat = avg_g_fluid * (fluid_temp_out - fluid_temp_in) / len(wall_temp)
         return fluid_temp_out, avg_heat
@@ -527,8 +530,23 @@ class TemperatureSystem:
         """
         for i, cell in enumerate(self.cells):
             print('cathode fluid')
+            print('layer temp')
+            print(self.temp_layer[i][1, :])
             print('fluid_temp before')
             print(self.temp_fluid[0, i])
+            print('g_fluid')
+            print(cell.cathode.g_fluid)
+            print('k_ht_coeff')
+            print(cell.cathode.k_ht_coeff)
+            print('ht_coeff')
+            print(cell.cathode.ht_coeff)
+            print('cp')
+            print(cell.cathode.cp)
+            print('cp_gas')
+            print(cell.cathode.cp)
+            print('mass_flow_gas_total')
+            print(cell.cathode.mass_flow_gas_total)
+
 
             for j in range(self.n_ele):
                 self.temp_fluid[0, i, j+1], self.heat_fluid[0, i, j] = \
@@ -537,26 +555,38 @@ class TemperatureSystem:
                                                 self.temp_fluid[0, i, j+1]],
                                                cell.cathode.g_fluid[j],
                                                cell.cathode.k_ht_coeff[j], 1)
-            print(self.temp_layer[i][1, :])
             print('fluid_temp after')
             print(self.temp_fluid[0, i])
-            print(self.temp_fluid_ele[0, i])
-            print(self.g_fluid[0, i])
-            print(self.k_gas_ch[0, i])
+
 
             print('anode fluid')
+            print('layer temp')
+            print(self.temp_layer[i][4, :])
+            print('fluid_temp before')
+            print(self.temp_fluid[1, i])
+            print('g_fluid')
+            print(cell.anode.g_fluid)
+            print('k_ht_coeff')
+            print(cell.anode.k_ht_coeff)
+            print('ht_coeff')
+            print(cell.anode.ht_coeff)
+            print('cp')
+            print(cell.anode.cp)
+            print('cp_gas')
+            print(cell.anode.cp)
+            print('mass_flow_gas_total')
+            print(cell.anode.mass_flow_gas_total)
             for j in range(self.n_ele):
                 self.temp_fluid[1, i, j+1], self.heat_fluid[1, i, j] = \
                     self.channel_heat_transfer(self.temp_layer[i][4, j],
                                                [self.temp_fluid[1, i, j],
                                                 self.temp_fluid[1, i, j + 1]],
-                                               self.g_fluid[1, i, j],
-                                               self.k_gas_ch[1, i, j], 1)
-            print(self.temp_layer[i][4, :])
+                                               cell.anode.g_fluid[j],
+                                               cell.anode.k_ht_coeff[j], 1)
+            print('fluid_temp after')
             print(self.temp_fluid[1, i])
-            print(self.temp_fluid_ele[1, i])
-            print(self.g_fluid[1, i])
-            print(self.k_gas_ch[1, i])
+
+
 
             #self.temp_fluid[0] = \
             #    ip.interpolate_along_axis(self.temp_fluid_ele[0], axis=1,

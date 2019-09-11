@@ -104,6 +104,10 @@ class HalfCell:
         self.length = cell_dict["length"]
         area_factor = self.length * self.width\
             / (self.channel.base_area * self.n_chl)
+        if area_factor < 1.0:
+            raise ValueError('width and length of cell result in a cell '
+                             'surface area  smaller than the area covered by '
+                             'channels')
         self.active_area = area_factor * self.channel.base_area
         # factor active area with ribs / active channel area
         self.active_area_dx = area_factor * self.channel.base_area_dx
@@ -272,7 +276,7 @@ class HalfCell:
         tar_cd = g_par.dict_case['tar_cd']
         self.mol_flow[self.id_fuel] = \
             tar_cd * self.active_area * abs(self.n_stoi[self.id_fuel]) \
-            / (self.n_charge * faraday)
+            / (self.n_charge * faraday) * self.stoi
         dmol = self.i_cd * self.active_area_dx * self.n_stoi[self.id_fuel] \
             / (self.n_charge * faraday)
         g_func.add_source(self.mol_flow[self.id_fuel], dmol,
@@ -379,8 +383,6 @@ class HalfCell:
             np.where(self.gas_conc[self.id_h2o] > sat_conc,
                      sat_conc, self.gas_conc[self.id_h2o])
         self.gas_conc[:] = np.maximum(self.gas_conc, 1e-6)
-        print(self.name)
-        print(self.gas_conc)
 
     def calc_two_phase_flow(self):
         """
@@ -466,9 +468,9 @@ class HalfCell:
         self.cp_fluid[:] = \
             ((self.mass_flow_total - self.mass_flow_gas_total) * cp_liq
              + self.mass_flow_gas_total * self.cp_gas) / self.mass_flow_total
-        print(self.name)
-        print("heat capacity")
-        print(self.cp_fluid)
+        # print(self.name)
+        # print("heat capacity")
+        # print(self.cp_fluid)
         self.g_fluid[:] = self.mass_flow_total * self.cp_fluid
 
     def calc_heat_transfer_coeff(self):
