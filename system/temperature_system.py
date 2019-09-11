@@ -89,6 +89,8 @@ class TemperatureSystem:
                                       self.temp_gas_in[0])
         self.temp_fluid_ele[1, :] = self.temp_gas_in[1]
         # temperature of the fluid 0: cathode fluids, 1: anode fluids
+        self.heat_fluid = np.zeros_like(self.temp_fluid_ele)
+        # heat transferred to the fluids
         self.g_fluid = np.full((2, self.n_cells, self.n_ele), 0.)
         # heat capacity flow of the fluid 0: cathode fluids, 1: anode fluids
         self.cond_rate = np.full((2, self.n_cells, self.n_nodes), 0.)
@@ -498,47 +500,94 @@ class TemperatureSystem:
     @staticmethod
     def channel_heat_transfer(wall_temp, fluid_temp, g_fluid, k_fluid,
                               flow_direction):
-        if (len(wall_temp)) + 1 != fluid_temp:
+        if np.isscalar(wall_temp):
+            wall_temp = np.asarray([wall_temp])
+        if (len(wall_temp) + 1) != len(fluid_temp):
             raise ValueError('fluid temperature array must be node-based '
                              'and wall temperature element based')
-        fluid_temp_ele = ip.interpolate_1d(fluid_temp)
-        dtemp = k_fluid / g_fluid * (wall_temp - fluid_temp_ele)
+        # Heat transfer guess based on initial temperatures
+        avg_wall_temp = np.average(wall_temp)
+        avg_fluid_temp = np.average(fluid_temp)
+        avg_fluid_temp = np.where(fluid_temp[0] <= avg_wall_temp,
+                                  np.minimum(avg_fluid_temp, avg_wall_temp),
+                                  np.maximum(avg_fluid_temp, avg_wall_temp))
+        avg_k_fluid = np.average(k_fluid)
+        avg_heat = avg_k_fluid * (avg_wall_temp - avg_fluid_temp)
+        avg_g_fluid = np.average(g_fluid)
+        delta_fluid_temp = avg_heat / np.average(g_fluid)
+        fluid_temp_in = fluid_temp[0]
+        fluid_temp_out = fluid_temp_in + delta_fluid_temp
+        fluid_temp_out = np.where(fluid_temp_in <= wall_temp,
+                                  np.minimum(fluid_temp_out, avg_wall_temp),
+                                  np.maximum(fluid_temp_out, avg_wall_temp))
 
-        g_func.add_source(fluid_temp, dtemp, flow_direction)
-        fluid_temp_ele = ip.interpolate_1d(fluid_temp)
-        return fluid_temp, fluid_temp_ele
+        avg_heat = avg_g_fluid * (fluid_temp_out - fluid_temp_in) / len(wall_temp)
+        return fluid_temp_out, avg_heat
 
     def update_gas_channel(self, method='linear'):
         """
         Calculates the fluid temperatures in the anode and cathode channels
         """
+        for i, cell in enumerate(self.cells):
+            print('cathode fluid')
+            print('layer temp')
+            print(self.temp_layer[i][1, :])
+            print('fluid_temp before')
+            print(self.temp_fluid[0, i])
+            print('g_fluid')
+            print(cell.cathode.g_fluid)
+            print('k_ht_coeff')
+            print(cell.cathode.k_ht_coeff)
+            print('ht_coeff')
+            print(cell.cathode.ht_coeff)
+            print('cp')
+            print(cell.cathode.cp)
+            print('cp_gas')
+            print(cell.cathode.cp)
+            print('mass_flow_gas_total')
+            print(cell.cathode.mass_flow_gas_total)
 
-        #self.temp_fluid[0].fill(self.temp_gas_in[0])
-        #self.temp_fluid[1].fill(self.temp_gas_in[1])
-        #self.temp_fluid_ele[0].fill(self.temp_gas_in[0])
-        #self.temp_fluid_ele[1].fill(self.temp_gas_in[1])
-        # Guess of heat transfer based on initial fluid temperature
 
-        for i in range(self.n_cells):
-            self.channel_heat_transfer(self.temp_layer[i][1, :],
-                                       self.temp_fluid[0, i],
-                                       self.g_fluid[0, i],
-                                       self.k_gas_ch[0, i], 1)
-            dtemp = self.k_gas_ch[0, i] / self.g_fluid[0, i] \
-                * (self.temp_layer[i][1, :] - self.temp_fluid_ele[0, i])
+            for j in range(self.n_ele):
+                self.temp_fluid[0, i, j+1], self.heat_fluid[0, i, j] = \
+                    self.channel_heat_transfer(self.temp_layer[i][1, j],
+                                               [self.temp_fluid[0, i, j],
+                                                self.temp_fluid[0, i, j+1]],
+                                               cell.cathode.g_fluid[j],
+                                               cell.cathode.k_ht_coeff[j], 1)
+            print('fluid_temp after')
+            print(self.temp_fluid[0, i])
 
-            g_func.add_source(self.temp_fluid[0, i], dtemp, 1)
-            self.temp_fluid_ele[0, i] = \
-                ip.interpolate_1d(self.temp_fluid[0, i])
-            # self.temp_fluid_ele[0, i] = \
-            #     np.minimum(temp_fluid_ele, self.temp_layer[i][1])
-            dtemp = self.k_gas_ch[1, i] / self.g_fluid[1, i] \
-                * (self.temp_layer[i][4, :] - self.temp_fluid_ele[1, i])
-            g_func.add_source(self.temp_fluid[1, i], dtemp, -1)
-            # self.temp_fluid[1, i] = \
-            #     np.minimum(self.temp_fluid, self.temp_layer[i][4])
-            self.temp_fluid_ele[1, i] = \
-                ip.interpolate_1d(self.temp_fluid[1, i])
+
+            print('anode fluid')
+            print('layer temp')
+            print(self.temp_layer[i][4, :])
+            print('fluid_temp before')
+            print(self.temp_fluid[1, i])
+            print('g_fluid')
+            print(cell.anode.g_fluid)
+            print('k_ht_coeff')
+            print(cell.anode.k_ht_coeff)
+            print('ht_coeff')
+            print(cell.anode.ht_coeff)
+            print('cp')
+            print(cell.anode.cp)
+            print('cp_gas')
+            print(cell.anode.cp)
+            print('mass_flow_gas_total')
+            print(cell.anode.mass_flow_gas_total)
+            for j in range(self.n_ele):
+                self.temp_fluid[1, i, j+1], self.heat_fluid[1, i, j] = \
+                    self.channel_heat_transfer(self.temp_layer[i][4, j],
+                                               [self.temp_fluid[1, i, j],
+                                                self.temp_fluid[1, i, j + 1]],
+                                               cell.anode.g_fluid[j],
+                                               cell.anode.k_ht_coeff[j], 1)
+            print('fluid_temp after')
+            print(self.temp_fluid[1, i])
+
+
+
             #self.temp_fluid[0] = \
             #    ip.interpolate_along_axis(self.temp_fluid_ele[0], axis=1,
             #                              add_edge_points=True)

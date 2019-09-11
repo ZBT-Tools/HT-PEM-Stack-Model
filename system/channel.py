@@ -32,9 +32,9 @@ class Channel:
         # bend friction factor
         self.rib_width = dict_ch['rib_width']
         # rack width
-        self.active_area = self.width * self.length
+        self.base_area = self.width * self.length
         # planar area of the channel
-        self.active_area_dx = self.width * self.dx
+        self.base_area_dx = self.width * self.dx
         # planar area of an element of the channel
         self.cross_area = self.width * self.height
         # channel cross area

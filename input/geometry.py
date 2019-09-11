@@ -45,9 +45,9 @@ gas_diffusion_layer_thickness = 250.e-6
 # thickness of the bipolar plate [m]
 bipolar_plate_thickness = 1.11275e-3
 # length of the cell, a side of the active area [m]
-cell_length = 67.e-3
+cell_length = 100.e-3
 # height of the cell, b side of the active area [m]
-cell_width = 67.e-3
+cell_width = 100.e-3
 # number of gas channels
 gas_channel_number = 10
 # number of coolant channels
