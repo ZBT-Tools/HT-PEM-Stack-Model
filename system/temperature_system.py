@@ -519,7 +519,6 @@ class TemperatureSystem:
         #self.temp_fluid_ele[1].fill(self.temp_gas_in[1])
         # Guess of heat transfer based on initial fluid temperature
 
-
         for i in range(self.n_cells):
             self.channel_heat_transfer(self.temp_layer[i][1, :],
                                        self.temp_fluid[0, i],
