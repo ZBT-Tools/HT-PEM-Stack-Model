@@ -99,14 +99,15 @@ class HalfCell:
         self.beta = np.zeros(n_ele)
         # dimensionless parameter
 
-        """general parameter"""
-        # area_fac = self.cell_length * self.cell_width\
-        #     / (self.channel.active_area * self.n_chl)
-        # factor active area with racks / active channel area
-        # self.active_area_dx_ch = self.channel.active_area_dx
-        # active area belonging to the channel plan area dx
-        # self.active_area_ch = area_fac * self.channel.active_area
-        # active area belonging to the channel plan area
+        """half cell geometry parameter"""
+        self.width = cell_dict["width"]
+        self.length = cell_dict["length"]
+        area_factor = self.length * self.width\
+            / (self.channel.base_area * self.n_chl)
+        self.active_area = area_factor * self.channel.base_area
+        # factor active area with ribs / active channel area
+        self.active_area_dx = area_factor * self.channel.base_area_dx
+
         self.break_program = False
         # boolean to hint if the cell voltage runs below zero
         self.is_ht_pem = cell_dict['is_ht_pem']
@@ -157,8 +158,6 @@ class HalfCell:
         self.gas_conc = np.array(self.mol_flow)
         # molar concentration of each species
         # 0: Reactant, 1: Water, 2: Inert Species
-        self.reac_con_ele = np.full(n_ele, 0.)
-        # element based molar concentration of the reactant
         self.temp_fluid = np.full(n_nodes, self.channel.temp_in)
         # temperature of the fluid in the channel
         self.rho_gas = np.full(n_nodes, 1.)
@@ -188,7 +187,7 @@ class HalfCell:
         # heat capacity of the gas phase
         self.ht_coeff = np.zeros(n_ele)
         # convection coefficient between the gas phase and the channel
-        self.k_ht_coeff_ca = np.zeros(n_ele)
+        self.k_ht_coeff = np.zeros(n_ele)
         # heat conductivity between the gas phase and the channel
         self.cp_gas_ele = np.zeros(n_ele)
         # element based heat capacity
@@ -270,12 +269,12 @@ class HalfCell:
         Calculates the reactant molar flow [mol/s]
         """
         faraday = g_par.dict_uni['F']
-        chl = self.channel
         tar_cd = g_par.dict_case['tar_cd']
-        self.mol_flow[self.id_fuel] = self.stoi * tar_cd * chl.active_area * \
-            abs(self.n_stoi[self.id_fuel]) / (self.n_charge * faraday)
-        dmol = self.i_cd * chl.active_area_dx * self.n_stoi[self.id_fuel] / \
-               (self.n_charge * faraday)
+        self.mol_flow[self.id_fuel] = \
+            tar_cd * self.active_area * abs(self.n_stoi[self.id_fuel]) \
+            / (self.n_charge * faraday)
+        dmol = self.i_cd * self.active_area_dx * self.n_stoi[self.id_fuel] \
+            / (self.n_charge * faraday)
         g_func.add_source(self.mol_flow[self.id_fuel], dmol,
                           self.flow_direction)
         self.mol_flow[self.id_inert] = \
@@ -287,7 +286,7 @@ class HalfCell:
         """
         sat_p = w_prop.water.calc_p_sat(self.channel.temp_in)
         i_cd = self.i_cd
-        area = self.channel.active_area_dx
+        area = self.active_area_dx
         chl = self.channel
         q_0_water = \
             (self.mol_flow[self.id_fuel][self.ele_in]
@@ -379,16 +378,20 @@ class HalfCell:
         self.gas_conc[self.id_h2o] = \
             np.where(self.gas_conc[self.id_h2o] > sat_conc,
                      sat_conc, self.gas_conc[self.id_h2o])
-        self.reac_con_ele = ip.interpolate_1d(self.gas_conc[self.id_fuel])
+        self.gas_conc[:] = np.maximum(self.gas_conc, 1e-6)
+        print(self.name)
+        print(self.gas_conc)
 
     def calc_two_phase_flow(self):
         """
         Calculates the condensed phase flow and updates mole and mass fractions
         """
         self.mol_flow_liq[:] = np.zeros_like(self.mol_flow)
+        gas_conc_fuel = np.where(self.gas_conc[self.id_fuel] > 0.0,
+                                 self.gas_conc[self.id_fuel], 1e-6)
         self.mol_flow_liq[self.id_h2o] = self.mol_flow[self.id_h2o] \
-                                         - self.gas_conc[self.id_h2o] / \
-                                         self.gas_conc[self.id_fuel] * self.mol_flow[self.id_fuel]
+            - self.gas_conc[self.id_h2o] / gas_conc_fuel \
+            * self.mol_flow[self.id_fuel]
         self.mass_flow_liq[:] = np.zeros_like(self.mass_flow)
         self.mass_flow_liq[self.id_h2o] = \
             self.mol_flow_liq[self.id_h2o] * self.mol_mass[self.id_h2o]
@@ -463,20 +466,20 @@ class HalfCell:
         self.cp_fluid[:] = \
             ((self.mass_flow_total - self.mass_flow_gas_total) * cp_liq
              + self.mass_flow_gas_total * self.cp_gas) / self.mass_flow_total
+        print(self.name)
+        print("heat capacity")
+        print(self.cp_fluid)
         self.g_fluid[:] = self.mass_flow_total * self.cp_fluid
 
     def calc_heat_transfer_coeff(self):
         """
-        Calculates the convection coefficient between the channel and
-        the gas phase.
-        Deputy for the convection coefficient between the fluid and the channel.
-        Calculates the heat conductivity based on the convection coefficient
-        and the element area of the channel.
+        Calculates convection coefficient and corresponding conductance
+        between the channel wall and the fluid.
         """
         nusselt = 3.66
         chl = self.channel
         self.ht_coeff[:] = self.lambda_gas_ele * nusselt / chl.d_h
-        self.k_ht_coeff_ca[:] = \
+        self.k_ht_coeff[:] = \
             self.ht_coeff * chl.dx * 2.0 * (chl.width + chl.height)
 
     def calc_cond_rates(self):
@@ -497,18 +500,18 @@ class HalfCell:
         p_sat = w_prop.water.calc_p_sat(self.temp_fluid)
         self.humidity[:] = self.mol_fraction_gas[self.id_h2o] * self.p / p_sat
 
-    def calc_activation_loss(self):
+    def calc_activation_loss(self, reac_conc_ele, reac_conc_in):
         """
         Calculates the activation voltage loss,
         according to (Kulikovsky, 2013).
         """
         self.act_loss[:] = self.tafel_slope \
             * np.arcsinh((self.i_cd / self.i_sigma) ** 2.
-                         / (2. * (self.reac_con_ele / self.gas_conc[0, :-1])
+                         / (2. * (reac_conc_ele / reac_conc_in)
                             * (1. - np.exp(-self.i_cd /
                                            (2. * self.i_cd_char)))))
 
-    def calc_transport_loss_catalyst_layer(self, var):
+    def calc_transport_loss_catalyst_layer(self, var, reac_conc_ele):
         """
         Calculates the diffusion voltage loss in the catalyst layer
         according to (Kulikovsky, 2013).
@@ -520,7 +523,7 @@ class HalfCell:
         self.cl_diff_loss[:] = \
             ((self.prot_con_cl * self.tafel_slope ** 2.)
              / (4. * g_par.dict_uni['F']
-                * self.diff_coeff_cl * self.reac_con_ele)
+                * self.diff_coeff_cl * reac_conc_ele)
              * (self.i_cd / self.i_cd_char
                 - np.log10(1. + np.square(self.i_cd) /
                            (self.i_cd_char ** 2. * beta ** 2.)))) / var
@@ -539,12 +542,18 @@ class HalfCell:
         """
         Calculates the full voltage losses of the electrode
         """
-        i_lim = 4. * g_par.dict_uni['F'] * self.gas_conc[0, :-1] \
+        reac_conc_ele = ip.interpolate_1d(self.gas_conc[self.id_fuel])
+        if self.flow_direction == 1:
+            reac_conc_in = self.gas_conc[self.id_fuel, :-1]
+        else:
+            reac_conc_in = self.gas_conc[self.id_fuel, 1:]
+
+        i_lim = 4. * g_par.dict_uni['F'] * reac_conc_in \
             * self.diff_coeff_gdl / self.th_gdl
-        var = 1. - self.i_cd \
-            / (i_lim * self.reac_con_ele / self.gas_conc[0, :-1])
-        self.calc_activation_loss()
-        self.calc_transport_loss_catalyst_layer(var)
+        var = 1. - self.i_cd / i_lim * reac_conc_in / reac_conc_ele
+
+        self.calc_activation_loss(reac_conc_ele, reac_conc_in)
+        self.calc_transport_loss_catalyst_layer(var, reac_conc_ele)
         self.calc_transport_loss_diffusion_layer(var)
         if not self.calc_gdl_diff_loss:
             self.gdl_diff_loss[:] = 0.
