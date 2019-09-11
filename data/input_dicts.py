@@ -19,7 +19,8 @@ dict_stack = {
     }
 
 simulation_dict = {
-    'maximal_iteration': sim.maximal_number_iteration,
+    'maximum_iteration': sim.maximum_iteration_number,
+    'minimum_iteration': sim.minimum_iteration_number,
     'iteration_criteria': sim.convergence_criteria
     }
 

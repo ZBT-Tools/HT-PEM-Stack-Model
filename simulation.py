@@ -33,8 +33,9 @@ class Simulation:
         # Handover
         self.it_crit = dict_simulation['iteration_criteria']
         # iteration criteria
-        self.max_it = dict_simulation['maximal_iteration']
+        self.max_it = dict_simulation['maximum_iteration']
         # maximal number of iterations before force termination#
+        self.min_it = dict_simulation['minimum_iteration']
 
         n_cells = input_dicts.dict_stack['cell_number']
         # number of stack cells
@@ -202,6 +203,8 @@ class Simulation:
             g_par.dict_case['tar_cd'] = tar_cd
             counter = 0
             while True:
+                if counter == 0:
+                    self.stack.i_cd.fill(tar_cd)
                 self.save_old_value()
                 self.stack.update()
                 if self.stack.break_program:
@@ -211,8 +214,8 @@ class Simulation:
                     print(counter)
                 counter += 1
                 if ((self.i_ca_criteria < self.it_crit
-                     and self.temp_criteria < self.it_crit) and counter > 10)\
-                        or counter > self.max_it:
+                     and self.temp_criteria < self.it_crit)
+                        and counter > self.min_it) or counter > self.max_it:
                     break
             if not self.stack.break_program:
                 voltage_loss = self.save_voltages(self.stack)
@@ -293,7 +296,7 @@ class Simulation:
         i_cd_vec = self.stack.i_cd.flatten()
         self.i_ca_criteria = \
             np.abs(np.sum(((i_cd_vec - self.stack.i_cd_old.flatten())
-                           / i_cd_vec) ** 2.))
+                           / i_cd_vec) ** 2.0))
         # self.temp_criteria =\
         #     np.abs(np.sum(((self.temp_old
         #                     - self.stack.temp_sys.temp_layer[0][0, 0]))

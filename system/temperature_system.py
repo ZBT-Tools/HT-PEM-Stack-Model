@@ -399,16 +399,21 @@ class TemperatureSystem:
         mtx_1 = []
         mtx_2 = []
         for cell in self.cells:
-            cell.k_amb = \
-                cell.calc_ambient_conductance(alpha_amb).transpose().flatten()
+            cell.k_amb = cell.calc_ambient_conductance(alpha_amb)
+            if cell.last_cell:
+                k_amb_vector = cell.k_amb.transpose().flatten()
+            else:
+                k_amb_vector = cell.k_amb[:-1].transpose().flatten()
+
             mtx_0.append(cell.heat_mtx.copy())
-            cell.add_implicit_layer_source(-cell.k_amb)
-            cell.add_explicit_layer_source(cell.k_amb * self.temp_amb)
+            cell.add_implicit_layer_source(-k_amb_vector)
+            cell.add_explicit_layer_source(k_amb_vector * self.temp_amb)
+
             mtx_1.append(cell.heat_mtx.copy())
             # Heat transfer to coolant channels
-            cell.add_implicit_layer_source(-self.k_cool, 0)
+            cell.add_implicit_layer_source(-self.k_cool, layer_id=0)
             mtx_2.append(cell.heat_mtx.copy())
-        self.cells[-1].add_implicit_layer_source(-self.k_cool, -1)
+        self.cells[-1].add_implicit_layer_source(-self.k_cool, layer_id=-1)
         print(mtx_1[0]-mtx_0[0])
         #k_amb = np.asarray([cell.k_amb for cell in cells]).flatten()
 
@@ -453,9 +458,11 @@ class TemperatureSystem:
         cell_ids = [list(range(self.n_cells-1)),
                     list(range(1, self.n_cells))]
         layer_ids = [(-1, 0) for i in range(self.n_cells-1)]
-        values = [self.cells[i].k_layer_z[0] for i in range(1, self.n_cells)]
+        conductance = \
+            [self.cells[i].k_layer_z[layer_ids[i][0]]
+             for i in range(self.n_cells-1)]
         mtx.connect_cells(matrix, cell_ids, layer_ids,
-                          values, self.index_list)
+                          conductance, self.index_list)
         return matrix
 
     def update_values(self, k_alpha_ch, gamma, omega, v_loss, g_gas, i):
@@ -475,8 +482,8 @@ class TemperatureSystem:
         This function coordinates the program sequence
         """
         # self.change_value_shape()
-        self.update_gas_channel_lin()
-        self.update_coolant_channel_lin()
+        self.update_gas_channel()
+        self.update_coolant_channel()
         self.update_temp_layer()
 
     def update_temp_layer(self):
@@ -488,7 +495,20 @@ class TemperatureSystem:
         self.solve_system()
         self.sort_results()
 
-    def update_gas_channel_lin(self):
+    @staticmethod
+    def channel_heat_transfer(wall_temp, fluid_temp, g_fluid, k_fluid,
+                              flow_direction):
+        if (len(wall_temp)) + 1 != fluid_temp:
+            raise ValueError('fluid temperature array must be node-based '
+                             'and wall temperature element based')
+        fluid_temp_ele = ip.interpolate_1d(fluid_temp)
+        dtemp = k_fluid / g_fluid * (wall_temp - fluid_temp_ele)
+
+        g_func.add_source(fluid_temp, dtemp, flow_direction)
+        fluid_temp_ele = ip.interpolate_1d(fluid_temp)
+        return fluid_temp, fluid_temp_ele
+
+    def update_gas_channel(self, method='linear'):
         """
         Calculates the fluid temperatures in the anode and cathode channels
         """
@@ -497,9 +517,17 @@ class TemperatureSystem:
         #self.temp_fluid[1].fill(self.temp_gas_in[1])
         #self.temp_fluid_ele[0].fill(self.temp_gas_in[0])
         #self.temp_fluid_ele[1].fill(self.temp_gas_in[1])
+        # Guess of heat transfer based on initial fluid temperature
+
+
         for i in range(self.n_cells):
+            self.channel_heat_transfer(self.temp_layer[i][1, :],
+                                       self.temp_fluid[0, i],
+                                       self.g_fluid[0, i],
+                                       self.k_gas_ch[0, i], 1)
             dtemp = self.k_gas_ch[0, i] / self.g_fluid[0, i] \
                 * (self.temp_layer[i][1, :] - self.temp_fluid_ele[0, i])
+
             g_func.add_source(self.temp_fluid[0, i], dtemp, 1)
             self.temp_fluid_ele[0, i] = \
                 ip.interpolate_1d(self.temp_fluid[0, i])
@@ -521,7 +549,7 @@ class TemperatureSystem:
             #                              add_edge_points=True)
             #self.temp_fluid[1, :, -1] = self.temp_gas_in[1]
 
-    def update_coolant_channel_lin(self):
+    def update_coolant_channel(self, method='linear'):
         """
             Calculates the coolant channel temperatures.
         """

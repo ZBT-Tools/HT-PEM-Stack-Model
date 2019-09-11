@@ -132,9 +132,9 @@ class Cell:
         self.k_layer_x = np.hstack((self.k_layer_x, self.k_layer_x[0]))
         self.k_layer_x = np.outer(self.k_layer_x, self.width_channels / self.dx)
 
-        if not self.last_cell:
-            self.k_layer_z = np.delete(self.k_layer_z, -1, 0)
-            self.k_layer_x = np.delete(self.k_layer_x, -1, 0)
+        # if not self.last_cell:
+        #     self.k_layer_z = np.delete(self.k_layer_z, -1, 0)
+        #     self.k_layer_x = np.delete(self.k_layer_x, -1, 0)
 
         if self.first_cell:
             self.k_layer_x[0] *= 0.5
@@ -146,9 +146,16 @@ class Cell:
         # print(np.sum(np.abs(k_layer_x - k_layer_x_1)))
         # print(k_layer_x)
         # print(k_layer_x_1)
-        self.heat_cond_mtx = \
-            mtx.build_cell_conductance_matrix(self.k_layer_x, self.k_layer_z,
-                                              n_ele)
+        if self.last_cell:
+            self.heat_cond_mtx = \
+                mtx.build_cell_conductance_matrix(self.k_layer_x,
+                                                  self.k_layer_z,
+                                                  n_ele)
+        else:
+            self.heat_cond_mtx = \
+                mtx.build_cell_conductance_matrix(self.k_layer_x[:-1],
+                                                  self.k_layer_z[:-1],
+                                                  n_ele)
         self.heat_mtx = self.heat_cond_mtx.copy()
         self.heat_rhs = np.full(self.n_layer * n_ele, 0.0)
 
@@ -238,18 +245,9 @@ class Cell:
         k_amb = np.full((self.n_layer, self.n_ele), 0.)
         # convection conductance to the environment
         th_layer_amb = (self.th_layer + np.roll(self.th_layer, 1)) * 0.5
-        if self.cell_dict['last_cell']:
-            th_layer_amb = np.hstack((th_layer_amb, th_layer_amb[0]))
-        # k_amb[0, :] = self.cathode.th_bpp
-        # k_amb[1, :] = (self.cathode.th_bpp + self.cathode.th_gde)
-        # k_amb[1] = 0.5 * alpha_amb * self.dx\
-        #     * (self.cathode.th_bpp + self.cathode.th_gde) / ext_surface_factor
-        # k_amb[0] = 0.5 * alpha_amb * self.dx \
-        #     * (self.cathode.th_bpp + self.th_mem) / ext_surface_factor
-        # k_amb[2] = alpha_amb * self.dx * self.cathode.th_bpp / ext_surface_factor
+        # if self.last_cell:
+        th_layer_amb = np.hstack((th_layer_amb, th_layer_amb[0]))
         k_amb = np.outer(th_layer_amb, self.dx) * alpha_amb / ext_surface_factor
-        if not self.last_cell:
-            k_amb = np.delete(k_amb, -1, 0)
         if self.first_cell:
             k_amb[0] *= 0.5
         if self.last_cell:
@@ -343,8 +341,8 @@ class Cell:
         Calculates the membrane resistivity and resistance
         according to (Kvesic, 2013).
         """
-        self.omega_ca[:] = (self.mem_base_r
-                         - self.mem_acl_r * self.temp_mem) * 1.e-4
+        self.omega_ca[:] = \
+            (self.mem_base_r - self.mem_acl_r * self.temp_mem) * 1.e-4
         self.omega[:] = self.omega_ca / self.active_area_dx
 
     def calc_mem_resistivity_gossling(self):
@@ -362,8 +360,8 @@ class Cell:
             + 0.0004702 * np.exp(1.144 * (lambda_x - 8.))
         res = res_lambda * res_t / 0.01415
         rp = self.th_mem / res
-        self.omega_ca[:] = 1.e-4 * (self.fac_res_basic
-                                 + rp * self.fac_res_fit)
+        self.omega_ca[:] = \
+            1.e-4 * (self.fac_res_basic + rp * self.fac_res_fit)
         self.omega[:] = self.omega_ca / self.active_area_dx
 
     def calc_mem_resistivity_springer(self):
