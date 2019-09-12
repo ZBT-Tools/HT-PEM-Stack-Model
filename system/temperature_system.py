@@ -59,8 +59,8 @@ class TemperatureSystem:
         # end plate heat power
         self.lambda_cool = temp_dict['cool_lambda']
         # heat conductance from the channel to the coolant
-        self.k_layer = temp_dict['k_layer']
-        # heat conductance array through and along the control volume
+        # self.k_layer = temp_dict['k_layer']
+        # # heat conductance array through and along the control volume
         self.k_alpha_amb = temp_dict['k_alpha_amb']
         # heat conductance from control volume to the environment
         self.temp_amb = temp_dict['temp_amb']
@@ -434,9 +434,6 @@ class TemperatureSystem:
             self.index_list.append(index_array.tolist())
 
         self.mat_const_2 = self.connect_cells()
-        print(self.mat_const_2)
-        print(self.dyn_vec)
-        print(self.cells[0].last_cell)
         self.mat_const_sp = sparse.csr_matrix(self.mat_const_2)
         #print(self.mat_const)
         #print(self.mat_const_2)
@@ -500,8 +497,7 @@ class TemperatureSystem:
         self.sort_results()
 
     @staticmethod
-    def channel_heat_transfer(wall_temp, fluid_temp, g_fluid, k_fluid,
-                              flow_direction):
+    def element_heat_transfer(wall_temp, fluid_temp, g_fluid, k_fluid):
         if np.isscalar(wall_temp):
             wall_temp = np.asarray([wall_temp])
         if (len(wall_temp) + 1) != len(fluid_temp):
@@ -527,49 +523,87 @@ class TemperatureSystem:
             / len(wall_temp)
         return fluid_temp_out, avg_heat
 
+    def channel_heat_transfer(self, wall_temp, fluid_temp, g_fluid,
+                              k_ht_coeff, flow_direction):
+        if (len(wall_temp) + 1) != len(fluid_temp):
+            raise ValueError('fluid temperature array must be node-based '
+                             'and wall temperature element based')
+        heat_fluid = np.zeros_like(wall_temp)
+        if np.isscalar(g_fluid):
+            g_fluid = np.full_like(wall_temp, g_fluid)
+        if np.isscalar(k_ht_coeff):
+            k_ht_coeff = np.full_like(wall_temp, k_ht_coeff)
+        n = len(wall_temp)
+        if flow_direction == 1:
+            for i in range(n):
+                fluid_temp[i+1], heat_fluid[i] = \
+                    self.element_heat_transfer(wall_temp[i],
+                                               [fluid_temp[i], fluid_temp[i+1]],
+                                               g_fluid[i], k_ht_coeff[i])
+        elif flow_direction == -1:
+            for i in reversed(range(n)):
+                fluid_temp[i], heat_fluid[i] = \
+                    self.element_heat_transfer(wall_temp[i],
+                                               [fluid_temp[i+1], fluid_temp[i]],
+                                               g_fluid[i], k_ht_coeff[i])
+        else:
+            raise ValueError('flow_direction must be 1 or -1')
+
     def update_gas_channel(self, method='linear'):
         """
         Calculates the fluid temperatures in the anode and cathode channels
         """
         for i, cell in enumerate(self.cells):
-            for j in range(self.n_ele):
-                self.temp_fluid[0, i, j+1], self.heat_fluid[0, i, j] = \
-                    self.channel_heat_transfer(self.temp_layer[i][1, j],
-                                               [self.temp_fluid[0, i, j],
-                                                self.temp_fluid[0, i, j+1]],
-                                               cell.cathode.g_fluid[j],
-                                               cell.cathode.k_ht_coeff[j], 1)
-
-            for j in reversed(range(self.n_ele)):
-                self.temp_fluid[1, i, j], self.heat_fluid[1, i, j] = \
-                    self.channel_heat_transfer(self.temp_layer[i][4, j],
-                                               [self.temp_fluid[1, i, j+1],
-                                                self.temp_fluid[1, i, j]],
-                                               cell.anode.g_fluid[j],
-                                               cell.anode.k_ht_coeff[j], -1)
-
-            self.temp_fluid[0] = \
-                ip.interpolate_along_axis(self.temp_fluid_ele[0], axis=1,
-                                          add_edge_points=True)
-            self.temp_fluid[0, :, 0] = self.temp_gas_in[0]
-            self.temp_fluid[1] = \
-                ip.interpolate_along_axis(self.temp_fluid_ele[1], axis=1,
-                                          add_edge_points=True)
-            self.temp_fluid[1, :, -1] = self.temp_gas_in[1]
+            self.channel_heat_transfer(self.temp_layer[i][1],
+                                       cell.cathode.temp_fluid,
+                                       cell.cathode.g_fluid,
+                                       cell.cathode.k_ht_coeff, 1)
+            # for j in range(self.n_ele):
+            #     self.temp_fluid[0, i, j+1], self.heat_fluid[0, i, j] = \
+            #         self.element_heat_transfer(self.temp_layer[i][1, j],
+            #                                    [self.temp_fluid[0, i, j],
+            #                                     self.temp_fluid[0, i, j+1]],
+            #                                    cell.cathode.g_fluid[j],
+            #                                    cell.cathode.k_ht_coeff[j])
+            self.channel_heat_transfer(self.temp_layer[i][4],
+                                       cell.anode.temp_fluid,
+                                       cell.anode.g_fluid,
+                                       cell.anode.k_ht_coeff, -1)
+            # for j in reversed(range(self.n_ele)):
+            #     self.temp_fluid[1, i, j], self.heat_fluid[1, i, j] = \
+            #         self.element_heat_transfer(self.temp_layer[i][4, j],
+            #                                    [self.temp_fluid[1, i, j+1],
+            #                                     self.temp_fluid[1, i, j]],
+            #                                    cell.anode.g_fluid[j],
+            #                                    cell.anode.k_ht_coeff[j])
+        self.temp_fluid[0, :, 0] = self.temp_gas_in[0]
+        self.temp_fluid_ele[0] = \
+            ip.interpolate_along_axis(self.temp_fluid[0], axis=1)
+        self.temp_fluid[1, :, -1] = self.temp_gas_in[1]
+        self.temp_fluid_ele[1] = \
+            ip.interpolate_along_axis(self.temp_fluid[1], axis=1)
 
     def update_coolant_channel(self, method='linear'):
         """
             Calculates the coolant channel temperatures.
         """
         for i in range(self.n_cells):
-            dtemp = self.k_cool / self.g_cool \
-                * (self.temp_layer[i][0, :] - self.temp_cool_ele[i])
-            g_func.add_source(self.temp_cool[i], dtemp, 1)
+            self.channel_heat_transfer(self.temp_layer[i][0],
+                                       self.temp_cool[i],
+                                       self.g_cool,
+                                       self.k_cool, 1)
+            # dtemp = self.k_cool / self.g_cool \
+            #     * (self.temp_layer[i][0, :] - self.temp_cool_ele[i])
+            # g_func.add_source(self.temp_cool[i], dtemp, 1)
             self.temp_cool_ele[i] = ip.interpolate_1d(self.temp_cool[i])
         if self.cool_ch_bc:
-            dtemp = self.k_cool / self.g_cool \
-                * (self.temp_layer[-1][-1, :] - self.temp_cool_ele[-1])
-            g_func.add_source(self.temp_cool[-1], dtemp, 1)
+            self.channel_heat_transfer(self.temp_layer[-1][-1],
+                                       self.temp_cool[-1],
+                                       self.g_cool,
+                                       self.k_cool, 1)
+            # dtemp = self.k_cool / self.g_cool \
+            #     * (self.temp_layer[-1][-1, :] - self.temp_cool_ele[-1])
+            # g_func.add_source(self.temp_cool[-1], dtemp, 1)
             self.temp_cool_ele[-1] = ip.interpolate_1d(self.temp_cool[-1])
 
     # @jit(nopython=True)
@@ -585,28 +619,28 @@ class TemperatureSystem:
         self.rhs.fill(0.)
         rhs = self.rhs
         temp_env = self.temp_amb
-        k_alpha_amb = self.k_alpha_amb
+        k_amb = self.k_alpha_amb
         ct = 0
-        for i in range(self.n_cells):
+        for i, cell in enumerate(self.cells):
             for j in range(self.n_ele):
                 if i is 0:
-                    rhs[ct] = -.5 * temp_env * k_alpha_amb[0, 2, i]
+                    rhs[ct] = -.5 * temp_env * k_amb[0, 2, i]
                 else:
-                    rhs[ct] = - temp_env * k_alpha_amb[0, 2, i]
+                    rhs[ct] = - temp_env * k_amb[0, 2, i]
 
-                rhs[ct + 1] = -temp_env * k_alpha_amb[0, 1, i] \
+                rhs[ct + 1] = -temp_env * k_amb[0, 1, i] \
                     - self.temp_fluid_ele[0, i, j] * self.k_gas_ch[0, i, j] \
                     - w_prop.water.calc_h_vap(self.temp_fluid[0, i, j]) \
                     * self.cond_rate[0, i, j]
                 rhs[ct + 2] = \
-                    - temp_env * k_alpha_amb[0, 0, i] \
+                    - temp_env * k_amb[0, 0, i] \
                     - (self.v_tn - g_par.dict_case['e_0'] + self.v_loss[0, i, j]
                        + .5 * self.omega[i, j] * self.i[i, j]) * self.i[i, j]
                 rhs[ct + 3] = \
-                    - temp_env * k_alpha_amb[0, 0, i] \
+                    - temp_env * k_amb[0, 0, i] \
                     - (self.v_loss[1, i, j]
                        + self.omega[i, j] * self.i[i, j] * .5) * self.i[i, j]
-                rhs[ct + 4] = - temp_env * k_alpha_amb[0, 1, i] \
+                rhs[ct + 4] = - temp_env * k_amb[0, 1, i] \
                     - self.temp_fluid_ele[1, i, j] * self.k_gas_ch[1, i, j] \
                     - w_prop.water.calc_h_vap(self.temp_fluid[1, i, j]) \
                     * self.cond_rate[1, i, j]

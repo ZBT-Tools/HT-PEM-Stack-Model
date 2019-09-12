@@ -25,7 +25,7 @@ class ElectricalCoupling:
         self.v_end_plate = 0.
         # accumulated voltage loss over the stack at the lower end plate
         c_x = self.c_width * self.th_plate \
-              / (self.dx * g_par.dict_case['bpp_resistivity'])
+            / (self.dx * g_par.dict_case['bpp_resistivity'])
         # electrical conductance of a single bipolar plate in x-direction
         self.v_loss = []
         # 2-d-array of of the voltage loss over the stack in z-direction
