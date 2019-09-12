@@ -360,11 +360,11 @@ class TemperatureSystem:
         # self.mat_const = self.mat_const + np.diag(env_con_vec)
         # self.mat_dyn = np.copy(self.mat_const)
 
-        self.mat_const = \
-            mtx.build_heat_conductance_matrix(self.k_layer, self.k_cool,
-                                              self.k_alpha_amb, n_layer,
-                                              self.n_ele, self.n_cells,
-                                              self.cool_ch_bc, cells)
+        # self.mat_const = \
+        #     mtx.build_heat_conductance_matrix(self.k_layer, self.k_cool,
+        #                                       self.k_alpha_amb, n_layer,
+        #                                       self.n_ele, self.n_cells,
+        #                                       self.cool_ch_bc, cells)
         # self.mat_const_sp = sparse.csr_matrix(self.mat_const)
         # self.mat_dyn_sp = sparse.lil_matrix(self.mat_const_sp)
 
@@ -396,45 +396,48 @@ class TemperatureSystem:
         # self.pos_ano_ch = np.hstack((pos_ano_ch_base, pos_ano_ch_n))
         # Add constant source and sink coefficients to heat conductance matrix
         # Heat transfer to ambient
-        # alpha_amb = temp_dict['alpha_amb']
-        # # mtx_0 = []
-        # # mtx_1 = []
-        # # mtx_2 = []
-        # for cell in self.cells:
-        #     cell.k_amb = cell.calc_ambient_conductance(alpha_amb)
-        #     if cell.last_cell:
-        #         k_amb_vector = cell.k_amb.transpose().flatten()
-        #     else:
-        #         k_amb_vector = cell.k_amb[:-1].transpose().flatten()
-        #
-        #     # mtx_0.append(cell.heat_mtx.copy())
-        #     cell.add_implicit_layer_source(-k_amb_vector)
-        #     cell.add_explicit_layer_source(k_amb_vector * self.temp_amb)
-        #
-        #     # mtx_1.append(cell.heat_mtx.copy())
-        #     # Heat transfer to coolant channels
-        #     cell.add_implicit_layer_source(-self.k_cool, layer_id=0)
-        #     # mtx_2.append(cell.heat_mtx.copy())
-        # self.cells[-1].add_implicit_layer_source(-self.k_cool, layer_id=-1)
-        # # print(mtx_1[0]-mtx_0[0])
-        # #k_amb = np.asarray([cell.k_amb for cell in cells]).flatten()
-        #
-        # self.rhs_const = np.zeros_like(self.rhs)
-        # # print(self.cells[0].heat_mtx)
-        # # print(self.cells[-1].heat_mtx)
-        # #self.mat_const_2 = \
-        # #    sp_la.block_diag(*[cell.heat_mtx for cell in self.cells])
-        # # print(self.mat_const - self.mat_const_2)
-        #
-        # self.index_list = []
-        # for i in range(len(self.cells)):
-        #     index_array = \
-        #         (self.cells[i-1].n_ele * self.cells[i-1].n_layer) * i \
-        #         + self.cells[i].index_array
-        #     self.index_list.append(index_array.tolist())
-        #
-        # self.mat_const_2 = self.connect_cells()
-        self.mat_const_sp = sparse.csr_matrix(self.mat_const)
+        alpha_amb = temp_dict['alpha_amb']
+        # mtx_0 = []
+        # mtx_1 = []
+        # mtx_2 = []
+        for cell in self.cells:
+            cell.k_amb = cell.calc_ambient_conductance(alpha_amb)
+            if cell.last_cell:
+                k_amb_vector = cell.k_amb.transpose().flatten()
+            else:
+                k_amb_vector = cell.k_amb[:-1].transpose().flatten()
+
+            # mtx_0.append(cell.heat_mtx.copy())
+            cell.add_implicit_layer_source(-k_amb_vector)
+            cell.add_explicit_layer_source(k_amb_vector * self.temp_amb)
+
+            # mtx_1.append(cell.heat_mtx.copy())
+            # Heat transfer to coolant channels
+            cell.add_implicit_layer_source(-self.k_cool, layer_id=0)
+            # mtx_2.append(cell.heat_mtx.copy())
+        self.cells[-1].add_implicit_layer_source(-self.k_cool, layer_id=-1)
+        # print(mtx_1[0]-mtx_0[0])
+        #k_amb = np.asarray([cell.k_amb for cell in cells]).flatten()
+
+        self.rhs_const = np.zeros_like(self.rhs)
+        # print(self.cells[0].heat_mtx)
+        # print(self.cells[-1].heat_mtx)
+        #self.mat_const_2 = \
+        #    sp_la.block_diag(*[cell.heat_mtx for cell in self.cells])
+        # print(self.mat_const - self.mat_const_2)
+
+        self.index_list = []
+        for i in range(len(self.cells)):
+            index_array = \
+                (self.cells[i-1].n_ele * self.cells[i-1].n_layer) * i \
+                + self.cells[i].index_array
+            self.index_list.append(index_array.tolist())
+
+        self.mat_const_2 = self.connect_cells()
+        print(self.mat_const_2)
+        print(self.dyn_vec)
+        print(self.cells[0].last_cell)
+        self.mat_const_sp = sparse.csr_matrix(self.mat_const_2)
         #print(self.mat_const)
         #print(self.mat_const_2)
         #print(np.sum(np.abs(self.mat_const - self.mat_const_2)))

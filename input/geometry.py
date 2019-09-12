@@ -66,6 +66,6 @@ manifold_pressure_loss_coefficient = 0.1
 
 """Stack Settings"""
 # number of the pemfc
-cell_number = 100
+cell_number = 1
 # coolant channel configuration (no cooling channel at the endplates = False)
 cooling_bc = True

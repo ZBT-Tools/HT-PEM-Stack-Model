@@ -151,7 +151,10 @@ class ElectricalCoupling:
         v_new = np.hstack((np.full(self.n_ele, self.v_end_plate),
                            v_new, np.full(self.n_ele, 0.)))
         v_diff = v_new[:-self.n_ele] - v_new[self.n_ele:]
-        i_ca_vec = v_diff / self.cell_r
+        try:
+            i_ca_vec = v_diff / self.cell_r
+        except ValueError:
+            print('test')
         i_cd = np.reshape(i_ca_vec.flatten(order='C'),
                           (self.n_cells, self.n_ele))
         self.i_cd = i_cd / np.average(i_cd) * g_par.dict_case['tar_cd']

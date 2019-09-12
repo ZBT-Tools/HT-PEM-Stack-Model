@@ -73,7 +73,10 @@ def build_x_cell_conductance_matrix(cond_vector, n_ele):
     center_diag = np.concatenate([cond_vector[:, i] for i in range(n_ele)])
     center_diag[n_layer:-n_layer] *= 2.0
     center_diag *= -1.0
-    off_diag = np.concatenate([cond_vector[:, i] for i in range(n_ele-1)])
+    try:
+        off_diag = np.concatenate([cond_vector[:, i] for i in range(n_ele-1)])
+    except ValueError:
+        return center_diag
     return np.diag(center_diag, k=0) \
         + np.diag(off_diag, k=-n_layer) \
         + np.diag(off_diag, k=n_layer)

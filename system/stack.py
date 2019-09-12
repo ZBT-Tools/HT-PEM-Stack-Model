@@ -32,7 +32,11 @@ class Stack:
         self.cells = []
         # Initialize individual cells
         for i in range(self.n_cells):
-            if i == 0:
+            if self.n_cells == 1:
+                cell_dict['first_cell'] = True
+                cell_dict['last_cell'] = True
+                cell_dict['heat_pow'] = temperature_dict['heat_pow']
+            elif i == 0:
                 cell_dict['first_cell'] = True
                 cell_dict['last_cell'] = False
                 cell_dict['heat_pow'] = temperature_dict['heat_pow']
