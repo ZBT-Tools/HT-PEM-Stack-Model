@@ -325,9 +325,13 @@ class Simulation:
         self.temp_old[:] = self.stack.temp_sys.temp_layer_vec
 
 
-start = timeit.default_timer()
+start_time = timeit.default_timer()
 simulation = Simulation(input_dicts.simulation_dict)
-simulation.timing['start'] = start
+simulation.timing['start'] = start_time
+simulation.timing['initialization'] = timeit.default_timer()
+print('Initialization time:',
+      simulation.timing['initialization'] - simulation.timing['start'])
+simulation.timing['start'] = start_time
 simulation.update()
-stop = timeit.default_timer()
-print('Simulation time:', stop-start)
+stop_time = timeit.default_timer()
+print('Total time:', stop_time - start_time)

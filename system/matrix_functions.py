@@ -88,11 +88,11 @@ def connect_cells(matrix, cell_ids, layer_ids, values, mtx_ids,
                   replace=False):
     if np.isscalar(values):
         values = np.full(len(cell_ids), values)
-    if not len(cell_ids[0]) == len(layer_ids):
+    if not len(cell_ids) == len(layer_ids):
         raise ValueError('cell and layer index lists must have equal length')
     for i in range(len(cell_ids)):
-        mtx_id_0 = mtx_ids[cell_ids[i][0]][:][layer_ids[i][0]]
-        mtx_id_1 = mtx_ids[cell_ids[i][1]][:][layer_ids[i][1]]
+        mtx_id_0 = mtx_ids[cell_ids[i, 0]][:][layer_ids[i, 0]]
+        mtx_id_1 = mtx_ids[cell_ids[i, 1]][:][layer_ids[i, 1]]
         if replace:
             matrix[mtx_id_0, mtx_id_1] = values[i]
             matrix[mtx_id_0, mtx_id_0] = -values[i]
