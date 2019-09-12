@@ -88,8 +88,8 @@ def connect_cells(matrix, cell_ids, layer_ids, values, mtx_ids,
                   replace=False):
     if np.isscalar(values):
         values = np.full(len(cell_ids), values)
-    if not len(cell_ids) == len(layer_ids):
-        raise ValueError('Cell and layer index lists must have equal length')
+    if not len(cell_ids[0]) == len(layer_ids):
+        raise ValueError('cell and layer index lists must have equal length')
     for i in range(len(cell_ids)):
         mtx_id_0 = mtx_ids[cell_ids[i][0]][:][layer_ids[i][0]]
         mtx_id_1 = mtx_ids[cell_ids[i][1]][:][layer_ids[i][1]]
@@ -144,7 +144,7 @@ def build_heat_conductance_matrix(k_layer, k_cool, k_alpha_env,
     mat_const = sp_la.block_diag(*list_mat)
     # uncoupled heat conductance matrix in z-direction
     #mat_const_1 = mat_const.copy()
-    print(mat_const)
+    # print(mat_const)
 
     cond_array = [k_layer[0, 2, 0],
                   k_layer[0, 1, 0],
@@ -152,9 +152,9 @@ def build_heat_conductance_matrix(k_layer, k_cool, k_alpha_env,
                   k_layer[0, 1, 0],
                   k_layer[0, 2, 0]]
 
-    mat_const_1 = \
-        build_stack_1d_conductance_matrix(cond_array, n_ele, n_cells)
-    print(np.sum(np.abs(mat_const-mat_const_1)))
+    # mat_const_1 = \
+    #     build_stack_1d_conductance_matrix(cond_array, n_ele, n_cells)
+    # print(np.sum(np.abs(mat_const-mat_const_1)))
     """Setting the x-axis heat conductance"""
     x_con_base = np.array([k_layer[1, 2, 0],
                            k_layer[1, 1, 0],
@@ -224,16 +224,16 @@ def build_heat_conductance_matrix(k_layer, k_cool, k_alpha_env,
         + np.diag(x_con_side_base, -n_layer) \
         + np.diag(x_con_side_n, n_layer + 1) \
         + np.diag(x_con_side_n, -(n_layer + 1))
-    mat_const_2 = mat_const.copy()
-    print(mat_const_2)
-    print(mat_const_2-mat_const_1)
-
-    list_mat = [cell.heat_cond_mtx for cell in cells]
-    mat_const_2_2 = sp_la.block_diag(*list_mat)
-    print(mat_const_2_2 - mat_const_1)
-    print(mat_const_2_2 - mat_const_2)
-    print('mat_const_2_2')
-    print(np.sum(np.abs(mat_const_2-mat_const_2_2)))
+    # mat_const_2 = mat_const.copy()
+    # print(mat_const_2)
+    # print(mat_const_2-mat_const_1)
+    #
+    # list_mat = [cell.heat_cond_mtx for cell in cells]
+    # mat_const_2_2 = sp_la.block_diag(*list_mat)
+    # print(mat_const_2_2 - mat_const_1)
+    # print(mat_const_2_2 - mat_const_2)
+    # print('mat_const_2_2')
+    # print(np.sum(np.abs(mat_const_2-mat_const_2_2)))
 
     """Setting the coolant channel heat conductance"""
     cool_pos_n_up = \
@@ -268,10 +268,10 @@ def build_heat_conductance_matrix(k_layer, k_cool, k_alpha_env,
         for pos in cool_pos_n_down:
             mat_const[pos, pos] -= k_cool
 
-    mat_const_3 = mat_const.copy()
-    print('mat_const_3: coolant channel addition')
-    print(mat_const_3)
-    print(mat_const_3-mat_const_2)
+    # mat_const_3 = mat_const.copy()
+    # print('mat_const_3: coolant channel addition')
+    # print(mat_const_3)
+    # print(mat_const_3-mat_const_2)
 
     """Setting the cell connecting heat conductance, z-direction"""
     pos_r, pos_c = [], []
@@ -308,9 +308,9 @@ def build_heat_conductance_matrix(k_layer, k_cool, k_alpha_env,
         mat_const[pos_in[i], pos_in[i]] -= k_layer[0, 2, 0]
         mat_const[pos_base_out[i], pos_base_out[i]] -= k_layer[0, 2, 0]
 
-    mat_const_4 = mat_const.copy()
-    print(mat_const_4)
-    print(mat_const_4-mat_const_3)
+    # mat_const_4 = mat_const.copy()
+    # print(mat_const_4)
+    # print(mat_const_4-mat_const_3)
     """Adding the environment heat conductance"""
     env_con_base = np.array([-k_alpha_env[0, 2, 0],
                              -k_alpha_env[0, 1, 0],
@@ -331,8 +331,8 @@ def build_heat_conductance_matrix(k_layer, k_cool, k_alpha_env,
                    np.tile(env_con_n, n_ele)))
     # vector of the main diagonal of the heat conductance matrix
     mat_const = mat_const + np.diag(env_con_vec)
-    mat_const_5 = mat_const.copy()
-    print(mat_const_5)
-    print(mat_const_5-mat_const_4)
+    # mat_const_5 = mat_const.copy()
+    # print(mat_const_5)
+    # print(mat_const_5-mat_const_4)
     return mat_const
     # mat_dyn = np.copy(mat_const)

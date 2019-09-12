@@ -10,9 +10,9 @@ maximum_iteration_number = 2
 # minimum number of iterations
 minimum_iteration_number = 0
 # output csv data
-save_csv_data = True
+save_csv_data = False
 # output plots
-save_plot_data = True
+save_plot_data = False
 # calculate the PEMFC stack temperatures
 calc_temperature = True
 # calculate the current density distribution

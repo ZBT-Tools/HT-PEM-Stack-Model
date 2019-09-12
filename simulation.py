@@ -42,6 +42,11 @@ class Simulation:
         n_nodes = g_par.dict_case['nodes']
         # node points of the x-grid
 
+        self.timing = {'start': 0.0,
+                       'initialization': 0.0,
+                       'simulation': 0.0,
+                       'output': 0.0}
+
         """General variables"""
 
         self.mfd_cat_criteria = []
@@ -322,6 +327,7 @@ class Simulation:
 
 start = timeit.default_timer()
 simulation = Simulation(input_dicts.simulation_dict)
+simulation.timing['start'] = start
 simulation.update()
 stop = timeit.default_timer()
 print('Simulation time:', stop-start)
