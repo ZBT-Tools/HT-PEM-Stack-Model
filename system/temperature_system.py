@@ -617,30 +617,32 @@ class TemperatureSystem:
         heat_pow = self.dict['heat_pow']
 
         self.rhs.fill(0.)
+        for i, cell in enumerate(self.cells):
+            cell.add_explicit_layer_source()
         rhs = self.rhs
-        temp_env = self.temp_amb
+        temp_amb = self.temp_amb
         k_amb = self.k_alpha_amb
         ct = 0
         for i, cell in enumerate(self.cells):
             for j in range(self.n_ele):
                 if i is 0:
-                    rhs[ct] = -.5 * temp_env * k_amb[0, 2, i]
+                    rhs[ct] = -.5 * temp_amb * k_amb[0, 2, i]
                 else:
-                    rhs[ct] = - temp_env * k_amb[0, 2, i]
+                    rhs[ct] = - temp_amb * k_amb[0, 2, i]
 
-                rhs[ct + 1] = -temp_env * k_amb[0, 1, i] \
+                rhs[ct + 1] = -temp_amb * k_amb[0, 1, i] \
                     - self.temp_fluid_ele[0, i, j] * self.k_gas_ch[0, i, j] \
                     - w_prop.water.calc_h_vap(self.temp_fluid[0, i, j]) \
                     * self.cond_rate[0, i, j]
                 rhs[ct + 2] = \
-                    - temp_env * k_amb[0, 0, i] \
+                    - temp_amb * k_amb[0, 0, i] \
                     - (self.v_tn - g_par.dict_case['e_0'] + self.v_loss[0, i, j]
                        + .5 * self.omega[i, j] * self.i[i, j]) * self.i[i, j]
                 rhs[ct + 3] = \
-                    - temp_env * k_amb[0, 0, i] \
+                    - temp_amb * k_amb[0, 0, i] \
                     - (self.v_loss[1, i, j]
                        + self.omega[i, j] * self.i[i, j] * .5) * self.i[i, j]
-                rhs[ct + 4] = - temp_env * k_amb[0, 1, i] \
+                rhs[ct + 4] = - temp_amb * k_amb[0, 1, i] \
                     - self.temp_fluid_ele[1, i, j] * self.k_gas_ch[1, i, j] \
                     - w_prop.water.calc_h_vap(self.temp_fluid[1, i, j]) \
                     * self.cond_rate[1, i, j]
@@ -655,12 +657,12 @@ class TemperatureSystem:
                 else:
                     rhs[ct] -= self.k_cool * self.temp_cool_ele[i, j]
                     rhs[ct + 5] -= heat_pow \
-                        - .5 * self.k_alpha_amb[0, 2, 0] * temp_env
+                        - .5 * self.k_alpha_amb[0, 2, 0] * temp_amb
                     if self.cool_ch_bc:
                         rhs[ct + 5] -= self.k_cool * self.temp_cool_ele[-1, j]
                     cr = 6
                 ct += cr
-        #print('after:', self.rhs)
+        print('after:', self.rhs)
 
     # @jit(nopython=True)
     def update_matrix(self):
