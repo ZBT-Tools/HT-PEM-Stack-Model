@@ -108,6 +108,25 @@ def connect_cells(matrix, cell_ids, layer_ids, values, mtx_ids,
             matrix[mtx_id_1, mtx_id_0] += values[i]
 
 
+def create_index_lists(cells):
+    n_cells = len(cells)
+    index_list = []
+    layer_ids = [[] for _ in range(cells[-1].n_layer)]
+    for i, cell in enumerate(cells):
+        index_array = \
+            (cells[i-1].n_ele * cells[i-1].n_layer) * i \
+            + cell.index_array
+        index_list.append(index_array.tolist())
+
+    for i in range(n_cells):
+        for j in range(cells[i].n_layer):
+            layer_ids[j].append(index_list[i][j])
+    layer_index_list = []
+    for sub_list in layer_ids:
+        layer_index_list.append(np.hstack(sub_list))
+    return index_list, layer_index_list
+
+
 def build_heat_conductance_matrix(k_layer, k_cool, k_alpha_env,
                                   n_layer, n_ele, n_cells,
                                   cool_ch_bc, cells):

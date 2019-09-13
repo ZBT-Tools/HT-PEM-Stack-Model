@@ -254,8 +254,9 @@ class Cell:
             k_amb[-1] *= 0.5
         return k_amb
 
-    def add_explicit_layer_source(self, source_term, layer_id=None):
-        if not layer_id:
+    def add_explicit_layer_source(self, rhs_vector, source_term,
+                                  layer_id=None):
+        if layer_id is None:
             if np.isscalar(source_term):
                 source_vector = np.full_like(self.heat_rhs, -source_term)
             else:
@@ -263,10 +264,10 @@ class Cell:
         else:
             source_vector = np.zeros_like(self.heat_rhs)
             np.put(source_vector, self.index_array[layer_id], -source_term)
-        self.heat_rhs += source_vector
-        return source_vector
+        rhs_vector += source_vector
+        return rhs_vector, source_vector
 
-    def add_implicit_layer_source(self, coefficient, layer_id=None):
+    def add_implicit_layer_source(self, matrix, coefficient, layer_id=None):
         if layer_id is None:
             if np.isscalar(coefficient):
                 source_vector = np.full_like(self.heat_rhs, coefficient)
@@ -275,7 +276,8 @@ class Cell:
         else:
             source_vector = np.zeros_like(self.heat_rhs)
             np.put(source_vector, self.index_array[layer_id], coefficient)
-        self.heat_mtx += np.diag(source_vector)
+        matrix += np.diag(source_vector)
+        return matrix, source_vector
 
     def update(self):
         """

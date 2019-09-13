@@ -131,6 +131,7 @@ class HalfCell:
         self.p = np.full(n_nodes, self.channel.p_out)
         # channel pressure
         self.cond_rate = np.zeros(n_nodes)
+        self.cond_rate_ele = np.zeros(n_ele)
         # condensation rate of water
         self.humidity = np.zeros(n_nodes)
         # gas mixture humidity
@@ -163,6 +164,7 @@ class HalfCell:
         # molar concentration of each species
         # 0: Reactant, 1: Water, 2: Inert Species
         self.temp_fluid = np.full(n_nodes, self.channel.temp_in)
+        self.temp_fluid_ele = np.full(n_ele, self.channel.temp_in)
         # temperature of the fluid in the channel
         self.rho_gas = np.full(n_nodes, 1.)
         # density of the gas phase
@@ -488,9 +490,9 @@ class HalfCell:
         """
         Calculates the molar condensation rate of water in the channel.
         """
-        cond_rate_ele = np.ediff1d(self.mol_flow_liq[self.id_h2o])
+        self.cond_rate_ele = np.ediff1d(self.mol_flow_liq[self.id_h2o])
         self.cond_rate[:] = \
-            self.flow_direction * ip.interpolate_1d(cond_rate_ele,
+            self.flow_direction * ip.interpolate_1d(self.cond_rate_ele,
                                                     add_edge_points=True)
 
     def calc_humidity(self):
