@@ -416,14 +416,21 @@ class TemperatureSystem:
 
             # mtx_1.append(cell.heat_mtx.copy())
             # Heat transfer to coolant channels
-            cell.add_implicit_layer_source(cell.heat_mtx, -self.k_cool,
-                                           layer_id=0)
+            if cell.first_cell:
+                if self.cool_ch_bc:
+                    cell.add_implicit_layer_source(cell.heat_mtx, -self.k_cool,
+                                                   layer_id=0)
+            else:
+                cell.add_implicit_layer_source(cell.heat_mtx, -self.k_cool,
+                                               layer_id=0)
             # mtx_2.append(cell.heat_mtx.copy())
-        self.cells[-1].add_implicit_layer_source(self.cells[-1].heat_mtx,
-                                                 -self.k_cool, layer_id=-1)
+        if self.cool_ch_bc:
+            self.cells[-1].add_implicit_layer_source(self.cells[-1].heat_mtx,
+                                                     -self.k_cool, layer_id=-1)
         # print(mtx_1[0]-mtx_0[0])
         #k_amb = np.asarray([cell.k_amb for cell in cells]).flatten()
-        self.rhs_2 = np.hstack([cell.heat_rhs for cell in self.cells])
+        self.rhs_const = np.hstack([cell.heat_rhs for cell in self.cells])
+        self.rhs_2 = np.zeros_like(self.rhs_const)
         # print(self.cells[0].heat_mtx)
         # print(self.cells[-1].heat_mtx)
         #self.mat_const_2 = \
@@ -579,15 +586,20 @@ class TemperatureSystem:
             #                                     self.temp_fluid[1, i, j]],
             #                                    cell.anode.g_fluid[j],
             #                                    cell.anode.k_ht_coeff[j])
-            cell.cathode.temp_fluid[0] = cell.cathode.channel.temp_in
-            cell.cathode.temp_fluid_ele = \
-                ip.interpolate_1d(cell.cathode.temp_fluid)
-        # self.temp_fluid[0, :, 0] = self.temp_gas_in[0]
-        # self.temp_fluid_ele[0] = \
-        #     ip.interpolate_along_axis(self.temp_fluid[0], axis=1)
-        # self.temp_fluid[1, :, -1] = self.temp_gas_in[1]
-        # self.temp_fluid_ele[1] = \
-        #     ip.interpolate_along_axis(self.temp_fluid[1], axis=1)
+            cell.anode.temp_fluid[0] = cell.anode.channel.temp_in
+            cell.anode.temp_fluid_ele = \
+                ip.interpolate_1d(cell.anode.temp_fluid)
+
+        self.temp_fluid[0] = np.array([cell.cathode.temp_fluid
+                                       for cell in self.cells])
+        self.temp_fluid[1] = np.array([cell.anode.temp_fluid
+                                       for cell in self.cells])
+        self.temp_fluid[0, :, 0] = self.temp_gas_in[0]
+        self.temp_fluid_ele[0] = \
+            ip.interpolate_along_axis(self.temp_fluid[0], axis=1)
+        self.temp_fluid[1, :, -1] = self.temp_gas_in[1]
+        self.temp_fluid_ele[1] = \
+            ip.interpolate_along_axis(self.temp_fluid[1], axis=1)
 
     def update_coolant_channel(self, method='linear'):
         """
@@ -624,83 +636,42 @@ class TemperatureSystem:
         for i, cell in enumerate(self.cells):
             dyn_rhs_vec.append(np.zeros_like(cell.heat_rhs))
             # Cathode bpp-gde source
-            h_vap = w_prop.water.calc_h_vap(cell.cathode.temp_fluid_ele)
+            h_vap = w_prop.water.calc_h_vap(cell.cathode.temp_fluid[:-1])
             source = \
                 cell.cathode.k_ht_coeff * cell.cathode.temp_fluid_ele \
-                + h_vap * cell.cathode.cond_rate_ele
+                + h_vap * cell.cathode.cond_rate[:-1]
             cell.add_explicit_layer_source(dyn_rhs_vec[i], source, 1)
             # Cathode gde-mem source
+            current = cell.i_cd * cell.active_area_dx
+            ohmic_heat_membrane = 0.5 * cell.omega * np.square(current)
             source = \
-                (self.e_tn - self.e_0 + cell.cathode.v_loss
-                 + .5 * cell.omega * cell.i_cd) * cell.i_cd
+                (self.e_tn - self.e_0 + cell.cathode.v_loss) * current \
+                + ohmic_heat_membrane
             cell.add_explicit_layer_source(dyn_rhs_vec[i], source, 2)
             # Anode gde-mem source
             source = \
-                (cell.anode.v_loss + .5 * cell.omega * cell.i_cd) * cell.i_cd
+                cell.anode.v_loss * current \
+                + ohmic_heat_membrane
             cell.add_explicit_layer_source(dyn_rhs_vec[i], source, 3)
-            # Cathode bpp-gde source
-
-            h_vap = w_prop.water.calc_h_vap(cell.anode.temp_fluid_ele)
-            source = \
-                cell.anode.k_ht_coeff * cell.anode.temp_fluid_ele \
-                + h_vap * cell.anode.cond_rate_ele
+            # Anode bpp-gde source
+            h_vap = w_prop.water.calc_h_vap(cell.anode.temp_fluid[:-1])
+            source = h_vap * cell.anode.cond_rate[:-1] \
+                + cell.anode.k_ht_coeff * cell.anode.temp_fluid_ele
             cell.add_explicit_layer_source(dyn_rhs_vec[i], source, 4)
             # Cooling channels
-            source = self.k_cool * self.temp_cool_ele[i]
-            cell.add_explicit_layer_source(dyn_rhs_vec[i], source, layer_id=0)
+            if cell.first_cell:
+                if self.cool_ch_bc:
+                    source = self.k_cool * self.temp_cool_ele[i]
+                    cell.add_explicit_layer_source(dyn_rhs_vec[i], source, 0)
+            else:
+                source = self.k_cool * self.temp_cool_ele[i]
+                cell.add_explicit_layer_source(dyn_rhs_vec[i], source, 0)
             # mtx_2.append(cell.heat_mtx.copy())
-        source = self.k_cool * self.temp_cool_ele[-1]
-        self.cells[-1].add_explicit_layer_source(dyn_rhs_vec[-1], source, -1)
-
+        if self.cool_ch_bc:
+            source = self.k_cool * self.temp_cool_ele[-1]
+            self.cells[-1].add_explicit_layer_source(dyn_rhs_vec[-1], source, -1)
         dyn_rhs_vec = np.hstack(dyn_rhs_vec)
-        self.rhs_2 += dyn_rhs_vec
-
-        heat_pow = self.dict['heat_pow']
-        self.rhs.fill(0.)
-        rhs = self.rhs
-        temp_amb = self.temp_amb
-        k_amb = self.k_alpha_amb
-        ct = 0
-        for i, cell in enumerate(self.cells):
-            for j in range(self.n_ele):
-                if i is 0:
-                    rhs[ct] = -.5 * temp_amb * k_amb[0, 2, i]
-                else:
-                    rhs[ct] = - temp_amb * k_amb[0, 2, i]
-
-                rhs[ct + 1] = -temp_amb * k_amb[0, 1, i] \
-                    - self.temp_fluid_ele[0, i, j] * self.k_gas_ch[0, i, j] \
-                    - w_prop.water.calc_h_vap(self.temp_fluid[0, i, j]) \
-                    * self.cond_rate[0, i, j]
-                rhs[ct + 2] = \
-                    - temp_amb * k_amb[0, 0, i] \
-                    - (self.e_tn - g_par.dict_case['e_0'] + self.v_loss[0, i, j]
-                       + .5 * self.omega[i, j] * self.i[i, j]) * self.i[i, j]
-                rhs[ct + 3] = \
-                    - temp_amb * k_amb[0, 0, i] \
-                    - (self.v_loss[1, i, j]
-                       + self.omega[i, j] * self.i[i, j] * .5) * self.i[i, j]
-                rhs[ct + 4] = - temp_amb * k_amb[0, 1, i] \
-                    - self.temp_fluid_ele[1, i, j] * self.k_gas_ch[1, i, j] \
-                    - w_prop.water.calc_h_vap(self.temp_fluid[1, i, j]) \
-                    * self.cond_rate[1, i, j]
-                if i is 0:
-                    rhs[ct] -= heat_pow
-                    if self.cool_ch_bc:
-                        rhs[ct] -= self.k_cool * self.temp_cool_ele[0, j]
-                    cr = 5
-                elif 0 < i < self.n_cells - 1:
-                    rhs[ct] -= self.k_cool * self.temp_cool_ele[i, j]
-                    cr = 5
-                else:
-                    rhs[ct] -= self.k_cool * self.temp_cool_ele[i, j]
-                    rhs[ct + 5] -= heat_pow \
-                        - .5 * self.k_alpha_amb[0, 2, 0] * temp_amb
-                    if self.cool_ch_bc:
-                        rhs[ct + 5] -= self.k_cool * self.temp_cool_ele[-1, j]
-                    cr = 6
-                ct += cr
-        print(self.rhs - self.rhs_2)
+        self.rhs = self.rhs_const + dyn_rhs_vec
 
     # @jit(nopython=True)
     def update_matrix(self):

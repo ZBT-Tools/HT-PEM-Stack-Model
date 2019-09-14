@@ -169,11 +169,13 @@ class Cell:
 
         # Set constant thermal boundary conditions
         if self.first_cell:
-            heat_bc_0 = cell_dict['heat_pow']
-            np.put(self.heat_rhs, self.index_array[0], -heat_bc_0)
+            heat_bc = cell_dict['heat_pow']
+            self.add_explicit_layer_source(self.heat_rhs, heat_bc, 0)
+            #np.put(self.heat_rhs, self.index_array[0], -heat_bc)
         if self.last_cell:
-            heat_bc_0 = cell_dict['heat_pow']
-            np.put(self.heat_rhs, self.index_array[-1], heat_bc_0)
+            heat_bc = cell_dict['heat_pow']
+            self.add_explicit_layer_source(self.heat_rhs, heat_bc, -1)
+            #np.put(self.heat_rhs, self.index_array[-1], -heat_bc_0)
 
         """boolean alarms"""
         self.v_alarm = False
