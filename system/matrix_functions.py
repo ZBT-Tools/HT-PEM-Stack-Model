@@ -124,6 +124,8 @@ def create_index_lists(cells):
     layer_index_list = []
     for sub_list in layer_ids:
         layer_index_list.append(np.hstack(sub_list))
+
+
     return index_list, layer_index_list
 
 

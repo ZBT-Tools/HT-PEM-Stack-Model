@@ -14,7 +14,11 @@ class Cell:
         # Handover
         self.name = 'Cell ' + str(number)
         self.n_layer = 5
-        if cell_dict['last_cell']:
+
+        self.first_cell = cell_dict['first_cell']
+        self.last_cell = cell_dict['last_cell']
+
+        if self.last_cell:
             self.n_layer += 1
         n_nodes = g_par.dict_case['nodes']
         # number of nodes along the channel
@@ -24,11 +28,8 @@ class Cell:
         self.width = self.cell_dict['width']
         self.length = self.cell_dict['length']
 
-        self.first_cell = cell_dict['first_cell']
-        self.last_cell = cell_dict['last_cell']
-
+        # Create half cell objects
         self.anode = h_c.HalfCell(anode_dict, cell_dict, ano_channel_dict)
-        # anode - object of the class HalfCell
         self.cathode = h_c.HalfCell(cathode_dict, cell_dict, cat_channel_dict)
         self.half_cells = [self.cathode, self.anode]
 
@@ -156,8 +157,13 @@ class Cell:
                 mtx.build_cell_conductance_matrix(self.k_layer_x[:-1],
                                                   self.k_layer_z[:-1],
                                                   n_ele)
-        self.heat_mtx = self.heat_cond_mtx.copy()
-        self.heat_rhs = np.full(self.n_layer * n_ele, 0.0)
+        self.heat_mtx_const = self.heat_cond_mtx.copy()
+        self.heat_mtx_dyn = np.zeros_like(self.heat_mtx_const)
+        self.heat_mtx = self.heat_mtx_dyn.copy()
+
+        self.heat_rhs_const = np.full(self.n_layer * n_ele, 0.0)
+        self.heat_rhs_dyn = np.zeros_like(self.heat_rhs_const)
+        self.heat_rhs = self.heat_rhs_dyn.copy()
 
         # Create array for each thermal layer with indices according to
         # corresponding position in center diagonal of conductance matrix and
@@ -170,11 +176,11 @@ class Cell:
         # Set constant thermal boundary conditions
         if self.first_cell:
             heat_bc = cell_dict['heat_pow']
-            self.add_explicit_layer_source(self.heat_rhs, heat_bc, 0)
+            self.add_explicit_layer_source(self.heat_rhs_const, heat_bc, 0)
             #np.put(self.heat_rhs, self.index_array[0], -heat_bc)
         if self.last_cell:
             heat_bc = cell_dict['heat_pow']
-            self.add_explicit_layer_source(self.heat_rhs, heat_bc, -1)
+            self.add_explicit_layer_source(self.heat_rhs_const, heat_bc, -1)
             #np.put(self.heat_rhs, self.index_array[-1], -heat_bc_0)
 
         """boolean alarms"""
@@ -260,23 +266,25 @@ class Cell:
                                   layer_id=None):
         if layer_id is None:
             if np.isscalar(source_term):
-                source_vector = np.full_like(self.heat_rhs, -source_term)
+                source_vector = np.full_like(rhs_vector, -source_term)
             else:
                 source_vector = np.asarray(-source_term)
         else:
-            source_vector = np.zeros_like(self.heat_rhs)
+            source_vector = np.zeros_like(rhs_vector)
             np.put(source_vector, self.index_array[layer_id], -source_term)
         rhs_vector += source_vector
         return rhs_vector, source_vector
 
     def add_implicit_layer_source(self, matrix, coefficient, layer_id=None):
+        matrix_size = matrix.shape[0]
         if layer_id is None:
             if np.isscalar(coefficient):
-                source_vector = np.full_like(self.heat_rhs, coefficient)
+
+                source_vector = np.full(matrix_size, coefficient)
             else:
                 source_vector = np.asarray(coefficient)
         else:
-            source_vector = np.zeros_like(self.heat_rhs)
+            source_vector = np.zeros(matrix_size)
             np.put(source_vector, self.index_array[layer_id], coefficient)
         matrix += np.diag(source_vector)
         return matrix, source_vector

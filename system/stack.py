@@ -223,16 +223,16 @@ class Stack:
         """
         This function updates the layer and fluid temperatures of the stack
         """
-        current = self.i_cd * self.cells[0].active_area_dx
-        n_ch = self.cells[0].cathode.n_chl
-        self.temp_sys.update_values(self.k_alpha_ch,
-                                    self.cond_rate,
-                                    self.omega,
-                                    np.array([self.v_loss_cat,
-                                              self.v_loss_ano]),
-                                    self.g_fluid, current)
+        # current = self.i_cd * self.cells[0].active_area_dx
+        # n_ch = self.cells[0].cathode.n_chl
+        # self.temp_sys.update_values(self.k_alpha_ch,
+        #                             self.cond_rate,
+        #                             self.omega,
+        #                             np.array([self.v_loss_cat,
+        #                                       self.v_loss_ano]),
+        #                             self.g_fluid, current)
         self.temp_sys.update()
-        self.set_temperature()
+        # self.set_temperature()
 
     def stack_dynamic_properties(self):
         """
@@ -325,10 +325,6 @@ class Stack:
                                            cell.anode.temp_fluid[0]))
             temp_fluid_ano_out = np.hstack((temp_fluid_ano_out,
                                             cell.anode.temp_fluid[-1]))
-        self.k_alpha_ch = np.array([k_alpha_cat, k_alpha_ano])
-        self.omega = np.array(omega)
-        self.cond_rate = np.array([cond_rate_cat, cond_rate_ano])
-        self.g_fluid = np.array([g_fluid_cat, g_fluid_ano])
         self.v_cell, self.v_loss, self.stack_cell_r = v_cell, v_loss, resistance
         self.v_loss_cat, self.v_loss_ano = v_loss_cat, v_loss_ano
         self.q_sum_cat = np.array([q_sum_cat_in, q_sum_cat_out])
@@ -367,12 +363,12 @@ class Stack:
             cell.cathode.channel.p_out = p_cat[i]
             cell.anode.channel.p_out = p_ano[i]
 
-    def set_temperature(self):
-        """
-        This function sets up the layer and fluid temperatures in the cells.
-        """
-        for i, cell in enumerate(self.cells):
-            cell.temp_layer[:] = self.temp_sys.temp_layer[i][:, :]
-            cell.cathode.temp_fluid[:] = self.temp_sys.temp_fluid[0, i]
-            cell.anode.temp_fluid[:] = self.temp_sys.temp_fluid[1, i]
-            cell.temp_cool[:] = self.temp_sys.temp_cool_ele[i]
+    # def set_temperature(self):
+    #     """
+    #     This function sets up the layer and fluid temperatures in the cells.
+    #     """
+    #     for i, cell in enumerate(self.cells):
+    #         cell.temp_layer[:] = self.temp_sys.temp_layer[i][:, :]
+    #         cell.cathode.temp_fluid[:] = self.temp_sys.temp_fluid[0, i]
+    #         cell.anode.temp_fluid[:] = self.temp_sys.temp_fluid[1, i]
+    #         cell.temp_cool[:] = self.temp_sys.temp_cool_ele[i]
