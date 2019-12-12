@@ -11,9 +11,10 @@ import data.temperature_system_dict as therm_dict
 
 class Stack:
 
-    def __init__(self, stack_dict, cell_dict, anode_dict, cathode_dict,
-                 ano_channel_dict, cat_channel_dict, ano_manifold_dict,
-                 cat_manifold_dict, electrical_dict, temperature_dict):
+    def __init__(self, stack_dict, cell_dict, membrane_dict, anode_dict,
+                 cathode_dict, ano_channel_dict, cat_channel_dict,
+                 ano_manifold_dict, cat_manifold_dict, electrical_dict,
+                 temperature_dict):
         # Handover
         self.n_cells = stack_dict['cell_number']
         # number of cells of the stack
@@ -47,20 +48,23 @@ class Stack:
                 cell_dict['first_cell'] = False
                 cell_dict['last_cell'] = False
                 cell_dict['heat_pow'] = temperature_dict['heat_pow']
-            self.cells.append(cl.Cell(i, cell_dict, anode_dict, cathode_dict,
+            self.cells.append(cl.Cell(i, cell_dict, membrane_dict,
+                                      anode_dict, cathode_dict,
                                       ano_channel_dict, cat_channel_dict))
 
         # self.set_stoichiometry(np.full(self.n_cells, self.stoi_cat),
         #                        np.full(self.n_cells, self.stoi_ano))
 
         # Initialize the manifolds
-        self.manifold = [m_fold.Manifold(cat_manifold_dict),
-                         m_fold.Manifold(ano_manifold_dict)]
+        self.manifold = [m_fold.Manifold(cat_manifold_dict, self.cells),
+                         m_fold.Manifold(ano_manifold_dict, self.cells)]
         self.manifold[0].head_stoi = self.cells[0].cathode.stoi
         self.manifold[1].head_stoi = self.cells[0].anode.stoi
 
         # Initialize the electrical coupling
-        self.el_cpl_stack = el_cpl.ElectricalCoupling(electrical_dict)
+        if self.n_cells > 1:
+            self.elec_sys = \
+                el_cpl.ElectricalCoupling(electrical_dict, self, self.cells)
 
         """boolean alarms"""
         self.v_alarm = False
@@ -69,7 +73,8 @@ class Stack:
         # True if the program aborts because of some critical impact
 
         """General data"""
-        self.i_cd = np.full((self.n_cells, n_nodes - 1),
+        n_ele = n_nodes - 1
+        self.i_cd = np.full((self.n_cells, n_ele),
                             g_par.dict_case['tar_cd'])
         # current density
         self.i_cd_old = np.copy(self.i_cd)
@@ -117,52 +122,6 @@ class Stack:
         self.temp_fluid_ano = np.zeros(self.n_cells)
         # inlet and outlet temperature of the anode channel fluid
 
-        self.k_alpha_ch = None
-        # convection conductance between the channel and the fluid
-        self.cond_rate = np.full((2, self.n_cells, n_nodes), 0.)
-        # molar condensation rate
-        self.omega = np.full((self.n_cells, n_nodes), 0.)
-        # electrical resistance of the membrane
-        self.m_reac_flow_delta = np.full((self.n_cells, n_nodes), 0.)
-        # mass flow of the consumed oxygen in the cathode channels
-        self.g_fluid = []
-        # heat capacity flow of the channel fluids
-        self.cp_h2 = np.full((self.n_cells, n_nodes), 0.)
-        # k_p, k_g, k_m = [], [], []
-        # k_pp, k_gp, k_gm = [], [], []
-        # for cell in self.cells:
-        #     k_m = np.hstack((k_m, cell.k_mem_z))
-        #     k_g = np.hstack((k_g, cell.k_gde_z))
-        #     k_p = np.hstack((k_p, cell.k_bpp_z))
-        #     k_gm = np.hstack((k_gm, cell.k_gm))
-        #     k_gp = np.hstack((k_gp, cell.k_gp))
-        #     k_pp = np.hstack((k_pp, cell.k_bpp_x))
-        # k_layer = np.array([[k_m, k_g, k_p], [k_gm, k_gp, k_pp]])
-        # heat conductivity of the cell layer
-
-        """"Calculation of the environment heat conductivity"""
-        # free convection geometry model
-        cell_width = self.cells[0].width
-        cell_length = self.cells[0].length
-        fac = (cell_width + cell_length)\
-            / (self.cells[0].cathode.channel.length
-               * self.cells[0].width_channels)
-        k_alpha_amb = np.full((2, 3, self.n_cells), 0.)
-        # convection conductance to the environment
-        alpha_amb = temperature_dict['alpha_amb']
-        for i, cell in enumerate(self.cells):
-            avg_dx = np.average(cell.cathode.channel.dx)
-            k_alpha_amb[0, 1, i] =\
-                .5 * alpha_amb * avg_dx\
-                * (cell.cathode.th_bpp + cell.cathode.th_gde) / fac
-            k_alpha_amb[0, 0, i] =\
-                .5 * (alpha_amb * avg_dx
-                      * (cell.cathode.th_gde + cell.th_mem)) / fac
-            k_alpha_amb[0, 2, i] = \
-                alpha_amb * avg_dx * cell.cathode.th_bpp / fac
-        # Initialize the thermal coupling
-        #temperature_dict['k_layer'] = k_layer
-        temperature_dict['k_alpha_amb'] = k_alpha_amb
         self.temp_sys = therm_cpl.TemperatureSystem(temperature_dict,
                                                     self.cells)
 
@@ -215,9 +174,12 @@ class Stack:
         """
         This function updates current distribution over the stack cells
         """
-        self.el_cpl_stack.update_values(self.v_loss, self.stack_cell_r)
-        self.el_cpl_stack.update()
-        self.i_cd = self.el_cpl_stack.i_cd
+        #self.el_cpl_stack.update_values(self.stack_cell_r, self.v_loss)
+        if self.n_cells > 1:
+            self.elec_sys.update()
+            self.i_cd[:] = self.elec_sys.i_cd[:]
+        else:
+            self.i_cd[0] = self.cells[0].i_cd
 
     def update_temperature_coupling(self):
         """
@@ -275,7 +237,7 @@ class Stack:
             v_loss = np.hstack((v_loss, cell.v_loss))
             v_loss_cat.append(cell.cathode.v_loss)
             v_loss_ano.append(cell.anode.v_loss)
-            omega.append(cell.omega)
+            # omega.append(cell.omega)
             resistance = np.hstack((resistance, cell.resistance))
             q_sum_cat_in = \
                 np.hstack((q_sum_cat_in, cell.cathode.vol_flow_gas[0]))

@@ -4,7 +4,7 @@ import input.simulation as sim
 import numpy as np
 
 
-dict_uni = {
+constants = {
     'R': 8.314459848,
     'F': 96485.3328959
     }
@@ -18,7 +18,6 @@ dict_case = {
     'v_tn': phy_prop.v_thermo_neutral,
     'header_p_in_cat': op_con.p_manifold_cathode_out,
     'header_p_in_ano': op_con.p_manifold_anode_out,
-    'bpp_resistivity': phy_prop.bipolar_plate_resistivity,
     'cp_liq': phy_prop.heat_capacity_coolant,
-    'vap_m_temp_coeff': phy_prop.fitted_vapour_vapour_mass_transport_coefficient
+    'vap_m_temp_coeff': phy_prop.vapour_mass_transport_coefficient
     }

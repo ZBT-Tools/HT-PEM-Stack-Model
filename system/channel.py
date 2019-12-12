@@ -5,33 +5,31 @@ import system.fluid as fluid
 
 class Channel:
 
-    def __init__(self, dict_ch):
-        self.name = dict_ch['name']
-        self.length = dict_ch['channel_length']
+    def __init__(self, channel_dict):
+        self.name = channel_dict['name']
+        self.length = channel_dict['channel_length']
         # channel length
         n_ele = g_par.dict_case['elements']
         n_nodes = n_ele + 1
         self.x = np.linspace(0.0, self.length, n_nodes)
         self.dx = np.diff(self.x)
         # element length
-        self.p_out = dict_ch['p_out']
+        self.p_out = channel_dict['p_out']
         # inlet pressure
-        self.temp_in = dict_ch['temp_in']
+        self.temp_in = channel_dict['temp_in']
         # inlet temperature
-        self.humidity_in = dict_ch['hum_in']
+        self.humidity_in = channel_dict['hum_in']
         # inlet humidity
-        self.flow_dir = dict_ch['flow_dir']
+        self.flow_dir = channel_dict['flow_dir']
         # flow direction
-        self.width = dict_ch['channel_width']
+        self.width = channel_dict['channel_width']
         # channel width
-        self.height = dict_ch['channel_height']
+        self.height = channel_dict['channel_height']
         # channel height
-        self.n_bends = dict_ch['bend_number']
+        self.n_bends = channel_dict['bend_number']
         # number of channel bends
-        self.bend_fri_fac = dict_ch['bend_fri_fac']
+        self.bend_fri_fac = channel_dict['bend_fri_fac']
         # bend friction factor
-        self.rib_width = dict_ch['rib_width']
-        # rack width
         self.base_area = self.width * self.length
         # planar area of the channel
         self.base_area_dx = self.width * self.dx

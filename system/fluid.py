@@ -268,7 +268,7 @@ class GasMixture(Fluid):
                          pressure_init, temp_init, **kwargs)
         print("Constructor for Gas Mixture")
         species_names = list(species_dict.keys())
-        self.gas_constant = g_par.dict_uni['R']
+        self.gas_constant = g_par.constants['R']
         self.species = GasSpecies(species_names)
         self.species.viscosity = \
             self.species.calc_viscosity(np.full(n_ele, temp_init))

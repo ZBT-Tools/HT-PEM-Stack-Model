@@ -7,6 +7,6 @@ dict_electrical_coupling =\
     {
         'cell_number': geom.cell_number,
         'dx': geom.channel_length / float(sim.elements),
-        'th_bpp': geom.bipolar_plate_thickness,
-        'conducting_Width': geom.rib_width * (geom.gas_channel_number + 1)
+        'th_bpp': geom.bipolar_plate_thickness
+        #'conducting_Width': geom.rib_width * (geom.gas_channel_number + 1)
     }

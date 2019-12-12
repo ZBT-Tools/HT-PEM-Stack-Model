@@ -14,7 +14,7 @@ dict_cell = {
     'lambda_x_mem': phy_prop.thermal_conductivity_membrane_x,
     'temp_cool_in': op_con.temp_coolant_in,
     'mem_base_r': phy_prop.membrane_basic_resistance,
-    'mem_acl_r': phy_prop.membrane_temperature_resistance,
+    'mem_acl_r': phy_prop.membrane_temperature_coefficient,
     'temp_init': op_con.temp_initial,
     'calc_mem_loss': sim.calc_membrane_loss
     }

@@ -6,7 +6,7 @@ import copy as copy
 
 class Manifold:
 
-    def __init__(self, dict_manifold):
+    def __init__(self, dict_manifold, cells):
         self.name = dict_manifold['name']
         self.n_cell = dict_manifold['cell_number']
         self.n_ch = dict_manifold['channel_number']
@@ -18,6 +18,7 @@ class Manifold:
         self.cell_ch_ca = dict_manifold['cell_channel_cross_area']
         self.head_p = np.full((2, self.n_cell), dict_manifold['p_out'])
         self.head_stoi = 1.5
+        self.cells = cells
         self.cell_mass_flow = None
         self.cell_mol_flow = None
         self.cell_temp = None
@@ -102,7 +103,6 @@ class Manifold:
             self.head_g_mass_flow[q] = np.matmul(self.fwd_mat,
                                                  self.cell_g_mass_flow[q])
 
-
     def calc_header_mol_flows(self):
         """
         This function sums up the given cell molar inlet and outlet flows
@@ -112,9 +112,9 @@ class Manifold:
             Manipulate:
             - self.head_mol_flow, 2-D-array, [head inlet/outlet][cell number]
         """
-        for q in range(2):
-            self.head_mol_flow[q] = np.matmul(self.fwd_mat,
-                                              self.cell_mol_flow[q])
+        for i in range(2):
+            self.head_mol_flow[i] = np.matmul(self.fwd_mat,
+                                              self.cell_mol_flow[i])
 
     def calc_header_heat_capacity(self):
         """
@@ -168,8 +168,8 @@ class Manifold:
         """
 
         for q in range(2):
-            self.head_u[q] = self.head_mol_flow[q]\
-                             * g_par.dict_uni['R'] * self.head_temp[q]\
+            self.head_u[q] = self.head_mol_flow[q] \
+                             * g_par.constants['R'] * self.head_temp[q] \
                              / (self.cross_area * self.head_p[q])
 
     def calc_header_gas_constant(self):

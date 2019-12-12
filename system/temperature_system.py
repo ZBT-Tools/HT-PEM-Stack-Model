@@ -18,7 +18,7 @@ class TemperatureSystem:
         self.dict = temp_dict
         self.cells = cells
         # Handover
-        self.n_cells = temp_dict['cell_numb']
+        self.n_cells = temp_dict['cell_number']
         # cell number
         self.n_nodes = temp_dict['nodes']
         # node number
@@ -58,11 +58,7 @@ class TemperatureSystem:
         # number of coolant channels
         # end plate heat power
         self.lambda_cool = temp_dict['cool_lambda']
-        # heat conductance from the channel to the coolant
-        # self.k_layer = temp_dict['k_layer']
-        # # heat conductance array through and along the control volume
-        self.k_alpha_amb = temp_dict['k_alpha_amb']
-        # heat conductance from control volume to the environment
+        # thermal conductivity from the channel to the coolant
         self.temp_amb = temp_dict['temp_amb']
         # ambient temperature
         self.e_tn = g_par.dict_case['v_tn']
@@ -159,247 +155,10 @@ class TemperatureSystem:
         self.dyn_vec = np.zeros_like(self.temp_layer_vec)
         # vector for dynamically changing heat conductance values
 
-        # mat_base = np.full((n_layer, n_layer), 0.)
-        # mat_base[0, 0] = - self.k_layer[0, 2, 0]
-        # mat_base[0, 1] = self.k_layer[0, 2, 0]
-        # mat_base[1, 0] = self.k_layer[0, 2, 0]
-        # mat_base[1, 1] = - self.k_layer[0, 2, 0] - self.k_layer[0, 1, 0]
-        # mat_base[1, 2] = + self.k_layer[0, 1, 0]
-        # mat_base[2, 1] = + self.k_layer[0, 1, 0]
-        # mat_base[2, 2] = - self.k_layer[0, 1, 0] - self.k_layer[0, 0, 0]
-        # mat_base[2, 3] = + self.k_layer[0, 0, 0]
-        # mat_base[3, 2] = + self.k_layer[0, 0, 0]
-        # mat_base[3, 3] = - self.k_layer[0, 0, 0] - self.k_layer[0, 1, 0]
-        # mat_base[3, 4] = + self.k_layer[0, 1, 0]
-        # mat_base[4, 3] = + self.k_layer[0, 1, 0]
-        # mat_base[4, 4] = - self.k_layer[0, 1, 0]
-        # # heat conductance matrix in z-direction for the cells 0-(n-1)
-        # mat_n = np.full((n_layer + 1, n_layer + 1), 0.)
-        # mat_n[0:5, 0:5] = mat_base
-        # mat_n[4, 4] -= self.k_layer[0, 2, 0]
-        # mat_n[4, 5] = self.k_layer[0, 2, 0]
-        # mat_n[5, 4] = self.k_layer[0, 2, 0]
-        # mat_n[5, 5] = -self.k_layer[0, 2, 0]
-        # # heat conductance matrix in z-direction for the cell n
-        #
-        # list_mat = []
-        # for i in range(self.n_cells - 1):
-        #     for j in range(self.n_ele):
-        #         list_mat.append(mat_base)
-        # for i in range(self.n_ele):
-        #     list_mat.append(mat_n)
-        # # list of all the heat conductance matrix in z-direction
-        # # for all cells and all elements
-        # # for i in range(len(list_mat)):
-        # #     print(list_mat[i])
-        # self.mat_const = sp_la.block_diag(*list_mat)
-        # # uncoupled heat conductance matrix in z-direction
-        #
-        #
-        # """Setting the coolant channel heat conductance"""
-        # cool_pos_n_up = \
-        #     np.arange(self.n_ele * (self.n_cells - 1) * n_layer,
-        #               self.n_ele * (n_layer * self.n_cells + 1),
-        #               n_layer + 1)
-        # # upper cool ch pos for the n cell
-        #
-        # if self.cool_ch_bc:
-        #     cool_pos_base = \
-        #         np.arange(0, self.n_ele * (self.n_cells - 1) * n_layer,
-        #                   n_layer)
-        #     # cool ch pos for the 0-(n-1) cell
-        #     cool_pos_n_down = \
-        #         np.arange(self.n_ele * (self.n_cells - 1) * n_layer +
-        #                   n_layer,
-        #                   self.n_ele * (n_layer * self.n_cells + 1),
-        #                   n_layer + 1)
-        #     # lower cool ch pos for the n cell
-        #     for pos in cool_pos_n_up:
-        #         self.mat_const[pos, pos] -= self.k_cool
-        #
-        # else:
-        #     cool_pos_base = \
-        #         np.arange(self.n_ele,
-        #                   self.n_ele * (self.n_cells - 1) * n_layer,
-        #                   n_layer)
-        #     # cool ch pos for the 1-(n-1) cell
-        # for pos in cool_pos_base:
-        #     self.mat_const[pos, pos] -= self.k_cool
-        # if self.cool_ch_bc:
-        #     for pos in cool_pos_n_down:
-        #         self.mat_const[pos, pos] -= self.k_cool
-        #
-        # """Setting the x-axis heat conductance"""
-        # x_con_base = np.array([self.k_layer[1, 2, 0],
-        #                        self.k_layer[1, 1, 0],
-        #
-        #                        self.k_layer[1, 0, 0],
-        #                        self.k_layer[1, 0, 0],
-        #                        self.k_layer[1, 1, 0]])
-        # # heat conductance vec for one element of the 1-(n-1) cell
-        # x_con_n = np.hstack((x_con_base, 0.5 * self.k_layer[1, 2, 0]))
-        # # heat conductance vec for one element of the n cell
-        # x_con_zero = np.copy(x_con_base)
-        # x_con_zero[0] *= 0.5
-        #
-        # x_con_base_new = np.array([self.k_layer[1, 2, 0],
-        #                            self.k_layer[1, 1, 0],
-        #                            self.k_layer[1, 0, 0],
-        #                            self.k_layer[1, 0, 0],
-        #                            self.k_layer[1, 1, 0],
-        #                            self.k_layer[1, 2, 0]])
-        # x_con_base_new[0] *= 0.5
-        # x_con_base_new[-1] *= 0.5
-        #
-        # # heat conductance vec for one element of the 0th cell
-        # # sub_array = np.hstack((np.tile(x_con_base, self.n_ele - 1),
-        # #                        np.zeros(n_layer)))
-        # sub_array_base = np.tile(x_con_base, self.n_ele)
-        # sub_array_base[-n_layer:] *= 0.0
-        # sub_array_zero = np.tile(x_con_zero, self.n_ele)
-        # sub_array_zero[-n_layer:] *= 0.0
-        # sub_array_base_new = np.tile(x_con_base_new, self.n_ele)
-        # sub_array_base_new[-(n_layer+1):] *= 0.0
-        #
-        # # x_con_side_base = np.hstack((
-        # #     np.hstack((np.tile(x_con_zero, self.n_ele - 1),
-        # #                np.zeros(n_layer))),
-        # #     np.tile(np.hstack((np.tile(x_con_base, self.n_ele - 1),
-        # #                        np.zeros(n_layer))), self.n_cells - 2),
-        # #     np.zeros((n_layer + 1) * (self.n_ele - 1) + 1)))
-        # x_con_side_base = np.hstack((
-        #     sub_array_zero, np.tile(sub_array_base, self.n_cells - 2),
-        #     np.zeros((n_layer + 1) * (self.n_ele - 1) + 1)))
-        # print(x_con_side_base)
-        # # heat conductance vec for the right and left side
-        # # of the matrix main diagonal for the cells 0-(n-1)
-        # x_con_side_n = \
-        #     np.hstack((np.zeros((self.n_cells - 1) * self.n_ele
-        #                         * n_layer),
-        #                np.tile(x_con_n, self.n_ele - 1)))
-        # # heat conductance vec for the right and left side
-        # # of the matrix main diagonal for the cell n
-        # x_con_mid = \
-        #     np.hstack((np.hstack((x_con_zero,
-        #                           *np.tile(2. * x_con_zero, self.n_ele - 2),
-        #                           x_con_zero)),
-        #                np.tile(np.hstack((x_con_base,
-        #                                   * np.tile(2. * x_con_base,
-        #                                            self.n_ele - 2),
-        #                                   x_con_base)),
-        #                        self.n_cells - 2),
-        #                np.hstack((x_con_n, *np.tile(2. * x_con_n,
-        #                                             self.n_ele - 2),
-        #                           x_con_n))))
-        # # heat conductance vec for
-        # # the diagonal of the main heat conductance matrix for the cells 0-n
-        # self.mat_const = self.mat_const \
-        #     - np.diag(x_con_mid) \
-        #     + np.diag(x_con_side_base, n_layer) \
-        #     + np.diag(x_con_side_base, -n_layer) \
-        #     + np.diag(x_con_side_n, n_layer + 1) \
-        #     + np.diag(x_con_side_n, -(n_layer + 1))
-        #
-        # print(self.mat_const)
-        #
-        # """Setting the cell connecting heat conductance, z-direction"""
-        # pos_r, pos_c = [], []
-        # for i in range(self.n_ele * (self.n_cells - 1)):
-        #     pos_r.append(4 + n_layer * i)
-        #     if i <= self.n_ele * (self.n_cells - 2):
-        #         pos_c.append(n_layer * self.n_ele + n_layer * i)
-        #     else:
-        #         pos_c.append(pos_c[-1] + n_layer + 1)
-        # for i in range(len(pos_c)):
-        #     self.mat_const[pos_c[i], pos_r[i]] += self.k_layer[0, 2, 0]
-        #     self.mat_const[pos_r[i], pos_c[i]] += self.k_layer[0, 2, 0]
-        # # heat conductance outside the main diagonal
-        #
-        # pos_base_out = \
-        #     np.arange(4, self.n_ele * (self.n_cells - 1) * n_layer,
-        #               n_layer)
-        # # coordinates of the heat conductance
-        # # of the last layer of the elements for the cells 0-(n-1)
-        # pos_base_in = \
-        #     np.arange(self.n_ele * n_layer,
-        #               self.n_ele * (self.n_cells - 1) * n_layer,
-        #               n_layer)
-        # # coordinates of the heat conductance
-        # # of the first layer of the cells 1-(n-1)
-        # pos_n_in = np.arange((self.n_cells - 1) * self.n_ele * 5,
-        #                      self.n_ele * (n_layer * self.n_cells + 1),
-        #                      n_layer + 1)
-        # # coordinates of the heat conductance
-        # # of first layer of the elements for the last cell
-        # pos_in = np.hstack((pos_base_in, pos_n_in))
-        # # coordinates inside the main diagonal
-        # for i in range(len(pos_in)):
-        #     self.mat_const[pos_in[i], pos_in[i]] -= self.k_layer[0, 2, 0]
-        #     self.mat_const[pos_base_out[i],
-        #                    pos_base_out[i]] -= self.k_layer[0, 2, 0]
-        #
-        # """Adding the environment heat conductance"""
-        # env_con_base = np.array([-self.k_alpha_amb[0, 2, 0],
-        #                          -self.k_alpha_amb[0, 1, 0],
-        #                          -self.k_alpha_amb[0, 0, 0],
-        #                          -self.k_alpha_amb[0, 0, 0],
-        #                          -self.k_alpha_amb[0, 1, 0]])
-        # # environment heat conductance for the cells 1-(n-1)
-        # env_con_n = np.hstack((env_con_base,
-        #                        - .5 * self.k_alpha_amb[0, 2, 0]))
-        # # environment heat conductance for the cell n
-        # env_con_zero = np.hstack((-.5 * self.k_alpha_amb[0, 2, 0],
-        #                           env_con_base[1:]))
-        # # environment heat conductance for the zeroth cell
-        # env_con_vec = \
-        #     np.hstack((np.tile(env_con_zero, self.n_ele),
-        #                np.tile(np.tile(env_con_base, self.n_cells - 2),
-        #                        self.n_ele),
-        #                np.tile(env_con_n, self.n_ele)))
-        # # vector of the main diagonal of the heat conductance matrix
-        # self.mat_const = self.mat_const + np.diag(env_con_vec)
-        # self.mat_dyn = np.copy(self.mat_const)
-
-        # self.mat_const = \
-        #     mtx.build_heat_conductance_matrix(self.k_layer, self.k_cool,
-        #                                       self.k_alpha_amb, n_layer,
-        #                                       self.n_ele, self.n_cells,
-        #                                       self.cool_ch_bc, cells)
-        # self.mat_const_sp = sparse.csr_matrix(self.mat_const)
-        # self.mat_dyn_sp = sparse.lil_matrix(self.mat_const_sp)
-
-        # """Calculating the coordinates of the gas channel heat conductance"""
-        # pos_cat_ch_base = \
-        #     np.arange(1, (self.n_cells - 1) * self.n_ele * n_layer,
-        #               n_layer)
-        # # coordinates of the cathode channels
-        # # heat conductance for the 0-(n-1) cells
-        # pos_ano_ch_base = \
-        #     np.arange(4, (self.n_cells - 1) * self.n_ele * n_layer,
-        #               n_layer)
-        # # coordinates of the anode channels
-        # # heat conductance for the 0-(n-1) cells
-        # pos_cat_ch_n = \
-        #     np.arange((self.n_cells - 1) * self.n_ele * n_layer + 1,
-        #               self.n_ele * (n_layer * self.n_cells + 1),
-        #               n_layer + 1)
-        # # coordinates of the cathode channels
-        # # heat conductance for the n cell
-        # pos_ano_ch_n = \
-        #     np.arange((self.n_cells - 1) * self.n_ele * n_layer \
-        #               + (n_layer - 1),
-        #               self.n_ele * (n_layer * self.n_cells + 1),
-        #               n_layer + 1)
-        # # coordinates of the anode channels
-        # # heat conductance for the n cell
-        # self.pos_cat_ch = np.hstack((pos_cat_ch_base, pos_cat_ch_n))
-        # self.pos_ano_ch = np.hstack((pos_ano_ch_base, pos_ano_ch_n))
         # Add constant source and sink coefficients to heat conductance matrix
         # Heat transfer to ambient
         alpha_amb = temp_dict['alpha_amb']
-        # mtx_0 = []
-        # mtx_1 = []
-        # mtx_2 = []
+
         for cell in self.cells:
             cell.k_amb = cell.calc_ambient_conductance(alpha_amb)
             if cell.last_cell:
@@ -407,12 +166,9 @@ class TemperatureSystem:
             else:
                 k_amb_vector = cell.k_amb[:-1].transpose().flatten()
 
-            # mtx_0.append(cell.heat_mtx.copy())
             cell.add_implicit_layer_source(cell.heat_mtx_const, -k_amb_vector)
             cell.add_explicit_layer_source(cell.heat_rhs_const,
                                            k_amb_vector * self.temp_amb)
-
-            # mtx_1.append(cell.heat_mtx.copy())
             # Heat transfer to coolant channels
             if cell.first_cell:
                 if self.cool_ch_bc:
@@ -426,15 +182,8 @@ class TemperatureSystem:
             cell = self.cells[-1]
             cell.add_implicit_layer_source(cell.heat_mtx_const, -self.k_cool,
                                            layer_id=-1)
-        # print(mtx_1[0]-mtx_0[0])
-        #k_amb = np.asarray([cell.k_amb for cell in cells]).flatten()
         self.rhs_const = \
             np.hstack([cell.heat_rhs_const for cell in self.cells])
-        # print(self.cells[0].heat_mtx)
-        # print(self.cells[-1].heat_mtx)
-        #self.mat_const_2 = \
-        #    sp_la.block_diag(*[cell.heat_mtx for cell in self.cells])
-        # print(self.mat_const - self.mat_const_2)
 
         self.index_list, self.layer_index_list = \
             mtx.create_index_lists(self.cells)
@@ -444,47 +193,17 @@ class TemperatureSystem:
         if self.sparse_solve:
             self.mtx_const = sparse.csr_matrix(self.mtx_const)
 
-        #print(self.mat_const)
-        #print(self.mat_const_2)
-        #print(np.sum(np.abs(self.mat_const - self.mat_const_2)))
-
-        # k_layer_z = \
-        #     np.concatenate([cell.k_layer_z.transpose() for cell in self.cells],
-        #                    axis=-1)
-        # k_layer_x = \
-        #     np.concatenate([cell.k_layer_x.transpose() for cell in self.cells],
-        #                    axis=-1)
-        # print(k_layer_z)
-        # print(k_layer_x)
-        #
-        # matrix = mtx.build_cell_conductance_matrix(k_layer_x,
-        #                                            k_layer_z,
-        #                                            len(k_layer_z))
-        # print(matrix)
-
     def connect_cells(self):
         matrix = sp_la.block_diag(*[cell.heat_mtx_const for cell in self.cells])
         cell_ids = np.asarray([list(range(self.n_cells-1)),
                                list(range(1, self.n_cells))]).transpose()
         layer_ids = np.asarray([(-1, 0) for i in range(self.n_cells-1)])
         conductance = \
-            np.asarray([self.cells[i].k_layer_z[layer_ids[i][0]]
+            np.asarray([self.cells[i].thermal_conductance_z[layer_ids[i][0]]
                         for i in range(self.n_cells-1)])
         mtx.connect_cells(matrix, cell_ids, layer_ids,
                           conductance, self.index_list)
         return matrix
-
-    def update_values(self, k_alpha_ch, gamma, omega, v_loss, g_gas, i):
-        """
-        Updates the dynamic parameters
-        """
-        # self.g_fluid[0] = ip.interpolate_along_axis(g_gas[0], axis=1)
-        # self.g_fluid[1] = ip.interpolate_along_axis(g_gas[1], axis=1)
-        # self.k_gas_ch[:] = k_alpha_ch
-        # self.cond_rate[:] = gamma
-        # self.i[:] = i
-        # self.v_loss[:] = v_loss
-        # self.omega[:] = omega
 
     def update(self):
         """
@@ -711,7 +430,7 @@ class TemperatureSystem:
 
     def update_cell_layer_temperatures(self):
         """
-        From 1D temperature vector to 2D cell tempeature arrays
+        From 1D temperature vector to 2D cell temperature arrays
         """
         for i, cell in enumerate(self.cells):
             for j in range(cell.n_layer):

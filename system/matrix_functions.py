@@ -26,6 +26,27 @@ def overlapping_vector(vector, reps, overlap_size):
     return result
 
 
+def block_diag_overlap(block_list, overlap):
+    m_sblks = [block.shape[0] for block in block_list]
+    n_sblks = [block.shape[1] for block in block_list]
+
+    n_blocks = len(block_list)
+
+    m_ovl = overlap[0]
+    n_ovl = overlap[1]
+
+    m_final = np.sum(np.asarray(m_sblks)) - (n_blocks - 1) * m_ovl
+    n_final = np.sum(np.asarray(n_sblks)) - (n_blocks - 1) * n_ovl
+    block_array = np.zeros((m_final, n_final))
+    for i, block in enumerate(block_list):
+        x_id_start = i * m_sblks[i - 1] - i * m_ovl
+        x_id_end = (i + 1) * m_sblks[i] - i * m_ovl
+        y_id_start = i * n_sblks[i - 1] - i * n_ovl
+        y_id_end = (i + 1) * n_sblks[i] - i * n_ovl
+        block_array[x_id_start:x_id_end, y_id_start:y_id_end] += block[:, :]
+    return block_array
+
+
 def build_1d_conductance_matrix(cond_vector, offset=1):
     n_layer = len(cond_vector) + 1
     center_diag = overlapping_vector(cond_vector, 2, n_layer-2)
@@ -68,8 +89,9 @@ def build_z_cell_conductance_matrix(cond_vector, n_ele):
     return sp_la.block_diag(*list_mat)
 
 
-def build_x_cell_conductance_matrix(cond_vector, n_ele):
-    n_layer = len(cond_vector)
+def build_x_cell_conductance_matrix(cond_vector, n_ele, n_layer=None):
+    if n_layer is None:
+        n_layer = len(cond_vector)
     center_diag = np.concatenate([cond_vector[:, i] for i in range(n_ele)])
     center_diag[n_layer:-n_layer] *= 2.0
     center_diag *= -1.0
@@ -124,8 +146,6 @@ def create_index_lists(cells):
     layer_index_list = []
     for sub_list in layer_ids:
         layer_index_list.append(np.hstack(sub_list))
-
-
     return index_list, layer_index_list
 
 

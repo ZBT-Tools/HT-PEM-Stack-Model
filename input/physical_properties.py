@@ -26,17 +26,21 @@ v_thermo_neutral = 1.25
 # molar concentration of membrane acid groups [mol/m^3]
 molar_membrane_acid_group_concentration = 1.2e3
 # fitted vapour mass transport coefficient [m/s]
-fitted_vapour_vapour_mass_transport_coefficient = 0.62e-5
-
+vapour_mass_transport_coefficient = 0.62e-5
 
 """Electric Settings"""
+# membrane type
+membrane_type = 'Springer'
 # membrane basic resistance [Ohm/m^2]
 membrane_basic_resistance = 0.19
+# membrane basic conductivity [S/m]
+membrane_basic_conductivity = 10.0
 # membrane temperature slope [Ohm/(m^2K)]
-membrane_temperature_resistance = 7.e-4
-# bipolar plate resistivity [Ohm/m]
-bipolar_plate_resistivity = 2.e-6
-
+membrane_temperature_coefficient = 7.e-4
+# bipolar plate conductivity [S/m]
+electrical_conductivity_bipolar_plate = 30.0
+# gas diffusion electrode material conductivity [S/m]
+electrical_conductivity_gde = 5000.0
 
 """Thermal Settings"""
 # thermal conductivity of the bipolar plate through plane  [W/(mK)]
@@ -50,8 +54,7 @@ thermal_conductivity_gas_diffusion_electrode_x = 1.e0
 # thermal conductivity of the membrane through plane  [W/(mK)]
 thermal_conductivity_membrane_z = .26e0
 # thermal conductivity of the membrane in plane  [W/(mK)]
-thermal_conductivity_membrane_x = 0.
-# heat capacity of the coolant [J/(kgK)]
+thermal_conductivity_membrane_x = .26e0
 heat_capacity_coolant = 2.5e3
 # thermal conductivity of the coolant [W/(mK)]
 thermal_conductivity_coolant = 0.22

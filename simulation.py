@@ -173,6 +173,7 @@ class Simulation:
         # load input dictionaries
         stack_dict = input_dicts.dict_stack
         cell_dict = input_dicts.dict_cell
+        mem_dict = input_dicts.dict_membrane
         anode_dict = input_dicts.dict_anode
         cathode_dict = input_dicts.dict_cathode
         ano_channel_dict = input_dicts.dict_anode_channel
@@ -184,7 +185,7 @@ class Simulation:
         output_dict = input_dicts.dict_output
 
         # initialize stack object
-        self.stack = stack.Stack(stack_dict, cell_dict, anode_dict,
+        self.stack = stack.Stack(stack_dict, cell_dict, mem_dict, anode_dict,
                                  cathode_dict, ano_channel_dict,
                                  cat_channel_dict, ano_manifold_dict,
                                  cat_manifold_dict, electrical_dict,
@@ -275,7 +276,7 @@ class Simulation:
         voltage_loss['diffusion']['GDL']['cathode']['cells'] = \
             np.asarray([cell.cathode.gdl_diff_loss for cell in fc_stack.cells])
         voltage_loss['membrane']['cells'] = \
-            np.asarray([cell.mem_loss for cell in fc_stack.cells])
+            np.asarray([cell.membrane.v_loss for cell in fc_stack.cells])
 
         voltage_loss['activation']['anode']['average'] = \
             np.average(voltage_loss['activation']['anode']['cells'])

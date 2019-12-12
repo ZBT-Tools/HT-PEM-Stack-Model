@@ -8,11 +8,11 @@ channel_width = 1.e-3
 # channel height [m]
 channel_height = 1.e-3
 # rack width [m]
-rib_width = 1.e-3
+#rib_width = 1.e-3
 # number of channels
 gas_channel_number = 10.
 # channel bends [n]
-channel_bends = 48.
+channel_bends = 48
 # bend pressure loss coefficient of the channel bends
 bend_pressure_loss_coefficient = 0.1
 # flow direction in cathode channel along x-axis
@@ -40,20 +40,18 @@ coolant_bend_pressure_loss_coefficient = 0.1
 membrane_thickness = 50.e-6
 # thickness of the catalyst layer [m]
 catalyst_layer_thickness = 10.e-6
+# catalyst layer porosity (ionomer considered as porous volume) [-]
+catalyst_layer_porosity = 0.5
 # thickness of the gas diffusion layer [m]
 gas_diffusion_layer_thickness = 250.e-6
+# gas diffusion layer porosity [-]
+gas_diffusion_layer_porosity = 0.8
 # thickness of the bipolar plate [m]
 bipolar_plate_thickness = 1.11275e-3
 # length of the cell, a side of the active area [m]
 cell_length = 100.e-3
 # height of the cell, b side of the active area [m]
 cell_width = 100.e-3
-# number of gas channels
-gas_channel_number = 10
-# number of coolant channels
-coolant_channel_number = 10
-# number of channel bends
-channel_bends = 48
 
 
 """Manifold Geometry"""
@@ -66,6 +64,6 @@ manifold_pressure_loss_coefficient = 0.1
 
 """Stack Settings"""
 # number of the pemfc
-cell_number = 4
+cell_number = 3
 # coolant channel configuration (no cooling channel at the endplates = False)
 cooling_bc = True

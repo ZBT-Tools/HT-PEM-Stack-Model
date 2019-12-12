@@ -29,23 +29,42 @@ dict_cell = {
     'th_mem': geom.membrane_thickness,
     'width': geom.cell_width,
     'length': geom.cell_length,
-    'lambda_z_bpp': phy_prop.thermal_conductivity_bipolar_plate_z,
-    'lambda_z_gde': phy_prop.thermal_conductivity_gas_diffusion_electrode_z,
-    'lambda_z_mem': phy_prop.thermal_conductivity_membrane_z,
-    'lambda_x_bpp': phy_prop.thermal_conductivity_bipolar_plate_x,
-    'lambda_x_gde': phy_prop.thermal_conductivity_gas_diffusion_electrode_x,
-    'lambda_x_mem': phy_prop.thermal_conductivity_membrane_x,
+    'thermal conductivity bpp':
+        (phy_prop.thermal_conductivity_bipolar_plate_z,
+         phy_prop.thermal_conductivity_bipolar_plate_x),
+    'thermal conductivity gde':
+        (phy_prop.thermal_conductivity_gas_diffusion_electrode_z,
+         phy_prop.thermal_conductivity_gas_diffusion_electrode_x),
+    'electrical conductivity bpp':
+        phy_prop.electrical_conductivity_bipolar_plate,
+    'electrical conductivity gde':
+        phy_prop.electrical_conductivity_gde,
     'temp_cool_in': op_con.temp_coolant_in,
     'mem_base_r': phy_prop.membrane_basic_resistance,
-    'mem_acl_r': phy_prop.membrane_temperature_resistance,
-    'temp_init': op_con.temp_initial,
-    'calc_mem_loss': sim.calc_membrane_loss
+    'mem_acl_r': phy_prop.membrane_temperature_coefficient,
+    'temp_init': op_con.temp_initial
     }
+
+dict_membrane = {
+    'type': phy_prop.membrane_type,
+    'thickness': geom.membrane_thickness,
+    'acid group concentration':
+        phy_prop.molar_membrane_acid_group_concentration,
+    'vapour transport coefficient': phy_prop.vapour_mass_transport_coefficient,
+    'ionic conductivity': phy_prop.membrane_basic_conductivity,
+    'basic resistance': phy_prop.membrane_basic_resistance,
+    'temperature coefficient':
+        phy_prop.membrane_temperature_coefficient,
+    'thermal conductivity':
+        (phy_prop.thermal_conductivity_membrane_z,
+         phy_prop.thermal_conductivity_membrane_x),
+    'calc_loss': sim.calc_membrane_loss
+}
 
 dict_cathode = {
     'name': 'Cathode',
     'flow_direction': geom.cathode_flow_direction,
-    'channel_numb': geom.gas_channel_number,
+    'channel_number': geom.gas_channel_number,
     'stoichiometry': op_con.stoichiometry_cathode,
     'is_cathode': True,
     'species_names': op_con.cathode_species,
@@ -53,14 +72,16 @@ dict_cathode = {
     'inlet_composition': op_con.cathode_inlet_composition,
     'charge_number': op_con.cathode_charge_number,
     'reaction_stoichiometry': op_con.cathode_reaction_stoich,
+    'th_cl': geom.catalyst_layer_thickness,
     'th_gdl': geom.gas_diffusion_layer_thickness,
     'th_bpp': geom.bipolar_plate_thickness,
+    'porosity cl': geom.catalyst_layer_porosity,
+    'porosity gdl': geom.gas_diffusion_layer_porosity,
     'tafel_slope': phy_prop.tafel_slope_cathode,
     'prot_con_cl': phy_prop.catalyst_layer_proton_conductivity_cathode,
     'vol_ex_cd': phy_prop.exchange_current_density_cathode,
     'diff_coeff_cl': phy_prop.oxygen_catalyst_layer_diffusion_coefficient,
     'diff_coeff_gdl': phy_prop.oxygen_gas_diffusion_layer_diffusion_coefficient,
-    'th_cl': geom.catalyst_layer_thickness,
     'calc_act_loss': sim.calc_activation_loss,
     'calc_cl_diff_loss': sim.calc_cl_loss,
     'calc_gdl_diff_loss': sim.calc_gdl_loss
@@ -69,7 +90,7 @@ dict_cathode = {
 dict_anode = {
     'name': 'Anode',
     'flow_direction': geom.anode_flow_direction,
-    'channel_numb': geom.gas_channel_number,
+    'channel_number': geom.gas_channel_number,
     'stoichiometry': op_con.stoichiometry_anode,
     'is_cathode': False,
     'species_names': op_con.anode_species,
@@ -77,14 +98,16 @@ dict_anode = {
     'inlet_composition': op_con.anode_inlet_composition,
     'charge_number': op_con.anode_charge_number,
     'reaction_stoichiometry': op_con.anode_reaction_stoich,
+    'th_cl': geom.catalyst_layer_thickness,
     'th_gdl': geom.gas_diffusion_layer_thickness,
     'th_bpp': geom.bipolar_plate_thickness,
+    'porosity cl': geom.catalyst_layer_porosity,
+    'porosity gdl': geom.gas_diffusion_layer_porosity,
     'tafel_slope': phy_prop.tafel_slope_anode,
     'prot_con_cl': phy_prop.catalyst_layer_proton_conductivity_anode,
     'vol_ex_cd': phy_prop.exchange_current_density_anode,
     'diff_coeff_cl': phy_prop.hydrogen_catalyst_layer_diffusion_coefficient,
     'diff_coeff_gdl': phy_prop.hydrogen_diffusion_layer_diffusion_coefficient,
-    'th_cl': geom.catalyst_layer_thickness,
     'calc_act_loss': sim.calc_activation_loss,
     'calc_cl_diff_loss': sim.calc_cl_loss,
     'calc_gdl_diff_loss': sim.calc_gdl_loss
@@ -100,8 +123,8 @@ dict_cathode_channel = {
     'channel_width': geom.channel_width,
     'channel_height': geom.channel_height,
     'bend_number': geom.channel_bends,
-    'bend_fri_fac': geom.bend_pressure_loss_coefficient,
-    'rib_width': geom.rib_width
+    'bend_fri_fac': geom.bend_pressure_loss_coefficient
+    #'rib_width': geom.rib_width
     }
 
 dict_anode_channel = {
@@ -114,8 +137,8 @@ dict_anode_channel = {
     'channel_width': geom.channel_width,
     'channel_height': geom.channel_height,
     'bend_number': geom.channel_bends,
-    'bend_fri_fac': geom.bend_pressure_loss_coefficient,
-    'rib_width': geom.rib_width
+    'bend_fri_fac': geom.bend_pressure_loss_coefficient
+    #'rib_width': geom.rib_width
     }
 
 dict_mfold_cat = {
@@ -145,12 +168,12 @@ dict_electrical_coupling =\
     {
         'cell_number': geom.cell_number,
         'dx': geom.channel_length / float(sim.elements),
-        'th_bpp': geom.bipolar_plate_thickness,
-        'conducting_width': geom.rib_width * (geom.gas_channel_number + 1)
+        'th_bpp': geom.bipolar_plate_thickness
+        #'conducting_width': geom.rib_width * (geom.gas_channel_number + 1)
     }
 
 dict_temp_sys = {
-    'cell_numb': geom.cell_number,
+    'cell_number': geom.cell_number,
     'nodes': sim.elements + 1,
     'channel_length': geom.channel_length,
     'channel_width': geom.coolant_channel_width,
