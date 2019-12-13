@@ -2,7 +2,7 @@ import numpy as np
 import copy as copy
 import data.global_parameters as g_par
 import system.cell as cl
-import system.manifold as m_fold
+import system.flow_circuit as flow_circuit
 import system.electrical_coupling as el_cpl
 import data.electrical_coupling_dict as el_cpl_dict
 import system.temperature_system as therm_cpl
@@ -48,18 +48,26 @@ class Stack:
                 cell_dict['first_cell'] = False
                 cell_dict['last_cell'] = False
                 cell_dict['heat_pow'] = temperature_dict['heat_pow']
-            self.cells.append(cl.Cell(i, cell_dict, membrane_dict,
-                                      anode_dict, cathode_dict,
-                                      ano_channel_dict, cat_channel_dict))
+            cell = cl.Cell(i, cell_dict, membrane_dict,
+                           anode_dict, cathode_dict,
+                           ano_channel_dict, cat_channel_dict)
+            if i == 0:
+                cell.coordinates[0] = 0.0
+                cell.coordinates[1] = cell.thickness
+            else:
+                cell.coordinates[0] = self.cells[i-1].coordinates[1]
+                cell.coordinates[1] = cell.coordinates[0] + cell.thickness
+            self.cells.append(cell)
 
         # self.set_stoichiometry(np.full(self.n_cells, self.stoi_cat),
         #                        np.full(self.n_cells, self.stoi_ano))
 
         # Initialize the manifolds
-        self.manifold = [m_fold.Manifold(cat_manifold_dict, self.cells),
-                         m_fold.Manifold(ano_manifold_dict, self.cells)]
-        self.manifold[0].head_stoi = self.cells[0].cathode.stoi
-        self.manifold[1].head_stoi = self.cells[0].anode.stoi
+        self.flow_circuit = \
+            [flow_circuit.FlowCircuit(cat_manifold_dict, self.cells),
+             flow_circuit.FlowCircuit(ano_manifold_dict, self.cells)]
+        self.flow_circuit[0].head_stoi = self.cells[0].cathode.stoi
+        self.flow_circuit[1].head_stoi = self.cells[0].anode.stoi
 
         # Initialize the electrical coupling
         if self.n_cells > 1:
@@ -91,9 +99,9 @@ class Stack:
         # anode voltage loss
         self.stack_cell_r = []
         # cell resistance in z-direction
-        self.q_sum_cat = []
+        self.vol_flow_gas_cat = []
         # molar flow at the inlet and outlet of the cathode channels
-        self.q_sum_ano = []
+        self.vol_flow_gas_ano = []
         # molar flow  at the inlet and outlet of the anode channels
         self.m_sum_cat = []
         # mass flow at the inlet and outlet of the cathode channels
@@ -153,22 +161,22 @@ class Stack:
         This function updates the flow distribution of gas over the stack cells
         """
         n_ch = self.cells[0].cathode.n_chl
-        self.manifold[0].update_values(
-            self.q_sum_cat * n_ch, self.temp_fluid_cat,
+        self.flow_circuit[0].update_values(
+            self.vol_flow_gas_cat * n_ch, self.temp_fluid_cat,
             self.cp_cat, self.visc_cat, self.p_cat, self.r_cat,
             self.m_sum_f_cat * n_ch,
             self.m_sum_g_cat * n_ch)
-        self.manifold[1].update_values(
-            self.q_sum_ano[::-1] * n_ch, self.temp_fluid_ano[::-1],
+        self.flow_circuit[1].update_values(
+            self.vol_flow_gas_ano[::-1] * n_ch, self.temp_fluid_ano[::-1],
             self.cp_ano[::-1], self.visc_ano[::-1], self.p_ano[::-1],
             self.r_ano[::-1], self.m_sum_f_ano[::-1] * n_ch,
             self.m_sum_g_ano[::-1] * n_ch)
-        self.manifold[0].update()
-        self.manifold[1].update()
-        self.set_stoichiometry(self.manifold[0].cell_stoi,
-                               self.manifold[1].cell_stoi)
-        self.set_channel_outlet_pressure(self.manifold[0].head_p[-1],
-                                         self.manifold[1].head_p[-1])
+        self.flow_circuit[0].update()
+        self.flow_circuit[1].update()
+        self.set_stoichiometry(self.flow_circuit[0].cell_stoi,
+                               self.flow_circuit[1].cell_stoi)
+        self.set_channel_outlet_pressure(self.flow_circuit[0].head_p[-1],
+                                         self.flow_circuit[1].head_p[-1])
 
     def update_electrical_coupling(self):
         """
@@ -207,8 +215,8 @@ class Stack:
         g_fluid_cat, g_fluid_ano = [], []
         v_cell, v_loss, resistance = [], [], []
         v_loss_cat, v_loss_ano = [], []
-        q_sum_cat_in, q_sum_cat_out = [], []
-        q_sum_ano_in, q_sum_ano_out = [], []
+        vol_flow_gas_cat_in, vol_flow_gas_cat_out = [], []
+        vol_flow_gas_ano_in, vol_flow_gas_ano_out = [], []
         cp_cat_in, cp_cat_out = [], []
         cp_ano_in, cp_ano_out = [], []
         visc_cat_in, visc_cat_out = [], []
@@ -239,14 +247,14 @@ class Stack:
             v_loss_ano.append(cell.anode.v_loss)
             # omega.append(cell.omega)
             resistance = np.hstack((resistance, cell.resistance))
-            q_sum_cat_in = \
-                np.hstack((q_sum_cat_in, cell.cathode.vol_flow_gas[0]))
-            q_sum_cat_out = \
-                np.hstack((q_sum_cat_out, cell.cathode.vol_flow_gas[-1]))
-            q_sum_ano_in = \
-                np.hstack((q_sum_ano_in, cell.anode.vol_flow_gas[0]))
-            q_sum_ano_out = \
-                np.hstack((q_sum_ano_out, cell.anode.vol_flow_gas[-1]))
+            vol_flow_gas_cat_in = \
+                np.hstack((vol_flow_gas_cat_in, cell.cathode.vol_flow_gas[0]))
+            vol_flow_gas_cat_out = \
+                np.hstack((vol_flow_gas_cat_out, cell.cathode.vol_flow_gas[-1]))
+            vol_flow_gas_ano_in = \
+                np.hstack((vol_flow_gas_ano_in, cell.anode.vol_flow_gas[0]))
+            vol_flow_gas_ano_out = \
+                np.hstack((vol_flow_gas_ano_out, cell.anode.vol_flow_gas[-1]))
             m_sum_f_cat_in = np.hstack((m_sum_f_cat_in,
                                         cell.cathode.mass_flow_total[0]))
             m_sum_f_cat_out = np.hstack((m_sum_f_cat_out,
@@ -289,8 +297,10 @@ class Stack:
                                             cell.anode.temp_fluid[-1]))
         self.v_cell, self.v_loss, self.stack_cell_r = v_cell, v_loss, resistance
         self.v_loss_cat, self.v_loss_ano = v_loss_cat, v_loss_ano
-        self.q_sum_cat = np.array([q_sum_cat_in, q_sum_cat_out])
-        self.q_sum_ano = np.array([q_sum_ano_in, q_sum_ano_out])
+        self.vol_flow_gas_cat = \
+            np.array([vol_flow_gas_cat_in, vol_flow_gas_cat_out])
+        self.vol_flow_gas_ano = \
+            np.array([vol_flow_gas_ano_in, vol_flow_gas_ano_out])
         self.m_sum_f_cat = np.array([m_sum_f_cat_in, m_sum_f_cat_out])
         self.m_sum_f_ano = np.array([m_sum_f_ano_in, m_sum_f_ano_out])
         self.m_sum_g_cat = np.array([m_sum_g_cat_in, m_sum_g_cat_out])

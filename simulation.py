@@ -313,8 +313,8 @@ class Simulation:
                           / self.stack.temp_sys.temp_layer_vec) ** 2.0))
 
         self.temp_criteria_process.append(self.temp_criteria)
-        self.mfd_cat_criteria.append(self.stack.manifold[0].criteria)
-        self.mfd_ano_criteria.append(self.stack.manifold[1].criteria)
+        self.mfd_cat_criteria.append(self.stack.flow_circuit[0].criteria)
+        self.mfd_ano_criteria.append(self.stack.flow_circuit[1].criteria)
         self.i_ca_criteria_process.append(self.i_ca_criteria)
 
     def save_old_value(self):

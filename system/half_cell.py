@@ -14,6 +14,13 @@ warnings.filterwarnings("ignore")
 
 class HalfCell:
 
+    # Class variables constant across all instances of the class
+    # (under construction)
+    n_nodes = None
+    n_ele = None
+    fwd_mtx = None
+    bwd_mtx = None
+
     def __init__(self, halfcell_dict, cell_dict, channel_dict):
         self.name = halfcell_dict['name']
         n_nodes = g_par.dict_case['nodes']
@@ -42,10 +49,10 @@ class HalfCell:
             + self.rib_width * (self.n_chl + 1)
         self.length_straight_channels = (self.length * self.width) \
             / self.width_straight_channels
-        self.channel.active_area = area_factor * self.channel.base_area
+        self.active_area = area_factor * self.channel.base_area
         # self.active_area = area_factor * self.channel.base_area
         # factor active area with ribs / active channel area
-        self.channel.active_area_dx = area_factor * self.channel.base_area_dx
+        self.active_area_dx = area_factor * self.channel.base_area_dx
         # self.active_area_dx = area_factor * self.channel.base_area_dx
 
         self.flow_direction = halfcell_dict['flow_direction']
@@ -92,17 +99,18 @@ class HalfCell:
         self.th_gde = self.th_gdl + self.th_cl
         # thickness gas diffusion electrode
 
-        layer_dict = {'thickness': halfcell_dict['th_bpp'],
-                      'width': self.width_straight_channels,
-                      'length': self.length_straight_channels,
-                      'electrical conductivity':
-                          cell_dict['electrical conductivity bpp'],
-                      'thermal conductivity':
-                          cell_dict['thermal conductivity bpp']}
+        bpp_layer_dict = \
+            {'thickness': halfcell_dict['th_bpp'],
+             'width': self.width_straight_channels,
+             'length': self.length_straight_channels,
+             'electrical conductivity':
+                 cell_dict['electrical conductivity bpp'],
+             'thermal conductivity':
+                 cell_dict['thermal conductivity bpp']}
         # 'porosity': self.channel.cross_area * self.n_chl / (
         #             self.th_bpp * self.width)}
-        self.bpp = layers.SolidLayer(layer_dict, self.channel.dx)
-        layer_dict = \
+        self.bpp = layers.SolidLayer(bpp_layer_dict, self.channel.dx)
+        gde_layer_dict = \
             {'thickness': halfcell_dict['th_gdl'] + halfcell_dict['th_cl'],
              'width': self.width_straight_channels,
              'length': self.length_straight_channels,
@@ -114,7 +122,9 @@ class HalfCell:
         #    (self.th_gdl * halfcell_dict['porosity gdl']
         #     + self.th_cl * halfcell_dict['porosity cl'])
         #    / (self.th_gde + self.th_cl)}
-        self.gde = layers.SolidLayer(layer_dict, self.channel.dx)
+        self.gde = layers.SolidLayer(gde_layer_dict, self.channel.dx)
+
+        self.thickness = self.bpp.thickness + self.gde.thickness
 
         """voltage loss parameter, (Kulikovsky, 2013)"""
         self.vol_ex_cd = halfcell_dict['vol_ex_cd']
@@ -171,9 +181,9 @@ class HalfCell:
         # gas mixture humidity
         self.u = np.zeros(n_nodes)
         # channel velocity
-        self.fwd_mat = np.tril(np.full((n_ele, n_ele), 1.))
+        # self.fwd_mat = np.tril(np.full((n_ele, n_ele), 1.))
         # forward matrix
-        self.bwd_mat = np.triu(np.full((n_ele, n_ele), 1.))
+        # self.bwd_mat = np.triu(np.full((n_ele, n_ele), 1.))
         # backward matrix
         self.mol_flow_total = np.zeros(n_nodes)
         self.mass_flow_total = np.zeros(n_nodes)
@@ -309,9 +319,9 @@ class HalfCell:
         faraday = g_par.constants['F']
         tar_cd = g_par.dict_case['tar_cd']
         self.mol_flow[self.id_fuel] = \
-            tar_cd * self.channel.active_area * abs(self.n_stoi[self.id_fuel]) \
+            tar_cd * self.active_area * abs(self.n_stoi[self.id_fuel]) \
             / (self.n_charge * faraday) * self.stoi
-        dmol = current_density * self.channel.active_area_dx \
+        dmol = current_density * self.active_area_dx \
             * self.n_stoi[self.id_fuel] / (self.n_charge * faraday)
         g_func.add_source(self.mol_flow[self.id_fuel], dmol,
                           self.flow_direction)
@@ -320,11 +330,11 @@ class HalfCell:
 
     def calc_water_flow(self, current_density):
         """"
-        Calculates the water and nitrogen molar flows [mol/s]
+        Calculates the water molar flow [mol/s]
         """
         sat_p = w_prop.water.calc_p_sat(self.channel.temp_in)
         i_cd = current_density
-        area = self.channel.active_area_dx
+        area = self.active_area_dx
         chl = self.channel
         q_0_water = \
             (self.mol_flow[self.id_fuel][self.ele_in]
@@ -422,9 +432,8 @@ class HalfCell:
         """
         Calculates the condensed phase flow and updates mole and mass fractions
         """
-        self.mol_flow_liq[:] = np.zeros_like(self.mol_flow)
-        gas_conc_fuel = np.where(self.gas_conc[self.id_fuel] > 0.0,
-                                 self.gas_conc[self.id_fuel], 1e-6)
+        self.mol_flow_liq[:] *= 0.0
+        gas_conc_fuel = np.maximum(self.gas_conc[self.id_fuel], 1e-6)
         self.mol_flow_liq[self.id_h2o] = self.mol_flow[self.id_h2o] \
             - self.gas_conc[self.id_h2o] / gas_conc_fuel \
             * self.mol_flow[self.id_fuel]

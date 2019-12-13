@@ -224,8 +224,7 @@ class Fluid(ABC):
     PROPERTY_NAMES = ['Density', 'Specific Heat', 'Viscosity',
                       'Thermal Conductivity']
 
-    def __new__(cls, n_ele, species_dict, mole_fractions_init,
-                liquid_properties=None, pressure_init=101325.0,
+    def __new__(cls, nx, species_dict, pressure_init=101325.0,
                 temp_init=298.15, **kwargs):
         species_types = list(species_dict.values())
         species_types_str = ' '.join(species_types)
@@ -241,38 +240,32 @@ class Fluid(ABC):
                                       'implemented and must be indicated in '
                                       'the species_dict')
 
-    def __init__(self, n_ele, species_dict, mole_fractions_init,
-                 liquid_props=None, pressure_init=101325.0,
+    def __init__(self, nx, species_dict, pressure_init=101325.0,
                  temp_init=298.15, **kwargs):
-        self.temperature = np.full(n_ele, temp_init)
-        self.pressure = np.full(n_ele, pressure_init)
+        self.temperature = np.full(nx, temp_init)
+        self.pressure = np.full(nx, pressure_init)
         self.property = dict()
         for name in self.PROPERTY_NAMES:
-            self.property[name] = np.zeros(n_ele)
+            self.property[name] = np.zeros(nx)
 
 
 class Liquid(Fluid):
-    def __init__(self, n_ele, species_dict, mole_fractions_init,
-                 liquid_props, pressure_init=101325.0,
+    def __init__(self, nx, species_dict, liquid_props, pressure_init=101325.0,
                  temp_init=298.15, **kwargs):
-        super().__init__(self, n_ele, species_dict, mole_fractions_init,
-                         pressure_init, temp_init, **kwargs)
+        super().__init__(nx, species_dict, pressure_init, temp_init, **kwargs)
         self.properties = liquid_props
 
 
 class GasMixture(Fluid):
-    def __init__(self, n_ele, species_dict, mole_fractions_init,
-                 liquid_props=None, pressure_init=101325.0,
-                 temp_init=298.15, **kwargs):
-        super().__init__(n_ele, species_dict, mole_fractions_init,
-                         pressure_init, temp_init, **kwargs)
+    def __init__(self, nx, species_dict, mole_fractions_init,
+                 pressure_init=101325.0, temp_init=298.15, **kwargs):
+        super().__init__(nx, species_dict, pressure_init, temp_init, **kwargs)
         print("Constructor for Gas Mixture")
         species_names = list(species_dict.keys())
         self.gas_constant = g_par.constants['R']
         self.species = GasSpecies(species_names)
-        self.species.viscosity = \
-            self.species.calc_viscosity(np.full(n_ele, temp_init))
-        self.temp = np.full(n_ele, temp_init)
+        self.species_viscosity = \
+            self.species.calc_viscosity(np.full(nx, temp_init))
 
         if len(mole_fractions_init) != len(self.species.list) \
                 or np.sum(mole_fractions_init) != 1.0:
@@ -282,18 +275,37 @@ class GasMixture(Fluid):
             mole_fractions_init = np.asarray(mole_fractions_init)
 
         self.mole_fraction = \
-            np.ones((n_ele, len(self.species.list))) * mole_fractions_init
+            np.ones((nx, len(self.species.list))) * mole_fractions_init
+        self.concentration, total_mol_conc = self.calc_dry_concentration()
+
         mass_fraction_init = \
             mole_fractions_init * self.species.mw / \
             np.sum(mole_fractions_init * self.species.mw)
 
         self.mass_fraction = \
-            np.ones((n_ele, len(self.species.list))) * mass_fraction_init
+            np.ones((nx, len(self.species.list))) * mass_fraction_init
         self.mw = np.sum(self.mole_fraction*self.species.mw, axis=-1)
 
+    @staticmethod
+    def calc_fraction(species_flow):
+        """
+        Calculates the species mixture fractions based on a multi-dimensional
+        array with different species along the first (0th) axis.
+        """
+        return species_flow / np.sum(species_flow, axis=-1)
+
+    def calc_dry_concentration(self):
+        """
+        Calculates the gas phase molar concentrations.
+        """
+        total_mol_conc = self.pressure / (self.gas_constant * self.temperature)
+        return self.mole_fraction.transpose() * total_mol_conc, total_mol_conc
+
+    def calc_mole_fraction(self, mole_flow):
+        self.mole_fraction = self.calc_fraction(mole_flow)
+
     def calc_mass_fraction(self):
-        self.mass_fraction = self.mole_fraction * self.species.mw / \
-            np.sum(self.mole_fraction * self.species.mw)
+        self.mass_fraction = self.mole_fraction * self.species.mw / self.mw
 
     def calc_molar_mass(self):
         self.mw = np.sum(self.mole_fraction*self.species.mw, axis=-1)
@@ -307,8 +319,8 @@ class GasMixture(Fluid):
         Calculates the mixture viscosity of a
         gas according to Herning and Zipperer.
         """
-        self.species.viscosity = self.species.calc_viscosity(temperature)
-        spec_visc = self.species.viscosity.transpose()
+        self.species_viscosity = self.species.calc_viscosity(temperature)
+        spec_visc = self.species_viscosity.transpose()
         x_sqrt_mw = self.mole_fraction * np.sqrt(self.species.mw)
         return np.sum(spec_visc * x_sqrt_mw, axis=-1)/np.sum(x_sqrt_mw, axis=-1)
 
@@ -317,7 +329,7 @@ class GasMixture(Fluid):
         Calculates the wilke coefficients for
         each species combination of a gas.
         """
-        visc = self.species.viscosity
+        visc = self.species_viscosity
         mw = self.species.mw
         n_species = len(self.species.list)
         alpha = []
@@ -365,11 +377,11 @@ class GasMixture(Fluid):
 
 
 class TwoPhaseMixture(GasMixture):
-
-    def __init__(self, n_ele, species_dict, mole_fractions_init,
+    def __init__(self, nx, species_dict, mole_fractions_init,
                  liquid_props=None, pressure_init=101325.0,
                  temp_init=298.15, **kwargs):
-
+        super().__init__(nx, species_dict, mole_fractions_init,
+                         pressure_init, temp_init, **kwargs)
         if not isinstance(species_dict, dict):
             raise TypeError('Argument "species_names" must be a dict '
                             'containing all species names and their '
@@ -379,10 +391,35 @@ class TwoPhaseMixture(GasMixture):
                              if 'gas' in species_dict[key]]
         phase_change_species_names = [key for key in species_dict
                                       if 'gas-liquid' in species_dict[key]]
-        super().__init__(n_ele, species_dict, mole_fractions_init,
-                         liquid_props, pressure_init, temp_init, **kwargs)
-        self.liquid_fraction = np.full(n_ele, 0.0)
+        self.pc_ids = [self.species.list.index(name) for name in
+                       phase_change_species_names]
+        if len(self.pc_ids) > 1:
+            raise NotImplementedError('At the moment only one species '
+                                      'undergoing phase change is allowed')
+        self.pc_id = self.pc_ids[0]
+
+        self.liquid_fraction = np.full(nx, 0.0)
         self.phase_change_species = PhaseChangeSpecies(liquid_props)
+
+    def calc_concentration(self, mole_flow):
+        conc, total_mol_conc = self.calc_dry_concentration()
+        p_sat = \
+            self.phase_change_species.calc_saturation_pressure(self.temperature)
+        sat_conc = p_sat / (self.gas_constant * self.temperature)
+        dry_mole_flow = np.copy(mole_flow)
+        dry_mole_flow[self.pc_id] = 0.0
+        dry_mole_fraction = self.calc_fraction(dry_mole_flow)
+        for i in range(len(self.species.list)):
+            if i == self.pc_id:
+                self.concentration[self.pc_id] = \
+                    np.where(self.concentration[self.pc_id] > sat_conc,
+                             sat_conc, self.concentration[self.pc_id])
+            else:
+                self.concentration[i] = \
+                    np.where(self.concentration[self.pc_id] > sat_conc,
+                             (total_mol_conc - sat_conc) * dry_mole_fraction[i],
+                             self.concentration[i])
+        self.concentration[:] = np.maximum(self.concentration, 1e-6)
 
 species = GasSpecies(['O2', 'N2', 'H2'])
 

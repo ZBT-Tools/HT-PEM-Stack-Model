@@ -4,19 +4,19 @@ import system.global_functions as g_func
 import copy as copy
 
 
-class Manifold:
+class FlowCircuit:
 
-    def __init__(self, dict_manifold, cells):
-        self.name = dict_manifold['name']
-        self.n_cell = dict_manifold['cell_number']
-        self.n_ch = dict_manifold['channel_number']
-        self.head_width = dict_manifold['header_width']
-        self.head_height = dict_manifold['header_height']
-        self.kf = dict_manifold['kf']
-        self.cell_height = dict_manifold['cell_height']
-        self.cell_ch_length = dict_manifold['cell_channel_length']
-        self.cell_ch_ca = dict_manifold['cell_channel_cross_area']
-        self.head_p = np.full((2, self.n_cell), dict_manifold['p_out'])
+    def __init__(self, dict_flow_circuit, cells):
+        self.name = dict_flow_circuit['name']
+        self.n_cell = dict_flow_circuit['cell_number']
+        self.n_ch = dict_flow_circuit['channel_number']
+        self.head_width = dict_flow_circuit['header_width']
+        self.head_height = dict_flow_circuit['header_height']
+        self.kf = dict_flow_circuit['kf']
+        self.cell_height = dict_flow_circuit['cell_height']
+        self.cell_ch_length = dict_flow_circuit['cell_channel_length']
+        self.cell_ch_ca = dict_flow_circuit['cell_channel_cross_area']
+        self.head_p = np.full((2, self.n_cell), dict_flow_circuit['p_out'])
         self.head_stoi = 1.5
         self.cells = cells
         self.cell_mass_flow = None
@@ -26,6 +26,18 @@ class Manifold:
         self.cell_visc = None
         self.cell_p = None
         self.cell_R_avg = None
+
+        # Get name of half cells for the flow circuit (Anode or Cathode)
+        half_cell_name = self.name.split()[0]
+        half_cell_names = [self.cells.half_cells[0].name,
+                           self.cells.half_cells[1].name]
+        try:
+            self.hc_id = half_cell_names.index(half_cell_name)
+        except ValueError:
+            raise ValueError('First part of manifold name must correspond to '
+                             'any of the half cells names, '
+                             'typically Anode or Cathode')
+
         # Initialize scalar variables
         self.cross_area = self.head_height * self.head_width
         self.circumference = 2. * (self.head_height + self.head_width)
@@ -248,12 +260,9 @@ class Manifold:
         """
         Calculation of the updated cell_ref_p_drop.
         """
-        self.cell_ref_p_drop = self.head_mol_flow[0, -1]\
-            * np.average(self.cell_visc[:, 0])\
-            * self.cell_ch_length[0]\
-            * 1\
-            / (self.ref_perm
-               * np.sum(self.p_dist_fac)
+        self.cell_ref_p_drop = self.head_mol_flow[0, -1] \
+            * np.average(self.cell_visc[:, 0]) * self.cell_ch_length[0] \
+            / (self.ref_perm * np.sum(self.p_dist_fac)
                * self.cell_ch_ca[0] * self.n_ch)
 
     def calc_new_cell_flows(self):

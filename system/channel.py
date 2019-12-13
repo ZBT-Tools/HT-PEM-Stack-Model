@@ -15,6 +15,7 @@ class Channel:
         self.dx = np.diff(self.x)
         # element length
         self.p_out = channel_dict['p_out']
+        self.p = np.full(n_nodes, channel_dict['p_out'])
         # inlet pressure
         self.temp_in = channel_dict['temp_in']
         # inlet temperature

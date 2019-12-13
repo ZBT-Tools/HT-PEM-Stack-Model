@@ -144,7 +144,6 @@ dict_anode_channel = {
 dict_mfold_cat = {
     'name': 'Cathode Manifold',
     'cell_number': geom.cell_number,
-    'channel_number': geom.gas_channel_number,
     'header_width': geom.manifold_width,
     'header_height': geom.manifold_height,
     'kf': geom.manifold_pressure_loss_coefficient,
@@ -153,10 +152,10 @@ dict_mfold_cat = {
                                  + geom.gas_diffusion_layer_thickness
                                  + geom.catalyst_layer_thickness)
                            + geom.membrane_thickness),
-    'cell_channel_length': np.full(geom.cell_number, geom.channel_length),
-    'cell_channel_cross_area': np.full(geom.cell_number,
-                                       geom.channel_width
-                                       * geom.channel_height),
+    # 'cell_channel_length': np.full(geom.cell_number, geom.channel_length),
+    # 'cell_channel_cross_area': np.full(geom.cell_number,
+    #                                    geom.channel_width
+    #                                    * geom.channel_height),
     'p_out': op_con.p_manifold_cathode_out
     }
 

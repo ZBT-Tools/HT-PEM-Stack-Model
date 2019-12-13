@@ -50,13 +50,19 @@ class Cell:
         #                    membrane_dict['thermal conductivity'][1]]
         # heat conductivity of the membrane
 
-
-
         # Setup membrane
         membrane_dict['width'] = self.cathode.width_straight_channels
         membrane_dict['length'] = self.cathode.length_straight_channels
 
         self.membrane = membrane.Membrane(membrane_dict, self.dx)
+
+        self.thickness = self.cathode.thickness + self.membrane.thickness \
+            + self.anode.thickness
+
+        # Cell coordinates in z-direction (stacking/current direction)
+        # will be initialized correctly through stack class
+        self.coordinates = [0.0, 0.0]
+
         self.mem_base_r = cell_dict['mem_base_r']
         # basic electrical resistance of the membrane
         self.mem_acl_r = cell_dict['mem_acl_r']
