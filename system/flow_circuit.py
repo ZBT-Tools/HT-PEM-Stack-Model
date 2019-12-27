@@ -196,19 +196,19 @@ class FlowCircuit:
         """
 
         for i in range(2):
-            self.head_fan_fri[i] = g_func.calc_fan_fri_fac(self.head_Re[i])
+            self.head_fan_fri[i] = g_func.calc_friction_factor(self.head_Re[i])
 
     def calc_header_p_out(self):
         """
         Calculation of the header outlet pressure.
         """
-        drop = g_func.calc_head_p_drop(self.head_density[1][::-1][1:],
-                                       self.head_u[1][::-1][:-1],
-                                       self.head_u[1][::-1][1:],
-                                       self.head_fan_fri[1][::-1][1:],
-                                       self.kf,
-                                       self.cell_height[::-1][1:],
-                                       self.hydraulic_diameter)
+        drop = \
+            g_func.calc_pressure_drop(self.head_u[1][::-1],
+                                      self.head_density[1][::-1][1:],
+                                      self.head_fan_fri[1][::-1][1:],
+                                      self.kf,
+                                      self.cell_height[::-1][1:],
+                                      self.hydraulic_diameter)
         self.head_p[1][::-1][1:] = np.matmul(self.fwd_mat_ele, drop)\
             + self.head_p[1, -1]
 
@@ -239,13 +239,13 @@ class FlowCircuit:
         from the reference cell to the inlet of the inlet header.
         """
         self.head_p[0, 0] = self.cell_ref_p_drop + self.head_p[1, 0]
-        drop = g_func.calc_head_p_drop(self.head_density[0, :-1],
-                                       self.head_u[0, :-1],
-                                       self.head_u[0, 1:],
-                                       self.head_fan_fri[0, :-1],
-                                       self.kf,
-                                       self.cell_height[:-1],
-                                       self.hydraulic_diameter)
+        drop = \
+            g_func.calc_pressure_drop(self.head_u[0],
+                                      self.head_density[0, :-1],
+                                      self.head_fan_fri[0, :-1],
+                                      self.kf,
+                                      self.cell_height[:-1],
+                                      self.hydraulic_diameter)
         self.head_p[0, 1:] = \
             self.head_p[0, 0] + np.matmul(self.fwd_mat_ele, drop)
 

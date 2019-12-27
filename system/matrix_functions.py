@@ -29,12 +29,9 @@ def overlapping_vector(vector, reps, overlap_size):
 def block_diag_overlap(block_list, overlap):
     m_sblks = [block.shape[0] for block in block_list]
     n_sblks = [block.shape[1] for block in block_list]
-
     n_blocks = len(block_list)
-
     m_ovl = overlap[0]
     n_ovl = overlap[1]
-
     m_final = np.sum(np.asarray(m_sblks)) - (n_blocks - 1) * m_ovl
     n_final = np.sum(np.asarray(n_sblks)) - (n_blocks - 1) * n_ovl
     block_array = np.zeros((m_final, n_final))

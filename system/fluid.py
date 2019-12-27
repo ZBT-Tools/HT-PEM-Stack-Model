@@ -1,12 +1,32 @@
 import numpy as np
 from numpy.polynomial.polynomial import polyval
 import data.global_parameters as g_par
-from abc import ABC
+from abc import ABC, abstractmethod
 
 
-class LiquidProperties:
+class FluidProperties(ABC):
+    def __new__(cls,  density, viscosity, specific_heat,
+                thermal_conductivity, prop_type='constant', **kwargs):
+        if prop_type is 'constant':
+            return super(FluidProperties, cls).__new__(ConstantProperties)
+        else:
+            raise NotImplementedError('Provided prop_type is hast not yet '
+                                      'been implemented as subclass of '
+                                      'FluidProperties')
+
+    def __init__(self, density, viscosity, specific_heat,
+                 thermal_conductivity, **kwargs):
+        self.density = None
+        self.viscosity = None
+        self.specific_heat = None
+        self.thermal_conductivity = None
+
+
+class ConstantProperties(FluidProperties):
 
     def __init__(self, density, viscosity, specific_heat, thermal_conductivity):
+        super().__init__(density, viscosity, specific_heat,
+                         thermal_conductivity)
         self.density = density
         self.viscosity = viscosity
         self.specific_heat = specific_heat
@@ -146,6 +166,16 @@ class GasSpecies:
         return lambda_1_bar + \
             (pressure - 1.e5) / 9.e5 * (lambda_10_bar - lambda_1_bar)
 
+    def calc_property(self, property_name, temperature, pressure=101325.0):
+        if property_name == 'Specific Heat':
+            return self.calc_specific_heat(temperature)
+        elif property_name == 'Viscosity':
+            return self.calc_viscosity(temperature)
+        elif property_name == 'Thermal Conductivity':
+            return self.calc_thermal_conductivity(temperature, pressure)
+        else:
+            raise ValueError('property_name {} not valid'.format(property_name))
+
 
 class PhaseChangeSpecies:
     PROPERTY_NAMES = ('Saturation Pressure', 'Vaporization Enthalpy')
@@ -173,7 +203,7 @@ class PhaseChangeSpecies:
         # print("Constructor of Two Phase Species")
         if not isinstance(liquids_dict, dict):
             raise TypeError('Input data must be provided as dictionary '
-                            'of LiquidProperties with species names as keys')
+                            'of ConstantProperties with species names as keys')
         self.list = list(liquids_dict.keys())
         for liquid in self.list:
             if liquid not in self.COEFFS[self.PROPERTY_NAMES[0]]:
@@ -192,10 +222,11 @@ class PhaseChangeSpecies:
                 viscosity.append(liquid.viscosity)
                 specific_heat.append(liquid.specific_heat)
                 thermal_conductivity.append(liquid.thermal_conductivity)
-            self.liquid_props = LiquidProperties(np.asarray(density),
-                                                 np.asarray(viscosity),
-                                                 np.asarray(specific_heat),
-                                                 np.asarray(thermal_conductivity))
+            self.liquid_props = \
+                FluidProperties(np.asarray(density),
+                                np.asarray(viscosity),
+                                np.asarray(specific_heat),
+                                np.asarray(thermal_conductivity))
 
         self.coeff_dict_dict = dict()
         for prop_name in self.PROPERTY_NAMES:
@@ -219,72 +250,142 @@ class PhaseChangeSpecies:
         return polyval(temperature,
                        self.coeff_dict_arr['Vaporization Enthalpy'])
 
+    def calc_property(self, property_name, temperature, **kwargs):
+        if property_name == 'Saturation Pressure':
+            return self.calc_saturation_pressure(temperature)
+        elif property_name == 'Vaporization Enthalpy':
+            return self.calc_vaporization_enthalpy(temperature)
+        else:
+            raise ValueError('property_name {} not valid'.format(
+                             property_name))
+
 
 class Fluid(ABC):
     PROPERTY_NAMES = ['Density', 'Specific Heat', 'Viscosity',
                       'Thermal Conductivity']
 
-    def __new__(cls, nx, species_dict, pressure_init=101325.0,
+    def __new__(cls, nx, name, species_dict=None, pressure_init=101325.0,
                 temp_init=298.15, **kwargs):
-        species_types = list(species_dict.values())
-        species_types_str = ' '.join(species_types)
-        if 'gas' in species_types_str and 'liquid' not in species_types_str:
-            return super(Fluid, cls).__new__(GasMixture)
-        elif 'gas' in species_types_str and 'liquid' in species_types_str:
-            return super(Fluid, cls).__new__(TwoPhaseMixture)
-        elif 'liquid' in species_types_str and 'gas' not in species_types_str:
-            return super(Fluid, cls).__new__(Liquid)
+        print("__new__ for Fluid")
+        if species_dict is None:
+            return super(Fluid, cls).__new__(IncompressibleFluid)
         else:
-            raise NotImplementedError('Only fluid types of GasMixture, '
-                                      'Liquid, and TwoPhaseMixture are '
-                                      'implemented and must be indicated in '
-                                      'the species_dict')
+            species_types = list(species_dict.values())
+            species_types_str = ' '.join(species_types)
+            if 'gas' in species_types_str and 'liquid' not in species_types_str:
+                return super(Fluid, cls).__new__(GasMixture)
+            elif 'gas' in species_types_str and 'liquid' in species_types_str:
+                return super(Fluid, cls).__new__(TwoPhaseMixture)
+            elif 'liquid' in species_types_str and 'gas' \
+                    not in species_types_str:
+                return super(Fluid, cls).__new__(IncompressibleFluid)
+            else:
+                raise NotImplementedError('Only fluid types of GasMixture, '
+                                          'Liquid, and TwoPhaseMixture are '
+                                          'implemented and must be indicated '
+                                          'in the species_dict')
 
-    def __init__(self, nx, species_dict, pressure_init=101325.0,
+    def __init__(self, nx, name, species_dict=None, pressure_init=101325.0,
                  temp_init=298.15, **kwargs):
+        print("__init__ for Fluid")
         self.temperature = np.full(nx, temp_init)
         self.pressure = np.full(nx, pressure_init)
         self.property = dict()
+        self.n_species = None
         for name in self.PROPERTY_NAMES:
             self.property[name] = np.zeros(nx)
+        self.density = self.property['Density']
+        self.viscosity = self.property['Viscosity']
+        self.thermal_conductivity = self.property['Thermal Conductivity']
+        self.specific_heat = self.property['Specific Heat']
+
+    def update(self, temperature, pressure, *args, **kwargs):
+        self.temperature[:] = temperature
+        self.pressure[:] = pressure
 
 
-class Liquid(Fluid):
-    def __init__(self, nx, species_dict, liquid_props, pressure_init=101325.0,
+class IncompressibleFluid(Fluid):
+    def __init__(self, nx, name, fluid_props, pressure_init=101325.0,
                  temp_init=298.15, **kwargs):
-        super().__init__(nx, species_dict, pressure_init, temp_init, **kwargs)
-        self.properties = liquid_props
+        print("__init__ for IncompressibleFluid")
+        super().__init__(nx, pressure_init, temp_init, **kwargs)
+        self.name = name
+        self.properties = fluid_props
+        if not isinstance(fluid_props, FluidProperties):
+            raise TypeError('Argument fluid_props must be of type '
+                            'ConstantProperties')
+        else:
+            self.property['Density'][:] = fluid_props.density
+            self.property['Specific Heat'][:] = fluid_props.specific_heat
+            self.property['Viscosity'][:] = fluid_props.viscosity
+            self.property['Thermal Conductivity'][:] = \
+                fluid_props.thermal_conductivity
+
+    def update(self, temperature, pressure, *args, **kwargs):
+        super().update(temperature, pressure)
 
 
 class GasMixture(Fluid):
-    def __init__(self, nx, species_dict, mole_fractions_init,
+    def __init__(self, nx, name, species_dict, mole_fractions_init,
                  pressure_init=101325.0, temp_init=298.15, **kwargs):
-        super().__init__(nx, species_dict, pressure_init, temp_init, **kwargs)
-        print("Constructor for Gas Mixture")
+        print("__init__ for Gas Mixture")
+        super().__init__(nx, pressure_init, temp_init, **kwargs)
+        self.name = name
         species_names = list(species_dict.keys())
         self.gas_constant = g_par.constants['R']
         self.species = GasSpecies(species_names)
         self.species_viscosity = \
             self.species.calc_viscosity(np.full(nx, temp_init))
 
-        if len(mole_fractions_init) != len(self.species.list) \
+        self.n_species = len(self.species.list)
+        if isinstance(mole_fractions_init, (list, tuple)):
+            mole_fractions_init = np.asarray(mole_fractions_init)
+        if len(mole_fractions_init) != self.n_species \
                 or np.sum(mole_fractions_init) != 1.0:
             raise ValueError('Initial mole fractions must be provided '
                              'for all species and add up to unity')
-        if isinstance(mole_fractions_init, (list, tuple)):
-            mole_fractions_init = np.asarray(mole_fractions_init)
 
-        self.mole_fraction = \
-            np.ones((nx, len(self.species.list))) * mole_fractions_init
-        self.concentration, total_mol_conc = self.calc_dry_concentration()
-
+        array_shape = (nx, self.n_species)
+        self._mole_fraction = \
+            np.ones(array_shape) * mole_fractions_init
+        self.mw = np.sum(self._mole_fraction * self.species.mw, axis=-1)
         mass_fraction_init = \
             mole_fractions_init * self.species.mw / \
             np.sum(mole_fractions_init * self.species.mw)
+        self._mass_fraction = \
+            np.ones(array_shape) * mass_fraction_init
+        self._concentration = np.zeros(array_shape)
+        if isinstance(type(self), GasMixture):
+            self.calc_properties(temp_init, pressure_init, method='ideal')
+            self._concentration[:] = self.calc_dry_concentration().transpose()
 
-        self.mass_fraction = \
-            np.ones((nx, len(self.species.list))) * mass_fraction_init
-        self.mw = np.sum(self.mole_fraction*self.species.mw, axis=-1)
+    @property
+    def mole_fraction(self):
+        return self._mole_fraction.transpose()
+
+    @property
+    def mass_fraction(self):
+        return self._mass_fraction.transpose()
+
+    @property
+    def concentration(self):
+        return self._concentration.transpose()
+
+    def update(self, temperature, pressure, mole_flow=None, method='ideal',
+               *args, **kwargs):
+        super().update(temperature, pressure)
+        if mole_flow is None:
+            raise TypeError('Argument mole_flow must be provided')
+        elif np.shape(mole_flow)[0] != self.n_species:
+            raise ValueError('First dimension of mole_flow must be equal to '
+                             'n_species')
+        if isinstance(self, GasMixture):
+            self.calc_mole_fraction(mole_flow)
+            self.calc_molar_mass()
+            self._mass_fraction[:] = \
+                self.calc_mass_fraction(self._mole_fraction)
+            self.calc_properties(temperature, pressure, method)
+            self._concentration[:] = self.calc_dry_concentration().transpose()
 
     @staticmethod
     def calc_fraction(species_flow):
@@ -292,36 +393,36 @@ class GasMixture(Fluid):
         Calculates the species mixture fractions based on a multi-dimensional
         array with different species along the first (0th) axis.
         """
-        return species_flow / np.sum(species_flow, axis=-1)
+        return species_flow / np.sum(species_flow, axis=0)
 
     def calc_dry_concentration(self):
         """
         Calculates the gas phase molar concentrations.
         """
         total_mol_conc = self.pressure / (self.gas_constant * self.temperature)
-        return self.mole_fraction.transpose() * total_mol_conc, total_mol_conc
+        return self._mole_fraction.transpose() * total_mol_conc
 
     def calc_mole_fraction(self, mole_flow):
-        self.mole_fraction = self.calc_fraction(mole_flow)
-
-    def calc_mass_fraction(self):
-        self.mass_fraction = self.mole_fraction * self.species.mw / self.mw
+        self._mole_fraction[:] = self.calc_fraction(mole_flow).transpose()
 
     def calc_molar_mass(self):
-        self.mw = np.sum(self.mole_fraction*self.species.mw, axis=-1)
+        self.mw[:] = np.sum(self._mole_fraction * self.species.mw, axis=-1)
+
+    def calc_mass_fraction(self, mole_fraction):
+        return np.outer(1.0 / self.mw, self.species.mw) * mole_fraction
 
     def calc_specific_heat(self, temperature):
         species_cp = self.species.calc_specific_heat(temperature).transpose()
-        return np.sum(self.mass_fraction * species_cp, axis=-1)
+        return np.sum(self._mass_fraction * species_cp, axis=-1)
 
     def calc_viscosity(self, temperature):
         """
         Calculates the mixture viscosity of a
         gas according to Herning and Zipperer.
         """
-        self.species_viscosity = self.species.calc_viscosity(temperature)
+        self.species_viscosity[:] = self.species.calc_viscosity(temperature)
         spec_visc = self.species_viscosity.transpose()
-        x_sqrt_mw = self.mole_fraction * np.sqrt(self.species.mw)
+        x_sqrt_mw = self._mole_fraction * np.sqrt(self.species.mw)
         return np.sum(spec_visc * x_sqrt_mw, axis=-1)/np.sum(x_sqrt_mw, axis=-1)
 
     def calc_wilke_coefficients(self):
@@ -331,11 +432,10 @@ class GasMixture(Fluid):
         """
         visc = self.species_viscosity
         mw = self.species.mw
-        n_species = len(self.species.list)
         alpha = []
-        for i in range(n_species):
+        for i in range(self.n_species):
             beta = []
-            for j in range(n_species):
+            for j in range(self.n_species):
                 a = np.power((1. + np.power((visc[i] / visc[j]), 0.5)
                     * np.power(mw[j] / mw[i], 0.25)),  2.0)
                 b = np.power(np.sqrt(8.) * (1. + mw[j] / mw[i]), -0.5)
@@ -348,19 +448,19 @@ class GasMixture(Fluid):
         Calculates the heat conductivity of a gas mixture,
         according to Wilkes equation.
         """
-        self.mole_fraction[1:] = np.maximum(1e-16, self.mole_fraction[1:])
+        self._mole_fraction[1:] = np.maximum(1e-16, self._mole_fraction[1:])
         wilke_coeffs = self.calc_wilke_coefficients()
         lambda_species = \
             self.species.calc_thermal_conductivity(temperature, pressure)
         lambda_mix = np.zeros(len(temperature))
-        for i in range(len(self.species.list)):
-            a = self.mole_fraction[:, i] * lambda_species[i]
-            b = np.sum(self.mole_fraction.transpose() * wilke_coeffs[i], axis=0)
+        for i in range(self.n_species):
+            a = self._mole_fraction[:, i] * lambda_species[i]
+            b = np.sum(self._mole_fraction.transpose() * wilke_coeffs[i], axis=0)
             b += 1e-16
             lambda_mix += a / b
         return lambda_mix
 
-    def calc_density(self, temperature, pressure, method="ideal gas"):
+    def calc_density(self, temperature, pressure, method="ideal"):
         """
         Calculate gas mixture density
         :param temperature: temperature array
@@ -368,22 +468,57 @@ class GasMixture(Fluid):
         :param method: string indicating the calculation method
         :return: density of the mixture
         """
-        if method == "ideal gas":
+        if method == "ideal":
             return pressure * self.mw / (self.gas_constant * temperature)
         else:
-            raise NotImplementedError('Method "' + method + '" to calculate '
+            raise NotImplementedError('Method {} to calculate '
                                       'gas mixture density has not '
-                                      'been implemented')
+                                      'been implemented'.format(method))
+
+    def calc_property(self, property_name, temperature, pressure=101325.0,
+                      method='ideal'):
+        """
+        Wrapper function for the native property functions
+        :param property_name: name of self.PROPERTY_NAMES to calculate
+        :param temperature: 1D temperature array
+        :param pressure: 1D pressure array
+        :param method: method density calculation (at the moment only ideal)
+        :return: the calculated 1D array of the specific property
+        """
+        if property_name == 'Specific Heat':
+            return self.calc_specific_heat(temperature)
+        elif property_name == 'Viscosity':
+            return self.calc_viscosity(temperature)
+        elif property_name == 'Thermal Conductivity':
+            return self.calc_thermal_conductivity(temperature, pressure)
+        elif property_name == 'Density':
+            return self.calc_density(temperature, pressure, method)
+        else:
+            raise ValueError('property_name '
+                             '{} not valid'.format(property_name))
+
+    def calc_properties(self, temperature, pressure=101325.0, method='ideal'):
+        """
+        Wrapper function to calculate the classes properties
+        :param temperature: 1D temperature array
+        :param pressure: 1D pressure array
+        :param method: method density calculation (at the moment only ideal)
+        :return: the calculated 1D array of the specific property
+        """
+        for prop in self.PROPERTY_NAMES:
+            self.property[prop][:] = \
+                self.calc_property(prop, temperature, pressure, method)
 
 
 class TwoPhaseMixture(GasMixture):
-    def __init__(self, nx, species_dict, mole_fractions_init,
-                 liquid_props=None, pressure_init=101325.0,
+    def __init__(self, nx, name, species_dict, mole_fractions_init,
+                 liquid_props, pressure_init=101325.0,
                  temp_init=298.15, **kwargs):
-        super().__init__(nx, species_dict, mole_fractions_init,
+        print("__init__ for TwoPhaseMixture")
+        super().__init__(nx, name, species_dict, mole_fractions_init,
                          pressure_init, temp_init, **kwargs)
         if not isinstance(species_dict, dict):
-            raise TypeError('Argument "species_names" must be a dict '
+            raise TypeError('Argument species_names must be a dict '
                             'containing all species names and their '
                             'expected aggregate states in terms of "gas", '
                             '"gas-liquid", or "liquid"')
@@ -391,35 +526,74 @@ class TwoPhaseMixture(GasMixture):
                              if 'gas' in species_dict[key]]
         phase_change_species_names = [key for key in species_dict
                                       if 'gas-liquid' in species_dict[key]]
-        self.pc_ids = [self.species.list.index(name) for name in
-                       phase_change_species_names]
-        if len(self.pc_ids) > 1:
+        ids_pc = [self.species.list.index(name) for name in
+                  phase_change_species_names]
+        if len(ids_pc) > 1:
             raise NotImplementedError('At the moment only one species '
                                       'undergoing phase change is allowed')
-        self.pc_id = self.pc_ids[0]
+        self.id_pc = ids_pc[0]
 
-        self.liquid_fraction = np.full(nx, 0.0)
+        # self._mole_fraction_gas = np.zeros((nx, self.n_species))
+        # self._mass_fraction_gas = np.zeros((nx, self.n_species))
+        self.liquid_fraction = np.zeros(nx)
+        self.humidity = np.zeros(nx)
+        self.saturation_pressure = np.zeros(nx)
         self.phase_change_species = PhaseChangeSpecies(liquid_props)
 
+    # @property
+    # def mole_fraction_gas(self):
+    #     return self._mole_fraction_gas.transpose()
+    #
+    # @property
+    # def mass_fraction_gas(self):
+    #     return self._mass_fraction_gas.transpose()
+
+    def update(self, temperature, pressure, mole_flow=None, method='ideal',
+               *args, **kwargs):
+        super().update(temperature, pressure, mole_flow, method)
+        self.saturation_pressure[:] = \
+            self.phase_change_species.calc_saturation_pressure(temperature)
+        self._concentration[:] = self.calc_concentration(mole_flow).transpose()
+        self._mole_fraction[:] = \
+            self._concentration / np.sum(self._concentration, axis=-1)
+        self.calc_molar_mass()
+        self._mass_fraction[:] = self.calc_mass_fraction(self._mole_fraction)
+        self.calc_properties(temperature, pressure, method)
+        self.calc_humidity()
+
     def calc_concentration(self, mole_flow):
-        conc, total_mol_conc = self.calc_dry_concentration()
-        p_sat = \
-            self.phase_change_species.calc_saturation_pressure(self.temperature)
+        """
+        Calculates the gas phase molar concentrations.
+        :param mole_flow: total molar flow of each species (n_species x
+        n_nodes)
+        :return: gas phase concentration array (n_species x n_nodes)
+        """
+        conc = self.calc_dry_concentration()
+        total_mol_conc = self.pressure / (self.gas_constant * self.temperature)
+        p_sat = self.saturation_pressure
         sat_conc = p_sat / (self.gas_constant * self.temperature)
         dry_mole_flow = np.copy(mole_flow)
-        dry_mole_flow[self.pc_id] = 0.0
+        dry_mole_flow[self.id_pc] = 0.0
         dry_mole_fraction = self.calc_fraction(dry_mole_flow)
-        for i in range(len(self.species.list)):
-            if i == self.pc_id:
-                self.concentration[self.pc_id] = \
-                    np.where(self.concentration[self.pc_id] > sat_conc,
-                             sat_conc, self.concentration[self.pc_id])
+        for i in range(self.n_species):
+            if i == self.id_pc:
+                conc[self.id_pc] = np.where(conc[self.id_pc] > sat_conc,
+                                            sat_conc, conc[self.id_pc])
             else:
-                self.concentration[i] = \
-                    np.where(self.concentration[self.pc_id] > sat_conc,
+                conc[i] = \
+                    np.where(conc[self.id_pc] > sat_conc,
                              (total_mol_conc - sat_conc) * dry_mole_fraction[i],
-                             self.concentration[i])
-        self.concentration[:] = np.maximum(self.concentration, 1e-6)
+                             conc[i])
+        return np.maximum(conc, 1e-6)
+
+    def calc_humidity(self):
+        """
+        Calculates the relative humidity of the fluid.
+        """
+        p_sat = self.saturation_pressure
+        self.humidity[:] = \
+            self._mole_fraction[:, self.id_pc] * self.pressure / p_sat
+
 
 species = GasSpecies(['O2', 'N2', 'H2'])
 
@@ -439,24 +613,27 @@ press = 101325.0
 #print(species.coeff_dict_arr['Thermal Conductivity'][0][0])
 temp = np.linspace(300, 400, 10)
 #press = np.linspace(100000, 100000, 10)
-air = Fluid(10, {'O2': 'gas', 'N2': 'gas'}, [0.21, 0.79])
+air = Fluid(10, 'air', {'O2': 'gas', 'N2': 'gas'}, [0.21, 0.79])
 print(temp)
 #print(gas.calc_viscosity(temp))
 #print(gas.calc_thermal_conductivity(temp, press))
 print(air.calc_specific_heat(temp))
 #print(gas.mw)
 #print(gas.calc_density(temp, press))
-
-liquid_water = LiquidProperties(1000.0, 1e-3, 4000.0, 0.2)
-water = PhaseChangeSpecies({'H2O': liquid_water})
+liquid_water_props = FluidProperties(1000.0, 1e-3, 4000.0, 0.2)
+water = PhaseChangeSpecies({'H2O': liquid_water_props})
 
 #print(water.gas_props.calc_specific_heat(temp))
 print(water.calc_saturation_pressure(temp))
 print(water.calc_vaporization_enthalpy(temp))
 print(water.list)
+liquid_water = Fluid(10, 'liquid water', fluid_props=liquid_water_props)
+print(type(liquid_water))
 
-wet_air = Fluid(10, {'O2': 'gas', 'N2': 'gas', 'H2O': 'gas-liquid'},
+wet_air = Fluid(10, 'wet air', {'O2': 'gas', 'N2': 'gas', 'H2O': 'gas-liquid'},
                 mole_fractions_init=[0.205, 0.785, 0.01],
-                liquid_props={'H2O': liquid_water})
+                liquid_props={'H2O': liquid_water_props})
 
-print(wet_air.mole_fraction)
+wet_air.update(temp, press, (1.5, 2.3, 4.0))
+
+print(np.sum(wet_air.mole_fraction,axis=0))

@@ -4,16 +4,34 @@ import os
 # from numba import jit
 
 
-def add_source(var, source, direction=1):
+def add_source(var, source, direction=1, tri_mtx=None):
+    """
+    Add discrete 1d source of length n-1 to var of length n
+    :param var: 1d array of quantity variable
+    :param source: 1d array of source to add to var
+    :param direction: flow direction (1: along array counter, -1: opposite to
+    array counter)
+    :param tri_mtx: if triangle matrix (2D array, nxn) is not provided,
+    it will be created temporarily
+    :return:
+    """
     n = len(var) - 1
     if len(source) != n:
-        raise ValueError('source variable must be of length (var-1)')
+        raise ValueError('Parameter source must be of length (var-1)')
     if direction == 1:
-        fwd_mat = np.tril(np.full((n, n), 1.))
+        if tri_mtx is None:
+            fwd_mat = np.tril(np.full((n, n), 1.))
+        else:
+            fwd_mat = tri_mtx
         var[1:] += np.matmul(fwd_mat, source)
     elif direction == -1:
-        bwd_mat = np.triu(np.full((n, n), 1.))
+        if tri_mtx is None:
+            bwd_mat = np.triu(np.full((n, n), 1.))
+        else:
+            bwd_mat = tri_mtx
         var[:-1] += np.matmul(bwd_mat, source)
+    else:
+        raise ValueError('Parameter direction must be either 1 or -1')
     return var
 
 
@@ -54,23 +72,39 @@ def calc_reynolds_number(roh, v, d, visc):
     return roh * v * d / visc
 
 
-def calc_fan_fri_fac(reynolds_number):
+def calc_friction_factor(reynolds_number, method='Blasius'):
     """
     Calculates the fanning friction factor between a wall
     and a fluid for the laminar and turbulent case.
     """
-    return np.where(reynolds_number < 2100.0, 16. / reynolds_number,
-                    0.0791 * reynolds_number ** (-0.25))
+    if method == 'Blasius':
+        return np.where(reynolds_number < 2100.0, 16. / reynolds_number,
+                        0.0791 * reynolds_number ** (-0.25))
+    else:
+        return NotImplementedError('The provided method is not yet implemented')
 
 
-def calc_head_p_drop(rho, v1, v2, f, kf, le, dh):
+def calc_pressure_drop(velocity, density, f, zeta, length, diameter):
     """
     Calculates the pressure drop at a defined t-junction,
     according to (Koh, 2003).
+    :param density: fluid density array (element-wise)
+    :param velocity: velocity array (node-wise)
+    :param f: fanning friction factor (element-wise)
+    :param zeta: additional loss factors
+    :param length: length of element (element-wise)
+    :param diameter: hydraulic diameter of pipe
+    :return: pressure drop (element-wise)
     """
-    a = (np.square(v1) - np.square(v2)) * .5
-    b = np.square(v2) * (2. * f * le / dh + kf * .5)
-    return rho * (a + b)
+    if not np.shape(velocity)[0] == (np.shape(length)[0] + 1):
+        raise ValueError('velocity array must be provided as a 1D'
+                         'nodal array (n+1), while the other input arrays '
+                         'must be element-wise (n)')
+    v1 = velocity[:-1]
+    v2 = velocity[1:]
+    a = (v1 ** 2.0 - v2 ** 2.0) * .5
+    b = v2 ** 2.0 * (2. * f * length / diameter + zeta * .5)
+    return density * (a + b)
 
 
 def calc_visc_mix(species_viscosity, mol_fraction, mol_mass):

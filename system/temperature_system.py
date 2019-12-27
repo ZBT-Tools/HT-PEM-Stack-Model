@@ -78,7 +78,7 @@ class TemperatureSystem:
         self.temp_layer_vec = \
             np.hstack([cell.heat_rhs for cell in self.cells])
         # unsorted result layer temperature vector
-        self.rhs = np.zeros_like(self.temp_layer_vec)
+        self.rhs = np.zeros(np.shape(self.temp_layer_vec))
         # right side of the matrix system: mat T = rhs,
         # contains the power sources and explicit coupled terms
         self.temp_fluid = np.full((2, self.n_cells, self.n_nodes),
@@ -88,7 +88,7 @@ class TemperatureSystem:
                                       self.temp_gas_in[0])
         self.temp_fluid_ele[1, :] = self.temp_gas_in[1]
         # temperature of the fluid 0: cathode fluids, 1: anode fluids
-        self.heat_fluid = np.zeros_like(self.temp_fluid_ele)
+        self.heat_fluid = np.zeros(np.shape(self.temp_fluid_ele))
         # heat transferred to the fluids
         #self.g_fluid = np.full((2, self.n_cells, self.n_ele), 0.)
         # heat capacity flow of the fluid 0: cathode fluids, 1: anode fluids
@@ -152,7 +152,7 @@ class TemperatureSystem:
         self.temp_cool_ele = np.full((self.n_cool, self.n_ele), temp_cool_in)
 
         """Building up the base conductance matrix mat"""
-        self.dyn_vec = np.zeros_like(self.temp_layer_vec)
+        self.dyn_vec = np.zeros(np.shape(self.temp_layer_vec))
         # vector for dynamically changing heat conductance values
 
         # Add constant source and sink coefficients to heat conductance matrix
@@ -255,7 +255,7 @@ class TemperatureSystem:
         if (len(wall_temp) + 1) != len(fluid_temp):
             raise ValueError('fluid temperature array must be node-based '
                              'and wall temperature element based')
-        heat_fluid = np.zeros_like(wall_temp)
+        heat_fluid = np.zeros(np.shape(wall_temp))
         if np.isscalar(g_fluid):
             g_fluid = np.full_like(wall_temp, g_fluid)
         if np.isscalar(k_ht_coeff):
@@ -404,7 +404,7 @@ class TemperatureSystem:
         source_vectors = []
         for i, cell in enumerate(self.cells):
             cell.heat_mtx_dyn.fill(0.0)
-            source_vectors.append(np.zeros_like(cell.heat_rhs_dyn))
+            source_vectors.append(np.zeros(np.shape(cell.heat_rhs_dyn)))
             source = -cell.cathode.k_ht_coeff
             matrix, source_vec_1 = \
                 cell.add_implicit_layer_source(cell.heat_mtx_dyn, source, 1)
