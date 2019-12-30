@@ -124,8 +124,13 @@ dict_cathode_channel = {
     'channel_height': geom.channel_height,
     'bend_number': geom.channel_bends,
     'bend_fri_fac': geom.bend_pressure_loss_coefficient
-    #'rib_width': geom.rib_width
     }
+
+dict_cathode_fluid = {
+    'fluid_name': 'Cathode Gas',
+    'fluid_components': op_con.cathode_species,
+    # 'rib_width': geom.rib_width
+}
 
 dict_anode_channel = {
     'name': 'Anode Channel',
@@ -138,7 +143,6 @@ dict_anode_channel = {
     'channel_height': geom.channel_height,
     'bend_number': geom.channel_bends,
     'bend_fri_fac': geom.bend_pressure_loss_coefficient
-    #'rib_width': geom.rib_width
     }
 
 dict_mfold_cat = {

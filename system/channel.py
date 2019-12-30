@@ -138,7 +138,8 @@ class Channel(ABC, OutputObject):
         #     nusselt = nu_lam
         # elif 2300. < reynolds < 1.e4:
         #     gamma = (reynolds - 2300.) / 7700.
-        #     nusselt = (1. - (reynolds - 2300.) / 7700.) * nu_lam + (reynolds - 2300.) / 7700. * nu_turb
+        #     nusselt = (1. - (reynolds - 2300.) / 7700.) \
+        #       * nu_lam + (reynolds - 2300.) / 7700. * nu_turb
         # else:
         #     nusselt = nu_turb
         nusselt = \
@@ -158,7 +159,7 @@ class Channel(ABC, OutputObject):
         Calculates the static channel pressure
         """
         density_ele = ip.interpolate_1d(self.fluid.density)
-        velocity_ele = ip.interpolate_1d(self.velocity)
+        # velocity_ele = ip.interpolate_1d(self.velocity)
         reynolds_ele = ip.interpolate_1d(self.reynolds)
         zeta_bends = self.zeta_bends * self.n_bends / self.n_ele
         zeta = zeta_bends + self.zeta_other
@@ -246,6 +247,14 @@ class TwoPhaseMixtureChannel(GasMixtureChannel):
         self.add_print_data(self.mole_flow_gas, 'Gas Mole Flow', 'mol/s',
                             self.fluid.species.names)
 
+    def update(self, mol_flow_in, dmol=None):
+        self.calc_mass_balance(mol_flow_in, dmol)
+        self.fluid.update(self.temp, self.p, mol_flow_in, dmol)
+        self.calc_two_phase_flow()
+        self.calc_flow_velocity()
+        self.calc_pressure()
+        self.calc_heat_transfer_coeff()
+
     def calc_flow_velocity(self):
         """
         Calculates the gas phase velocity.
@@ -257,7 +266,7 @@ class TwoPhaseMixtureChannel(GasMixtureChannel):
 
     def calc_mass_balance(self, mol_flow_in, dmol=None):
         super().calc_mass_balance(mol_flow_in, dmol)
-        self.calc_two_phase_flow()
+        # self.calc_two_phase_flow()
 
     def calc_two_phase_flow(self):
         """
@@ -280,5 +289,3 @@ class TwoPhaseMixtureChannel(GasMixtureChannel):
         self.cond_rate[:] = \
             self.flow_direction * ip.interpolate_1d(cond_rate_ele,
                                                     add_edge_points=True)
-
-
