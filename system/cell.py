@@ -4,12 +4,14 @@ import system.half_cell as h_c
 import system.matrix_functions as mtx
 import system.membrane as membrane
 import system.interpolation as ip
+from system.output_object import OutputObject
 
 
-class Cell:
+class Cell(OutputObject):
 
     def __init__(self, number, cell_dict, membrane_dict, anode_dict,
                  cathode_dict, ano_channel_dict, cat_channel_dict):
+        super().__init__()
         self.cell_dict = cell_dict
         self.name = 'Cell ' + str(number)
         print('Initializing: ', self.name)
@@ -257,16 +259,11 @@ class Cell:
         # cell voltage
         self.resistance = np.full(n_ele, 0.)
         # cell resistance
-        self.print_data = [
-            {
-                'Current Density': {'value': self.i_cd, 'units': 'A/m²'},
-                'Coolant Temperature': {'value': self.temp_cool, 'units': 'K'}
-            },
-            {
-                'Temperature': {self.temp_names[i]:
-                                {'value': self.temp_layer[i], 'units': 'K'}
-                                for i in range(len(self.temp_layer))}
-            }]
+
+        self.add_print_data(self.i_cd, 'Current Density', 'A/m²')
+        self.add_print_data(self.temp_cool, 'Coolant Temperature', 'K')
+        self.add_print_data(self.temp_layer, 'Temperature', 'K',
+                            self.temp_names)
 
     def calc_ambient_conductance(self, alpha_amb):
         """
@@ -344,7 +341,8 @@ class Cell:
             #     self.calc_mem_resistivity_kvesic()
             # self.membrane.update()
             # self.calc_membrane_loss()
-            humidity = np.asarray([self.cathode.humidity, self.anode.humidity])
+            humidity = np.asarray([self.cathode.channel.fluid.humidity,
+                                   self.anode.channel.fluid.humidity])
             humidity_ele = \
                 np.array([ip.interpolate_1d(humidity[0]),
                           ip.interpolate_1d(humidity[1])])

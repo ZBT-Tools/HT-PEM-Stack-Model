@@ -4,19 +4,21 @@ import system.fluid as fluids
 import system.global_functions as g_func
 import system.interpolation as ip
 from abc import ABC, abstractmethod
+from system.output_object import OutputObject
 
 
-class Channel(ABC):
-    def __new__(cls, channel_dict, **kwargs):
+class Channel(ABC, OutputObject):
+    def __new__(cls, channel_dict, fluid=None):
         # Create fluid object
         nx = g_par.dict_case['elements'] + 1
-        fluid = \
-            fluids.Fluid(nx, channel_dict['fluid_name'],
-                         channel_dict.get('fluid_components', None),
-                         mole_fractions_init=
-                         channel_dict.get('inlet_composition', None),
-                         fluid_props=
-                         channel_dict.get('liquid_properties', None))
+        if fluid is None:
+            fluid = \
+                fluids.Fluid(nx, channel_dict['fluid_name'],
+                             channel_dict.get('fluid_components', None),
+                             mole_fractions_init=
+                             channel_dict.get('inlet_composition', None),
+                             fluid_props=
+                             channel_dict.get('liquid_properties', None))
 
         if type(fluid) is fluids.IncompressibleFluid:
             return super(Channel, cls).__new__(IncompressibleFluidChannel)
@@ -32,6 +34,7 @@ class Channel(ABC):
                                       'implemented')
 
     def __init__(self, channel_dict, fluid):
+        super().__init__()
         self.name = channel_dict['name']
         self.fluid = fluid
         self.length = channel_dict['channel_length']
@@ -54,6 +57,10 @@ class Channel(ABC):
             raise ValueError('Member variable flow_direction '
                              'must be either 1 or -1')
         # flow direction
+        if self.flow_direction == 1:
+            self.id_in = 0
+        else:
+            self.id_in = -1
         self.width = channel_dict['channel_width']
         # channel width
         self.height = channel_dict['channel_height']
@@ -82,14 +89,17 @@ class Channel(ABC):
         # Heat Transfer
         self.k_coeff = np.zeros(self.n_ele)
 
-    def update(self, *args):
-        self.fluid.update(*args)
-        self.calc_mass_balance(*args)
-        self.calc_flow_velocity(*args)
+        self.add_print_data(self.temp, 'Fluid Temperature', 'K')
+        self.add_print_data(self.p, 'Fluid Pressure', 'Pa')
+
+    def update(self, *args, **kwargs):
+        self.calc_mass_balance(*args, **kwargs)
+        self.fluid.update(self.temp, self.p, *args, **kwargs)
+        self.calc_flow_velocity()
         self.calc_pressure()
         self.calc_heat_transfer_coeff()
 
-    def calc_flow_velocity(self, *args):
+    def calc_flow_velocity(self):
         """
         Calculates the gas phase velocity.
         """
@@ -99,7 +109,7 @@ class Channel(ABC):
             self.velocity * self.d_h * self.fluid.density / self.fluid.viscosity
 
     @abstractmethod
-    def calc_mass_balance(self, *args):
+    def calc_mass_balance(self, *args, **kwargs):
         pass
 
     def calc_heat_transfer_coeff(self):
@@ -188,8 +198,11 @@ class GasMixtureChannel(Channel):
         self.mole_flow = np.zeros(arr_shape)
         self.mass_flow = np.zeros(arr_shape)
 
-    def update(self, temperature, pressure, mol_flow_in, dmol=None):
-        super().update(temperature, pressure, mol_flow_in, dmol)
+        self.add_print_data(self.mole_flow, 'Mole Flow',
+                            'mol/s', self.fluid.species.names)
+
+    def update(self, mol_flow_in, dmol=None):
+        super().update(mol_flow_in, dmol)
         # self.calc_mass_balance(mol_flow_in, dmol)
         # self.calc_flow_velocity()
 
@@ -229,6 +242,9 @@ class TwoPhaseMixtureChannel(GasMixtureChannel):
         self.mass_flow_gas = np.zeros(arr_shape)
         self.mass_flow_liq = np.zeros(arr_shape)
         self.cond_rate = np.zeros(self.n_nodes)
+
+        self.add_print_data(self.mole_flow_gas, 'Gas Mole Flow', 'mol/s',
+                            self.fluid.species.names)
 
     def calc_flow_velocity(self):
         """
