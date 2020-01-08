@@ -69,19 +69,23 @@ def calc_reynolds_number(roh, v, d, visc):
     """"
     Calculates the reynolds number of an given fluid.
     """
-    return roh * v * d / visc
+    return np.divide(roh * v * d, visc, where=visc != 0.0)
 
 
-def calc_friction_factor(reynolds_number, method='Blasius'):
+def calc_friction_factor(reynolds, method='Blasius', out=None):
     """
     Calculates the fanning friction factor between a wall
     and a fluid for the laminar and turbulent case.
     """
+    lam = np.zeros(reynolds.shape)
+    turb = np.zeros(reynolds.shape)
     if method == 'Blasius':
-        return np.where(reynolds_number < 2100.0, 16. / reynolds_number,
-                        0.0791 * reynolds_number ** (-0.25))
+        lam = np.divide(16.0, reynolds, out=lam, where=reynolds > 0.0)
+        turb = 0.0791 * np.power(reynolds, -0.25, out=turb,
+                                 where=reynolds > 0.0)
+        return np.where(reynolds < 2100.0, lam, turb)
     else:
-        return NotImplementedError('The provided method is not yet implemented')
+        raise NotImplementedError
 
 
 def calc_pressure_drop(velocity, density, f, zeta, length, diameter):

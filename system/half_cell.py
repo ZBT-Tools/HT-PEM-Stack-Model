@@ -2,8 +2,8 @@ import warnings
 import data.gas_properties as g_prop
 import numpy as np
 import data.global_parameters as g_par
-import system.channel as ch
-import system.fluid as fluid
+import system.channel as chl
+import system.fluid as fluids
 import system.layers as layers
 import sys
 import system.interpolation as ip
@@ -15,15 +15,11 @@ class HalfCell:
 
     # Class variables constant across all instances of the class
     # (under construction)
-    n_nodes = None
-    n_ele = None
-    fwd_mtx = None
-    bwd_mtx = None
 
-    def __init__(self, halfcell_dict, cell_dict, channel_dict):
+    def __init__(self, halfcell_dict, cell_dict, channel_dict, fluid_dict):
         self.name = halfcell_dict['name']
-        n_nodes = g_par.dict_case['nodes']
-        n_ele = n_nodes - 1
+        self.n_nodes = g_par.dict_case['nodes']
+        n_ele = self.n_nodes - 1
         self.n_ele = n_ele
         # Discretization in elements and nodes along the x-axis (flow axis)
 
@@ -31,21 +27,28 @@ class HalfCell:
         self.width = cell_dict["width"]
         self.length = cell_dict["length"]
 
+        # Initialize fluid object
+        fluid = \
+            fluids.Fluid(self.n_nodes, fluid_dict['fluid_name'],
+                         fluid_dict.get('fluid_components', None),
+                         mole_fractions_init=
+                         fluid_dict.get('inlet_composition', None))
+
         # Initialize channel object
-        self.channel = ch.Channel(channel_dict, fluid=None)
+        self.channel = chl.Channel(channel_dict, fluid)
 
         # number of channels of each half cell
-        self.n_chl = halfcell_dict['channel_number']
+        self.n_channel = halfcell_dict['channel_number']
         area_factor = self.length * self.width \
-            / (self.channel.base_area * self.n_chl)
+            / (self.channel.base_area * self.n_channel)
         if area_factor < 1.0:
             raise ValueError('width and length of cell result in a cell '
                              'surface area  smaller than the area covered by '
                              'channels')
 
         self.rib_width = self.channel.width * (area_factor - 1.0)
-        self.width_straight_channels = self.channel.width * self.n_chl \
-            + self.rib_width * (self.n_chl + 1)
+        self.width_straight_channels = self.channel.width * self.n_channel \
+            + self.rib_width * (self.n_channel + 1)
         self.length_straight_channels = (self.length * self.width) \
             / self.width_straight_channels
         self.active_area = area_factor * self.channel.base_area
@@ -101,7 +104,7 @@ class HalfCell:
                  cell_dict['electrical conductivity bpp'],
              'thermal conductivity':
                  cell_dict['thermal conductivity bpp']}
-        # 'porosity': self.channel.cross_area * self.n_chl / (
+        # 'porosity': self.channel.cross_area * self.n_channel / (
         #             self.th_bpp * self.width)}
         self.bpp = layers.SolidLayer(bpp_layer_dict, self.channel.dx)
         gde_layer_dict = \
@@ -135,7 +138,7 @@ class HalfCell:
                                * self.tafel_slope)
         # could use a better name see (Kulikovsky, 2013) not sure if 2-D
         # exchange current densisty
-        self.index_cat = n_nodes - 1
+        self.index_cat = self.n_nodes - 1
         # index of the first element with negative cell voltage
         self.i_cd_char = self.prot_con_cl * self.tafel_slope / self.th_cl
         # not sure if the name is ok, i_ca_char is the characteristic current
@@ -251,8 +254,8 @@ class HalfCell:
 
     def calc_mass_balance(self, current_density):
         n_species = self.channel.fluid.n_species
-        mol_flow_in = np.zeros(n_species, self.n_nodes)
-        dmol = np.zeros(n_species, self.n_ele)
+        mol_flow_in = np.zeros((n_species, self.n_nodes))
+        dmol = np.zeros((n_species, self.n_ele))
         mol_flow_in[self.id_fuel, :], dmol[self.id_fuel, :] = \
             self.calc_fuel_flow(current_density)
         mol_flow_in[self.id_inert, :] = \
@@ -282,7 +285,7 @@ class HalfCell:
         """"
         Calculates the water molar flow [mol/s]
         """
-        if not isinstance(self.channel.fluid, fluid.TwoPhaseMixture):
+        if not isinstance(self.channel.fluid, fluids.TwoPhaseMixture):
             raise TypeError('Fluid in channel must be of type TwoPhaseMixture')
         id_in = self.channel.id_in
         humidity_in = self.channel.fluid.humidity[id_in]
@@ -326,7 +329,7 @@ class HalfCell:
             + np.pi * i_hat / (2. + i_hat)
         self.cl_diff_loss[:] = \
             ((self.prot_con_cl * self.tafel_slope ** 2.)
-             / (4. * g_par.constants['F']
+             / (4. * self.faraday
                 * self.diff_coeff_cl * reac_conc_ele)
              * (current_density / self.i_cd_char
                 - np.log10(1. + np.square(current_density) /
@@ -346,15 +349,14 @@ class HalfCell:
         """
         Calculates the full voltage losses of the electrode
         """
-        faraday_constant = g_par.constants['F']
-        reac_conc = self.channel.fluid.concentration
+        reac_conc = self.channel.fluid.concentration[self.id_fuel]
         reac_conc_ele = ip.interpolate_1d(reac_conc)
         if self.channel.flow_direction == 1:
             reac_conc_in = reac_conc[:-1]
         else:
             reac_conc_in = reac_conc[1:]
 
-        i_lim = 4. * faraday_constant * reac_conc_in \
+        i_lim = 4. * self.faraday * reac_conc_in \
             * self.diff_coeff_gdl / self.th_gdl
         var = 1. - current_density / i_lim * reac_conc_in / reac_conc_ele
 

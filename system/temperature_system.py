@@ -81,11 +81,11 @@ class TemperatureSystem:
         self.rhs = np.zeros(np.shape(self.temp_layer_vec))
         # right side of the matrix system: mat T = rhs,
         # contains the power sources and explicit coupled terms
-        self.temp_fluid = np.full((2, self.n_cells, self.n_nodes),
-                                  self.temp_gas_in[0])
+        self.temp_fluid = np.zeros((2, self.n_cells, self.n_nodes))
+        self.temp_fluid[:] = self.temp_gas_in[0]
         self.temp_fluid[1, :] = self.temp_gas_in[1]
-        self.temp_fluid_ele = np.full((2, self.n_cells, self.n_ele),
-                                      self.temp_gas_in[0])
+        self.temp_fluid_ele = np.zeros((2, self.n_cells, self.n_ele))
+        self.temp_fluid_ele[:] = self.temp_gas_in[0]
         self.temp_fluid_ele[1, :] = self.temp_gas_in[1]
         # temperature of the fluid 0: cathode fluids, 1: anode fluids
         self.heat_fluid = np.zeros(np.shape(self.temp_fluid_ele))
@@ -148,8 +148,10 @@ class TemperatureSystem:
         self.temp_layer = [cell.temp_layer for cell in self.cells]
 
         # Coolant temperature array (cell, element
-        self.temp_cool = np.full((self.n_cool, self.n_nodes), temp_cool_in)
-        self.temp_cool_ele = np.full((self.n_cool, self.n_ele), temp_cool_in)
+        self.temp_cool = np.zeros((self.n_cool, self.n_nodes))
+        self.temp_cool[:] = temp_cool_in
+        self.temp_cool_ele = np.zeros((self.n_cool, self.n_ele))
+        self.temp_cool_ele[:] = temp_cool_in
 
         """Building up the base conductance matrix mat"""
         self.dyn_vec = np.zeros(np.shape(self.temp_layer_vec))

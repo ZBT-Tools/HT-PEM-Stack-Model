@@ -5,31 +5,58 @@ from abc import ABC
 
 class FluidProperties(ABC):
 
-    def __new__(cls,  density, viscosity, specific_heat,
-                thermal_conductivity, prop_type='constant', **kwargs):
+    PROPERTY_NAMES = ['Density', 'Specific Heat', 'Viscosity',
+                      'Thermal Conductivity']
+    ATTRIBUTE_NAMES = [name.replace(' ', '_').lower()
+                       for name in PROPERTY_NAMES]
+
+    def __new__(cls,  name, density=None, viscosity=None, specific_heat=None,
+                thermal_conductivity=None, prop_type='constant', **kwargs):
         if prop_type is 'constant':
             return super(FluidProperties, cls).__new__(ConstantProperties)
         else:
             raise NotImplementedError('Provided prop_type has not yet '
                                       'been implemented')
 
-    def __init__(self, density, viscosity, specific_heat,
-                 thermal_conductivity, **kwargs):
-        self.density = None
-        self.viscosity = None
-        self.specific_heat = None
-        self.thermal_conductivity = None
+    def __init__(self, name, **kwargs):
+        self.name = name
+        for attr_name in self.ATTRIBUTE_NAMES:
+            setattr(self, attr_name, None)
 
 
 class ConstantProperties(FluidProperties):
+    COEFFS = \
+        {
+            'Density':
+                {
+                    'H2O': 1000.0
+                },
+            'Specific Heat':
+                {
+                    'H2O': 4000.0
+                },
+            'Viscosity':
+                {
+                    'H2O': 1e-3
+                },
+            'Thermal Conductivity':
+                {
+                    'H2O': 0.2
+                }
+        }
 
-    def __init__(self, density, viscosity, specific_heat, thermal_conductivity):
-        super().__init__(density, viscosity, specific_heat,
-                         thermal_conductivity)
-        self.density = density
-        self.viscosity = viscosity
-        self.specific_heat = specific_heat
-        self.thermal_conductivity = thermal_conductivity
+    def __init__(self, name, **kwargs):
+        super().__init__(name, **kwargs)
+        for i, attr_name in enumerate(self.ATTRIBUTE_NAMES):
+            prop = kwargs.get(attr_name, None)
+            if name in self.COEFFS[self.PROPERTY_NAMES[i]] and prop is None:
+                setattr(self, attr_name,
+                        self.COEFFS[self.PROPERTY_NAMES[i]][self.name])
+            elif prop is not None:
+                setattr(self, attr_name, prop)
+            else:
+                raise ValueError('Value for {} must be in database or '
+                                 'directly provided'.format(attr_name))
 
 
 class GasSpecies:
@@ -177,7 +204,7 @@ class GasSpecies:
 
 
 class PhaseChangeSpecies:
-    PROPERTY_NAMES = ('Saturation Pressure', 'Vaporization Enthalpy')
+    PROPERTY_NAMES = ['Saturation Pressure', 'Vaporization Enthalpy']
     COEFFS = \
         {
             'Saturation Pressure':
@@ -202,29 +229,27 @@ class PhaseChangeSpecies:
         # print("Constructor of Two Phase Species")
         if not isinstance(liquids_dict, dict):
             raise TypeError('Input data must be provided as dictionary '
-                            'of ConstantProperties with species names as keys')
+                            'with species names as keys and objects'
+                            'type FluidProperties as values')
         self.names = list(liquids_dict.keys())
-        for liquid in self.names:
-            if liquid not in self.COEFFS[self.PROPERTY_NAMES[0]]:
+        for name in self.names:
+            if name not in self.COEFFS[self.PROPERTY_NAMES[0]]:
                 raise NotImplementedError('No phase change data available for '
-                                          'provided liquid specie: ' + liquid)
+                                          'provided liquid specie: ' + name)
         self.gas = GasSpecies(self.names)
         if len(liquids_dict) == 1:
             self.liquid = next(iter(liquids_dict.values()))
         else:
-            density = []
-            specific_heat = []
-            viscosity = []
-            thermal_conductivity = []
-            for liquid in liquids_dict:
-                density.append(liquid.density)
-                viscosity.append(liquid.viscosity)
-                specific_heat.append(liquid.specific_heat)
-                thermal_conductivity.append(liquid.thermal_conductivity)
+            density = [value.density for key, value in liquids_dict]
+            specific_heat = [value.specific_heat for key, value in liquids_dict]
+            viscosity = [value.viscosity for key, value in liquids_dict]
+            thermal_conductivity = \
+                [value.thermal_conductivity for key, value in liquids_dict]
             self.liquid = \
-                FluidProperties(np.asarray(density),
-                                np.asarray(viscosity),
-                                np.asarray(specific_heat),
+                FluidProperties('liquids', density=np.asarray(density),
+                                viscosity=np.asarray(viscosity),
+                                specific_heat=np.asarray(specific_heat),
+                                thermal_conductivity=
                                 np.asarray(thermal_conductivity))
 
         self.coeff_dict_dict = dict()

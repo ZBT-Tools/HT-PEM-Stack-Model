@@ -178,17 +178,22 @@ class Simulation:
         cathode_dict = input_dicts.dict_cathode
         ano_channel_dict = input_dicts.dict_anode_channel
         cat_channel_dict = input_dicts.dict_cathode_channel
+        ano_fluid_dict = input_dicts.dict_anode_fluid
+        cat_fluid_dict = input_dicts.dict_cathode_fluid
         ano_manifold_dict = input_dicts.dict_mfold_ano
         cat_manifold_dict = input_dicts.dict_mfold_cat
         electrical_dict = input_dicts.dict_electrical_coupling
         temperature_dict = input_dicts.dict_temp_sys
         output_dict = input_dicts.dict_output
 
+        half_cell_dicts = [cathode_dict, anode_dict]
+        channel_dicts = [cat_channel_dict, ano_channel_dict]
+        fluid_dicts = [cat_fluid_dict, ano_fluid_dict]
+        manifold_dicts = [cat_manifold_dict, ano_manifold_dict]
         # initialize stack object
-        self.stack = stack.Stack(stack_dict, cell_dict, mem_dict, anode_dict,
-                                 cathode_dict, ano_channel_dict,
-                                 cat_channel_dict, ano_manifold_dict,
-                                 cat_manifold_dict, electrical_dict,
+        self.stack = stack.Stack(stack_dict, cell_dict, mem_dict,
+                                 half_cell_dicts, channel_dicts, fluid_dicts,
+                                 manifold_dicts, electrical_dict,
                                  temperature_dict)
         self.output = output.Output(output_dict)
 
@@ -313,8 +318,8 @@ class Simulation:
                           / self.stack.temp_sys.temp_layer_vec) ** 2.0))
 
         self.temp_criteria_process.append(self.temp_criteria)
-        self.mfd_cat_criteria.append(self.stack.flow_circuit[0].criteria)
-        self.mfd_ano_criteria.append(self.stack.flow_circuit[1].criteria)
+        self.mfd_cat_criteria.append(self.stack.manifolds[0].criteria)
+        self.mfd_ano_criteria.append(self.stack.manifolds[1].criteria)
         self.i_ca_criteria_process.append(self.i_ca_criteria)
 
     def save_old_value(self):

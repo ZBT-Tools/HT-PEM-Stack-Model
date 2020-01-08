@@ -18,6 +18,5 @@ class OutputObject:
         elif len(np.shape(data_array)) == 1:
             self.print_data_1d[name] = \
                 {'value': data_array, 'units': str(units)}
-
         else:
             raise ValueError('argument data_array must be 1- or 2-dimensional')

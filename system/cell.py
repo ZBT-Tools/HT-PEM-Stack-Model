@@ -9,8 +9,8 @@ from system.output_object import OutputObject
 
 class Cell(OutputObject):
 
-    def __init__(self, number, cell_dict, membrane_dict, anode_dict,
-                 cathode_dict, ano_channel_dict, cat_channel_dict):
+    def __init__(self, number, cell_dict, membrane_dict, half_cell_dicts,
+                 channel_dicts, fluid_dicts):
         super().__init__()
         self.cell_dict = cell_dict
         self.name = 'Cell ' + str(number)
@@ -34,9 +34,12 @@ class Cell(OutputObject):
         self.length = self.cell_dict['length']
 
         # Create half cell objects
-        self.anode = h_c.HalfCell(anode_dict, cell_dict, ano_channel_dict)
-        self.cathode = h_c.HalfCell(cathode_dict, cell_dict, cat_channel_dict)
-        self.half_cells = [self.cathode, self.anode]
+
+        self.half_cells = [h_c.HalfCell(half_cell_dicts[i], cell_dict,
+                                        channel_dicts[i], fluid_dicts[i])
+                           for i in range(2)]
+        self.cathode = self.half_cells[0]
+        self.anode = self.half_cells[1]
 
         self.dx = self.cathode.channel.dx
         # cathode - object of the class HalfCell
@@ -263,7 +266,7 @@ class Cell(OutputObject):
         self.add_print_data(self.i_cd, 'Current Density', 'A/m²')
         self.add_print_data(self.temp_cool, 'Coolant Temperature', 'K')
         self.add_print_data(self.temp_layer, 'Temperature', 'K',
-                            self.temp_names)
+                            self.temp_names[:self.n_layer-1])
 
     def calc_ambient_conductance(self, alpha_amb):
         """

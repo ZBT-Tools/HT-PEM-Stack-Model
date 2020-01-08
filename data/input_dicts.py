@@ -119,17 +119,19 @@ dict_cathode_channel = {
     'p_out': op_con.p_manifold_cathode_out,
     'temp_in': op_con.temp_air_in,
     'hum_in': op_con.inlet_humidity_cathode,
-    'flow_dir': geom.cathode_flow_direction,
+    'flow_direction': geom.cathode_flow_direction,
     'channel_width': geom.channel_width,
     'channel_height': geom.channel_height,
     'bend_number': geom.channel_bends,
-    'bend_fri_fac': geom.bend_pressure_loss_coefficient
+    'bend_friction_factor': geom.bend_pressure_loss_coefficient
     }
 
 dict_cathode_fluid = {
     'fluid_name': 'Cathode Gas',
     'fluid_components': op_con.cathode_species,
-    # 'rib_width': geom.rib_width
+    'inlet_composition': op_con.cathode_inlet_composition,
+    'temp_init': op_con.temp_air_in,
+    'press_init': op_con.p_manifold_cathode_out
 }
 
 dict_anode_channel = {
@@ -138,12 +140,20 @@ dict_anode_channel = {
     'p_out': op_con.p_manifold_anode_out,
     'temp_in': op_con.temp_anode_gas_in,
     'hum_in': op_con.inlet_humidity_anode,
-    'flow_dir': geom.anode_flow_direction,
+    'flow_direction': geom.anode_flow_direction,
     'channel_width': geom.channel_width,
     'channel_height': geom.channel_height,
     'bend_number': geom.channel_bends,
-    'bend_fri_fac': geom.bend_pressure_loss_coefficient
+    'bend_friction_factor': geom.bend_pressure_loss_coefficient
     }
+
+dict_anode_fluid = {
+    'fluid_name': 'Anode Gas',
+    'fluid_components': op_con.anode_species,
+    'inlet_composition': op_con.anode_inlet_composition,
+    'temp_init': op_con.temp_anode_gas_in,
+    'press_init': op_con.p_manifold_anode_out
+}
 
 dict_mfold_cat = {
     'name': 'Cathode Manifold',

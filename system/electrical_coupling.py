@@ -20,7 +20,7 @@ class ElectricalCoupling:
         # thickness of the bipolar plate
 
         # Variables
-        self.i_cd_tar = g_par.dict_case['tar_cd']
+        self.i_cd_tar = g_par.dict_case['target_current_density']
         self.nodes = g_par.dict_case['nodes']
         # number of the nodes along the channel
         self.n_ele = self.nodes - 1
@@ -34,17 +34,18 @@ class ElectricalCoupling:
         # conductance in z-direction
         self.cell_c_mid = []
         # cell_c array for the main diagonal of the matrix self.mat_const
-        self.resistance = np.full((self.n_cells, self.n_ele), 0.)
+        self.resistance = np.zeros((self.n_cells, self.n_ele))
         # 2-d-array of the combined cell & bipolar plate
         # resistance in z-direction
-        self.mat = np.full((self.n_ele, self.n_cells + 1), 0.)
+        self.mat = np.zeros((self.n_ele, self.n_cells + 1))
         # electrical conductance matrix
-        self.rhs = np.full((self.n_cells + 1) * self.n_ele, 0.)
+        self.rhs = np.zeros((self.n_cells + 1) * self.n_ele)
         # right hand side terms, here the current
-        self.i_cd = np.full((self.n_cells, self.n_ele), 0.)
+        self.i_cd = np.zeros((self.n_cells, self.n_ele))
         # current density of the elements in z-direction
         self.c_width = \
-            self.cells[0].cathode.rib_width * (self.cells[0].cathode.n_chl + 1)
+            self.cells[0].cathode.rib_width \
+            * (self.cells[0].cathode.n_channel + 1)
         # width of the channel
         # c_x = self.c_width * self.th_plate / self.dx \
         #     * self.cells[0].cathode.bpp.electrical_conductivity

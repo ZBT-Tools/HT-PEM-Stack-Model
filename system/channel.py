@@ -1,6 +1,6 @@
 import numpy as np
 import data.global_parameters as g_par
-import system.fluid as fluids
+import system.fluid2 as fluids
 import system.global_functions as g_func
 import system.interpolation as ip
 from abc import ABC, abstractmethod
@@ -8,17 +8,7 @@ from system.output_object import OutputObject
 
 
 class Channel(ABC, OutputObject):
-    def __new__(cls, channel_dict, fluid=None):
-        # Create fluid object
-        nx = g_par.dict_case['elements'] + 1
-        if fluid is None:
-            fluid = \
-                fluids.Fluid(nx, channel_dict['fluid_name'],
-                             channel_dict.get('fluid_components', None),
-                             mole_fractions_init=
-                             channel_dict.get('inlet_composition', None),
-                             fluid_props=
-                             channel_dict.get('liquid_properties', None))
+    def __new__(cls, channel_dict, fluid):
 
         if type(fluid) is fluids.IncompressibleFluid:
             return super(Channel, cls).__new__(IncompressibleFluidChannel)
@@ -39,8 +29,8 @@ class Channel(ABC, OutputObject):
         self.fluid = fluid
         self.length = channel_dict['channel_length']
         # channel length
-        self.n_ele = g_par.dict_case['elements']
-        self.n_nodes = self.n_ele + 1
+        self.n_nodes = len(self.fluid.density)
+        self.n_ele = self.n_nodes - 1
         self.x = np.linspace(0.0, self.length, self.n_nodes)
         self.dx = np.diff(self.x)
         # element length
@@ -61,6 +51,12 @@ class Channel(ABC, OutputObject):
             self.id_in = 0
         else:
             self.id_in = -1
+
+        if self.flow_direction == 1:
+            self.tri_mtx = np.tril(np.full((self.n_ele, self.n_ele), 1.))
+        else:
+            self.tri_mtx = np.triu(np.full((self.n_ele, self.n_ele), 1.))
+
         self.width = channel_dict['channel_width']
         # channel width
         self.height = channel_dict['channel_height']
@@ -85,6 +81,7 @@ class Channel(ABC, OutputObject):
         self.reynolds = np.zeros(self.n_nodes)
         self.mass_flow_total = np.zeros(self.n_nodes)
         self.vol_flow = np.zeros(self.n_nodes)
+        self.g_fluid = np.zeros(self.n_nodes)
 
         # Heat Transfer
         self.k_coeff = np.zeros(self.n_ele)
@@ -92,12 +89,9 @@ class Channel(ABC, OutputObject):
         self.add_print_data(self.temp, 'Fluid Temperature', 'K')
         self.add_print_data(self.p, 'Fluid Pressure', 'Pa')
 
+    @abstractmethod
     def update(self, *args, **kwargs):
-        self.calc_mass_balance(*args, **kwargs)
-        self.fluid.update(self.temp, self.p, *args, **kwargs)
-        self.calc_flow_velocity()
-        self.calc_pressure()
-        self.calc_heat_transfer_coeff()
+        pass
 
     def calc_flow_velocity(self):
         """
@@ -122,37 +116,37 @@ class Channel(ABC, OutputObject):
             self.fluid.thermal_conductivity
 
         d_by_l = self.d_h / self.length
+        sqrt_re_pr_dbyl = np.sqrt(self.reynolds * prandtl * d_by_l)
         nu_1 = 3.66
-        nu_2 = 1.66 * np.sqrt(self.reynolds * prandtl * d_by_l)
-        nu_3 = (2. / (1. + 22. * prandtl)) ** (1. / 6.) \
-            * np.sqrt(self.reynolds * prandtl * d_by_l)
+        nu_2 = 1.66 * sqrt_re_pr_dbyl
+        nu_3 = (2. / (1. + 22. * prandtl)) ** 0.166667 * sqrt_re_pr_dbyl
         nu_lam = (nu_1 ** 3. + 0.7 ** 3. + (nu_2 - 0.7) ** 3.
-                  + nu_3 ** 3.) ** (1. / 3.)
-        # laminar nusselt number
-        zeta = (1.8 * np.log(self.reynolds) - 1.5) ** -2.
-        nu_turb = zeta / 8. * self.reynolds * prandtl \
-            / (1. + 12.7 * np.sqrt(zeta / 8.)
-                * (prandtl ** 2. / 3.) - 1.) \
-            * (1. + d_by_l ** 2. / 3.)
-        # if reynolds <= 2300.:
-        #     nusselt = nu_lam
-        # elif 2300. < reynolds < 1.e4:
-        #     gamma = (reynolds - 2300.) / 7700.
-        #     nusselt = (1. - (reynolds - 2300.) / 7700.) \
-        #       * nu_lam + (reynolds - 2300.) / 7700. * nu_turb
-        # else:
-        #     nusselt = nu_turb
-        nusselt = \
-            np.where(self.reynolds < 2300.0, nu_lam,
-                     np.where(self.reynolds < 1e4, nu_lam,
-                              (1. - (self.reynolds - 2300.) / 7700.) * nu_lam
-                              + (self.reynolds - 2300.) / 7700. * nu_turb))
+                  + nu_3 ** 3.) ** 0.333333
+
+        if np.any(self.reynolds >= 2300.0):
+            zeta = \
+                (1.8 * np.log(self.reynolds,
+                              where=self.reynolds != 0) - 1.5) ** -2.
+            nu_turb = zeta / 8. * self.reynolds * prandtl \
+                / (1. + 12.7 * np.sqrt(zeta / 8.)
+                   * (prandtl ** 0.666667) - 1.) * (1. + d_by_l ** 0.666667)
+            nusselt = \
+                np.where(self.reynolds < 2300.0, nu_lam,
+                         np.where(self.reynolds < 1e4,
+                                  (1. - (self.reynolds - 2300.) / 7700.) * nu_lam
+                                  + (self.reynolds - 2300.) / 7700. * nu_turb,
+                                  nu_turb))
+        else:
+            nusselt = nu_lam
 
         ht_coeff = nusselt * self.fluid.thermal_conductivity / self.d_h
         # convection coefficient between the coolant and the channel wall
         conv_area = self.d_h * np.pi * self.length / self.n_ele
         # convection area of the channel wall
-        self.k_coeff[:] = ht_coeff * conv_area
+        self.k_coeff[:] = ip.interpolate_1d(ht_coeff) * conv_area
+
+    def calc_heat_capacitance(self):
+        self.g_fluid[:] = self.mass_flow_total * self.fluid.specific_heat
 
     def calc_pressure(self):
         """
@@ -171,29 +165,32 @@ class Channel(ABC, OutputObject):
         #     * density_ele * 0.5 * velocity_ele ** 2.0
         pressure_direction = -self.flow_direction
         self.p.fill(self.p_out)
-        g_func.add_source(self.p, dp, pressure_direction)
+        g_func.add_source(self.p, dp, pressure_direction, self.tri_mtx)
 
 
 class IncompressibleFluidChannel(Channel):
     def __init__(self, channel_dict, fluid):
         super().__init__(channel_dict, fluid)
 
-    def update(self, mass_flow_in, dmass=None):
-        super().update(mass_flow_in, dmass)
-        # self.calc_mass_balance(mass_flow_in, dmass)
-        # self.calc_flow_velocity()
+    def update(self, mass_flow_in=None, dmass=None):
+        self.calc_mass_balance(mass_flow_in, dmass)
+        self.fluid.update(self.temp, self.p)
+        self.calc_flow_velocity()
+        self.calc_pressure()
+        self.calc_heat_transfer_coeff()
+        self.calc_heat_capacitance()
 
-    def calc_mass_balance(self, mass_flow_in, dmass=None):
-        self.mass_flow_total[:] = mass_flow_in
+    def calc_mass_balance(self, mass_flow_in=None, dmass=None):
+        if mass_flow_in is not None:
+            self.mass_flow_total[:] = mass_flow_in
         if dmass is not None:
-            g_func.add_source(self.mass_flow_total, dmass, self.flow_direction)
-        super().calc_mass_balance(self.temp, self.p)
+            g_func.add_source(self.mass_flow_total, dmass,
+                              self.flow_direction, self.tri_mtx)
 
 
 class GasMixtureChannel(Channel):
     def __init__(self, channel_dict, fluid):
         super().__init__(channel_dict, fluid)
-        self.inlet_composition = self.mole_flow[0]
         self.mole_flow_total = np.zeros(self.n_nodes)
         arr_shape = (self.fluid.n_species, self.n_nodes)
         self.mole_flow = np.zeros(arr_shape)
@@ -202,12 +199,19 @@ class GasMixtureChannel(Channel):
         self.add_print_data(self.mole_flow, 'Mole Flow',
                             'mol/s', self.fluid.species.names)
 
-    def update(self, mol_flow_in, dmol=None):
-        super().update(mol_flow_in, dmol)
+    def update(self, mole_flow_in=None, dmol=None):
+        self.calc_mass_balance(mole_flow_in, dmol)
+        if mole_flow_in is None:
+            mole_flow_in = self.mole_flow[:, 0]
+        self.fluid.update(self.temp, self.p, mole_flow_in)
+        self.calc_flow_velocity()
+        self.calc_pressure()
+        self.calc_heat_transfer_coeff()
+        self.calc_heat_capacitance()
         # self.calc_mass_balance(mol_flow_in, dmol)
         # self.calc_flow_velocity()
 
-    def calc_mass_balance(self, mol_flow_in, dmol=None):
+    def calc_mass_balance(self, mol_flow_in=None, dmol=None):
         """
         Calculate mass balance in 1D channel
         :param mol_flow_in: inlet mol flow
@@ -215,18 +219,19 @@ class GasMixtureChannel(Channel):
         source
         :return: None
         """
-        self.mole_flow[:] = mol_flow_in
+        if mol_flow_in is not None:
+            self.mole_flow[:] = mol_flow_in
         if dmol is not None:
             if np.shape(dmol) == (self.fluid.n_species, self.n_ele):
                 for i in range(self.fluid.n_species):
                     g_func.add_source(self.mole_flow[i], dmol[i],
-                                      self.flow_direction)
+                                      self.flow_direction, self.tri_mtx)
             else:
                 raise ValueError('Shape of dmol does not conform '
                                  'to mole_flow array')
-        super().calc_mass_balance(self.temp, self.p, self.mole_flow)
         self.mole_flow_total[:] = np.sum(self.mole_flow, axis=0)
-        self.mass_flow[:] = self.mole_flow * self.fluid.species.mw
+        self.mass_flow[:] = \
+            (self.mole_flow.transpose() * self.fluid.species.mw).transpose()
         self.mass_flow_total[:] = self.mole_flow_total * self.fluid.mw
 
 
@@ -239,7 +244,6 @@ class TwoPhaseMixtureChannel(GasMixtureChannel):
         arr_shape = (self.fluid.n_species, self.n_nodes)
         self.mole_flow_liq = np.zeros(arr_shape)
         self.mole_flow_gas = np.zeros(arr_shape)
-        self.mass_flow = np.zeros(arr_shape)
         self.mass_flow_gas = np.zeros(arr_shape)
         self.mass_flow_liq = np.zeros(arr_shape)
         self.cond_rate = np.zeros(self.n_nodes)
@@ -247,13 +251,16 @@ class TwoPhaseMixtureChannel(GasMixtureChannel):
         self.add_print_data(self.mole_flow_gas, 'Gas Mole Flow', 'mol/s',
                             self.fluid.species.names)
 
-    def update(self, mol_flow_in, dmol=None):
-        self.calc_mass_balance(mol_flow_in, dmol)
-        self.fluid.update(self.temp, self.p, mol_flow_in, dmol)
+    def update(self, mole_flow_in=None, dmol=None):
+        self.calc_mass_balance(mole_flow_in, dmol)
+        if mole_flow_in is None:
+            mole_flow_in = self.mole_flow[:, 0]
+        self.fluid.update(self.temp, self.p, mole_flow_in)
         self.calc_two_phase_flow()
         self.calc_flow_velocity()
         self.calc_pressure()
         self.calc_heat_transfer_coeff()
+        self.calc_heat_capacitance()
 
     def calc_flow_velocity(self):
         """
@@ -264,7 +271,7 @@ class TwoPhaseMixtureChannel(GasMixtureChannel):
         self.reynolds[:] = \
             self.velocity * self.d_h * self.fluid.density / self.fluid.viscosity
 
-    def calc_mass_balance(self, mol_flow_in, dmol=None):
+    def calc_mass_balance(self, mol_flow_in=None, dmol=None):
         super().calc_mass_balance(mol_flow_in, dmol)
         # self.calc_two_phase_flow()
 
@@ -272,12 +279,19 @@ class TwoPhaseMixtureChannel(GasMixtureChannel):
         """
         Calculates the condensed phase flow and updates mole and mass fractions
         """
-        self.mole_flow_gas[:] = self.mole_flow_total * self.fluid.mole_fraction
-        self.mole_flow_liq[:] = self.mole_flow_total - self.mole_flow_gas
-        self.mass_flow_gas[:] = self.mass_flow_total * self.fluid.mass_fraction
-        self.mass_flow_liq[:] = self.mass_flow_total - self.mass_flow_gas
-        self.mole_flow_gas_total[:] = np.sum(self.mole_flow_total, axis=0)
-        self.mass_flow_gas_total = np.sum(self.mass_flow_total, axis=0)
+        mole_flow_liq_total = self.mole_flow_total \
+            * self.fluid.liquid_mole_fraction
+        mass_flow_liq_total = self.mass_flow_total \
+            * self.fluid.liquid_mass_fraction
+        self.mole_flow_gas_total[:] = \
+            self.mole_flow_total - mole_flow_liq_total
+        self.mass_flow_gas_total[:] = \
+            self.mass_flow_total - mass_flow_liq_total
+        self.mole_flow_gas[:] = \
+            self.mole_flow_gas_total * self.fluid.mole_fraction
+        self.mass_flow_gas[:] = \
+            self.mass_flow_gas_total * self.fluid.mass_fraction
+        self.mole_flow_liq[:] = self.mole_flow - self.mole_flow_gas
         self.calc_cond_rate()
 
     def calc_cond_rate(self):
@@ -289,3 +303,6 @@ class TwoPhaseMixtureChannel(GasMixtureChannel):
         self.cond_rate[:] = \
             self.flow_direction * ip.interpolate_1d(cond_rate_ele,
                                                     add_edge_points=True)
+
+    def calc_heat_capacitance(self):
+        self.g_fluid[:] = self.mass_flow_total * self.fluid.specific_heat
