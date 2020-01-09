@@ -20,13 +20,17 @@ def add_source(var, source, direction=1, tri_mtx=None):
         raise ValueError('Parameter source must be of length (var-1)')
     if direction == 1:
         if tri_mtx is None:
-            fwd_mat = np.tril(np.full((n, n), 1.))
+            ones = np.zeros((n, n))
+            ones.fill(1.0)
+            fwd_mat = np.tril(ones)
         else:
             fwd_mat = tri_mtx
         var[1:] += np.matmul(fwd_mat, source)
     elif direction == -1:
         if tri_mtx is None:
-            bwd_mat = np.triu(np.full((n, n), 1.))
+            ones = np.zeros((n, n))
+            ones.fill(1.0)
+            bwd_mat = np.triu(ones)
         else:
             bwd_mat = tri_mtx
         var[:-1] += np.matmul(bwd_mat, source)

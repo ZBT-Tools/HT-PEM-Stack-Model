@@ -189,8 +189,10 @@ class GasSpecies:
         lambda_10_bar = \
             polyval(temperature,
                     self.coeff_dict_arr['Thermal Conductivity'][:][1])
-        return lambda_1_bar + \
-            (pressure - 1.e5) / 9.e5 * (lambda_10_bar - lambda_1_bar)
+        result = lambda_1_bar \
+            + (pressure - 1.e5) / 9.e5 * (lambda_10_bar - lambda_1_bar)
+        result *= 10.0
+        return result
 
     def calc_property(self, property_name, temperature, pressure=101325.0):
         if property_name == 'Specific Heat':

@@ -389,8 +389,6 @@ class TwoPhaseMixture(Fluid):
         total_conc[self.id_pc] = np.sum(dry_conc, axis=0) \
             * self.mole_fraction[self.id_pc] \
             / (1.0 - self.mole_fraction[self.id_pc])
-        print(np.sum(gas_conc, axis=0))
-        print(np.sum(total_conc, axis=0))
         self.liquid_mole_fraction[:] = \
             1.0 - np.sum(gas_conc, axis=0)/np.sum(total_conc, axis=0)
         self.liquid_mass_fraction[:] = \

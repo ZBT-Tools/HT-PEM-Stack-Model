@@ -47,6 +47,7 @@ p_manifold_anode_out = 1.e5
 
 """Species settings"""
 # species names
+# cathode_species = {'O2': 'gas', 'N2': 'gas', 'H2O': 'gas-liquid'}
 cathode_species = {'O2': 'gas', 'N2': 'gas', 'H2O': 'gas-liquid'}
 anode_species = {'H2': 'gas', 'N2': 'gas', 'H2O': 'gas-liquid'}
 # molar masses (kg/mol)

@@ -29,46 +29,35 @@ def do_c_profile(func):
     return profiled_func
 
 
-def init_flow_model(dict_fluid, dict_channel, dict_in_manifold,
-                    dict_out_manifold, n_channels, channel_multiplier=1.0):
-    nx = g_par.dict_case['nodes']
-    fluid = \
-        [fluids.fluid_factory(nx, dict_fluid['fluid_name'],
-                              species_dict=dict_fluid['fluid_components'],
-                              mole_fractions=
-                              dict_fluid['inlet_composition'])
-         for i in range(n_channels)]
-    channels = [chl.Channel(dict_channel, fluid[i]) for i in range(n_channels)]
-    fluid = \
-        [fluids.fluid_factory(n_channels, dict_fluid['fluid_name'],
-                              species_dict=dict_fluid['fluid_components'],
-                              mole_fractions=
-                              dict_fluid['inlet_composition'])
-         for i in range(2)]
-    manifolds = [chl.Channel(dict_in_manifold, fluid[0]),
-                 chl.Channel(dict_out_manifold, fluid[1])]
-
-    flow_circuit_dict = {'name': 'Flow Circuit'}
-    return flow_circuit.ParallelFlowCircuit(flow_circuit_dict, manifolds,
-                                            channels, channel_multiplier=
-                                            channel_multiplier)
-
 
 n_chl = 10
 n_subchl = 10
 
+channel_dict = {
+    'name': 'Channel',
+    'channel_length': 0.1,
+    'p_out': 101325.0,
+    'temp_in': 300.0,
+    'hum_in': 0.1,
+    'flow_direction': 1,
+    'channel_width': 0.0010,
+    'channel_height': 0.0010,
+    'bend_number': 0,
+    'bend_friction_factor': 0.0,
+    'additional_friction_fractor': 0.0
+    }
+
 fluid_dict = input_dicts.dict_cathode_fluid
-channel_dict = input_dicts.dict_cathode_channel
 
 in_manifold_dict = {
     'name': 'Inlet Manifold',
     'channel_length': 0.1,
-    'p_out': 100000.0,
-    'temp_in': 350.0,
-    'hum_in': 0.5,
+    'p_out': channel_dict['p_out'],
+    'temp_in': 300.0,
+    'hum_in': 0.1,
     'flow_direction': 1,
-    'channel_width': 0.010,
-    'channel_height': 0.010,
+    'channel_width': 0.002,
+    'channel_height': 0.002,
     'bend_number': 0,
     'bend_friction_factor': 0.0,
     'additional_friction_fractor': 1.7
@@ -76,23 +65,41 @@ in_manifold_dict = {
 
 out_manifold_dict = copy.deepcopy(in_manifold_dict)
 out_manifold_dict['flow_direction'] = -1
+out_manifold_dict['name'] = 'Outlet Manifold'
 
-flow_model = init_flow_model(fluid_dict, channel_dict, in_manifold_dict,
-                             out_manifold_dict, n_chl, n_subchl)
+flow_model = flow_circuit.flow_circuit_factory(fluid_dict, channel_dict,
+                                               in_manifold_dict,
+                                               out_manifold_dict, n_chl,
+                                               n_subchl)
 
+# temp = np.full(n_chl + 1, 300.0)
+# flow_model.manifolds[0].temp = temp
+# flow_model.manifolds[1].temp = temp
+#
+# flow_model.manifolds[0].update()
+# fluid_in = flow_model.manifolds[0].fluid
+# vol_flow_in = 1e-5
+# total_mole_flow_in = vol_flow_in * fluid_in.density[0] \
+#                      / fluid_in.mw[0] * fluid_in.mole_fraction[:, 0]
+#
+# ones = np.ones(n_chl)
+# dmole = np.outer(total_mole_flow_in / n_chl, ones)
+# flow_model.manifolds[0].update(total_mole_flow_in, -dmole)
+print(flow_model.manifolds[0].fluid.temperature)
 print(flow_model.manifolds[0].fluid.mole_fraction)
+print(flow_model.manifolds[0].fluid.density)
+print(flow_model.manifolds[0].fluid.viscosity)
+print(flow_model.manifolds[0].fluid.specific_heat)
+print(flow_model.manifolds[0].fluid.thermal_conductivity)
 
-print(flow_model.manifolds[0].fluid.mole_fraction)
-print(flow_model.manifolds[1].fluid.mole_fraction)
-temp = np.linspace(300, 400, n_chl)
-flow_model.manifolds[0].temp = temp
-flow_model.manifolds[1].temp = temp
-flow_model.manifolds[0].update()
-flow_model.manifolds[1].update()
-print(np.sum(flow_model.manifolds[1].fluid.mole_fraction, axis=0))
-print(flow_model.manifolds[1].fluid.liquid_mole_fraction)
-print(np.sum(flow_model.manifolds[1].fluid.gas.mole_fraction, axis=0))
-print(flow_model.manifolds[1].fluid.gas.pressure)
+# flow_model.manifolds[1].update()
+# print(np.sum(flow_model.manifolds[1].fluid.mole_fraction, axis=0))
+# print(flow_model.manifolds[1].fluid.liquid_mole_fraction)
+# print(np.sum(flow_model.manifolds[1].fluid.gas.mole_fraction, axis=0))
+# print(flow_model.manifolds[1].fluid.gas.pressure)
+
+
+flow_model.update(vol_flow_in=2e-5)
 
 
 

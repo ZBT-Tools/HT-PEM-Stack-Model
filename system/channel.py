@@ -35,10 +35,12 @@ class Channel(ABC, OutputObject):
         self.dx = np.diff(self.x)
         # element length
         self.p_out = channel_dict['p_out']
-        self.p = np.full(self.n_nodes, self.p_out)
+        self.p = np.zeros(self.n_nodes)
+        self.p.fill(self.p_out)
         # outlet and initial pressure
         self.temp_in = channel_dict['temp_in']
-        self.temp = np.full_like(self.p, self.temp_in)
+        self.temp = np.zeros(self.p.shape)
+        self.temp.fill(self.temp_in)
         # inlet temperature
 
         # Geometry
@@ -52,10 +54,12 @@ class Channel(ABC, OutputObject):
         else:
             self.id_in = -1
 
+        ones = np.zeros((self.n_ele, self.n_ele))
+        ones.fill(1.0)
         if self.flow_direction == 1:
-            self.tri_mtx = np.tril(np.full((self.n_ele, self.n_ele), 1.))
+            self.tri_mtx = np.tril(ones)
         else:
-            self.tri_mtx = np.triu(np.full((self.n_ele, self.n_ele), 1.))
+            self.tri_mtx = np.triu(ones)
 
         self.width = channel_dict['channel_width']
         # channel width
@@ -98,9 +102,9 @@ class Channel(ABC, OutputObject):
         Calculates the gas phase velocity.
         """
         self.vol_flow[:] = self.mass_flow_total / self.fluid.density
-        self.velocity[:] = self.vol_flow / self.cross_area
-        self.reynolds[:] = \
-            self.velocity * self.d_h * self.fluid.density / self.fluid.viscosity
+        self.velocity[:] = np.maximum(self.vol_flow / self.cross_area, 0.0)
+        self.reynolds[:] = self.velocity * self.d_h * self.fluid.density \
+            / self.fluid.viscosity
 
     @abstractmethod
     def calc_mass_balance(self, *args, **kwargs):
@@ -112,7 +116,7 @@ class Channel(ABC, OutputObject):
         constant wall temperature
         (Correlations should be reviewed)
         """
-        prandtl = self.fluid.density * self.fluid.specific_heat / \
+        prandtl = self.fluid.viscosity * self.fluid.specific_heat / \
             self.fluid.thermal_conductivity
 
         d_by_l = self.d_h / self.length
@@ -165,7 +169,7 @@ class Channel(ABC, OutputObject):
         #     * density_ele * 0.5 * velocity_ele ** 2.0
         pressure_direction = -self.flow_direction
         self.p.fill(self.p_out)
-        g_func.add_source(self.p, dp, pressure_direction, self.tri_mtx)
+        g_func.add_source(self.p, dp, pressure_direction)
 
 
 class IncompressibleFluidChannel(Channel):
@@ -211,20 +215,25 @@ class GasMixtureChannel(Channel):
         # self.calc_mass_balance(mol_flow_in, dmol)
         # self.calc_flow_velocity()
 
-    def calc_mass_balance(self, mol_flow_in=None, dmol=None):
+    def calc_mass_balance(self, mole_flow_in=None, dmole=None):
         """
         Calculate mass balance in 1D channel
-        :param mol_flow_in: inlet mol flow
-        :param dmol: 2D array (n_species x n_elements) of discretized molar
+        :param mole_flow_in: inlet mol flow
+        :param dmole: 2D array (n_species x n_elements) of discretized molar
         source
         :return: None
         """
-        if mol_flow_in is not None:
-            self.mole_flow[:] = mol_flow_in
-        if dmol is not None:
-            if np.shape(dmol) == (self.fluid.n_species, self.n_ele):
+        if mole_flow_in is not None:
+            if mole_flow_in.shape == self.mole_flow.shape:
+                self.mole_flow[:] = mole_flow_in
+            else:
+                ones = np.zeros(self.mole_flow.shape[-1])
+                ones.fill(1.0)
+                self.mole_flow[:] = np.outer(mole_flow_in, ones)
+        if dmole is not None:
+            if np.shape(dmole) == (self.fluid.n_species, self.n_ele):
                 for i in range(self.fluid.n_species):
-                    g_func.add_source(self.mole_flow[i], dmol[i],
+                    g_func.add_source(self.mole_flow[i], dmole[i],
                                       self.flow_direction, self.tri_mtx)
             else:
                 raise ValueError('Shape of dmol does not conform '
@@ -267,12 +276,12 @@ class TwoPhaseMixtureChannel(GasMixtureChannel):
         Calculates the gas phase velocity.
         """
         self.vol_flow_gas[:] = self.mass_flow_gas_total / self.fluid.density
-        self.velocity[:] = self.vol_flow_gas / self.cross_area
-        self.reynolds[:] = \
-            self.velocity * self.d_h * self.fluid.density / self.fluid.viscosity
+        self.velocity[:] = np.maximum(self.vol_flow_gas / self.cross_area, 0.0)
+        self.reynolds[:] = self.velocity * self.d_h * self.fluid.density \
+            / self.fluid.viscosity
 
-    def calc_mass_balance(self, mol_flow_in=None, dmol=None):
-        super().calc_mass_balance(mol_flow_in, dmol)
+    def calc_mass_balance(self, mole_flow_in=None, dmole=None):
+        super().calc_mass_balance(mole_flow_in, dmole)
         # self.calc_two_phase_flow()
 
     def calc_two_phase_flow(self):
