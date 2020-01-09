@@ -56,8 +56,8 @@ in_manifold_dict = {
     'temp_in': 300.0,
     'hum_in': 0.1,
     'flow_direction': 1,
-    'channel_width': 0.002,
-    'channel_height': 0.002,
+    'channel_width': 0.004,
+    'channel_height': 0.004,
     'bend_number': 0,
     'bend_friction_factor': 0.0,
     'additional_friction_fractor': 1.7
