@@ -17,7 +17,7 @@ def add_source(var, source, direction=1, tri_mtx=None):
     """
     n = len(var) - 1
     if len(source) != n:
-        raise ValueError('Parameter source must be of length (var-1)')
+        raise ValueError('parameter source must be of length (var-1)')
     if direction == 1:
         if tri_mtx is None:
             ones = np.zeros((n, n))
@@ -35,7 +35,7 @@ def add_source(var, source, direction=1, tri_mtx=None):
             bwd_mat = tri_mtx
         var[:-1] += np.matmul(bwd_mat, source)
     else:
-        raise ValueError('Parameter direction must be either 1 or -1')
+        raise ValueError('parameter direction must be either 1 or -1')
     return var
 
 

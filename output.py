@@ -211,7 +211,7 @@ class Output:
         plt.close()
 
     @staticmethod
-    def x_plot(fig, x, y, x_label, y_label, x_scale='linear',
+    def x_plot(path, x, y, x_label, y_label, x_scale='linear',
                y_scale='linear', xlim=None, ylim=None, title=None, labels=None):
         if labels:
             for i in range(len(y)):

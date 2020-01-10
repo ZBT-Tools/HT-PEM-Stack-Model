@@ -30,8 +30,7 @@ def do_c_profile(func):
     return profiled_func
 
 
-
-n_chl = 100
+n_chl = 20
 n_subchl = 10
 
 channel_dict = {
@@ -43,7 +42,7 @@ channel_dict = {
     'flow_direction': 1,
     'channel_width': 0.0010,
     'channel_height': 0.0010,
-    'bend_number': 40,
+    'bend_number': 0,
     'bend_friction_factor': 0.2,
     'additional_friction_fractor': 0.0
     }
@@ -61,7 +60,7 @@ in_manifold_dict = {
     'channel_height': 0.01,
     'bend_number': 0,
     'bend_friction_factor': 0.0,
-    'additional_friction_fractor': 1.7
+    'additional_friction_fractor': 2.0
     }
 
 out_manifold_dict = copy.deepcopy(in_manifold_dict)
@@ -100,11 +99,13 @@ flow_model = flow_circuit.flow_circuit_factory(fluid_dict, channel_dict,
 # print(flow_model.manifolds[1].fluid.gas.pressure)
 
 
-flow_model.update(inlet_mass_flow=2e-5)
+flow_model.update(inlet_mass_flow=1e-4)
 x = ip.interpolate_1d(flow_model.manifolds[0].x)
+
 y = flow_model.channel_vol_flow / np.average(flow_model.channel_vol_flow)
 plt.plot(x, y)
 plt.show()
+
 
 
 
