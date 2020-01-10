@@ -104,7 +104,7 @@ def calc_pressure_drop(velocity, density, f, zeta, length, diameter):
     :param diameter: hydraulic diameter of pipe
     :return: pressure drop (element-wise)
     """
-    if not np.shape(velocity)[0] == (np.shape(length)[0] + 1):
+    if np.shape(velocity)[0] != (np.shape(length)[0] + 1):
         raise ValueError('velocity array must be provided as a 1D'
                          'nodal array (n+1), while the other input arrays '
                          'must be element-wise (n)')

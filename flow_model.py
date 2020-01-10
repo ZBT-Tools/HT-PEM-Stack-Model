@@ -30,20 +30,20 @@ def do_c_profile(func):
     return profiled_func
 
 
-n_chl = 20
+n_chl = 40
 n_subchl = 10
 
 channel_dict = {
     'name': 'Channel',
-    'channel_length': 0.4,
+    'channel_length': 0.651,
     'p_out': 101325.0,
     'temp_in': 300.0,
     'hum_in': 0.1,
     'flow_direction': 1,
     'channel_width': 0.0010,
     'channel_height': 0.0010,
-    'bend_number': 0,
-    'bend_friction_factor': 0.2,
+    'bend_number': 48,
+    'bend_friction_factor': 0.1,
     'additional_friction_fractor': 0.0
     }
 
@@ -51,21 +51,22 @@ fluid_dict = input_dicts.dict_cathode_fluid
 
 in_manifold_dict = {
     'name': 'Inlet Manifold',
-    'channel_length': 0.1,
+    'channel_length': 40*0.006-0.002,
     'p_out': channel_dict['p_out'],
     'temp_in': 300.0,
     'hum_in': 0.1,
     'flow_direction': 1,
-    'channel_width': 0.01,
-    'channel_height': 0.01,
+    'channel_width': 0.0125,
+    'channel_height': 0.0075,
     'bend_number': 0,
     'bend_friction_factor': 0.0,
-    'additional_friction_fractor': 2.0
+    'additional_friction_fractor': 0.4
     }
 
 out_manifold_dict = copy.deepcopy(in_manifold_dict)
-out_manifold_dict['flow_direction'] = -1
 out_manifold_dict['name'] = 'Outlet Manifold'
+out_manifold_dict['flow_direction'] = 1
+
 
 flow_model = flow_circuit.flow_circuit_factory(fluid_dict, channel_dict,
                                                in_manifold_dict,
@@ -99,11 +100,30 @@ flow_model = flow_circuit.flow_circuit_factory(fluid_dict, channel_dict,
 # print(flow_model.manifolds[1].fluid.gas.pressure)
 
 
-flow_model.update(inlet_mass_flow=1e-4)
+flow_model.update(inlet_mass_flow=5e-6)
 x = ip.interpolate_1d(flow_model.manifolds[0].x)
+flow_model.manifolds[0].zeta_other = 0.5
+flow_model.manifolds[1].zeta_other = 0.5
+flow_model.update()
+q1 = flow_model.channel_vol_flow / np.average(flow_model.channel_vol_flow)
+flow_model.manifolds[0].zeta_other = 0.4
+flow_model.manifolds[1].zeta_other = 0.4
+flow_model.update()
+q2 = flow_model.channel_vol_flow / np.average(flow_model.channel_vol_flow)
+flow_model.manifolds[0].zeta_other = 0.3
+flow_model.manifolds[1].zeta_other = 0.3
+flow_model.update()
+q3 = flow_model.channel_vol_flow / np.average(flow_model.channel_vol_flow)
 
-y = flow_model.channel_vol_flow / np.average(flow_model.channel_vol_flow)
-plt.plot(x, y)
+plt.plot(x, q1)
+plt.plot(x, q2)
+plt.plot(x, q3)
+plt.show()
+p_in = ip.interpolate_1d(flow_model.manifolds[0].p)
+p_out = ip.interpolate_1d(flow_model.manifolds[1].p)
+
+plt.plot(p_in/np.average(p_in))
+plt.plot(p_out/np.average(p_out))
 plt.show()
 
 
