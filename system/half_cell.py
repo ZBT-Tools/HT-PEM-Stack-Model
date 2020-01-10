@@ -247,24 +247,26 @@ class HalfCell:
         This function coordinates the program sequence
         """
         # self.calc_temp_fluid_ele()
-        mol_flow_in, dmol = self.calc_mass_balance(current_density)
+        mole_flow_in, mole_source = self.calc_mass_balance(current_density)
         if not self.break_program:
-            self.channel.update(mol_flow_in, dmol)
+            # self.channel.update(mole_flow_in, mole_source)
+            self.channel.mole_flow[:] = mole_flow_in
+            self.channel.mole_source[:] = mole_source
             self.update_voltage_loss(current_density)
 
     def calc_mass_balance(self, current_density):
         n_species = self.channel.fluid.n_species
-        mol_flow_in = np.zeros((n_species, self.n_nodes))
-        dmol = np.zeros((n_species, self.n_ele))
-        mol_flow_in[self.id_fuel, :], dmol[self.id_fuel, :] = \
+        mole_flow_in = np.zeros((n_species, self.n_nodes))
+        mole_source = np.zeros((n_species, self.n_ele))
+        mole_flow_in[self.id_fuel, :], mole_source[self.id_fuel, :] = \
             self.calc_fuel_flow(current_density)
-        mol_flow_in[self.id_inert, :] = \
-            mol_flow_in[self.id_fuel, self.channel.id_in] \
+        mole_flow_in[self.id_inert, :] = \
+            mole_flow_in[self.id_fuel, self.channel.id_in] \
             * self.inert_reac_ratio
-        air_flow_in = np.sum(mol_flow_in[:, self.channel.id_in])
-        mol_flow_in[self.id_h2o, :], dmol[self.id_h2o, :] = \
+        air_flow_in = np.sum(mole_flow_in[:, self.channel.id_in])
+        mole_flow_in[self.id_h2o, :], mole_source[self.id_h2o, :] = \
             self.calc_water_flow(current_density, air_flow_in)
-        return mol_flow_in, dmol
+        return mole_flow_in, mole_source
 
     def update_voltage_loss(self, current_density):
         self.calc_electrode_loss(current_density)

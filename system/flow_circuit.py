@@ -42,6 +42,7 @@ class ParallelFlowCircuit(ABC, OutputObject):
             raise TypeError(err_message)
         self.manifolds = manifolds
         self.channels = channels
+        self.initialize()
 
         self.n_channels = len(self.channels)
         self.channel_multiplier = channel_multiplier
@@ -52,10 +53,13 @@ class ParallelFlowCircuit(ABC, OutputObject):
         self.alpha = np.zeros(self.n_channels)
         self.alpha.fill(1.0)
 
-        self.vol_flow_in = self.manifolds[0].vol_flow[0]
+        self.mass_flow_in = self.manifolds[0].mass_flow_total[0]
+        self.vol_flow_in = 0.0
         self.channel_vol_flow = \
-            self.alpha * self.vol_flow_in / self.n_channels
-        self.initialize()
+            self.alpha * self.mass_flow_in / self.n_channels
+        self.channel_mass_flow = np.zeros(self.channel_vol_flow.shape)
+        self.dp_ref = self.channels[-1].p[0] - self.channels[-1].p[-1]
+        self.k_perm = np.zeros(self.n_channels)
 
     @abstractmethod
     def update(self, vol_flow_in=None):
@@ -95,174 +99,87 @@ class GasMixtureFlowCircuit(ParallelFlowCircuit, OutputObject):
         self.channel_cross_area = \
             np.asarray([channel.cross_area for channel in channels])
 
-        self.channel_mole_flow = \
-            np.zeros((self.manifolds[0].fluid.n_species, self.n_channels))
-        # self.head_p = np.full((2, self.n_channels), dict_flow_circuit['p_out'])
-        # self.head_stoi = 1.5
-        self.cell_mass_flow = None
-        self.cell_mol_flow = None
-        self.cell_temp = None
-        self.cell_cp = None
-        self.cell_visc = None
-        self.cell_p = None
-        self.cell_R_avg = None
-
-
-        # Initialize scalar variables
-        # self.cross_area = self.head_height * self.head_width
-        # self.circumference = 2. * (self.head_height + self.head_width)
-        # self.hydraulic_diameter = 4. * self.cross_area / self.circumference
-        self.cell_ref_p_drop = 0.
-        self.ref_perm = 0.
-        self.cell_ref_p_drop_cor = 0.
-        self.p_cor_fac = 0.
-        # Initialize arrays
-        self.fwd_mat = np.tril(np.full((self.n_channels, self.n_channels), 1.))
-        self.fwd_mat_ele = self.fwd_mat[:-1, :-1]
-        self.head_mol_flow = np.full((2, self.n_channels), 0.)
-        self.head_f_mass_flow = np.full((2, self.n_channels), 0.)
-        self.head_g_mass_flow = np.full((2, self.n_channels), 0.)
-        self.head_temp = np.full((2, self.n_channels), 0.)
-        self.head_u = np.full((2, self.n_channels), 0.)
-        self.head_cp = np.full((2, self.n_channels), 0.)
-        self.head_r = np.full((2, self.n_channels), 0.)
-        self.head_density = np.full((2, self.n_channels), 0.)
-        self.head_Re = np.full((2, self.n_channels), 0.)
-        self.head_fan_fri = np.full((2, self.n_channels), 0.)
-        self.p_dist_fac = np.full(self.n_channels, 0.)
-        self.cell_stoi = np.full(self.n_channels, 1.5)
-        self.cell_mol_flow_old = np.full(self.n_channels, 0.)
-        self.criteria = 0.
-
-    def single_loop(self, mole_flow_in=None):
+    def single_loop(self, inlet_mass_flow=None):
         """
         Update the flow circuit
         """
-        if mole_flow_in is None:
-            mole_flow_in = np.sum(self.channel_mole_flow, axis=-1)
-        else:
-            self.channel_mole_flow = \
-                np.outer(mole_flow_in / self.n_channels, self.alpha)
+        if inlet_mass_flow is not None:
+            self.mass_flow_in = inlet_mass_flow
 
-        fluid_in = self.manifolds[0].fluid
         # Outlet header update
-        self.manifolds[1].update(np.zeros(fluid_in.n_species),
-                                 self.channel_mole_flow)
+        channel_mass_flow_out = \
+            np.array([channel.mass_flow_total[-1] for channel in self.channels])
+        mass_fraction = np.array([channel.fluid.mass_fraction[:, -1]
+                                  for channel in self.channels]).transpose()
+        mass_source = channel_mass_flow_out * mass_fraction
+        self.manifolds[1].update(mass_flow_in=0.0, mass_source=mass_source)
+
         # Channel update
         for i, channel in enumerate(self.channels):
             channel.p_out = ip.interpolate_1d(self.manifolds[1].p)[i]
-            channel.update(self.channel_mole_flow[:, i])
+            channel.update(mass_flow_in=
+                           self.channel_mass_flow[i]/self.channel_multiplier)
 
+        # Inlet header update
         self.manifolds[0].p_out = self.channels[-1].p[0]
-        self.manifolds[0].update(mole_flow_in, -self.channel_mole_flow)
+        mass_fraction = np.array([channel.fluid.mass_fraction[:, 0]
+                                  for channel in self.channels]).transpose()
+        mass_source = -self.channel_mass_flow * mass_fraction
+        self.manifolds[0].update(mass_flow_in=self.mass_flow_in,
+                                 mass_source=mass_source)
 
-        dp_channels = np.array([channel.p[0] - channel.p[-1]
-                                for channel in self.channels])
+        self.vol_flow_in = \
+            self.mass_flow_in / self.manifolds[0].fluid.density[0]
+
+        dp_channel = np.array([channel.p[0] - channel.p[-1]
+                               for channel in self.channels])
+        vol_flow_channel = np.array([np.average(channel.vol_flow)
+                                     for channel in self.channels])
+        visc_channel = np.array([np.average(channel.fluid.viscosity)
+                                 for channel in self.channels])
+
+        self.k_perm[:] = vol_flow_channel / dp_channel * visc_channel
+        self.dp_ref = dp_channel[-1]
+
         p_in = ip.interpolate_1d(self.manifolds[0].p)
         p_out = ip.interpolate_1d(self.manifolds[1].p)
-        print(self.manifolds[0].velocity)
-        print(self.manifolds[0].p)
-        print(self.manifolds[1].p)
-        print(p_in - p_out)
-        print(dp_channels)
-        print(dp_channels[-1] + p_in[0] - self.manifolds[0].p[-1]
-              + p_out[-1] - self.manifolds[1].p[0])
-        self.alpha[:] = (p_in - p_out) / dp_channels
-        print(self.alpha)
-        self.channel_vol_flow *= self.alpha
-        self.channel_mole_flow *= self.alpha
 
-    def update(self, vol_flow_in=None):
+        self.alpha[:] = (p_in - p_out) / self.dp_ref
+        self.dp_ref = self.vol_flow_in / np.sum(self.alpha) \
+            * visc_channel[-1] / self.k_perm[-1]
+        p_in += -self.manifolds[0].p_out + self.manifolds[1].p[-1] + self.dp_ref
+        self.alpha[:] = (p_in - p_out) / self.dp_ref
+        self.channel_vol_flow[:] = (p_in - p_out) * self.k_perm / visc_channel
+        density = np.array([channel.fluid.density[0] for channel in
+                            self.channels])
+        self.channel_mass_flow[:] = \
+            self.channel_vol_flow * density
+
+    def update(self, inlet_mass_flow=None):
         """
         Update the flow circuit
         """
-        if vol_flow_in is not None:
-            self.vol_flow_in = vol_flow_in
-        self.channel_vol_flow[:] = self.vol_flow_in / self.n_channels
-        fluid_in = self.manifolds[0].fluid
-        total_mole_flow_in = self.vol_flow_in * fluid_in.density[0] \
-            / fluid_in.mw[0] * fluid_in.mole_fraction[:, 0]
+        if inlet_mass_flow is not None:
+            self.mass_flow_in = inlet_mass_flow
+            self.channel_mass_flow[:] = self.mass_flow_in / self.n_channels
 
-        channel_vol_flow_old = np.copy(self.channel_vol_flow)
+        channel_vol_flow_old = np.zeros(self.channel_vol_flow.shape)
+        channel_vol_flow_old[:] = 1e3
         for i in range(self.max_iter):
-            self.single_loop(total_mole_flow_in)
-            zeros = np.zeros(self.channel_vol_flow.shape)
-            error = np.sum(np.divide(self.channel_vol_flow -
-                                     channel_vol_flow_old, channel_vol_flow_old,
-                                     where=channel_vol_flow_old != 0.0) ** 2.0)
+            self.single_loop(self.mass_flow_in)
+            error = \
+                np.sum(np.divide(self.channel_vol_flow - channel_vol_flow_old,
+                                 self.channel_vol_flow,
+                                 where=channel_vol_flow_old != 0.0) ** 2.0)
+            print(channel_vol_flow_old)
+            print(self.channel_vol_flow)
             channel_vol_flow_old[:] = self.channel_vol_flow
             print(error)
-            print(self.channel_vol_flow)
-            print(channel_vol_flow_old)
-            print(np.average(self.alpha))
-            print(np.sum(self.channel_mole_flow))
-            print(np.sum(total_mole_flow_in))
             if error < self.tolerance:
                 break
             if i == (self.max_iter - 1):
                 print('Maximum number of iterations in update() of {} '
                       'reached'.format(self))
-
-    def calc_header_temperature(self):
-        """
-        This function mixes up the given cell outlet temperatures
-        to the total header outlet temperatures over the z-axis.
-        The given cell inlet temperatures
-        are used as the header inlet temperatures.
-        """
-        self.head_temp[0] = self.cell_temp[0]
-        self.head_temp[1] = np.matmul(self.fwd_mat,
-                                      self.cell_f_mass_flow[1] * self.cell_cp[1] *
-                                      self.cell_temp[1])\
-                            / (self.head_cp[1] * self.head_f_mass_flow[1])
-
-    def calc_ref_permeability(self):
-        """"
-        Calculation of the permeability of the reference cell
-        and a pressure drop correction factor.
-        """
-        self.ref_perm = np.average(self.cell_visc[:, 0]) \
-                        * self.channel_length[0] * np.average(self.cell_mol_flow[:, 0]) \
-                        / (self.channel_cross_area[0] * self.cell_ref_p_drop) / self.channel_multiplier
-        self.cell_ref_p_drop_cor = \
-            np.average(self.cell_mol_flow[:, 0]) \
-            / self.channel_multiplier * np.average(self.cell_visc[:, 0]) \
-            * self.channel_length[0] / (self.channel_cross_area[0] * self.ref_perm)
-        self.p_cor_fac = self.cell_ref_p_drop / self.cell_ref_p_drop_cor
-
-    def calc_pressure_distribution_factor(self):
-        """
-        Calculation of the pressure distribution factor.
-        """
-        self.p_dist_fac = \
-            (self.head_p[0] - self.head_p[1]) / self.cell_ref_p_drop
-
-    def calc_new_ref_p_drop(self):
-        """
-        Calculation of the updated cell_ref_p_drop.
-        """
-        self.cell_ref_p_drop = self.head_mol_flow[0, -1] \
-            * np.average(self.cell_visc[:, 0]) * self.channel_length[0] \
-            / (self.ref_perm * np.sum(self.p_dist_fac)
-               * self.channel_cross_area[0] * self.channel_multiplier)
-
-    def calc_new_cell_flows(self):
-        """
-        Calculation of the new inlet cell molar flows.
-        """
-        self.cell_mol_flow_old = copy.deepcopy(self.cell_mol_flow[0])
-        self.cell_mol_flow[0] = (self.head_p[0] - self.head_p[1]) \
-            * self.ref_perm * self.channel_cross_area[0] \
-            / (np.average(self.cell_visc) * self.channel_length[0] *
-               self.p_cor_fac) * self.channel_multiplier
-
-    def calc_criteria(self):
-        """
-        Calculation of the convergence of the flow distribution.
-        """
-        self.criteria = \
-            np.sum(((self.cell_mol_flow[0] - self.cell_mol_flow_old)
-                    / self.cell_mol_flow_old)**2)
 
 
 class TwoPhaseMixtureFlowCircuit(GasMixtureFlowCircuit, OutputObject):
@@ -271,8 +188,8 @@ class TwoPhaseMixtureFlowCircuit(GasMixtureFlowCircuit, OutputObject):
         super().__init__(dict_flow_circuit, manifolds, channels,
                          channel_multiplier)
 
-    def update(self, vol_flow_in=None):
-        super().update(vol_flow_in)
+    def update(self, inlet_mass_flow=None):
+        super().update(inlet_mass_flow)
 
 
 def flow_circuit_factory(dict_fluid, dict_channel, dict_in_manifold,

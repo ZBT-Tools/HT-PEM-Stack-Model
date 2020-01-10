@@ -9,7 +9,8 @@ import sys
 import system.channel as chl
 import system.fluid2 as fluids
 import system.flow_circuit as flow_circuit
-
+import matplotlib.pyplot as plt
+import system.interpolation as ip
 
 np.set_printoptions(threshold=sys.maxsize, linewidth=10000,
                     precision=9, suppress=True)
@@ -30,20 +31,20 @@ def do_c_profile(func):
 
 
 
-n_chl = 10
+n_chl = 100
 n_subchl = 10
 
 channel_dict = {
     'name': 'Channel',
-    'channel_length': 0.1,
+    'channel_length': 0.4,
     'p_out': 101325.0,
     'temp_in': 300.0,
     'hum_in': 0.1,
     'flow_direction': 1,
     'channel_width': 0.0010,
     'channel_height': 0.0010,
-    'bend_number': 0,
-    'bend_friction_factor': 0.0,
+    'bend_number': 40,
+    'bend_friction_factor': 0.2,
     'additional_friction_fractor': 0.0
     }
 
@@ -56,8 +57,8 @@ in_manifold_dict = {
     'temp_in': 300.0,
     'hum_in': 0.1,
     'flow_direction': 1,
-    'channel_width': 0.004,
-    'channel_height': 0.004,
+    'channel_width': 0.01,
+    'channel_height': 0.01,
     'bend_number': 0,
     'bend_friction_factor': 0.0,
     'additional_friction_fractor': 1.7
@@ -85,12 +86,12 @@ flow_model = flow_circuit.flow_circuit_factory(fluid_dict, channel_dict,
 # ones = np.ones(n_chl)
 # dmole = np.outer(total_mole_flow_in / n_chl, ones)
 # flow_model.manifolds[0].update(total_mole_flow_in, -dmole)
-print(flow_model.manifolds[0].fluid.temperature)
-print(flow_model.manifolds[0].fluid.mole_fraction)
-print(flow_model.manifolds[0].fluid.density)
-print(flow_model.manifolds[0].fluid.viscosity)
-print(flow_model.manifolds[0].fluid.specific_heat)
-print(flow_model.manifolds[0].fluid.thermal_conductivity)
+# print(flow_model.manifolds[0].fluid.temperature)
+# print(flow_model.manifolds[0].fluid.mole_fraction)
+# print(flow_model.manifolds[0].fluid.density)
+# print(flow_model.manifolds[0].fluid.viscosity)
+# print(flow_model.manifolds[0].fluid.specific_heat)
+# print(flow_model.manifolds[0].fluid.thermal_conductivity)
 
 # flow_model.manifolds[1].update()
 # print(np.sum(flow_model.manifolds[1].fluid.mole_fraction, axis=0))
@@ -99,7 +100,12 @@ print(flow_model.manifolds[0].fluid.thermal_conductivity)
 # print(flow_model.manifolds[1].fluid.gas.pressure)
 
 
-flow_model.update(vol_flow_in=2e-5)
+flow_model.update(inlet_mass_flow=2e-5)
+x = ip.interpolate_1d(flow_model.manifolds[0].x)
+y = flow_model.channel_vol_flow / np.average(flow_model.channel_vol_flow)
+plt.plot(x, y)
+plt.show()
+
 
 
 

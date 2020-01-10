@@ -175,6 +175,7 @@ class Channel(ABC, OutputObject):
 class IncompressibleFluidChannel(Channel):
     def __init__(self, channel_dict, fluid):
         super().__init__(channel_dict, fluid)
+        self.mass_source = np.zeros((self.fluid.n_species, self.n_ele))
 
     def update(self, mass_flow_in=None, dmass=None):
         self.calc_mass_balance(mass_flow_in, dmass)
@@ -184,11 +185,13 @@ class IncompressibleFluidChannel(Channel):
         self.calc_heat_transfer_coeff()
         self.calc_heat_capacitance()
 
-    def calc_mass_balance(self, mass_flow_in=None, dmass=None):
+    def calc_mass_balance(self, mass_flow_in=None, mass_source=None):
         if mass_flow_in is not None:
             self.mass_flow_total[:] = mass_flow_in
-        if dmass is not None:
-            g_func.add_source(self.mass_flow_total, dmass,
+        if mass_source is not None:
+            self.mass_source[:] = mass_source
+        if mass_source is not None:
+            g_func.add_source(self.mass_flow_total, self.mass_source,
                               self.flow_direction, self.tri_mtx)
 
 
@@ -199,6 +202,7 @@ class GasMixtureChannel(Channel):
         arr_shape = (self.fluid.n_species, self.n_nodes)
         self.mole_flow = np.zeros(arr_shape)
         self.mass_flow = np.zeros(arr_shape)
+        self.mole_source = np.zeros((self.fluid.n_species, self.n_ele))
 
         self.add_print_data(self.mole_flow, 'Mole Flow',
                             'mol/s', self.fluid.species.names)
@@ -215,29 +219,42 @@ class GasMixtureChannel(Channel):
         # self.calc_mass_balance(mol_flow_in, dmol)
         # self.calc_flow_velocity()
 
-    def calc_mass_balance(self, mole_flow_in=None, dmole=None):
+    def calc_mass_balance(self, mass_flow_in=None, mass_source=None):
         """
         Calculate mass balance in 1D channel
-        :param mole_flow_in: inlet mol flow
-        :param dmole: 2D array (n_species x n_elements) of discretized molar
-        source
+        :param mass_flow_in: inlet mol flow
+        :param mass_source: 2D array (n_species x n_elements) of discretized
+                            mass source
         :return: None
         """
-        if mole_flow_in is not None:
-            if mole_flow_in.shape == self.mole_flow.shape:
-                self.mole_flow[:] = mole_flow_in
+        if mass_flow_in is not None:
+            try:
+                if len(mass_flow_in) == len(self.mass_flow):
+                    mass_flow = mass_flow_in
+                elif np.shape(mass_flow_in) == self.mass_flow_total.shape:
+                    mass_flow = \
+                        np.outer(self.fluid.mass_fraction, mass_flow_in)
+                else:
+                    raise ValueError('size of first dimension of mass_flow_in '
+                                     'must be n_species')
+            except TypeError:
+                mass_flow = self.fluid.mass_fraction * mass_flow_in
+
+            self.mole_flow[:] = \
+                (mass_flow.transpose() / self.fluid.species.mw).transpose()
+
+        if mass_source is not None:
+            if np.shape(mass_source) == (self.fluid.n_species, self.n_ele):
+                self.mole_source[:] = \
+                    (mass_source.transpose()
+                     / self.fluid.species.mw).transpose()
             else:
-                ones = np.zeros(self.mole_flow.shape[-1])
-                ones.fill(1.0)
-                self.mole_flow[:] = np.outer(mole_flow_in, ones)
-        if dmole is not None:
-            if np.shape(dmole) == (self.fluid.n_species, self.n_ele):
-                for i in range(self.fluid.n_species):
-                    g_func.add_source(self.mole_flow[i], dmole[i],
-                                      self.flow_direction, self.tri_mtx)
-            else:
-                raise ValueError('Shape of dmol does not conform '
-                                 'to mole_flow array')
+                raise ValueError('shape of mass_source does not conform '
+                                 'to mole_source array')
+        for i in range(self.fluid.n_species):
+            g_func.add_source(self.mole_flow[i], self.mole_source[i],
+                              self.flow_direction, self.tri_mtx)
+
         self.mole_flow_total[:] = np.sum(self.mole_flow, axis=0)
         self.mass_flow[:] = \
             (self.mole_flow.transpose() * self.fluid.species.mw).transpose()
@@ -260,11 +277,9 @@ class TwoPhaseMixtureChannel(GasMixtureChannel):
         self.add_print_data(self.mole_flow_gas, 'Gas Mole Flow', 'mol/s',
                             self.fluid.species.names)
 
-    def update(self, mole_flow_in=None, dmol=None):
-        self.calc_mass_balance(mole_flow_in, dmol)
-        if mole_flow_in is None:
-            mole_flow_in = self.mole_flow[:, 0]
-        self.fluid.update(self.temp, self.p, mole_flow_in)
+    def update(self, mass_flow_in=None, mass_source=None):
+        self.calc_mass_balance(mass_flow_in, mass_source)
+        self.fluid.update(self.temp, self.p, self.mole_flow[:, 0])
         self.calc_two_phase_flow()
         self.calc_flow_velocity()
         self.calc_pressure()
@@ -276,12 +291,13 @@ class TwoPhaseMixtureChannel(GasMixtureChannel):
         Calculates the gas phase velocity.
         """
         self.vol_flow_gas[:] = self.mass_flow_gas_total / self.fluid.density
+        self.vol_flow[:] = self.vol_flow_gas
         self.velocity[:] = np.maximum(self.vol_flow_gas / self.cross_area, 0.0)
         self.reynolds[:] = self.velocity * self.d_h * self.fluid.density \
             / self.fluid.viscosity
 
-    def calc_mass_balance(self, mole_flow_in=None, dmole=None):
-        super().calc_mass_balance(mole_flow_in, dmole)
+    def calc_mass_balance(self, mass_flow_in=None, mass_source=None):
+        super().calc_mass_balance(mass_flow_in, mass_source)
         # self.calc_two_phase_flow()
 
     def calc_two_phase_flow(self):

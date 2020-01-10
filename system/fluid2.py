@@ -19,16 +19,20 @@ class Fluid(ABC, OutputObject):
             if len(temperature) == nx:
                 self.temperature = temperature
             else:
-                raise ValueError('Argument temperature must be of length nx')
+                raise ValueError('Argument temperature must be scalar or of '
+                                 'length nx')
         except TypeError:
-            self.temperature = np.full(nx, temperature)
+            self.temperature = np.zeros(nx)
+            self.temperature.fill(temperature)
         try:
             if len(pressure) == nx:
                 self.pressure = pressure
             else:
-                raise ValueError('Argument pressure must be of length nx')
+                raise ValueError('Argument pressure must be scalar or of '
+                                 'length nx')
         except TypeError:
-            self.pressure = np.full(nx, pressure)
+            self.pressure = np.zeros(nx)
+            self.pressure.fill(pressure)
 
         self.property = dict()
         for name in self.PROPERTY_NAMES:
@@ -367,13 +371,13 @@ class TwoPhaseMixture(Fluid):
     def species(self):
         return self.gas.species
 
-    def update(self, temperature, pressure, mole_flow=None, method='ideal',
+    def update(self, temperature, pressure, composition=None, method='ideal',
                *args, **kwargs):
         super().update(temperature, pressure)
-        if mole_flow is not None:
-            if np.sum(mole_flow) > 0.0:
+        if composition is not None:
+            if np.sum(composition) > 0.0:
                 self._mole_fraction[:] = \
-                    self.calc_fraction(mole_flow).transpose()
+                    self.calc_fraction(composition).transpose()
 
         self.mw[:] = self.gas.calc_molar_mass(self.mole_fraction)
         self._mass_fraction[:] = \
