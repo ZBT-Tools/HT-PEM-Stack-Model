@@ -6,6 +6,7 @@ import system.manifold as mfd
 import system.electrical_coupling as el_cpl
 import data.electrical_coupling_dict as el_cpl_dict
 import system.temperature_system as therm_cpl
+import system.flow_ciruit as flow
 import data.temperature_system_dict as therm_dict
 
 
@@ -28,7 +29,7 @@ class Stack:
         self.calc_cd = stack_dict['calc_current_density']
         # switch to calculate the current density distribution
         self.calc_flow_dis = stack_dict['calc_flow_distribution']
-        # switch to calculate the flow distribution
+        # switch to calculate the flow_circuit.py distribution
         self.cells = []
         # Initialize individual cells
         for i in range(self.n_cells):
@@ -78,6 +79,11 @@ class Stack:
         self.manifolds[0].head_stoi = self.cells[0].cathode.stoi
         self.manifolds[1].head_stoi = self.cells[0].anode.stoi
 
+        flow_model = flow.flow_circuit_factory(fluid_dict, channel_dict,
+                                               in_manifold_dict,
+                                               out_manifold_dict, n_chl,
+                                               n_subchl)
+
         # Initialize the electrical coupling
         if self.n_cells > 1:
             self.elec_sys = \
@@ -109,13 +115,13 @@ class Stack:
         self.stack_cell_r = []
         # cell resistance in z-direction
         self.vol_flow_gas_cat = []
-        # molar flow at the inlet and outlet of the cathode channels
+        # molar flow_circuit.py at the inlet and outlet of the cathode channels
         self.vol_flow_gas_ano = []
-        # molar flow  at the inlet and outlet of the anode channels
+        # molar flow_circuit.py  at the inlet and outlet of the anode channels
         self.m_sum_cat = []
-        # mass flow at the inlet and outlet of the cathode channels
+        # mass flow_circuit.py at the inlet and outlet of the cathode channels
         self.m_sum_ano = []
-        # mass flow at the inlet and outlet of the anode channels
+        # mass flow_circuit.py at the inlet and outlet of the anode channels
         self.cp_cat = []
         # heat capacity in the cathode channels
         self.cp_ano = []
@@ -167,7 +173,7 @@ class Stack:
 
     def update_flows(self):
         """
-        This function updates the flow distribution of gas over the stack cells
+        This function updates the flow_circuit.py distribution of gas over the stack cells
         """
         n_ch = self.cells[0].cathode.n_channel
         self.manifolds[0].update_values(
@@ -217,7 +223,7 @@ class Stack:
     def stack_dynamic_properties(self):
         """
         This function sums up the dynamic values inside the cells
-        necessary to calculate the flow distribution,
+        necessary to calculate the flow_circuit.py distribution,
         the electrical coupling or the temperature coupling
         """
         v_alarm = []

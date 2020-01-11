@@ -16,7 +16,7 @@ stoichiometry_anode = 2.
 is_ht_pem = False
 
 """"Thermal Settings"""
-# mass flow of the coolant per channel [kg/s]
+# mass flow_circuit.py of the coolant per channel [kg/s]
 mass_flow_coolant = 1.e-2
 # air inlet temperature [K]
 temp_air_in = 340.
@@ -34,10 +34,10 @@ convection_coefficient_stack_environment = 10.0
 temp_initial = 350.
 
 """Humidification"""
-# cathode inlet gas relative humidity
-inlet_humidity_cathode = 0.
-# anode inlet gas relative humidity
-inlet_humidity_anode = 0.
+# # cathode inlet gas relative humidity
+# inlet_humidity_cathode = 0.
+# # anode inlet gas relative humidity
+# inlet_humidity_anode = 0.
 
 """Fluid Mechanic Settings"""
 # pressure at the outlet of the cathode manifold [Pa]
@@ -50,9 +50,9 @@ p_manifold_anode_out = 1.e5
 # cathode_species = {'O2': 'gas', 'N2': 'gas', 'H2O': 'gas-liquid'}
 cathode_species = {'O2': 'gas', 'N2': 'gas', 'H2O': 'gas-liquid'}
 anode_species = {'H2': 'gas', 'N2': 'gas', 'H2O': 'gas-liquid'}
-# molar masses (kg/mol)
-cathode_molar_mass = [0.032, 0.028, 0.018]
-anode_molar_mass = [0.002, 0.028, 0.018]
+# # molar masses (kg/mol)
+# cathode_molar_mass = [0.032, 0.028, 0.018]
+# anode_molar_mass = [0.002, 0.028, 0.018]
 # inlet composition (molar fractions)
 cathode_inlet_composition = [0.21, 0.79, 0.0]
 anode_inlet_composition = [0.5, 0.5, 0.0]

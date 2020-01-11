@@ -42,14 +42,14 @@ class ParallelFlowCircuit(ABC, OutputObject):
             raise TypeError(err_message)
         self.manifolds = manifolds
         self.channels = channels
-        # self.manifolds[0].flow_direction = 1
-        # self.shape = dict_flow_circuit.get('shape', 'U')
-        # if self.shape not in ('U', 'Z'):
-        #     raise ValueError('shape of flow circuit must be either U or Z')
-        # if self.shape == 'U':
-        #     self.manifolds[1].flow_direction = -1
-        # else:
-        #     self.manifolds[1].flow_direction = 1
+        self.manifolds[0].flow_direction = 1
+        self.shape = dict_flow_circuit.get('shape', 'U')
+        if self.shape not in ('U', 'Z'):
+            raise ValueError('shape of flow circuit must be either U or Z')
+        if self.shape == 'U':
+            self.manifolds[1].flow_direction = -1
+        else:
+            self.manifolds[1].flow_direction = 1
         self.initialize()
         self.n_channels = len(self.channels)
         self.channel_multiplier = channel_multiplier

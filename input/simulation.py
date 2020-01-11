@@ -1,7 +1,7 @@
 """ This file contains the simulation settings"""
 
 """Simulation Settings"""
-# discretization of the flow channel along the x-axis
+# discretization of the flow_circuit.py channel along the x-axis
 elements = 4
 # convergence criteria of the simulation
 convergence_criteria = 1.e-6
@@ -17,7 +17,7 @@ save_plot_data = False
 calc_temperature = True
 # calculate the current density distribution
 calc_current_density = True
-# calculate the flow distribution
+# calculate the flow_circuit.py distribution
 calc_flow_distribution = True
 # calculate the activation voltage losses
 calc_activation_loss = True

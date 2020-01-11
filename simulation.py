@@ -62,7 +62,7 @@ class Simulation:
         self.temp_criteria = None
         # convergence criteria of the temperature
         #self.mol_flow = np.full((6, n_cells, n_nodes), 0.)
-        # molar flow of the species in the channels
+        # molar flow_circuit.py of the species in the channels
         # 0: oxygen, 1: cathode water, 2: cathode nitrogen,
         # 3: hydrogen, 4: anode water, 5: anode nitrogen
         #self.gas_con = np.full((6, n_cells, n_nodes), 0.)
@@ -136,9 +136,9 @@ class Simulation:
         # self.ht_coef_ano = np.full((n_cells, n_nodes), 0.)
         # # heat convection coefficient in the anode channels
         # self.m_flow_fluid_cat = np.full((n_cells, n_nodes), 0.)
-        # # mass flow of the fluid in the cathode channels
+        # # mass flow_circuit.py of the fluid in the cathode channels
         # self.m_flow_fluid_ano = np.full((n_cells, n_nodes), 0.)
-        # # mass flow of the fluid in the anode channels
+        # # mass flow_circuit.py of the fluid in the anode channels
         # self.cp_fluid_cat = np.full((n_cells, n_nodes), 0.)
         # # heat capacity of the cathode fluid
         # self.cp_fluid_ano = np.full((n_cells, n_nodes), 0.)

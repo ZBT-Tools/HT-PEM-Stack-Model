@@ -43,23 +43,9 @@ class Channel(ABC, OutputObject):
         self.temp.fill(self.temp_in)
         # inlet temperature
 
-        # Geometry
-        self.flow_direction = channel_dict['flow_direction']
-        if self.flow_direction not in (-1, 1):
-            raise ValueError('Member variable flow_direction '
-                             'must be either 1 or -1')
-        # flow direction
-        if self.flow_direction == 1:
-            self.id_in = 0
-        else:
-            self.id_in = -1
-
-        ones = np.zeros((self.n_ele, self.n_ele))
-        ones.fill(1.0)
-        if self.flow_direction == 1:
-            self.tri_mtx = np.tril(ones)
-        else:
-            self.tri_mtx = np.triu(ones)
+        self.tri_mtx = None
+        self.id_in = None
+        self._flow_direction = channel_dict['flow_direction']
 
         self.width = channel_dict['channel_width']
         # channel width
@@ -105,6 +91,27 @@ class Channel(ABC, OutputObject):
         self.velocity[:] = np.maximum(self.vol_flow / self.cross_area, 0.0)
         self.reynolds[:] = self.velocity * self.d_h * self.fluid.density \
             / self.fluid.viscosity
+
+    @property
+    def flow_direction(self):
+        return self._flow_direction
+
+    @flow_direction.setter
+    def flow_direction(self, flow_direction):
+        if flow_direction not in (-1, 1):
+            raise ValueError('Member variable flow_direction '
+                             'must be either 1 or -1')
+        self._flow_direction = flow_direction
+        if self._flow_direction == 1:
+            self.id_in = 0
+        else:
+            self.id_in = -1
+        ones = np.zeros((self.n_ele, self.n_ele))
+        ones.fill(1.0)
+        if self._flow_direction == 1:
+            self.tri_mtx = np.tril(ones)
+        else:
+            self.tri_mtx = np.triu(ones)
 
     @abstractmethod
     def calc_mass_balance(self, *args, **kwargs):
@@ -167,7 +174,7 @@ class Channel(ABC, OutputObject):
                                        self.dx, self.d_h)
         # dp = (f_ele * self.dx / self.d_h + zeta_bends) \
         #     * density_ele * 0.5 * velocity_ele ** 2.0
-        pressure_direction = -self.flow_direction
+        pressure_direction = -self._flow_direction
         self.p.fill(self.p_out)
         g_func.add_source(self.p, dp, pressure_direction)
 
@@ -222,7 +229,7 @@ class GasMixtureChannel(Channel):
     def calc_mass_balance(self, mass_flow_in=None, mass_source=None):
         """
         Calculate mass balance in 1D channel
-        :param mass_flow_in: inlet mol flow
+        :param mass_flow_in: inlet mol flow_circuit.py
         :param mass_source: 2D array (n_species x n_elements) of discretized
                             mass source
         :return: None
@@ -302,7 +309,7 @@ class TwoPhaseMixtureChannel(GasMixtureChannel):
 
     def calc_two_phase_flow(self):
         """
-        Calculates the condensed phase flow and updates mole and mass fractions
+        Calculates the condensed phase flow_circuit.py and updates mole and mass fractions
         """
         mole_flow_liq_total = self.mole_flow_total \
             * self.fluid.liquid_mole_fraction

@@ -45,7 +45,7 @@ class TemperatureSystem:
         cp_cool = temp_dict['cool_cp']
         # coolant heat capacity
         m_flow_cool = temp_dict['cool_m_flow']
-        # mass flow of the coolant
+        # mass flow_circuit.py of the coolant
         rho_cool = temp_dict['cool_density']
         # density of the coolant
         visc_cool = temp_dict['cool_visc']
@@ -72,7 +72,7 @@ class TemperatureSystem:
         self.mtx = None
         # over the iterations dynamic conductance matrix
         #self.k_gas_ch = np.full((2, self.n_cells, self.n_ele), 0.)
-        # conductance of the species flow to the species channels
+        # conductance of the species flow_circuit.py to the species channels
         # 0: cathode channels, 1: anode channels
 
         self.temp_layer_vec = \
@@ -91,7 +91,7 @@ class TemperatureSystem:
         self.heat_fluid = np.zeros(np.shape(self.temp_fluid_ele))
         # heat transferred to the fluids
         #self.g_fluid = np.full((2, self.n_cells, self.n_ele), 0.)
-        # heat capacity flow of the fluid 0: cathode fluids, 1: anode fluids
+        # heat capacity flow_circuit.py of the fluid 0: cathode fluids, 1: anode fluids
         #self.cond_rate = np.full((2, self.n_cells, self.n_nodes), 0.)
         # condensation rate of the water in the channels
         # 0: cathode fluids, 1: anode fluids
@@ -102,7 +102,7 @@ class TemperatureSystem:
         #self.omega = np.full((self.n_cells, self.n_ele), 0.)
         # electrical resistance of the membrane
         self.g_cool = cp_cool * m_flow_cool * n_cool_cell
-        # coolant heat capacity flow
+        # coolant heat capacity flow_circuit.py
 
         """Calculating the coolant to channel thermal conductance"""
         pr_ch = visc_cool * cp_cool / self.lambda_cool
@@ -111,7 +111,7 @@ class TemperatureSystem:
             / (width_cool + height_cool)
         # hydraulic diameter of the coolant channel
         u_ch = m_flow_cool / (width_cool * height_cool * rho_cool)
-        # velocity of the coolant flow
+        # velocity of the coolant flow_circuit.py
         re_ch = rho_cool * u_ch * d_h_cool / visc_cool
         # reynolds number in the coolant channel
 

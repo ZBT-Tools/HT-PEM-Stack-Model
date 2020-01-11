@@ -55,6 +55,8 @@ cell_width = 100.e-3
 
 
 """Manifold Geometry"""
+# Configuration: U- or Z-shape
+anode_manifold_configuration = 'U'
 # manifold height [m]
 manifold_height = 10.5e-3
 # manifold width [m]

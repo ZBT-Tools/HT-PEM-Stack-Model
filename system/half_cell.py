@@ -3,7 +3,7 @@ import data.gas_properties as g_prop
 import numpy as np
 import data.global_parameters as g_par
 import system.channel as chl
-import system.fluid as fluids
+import system.fluid2 as fluids
 import system.layers as layers
 import sys
 import system.interpolation as ip
@@ -21,7 +21,7 @@ class HalfCell:
         self.n_nodes = g_par.dict_case['nodes']
         n_ele = self.n_nodes - 1
         self.n_ele = n_ele
-        # Discretization in elements and nodes along the x-axis (flow axis)
+        # Discretization in elements and nodes along the x-axis (flow_circuit.py axis)
 
         """half cell geometry parameter"""
         self.width = cell_dict["width"]
@@ -164,7 +164,7 @@ class HalfCell:
         self.w_cross_flow = np.zeros(n_ele)
         # cross water flux through the membrane
         # self.g_fluid = np.zeros(n_nodes)
-        # heat capacity flow of the species mixture including fluid water
+        # heat capacity flow_circuit.py of the species mixture including fluid water
         # self.cp_fluid = np.zeros(n_nodes)
         # heat capacity of the species mixture including fluid water
         # self.mol_flow_liq_w = np.zeros(n_nodes)
@@ -187,7 +187,7 @@ class HalfCell:
         # self.mol_flow_gas_total = np.zeros(n_nodes)
         # self.mass_flow_gas_total = np.zeros(n_nodes)
 
-        # # fluid mass flow
+        # # fluid mass flow_circuit.py
         # self.vol_flow_gas = np.zeros(n_nodes)
         # # molar flux of the gas phase
         # (0: Reactant, 1: Water, 2: Inert Species
@@ -273,7 +273,7 @@ class HalfCell:
 
     def calc_fuel_flow(self, current_density):
         """
-        Calculates the reactant molar flow [mol/s]
+        Calculates the reactant molar flow_circuit.py [mol/s]
         """
         mol_flow_in = self.target_cd * self.active_area * self.stoi \
             * abs(self.n_stoi[self.id_fuel]) / (self.n_charge * self.faraday)
@@ -285,7 +285,7 @@ class HalfCell:
 
     def calc_water_flow(self, current_density, air_flow_in):
         """"
-        Calculates the water molar flow [mol/s]
+        Calculates the water molar flow_circuit.py [mol/s]
         """
         if not isinstance(self.channel.fluid, fluids.TwoPhaseMixture):
             raise TypeError('Fluid in channel must be of type TwoPhaseMixture')
@@ -299,7 +299,7 @@ class HalfCell:
             * current_density / (self.n_charge * self.faraday)
         dmol += h2o_prod
         h2o_cross = self.active_area_dx * self.w_cross_flow \
-            * self.channel.flow_direction
+            * self.channel._flow_direction
         dmol += h2o_cross
         return mol_flow_in, dmol
 
@@ -353,7 +353,7 @@ class HalfCell:
         """
         reac_conc = self.channel.fluid.concentration[self.id_fuel]
         reac_conc_ele = ip.interpolate_1d(reac_conc)
-        if self.channel.flow_direction == 1:
+        if self.channel._flow_direction == 1:
             reac_conc_in = reac_conc[:-1]
         else:
             reac_conc_in = reac_conc[1:]
