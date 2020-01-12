@@ -8,7 +8,7 @@ import copy
 import sys
 import system.channel as chl
 import system.fluid2 as fluids
-import system.flow as flow_circuit
+import system.flow_circuit as flow_circuit
 import matplotlib.pyplot as plt
 import system.interpolation as ip
 
@@ -65,11 +65,14 @@ in_manifold_dict = {
 
 out_manifold_dict = copy.deepcopy(in_manifold_dict)
 out_manifold_dict['name'] = 'Outlet Manifold'
-out_manifold_dict['flow_direction'] = 1
 
+flow_circuit_dict = {
+    'name': 'Flow Circuit',
+    'shape': 'U'
+    }
 
-flow_model = flow_circuit.flow_circuit_factory(fluid_dict, channel_dict,
-                                               in_manifold_dict,
+flow_model = flow_circuit.flow_circuit_factory(flow_circuit_dict, fluid_dict,
+                                               channel_dict, in_manifold_dict,
                                                out_manifold_dict, n_chl,
                                                n_subchl)
 
@@ -100,7 +103,7 @@ flow_model = flow_circuit.flow_circuit_factory(fluid_dict, channel_dict,
 # print(flow_model.manifolds[1].fluid.gas.pressure)
 
 
-flow_model.update(inlet_mass_flow=5e-6)
+flow_model.update(inlet_mass_flow=1e-5)
 x = ip.interpolate_1d(flow_model.manifolds[0].x)
 flow_model.manifolds[0].zeta_other = 0.5
 flow_model.manifolds[1].zeta_other = 0.5
@@ -122,8 +125,8 @@ plt.show()
 p_in = ip.interpolate_1d(flow_model.manifolds[0].p)
 p_out = ip.interpolate_1d(flow_model.manifolds[1].p)
 
-plt.plot(p_in/np.average(p_in))
-plt.plot(p_out/np.average(p_out))
+#plt.plot(p_in/np.average(p_in))
+plt.plot(p_out)
 plt.show()
 
 

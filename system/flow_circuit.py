@@ -50,6 +50,7 @@ class ParallelFlowCircuit(ABC, OutputObject):
             self.manifolds[1].flow_direction = -1
         else:
             self.manifolds[1].flow_direction = 1
+
         self.initialize()
         self.n_channels = len(self.channels)
         self.channel_multiplier = channel_multiplier
@@ -222,8 +223,9 @@ class TwoPhaseMixtureFlowCircuit(GasMixtureFlowCircuit, OutputObject):
         super().update(inlet_mass_flow)
 
 
-def flow_circuit_factory(dict_fluid, dict_channel, dict_in_manifold,
-                         dict_out_manifold, n_channels, channel_multiplier=1.0):
+def flow_circuit_factory(dict_circuit, dict_fluid, dict_channel,
+                         dict_in_manifold, dict_out_manifold, n_channels,
+                         channel_multiplier=1.0):
     nx = g_par.dict_case['nodes']
     fluid = \
         [fluids.fluid_factory(nx, dict_fluid['fluid_name'],
@@ -241,7 +243,5 @@ def flow_circuit_factory(dict_fluid, dict_channel, dict_in_manifold,
     manifolds = [chl.Channel(dict_in_manifold, fluid[0]),
                  chl.Channel(dict_out_manifold, fluid[1])]
 
-    flow_circuit_dict = {'name': 'Flow Circuit',
-                         'shape': 'U'}
-    return ParallelFlowCircuit(flow_circuit_dict, manifolds, channels,
+    return ParallelFlowCircuit(dict_circuit, manifolds, channels,
                                channel_multiplier=channel_multiplier)

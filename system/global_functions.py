@@ -92,7 +92,8 @@ def calc_friction_factor(reynolds, method='Blasius', out=None):
         raise NotImplementedError
 
 
-def calc_pressure_drop(velocity, density, f, zeta, length, diameter):
+def calc_pressure_drop(velocity, density, f, zeta, length, diameter,
+                       pressure_recovery=False):
     """
     Calculates the pressure drop at a defined t-junction,
     according to (Koh, 2003).
@@ -102,6 +103,7 @@ def calc_pressure_drop(velocity, density, f, zeta, length, diameter):
     :param zeta: additional loss factors
     :param length: length of element (element-wise)
     :param diameter: hydraulic diameter of pipe
+    :param pressure_recovery: for dividing manifolds with momentum effects
     :return: pressure drop (element-wise)
     """
     if np.shape(velocity)[0] != (np.shape(length)[0] + 1):
@@ -110,9 +112,14 @@ def calc_pressure_drop(velocity, density, f, zeta, length, diameter):
                          'must be element-wise (n)')
     v1 = velocity[:-1]
     v2 = velocity[1:]
-    a = (v1 ** 2.0 - v2 ** 2.0) * .5
-    b = v2 ** 2.0 * (2. * f * length / diameter + zeta * .5)
-    return density * (a + b)
+    a = v2 ** 2.0 * (2. * f * length / diameter + zeta * .5)
+    if pressure_recovery:
+        b = ((v2 - v1) / length) ** 2.0
+        c = 0.0  # ((v2 - v1) / length) ** 2.0
+    else:
+        b = (v1 ** 2.0 - v2 ** 2.0) * .5
+        c = 0.0
+    return density * (a + b + c)
 
 
 def calc_visc_mix(species_viscosity, mol_fraction, mol_mass):

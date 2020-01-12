@@ -6,7 +6,7 @@ import system.manifold as mfd
 import system.electrical_coupling as el_cpl
 import data.electrical_coupling_dict as el_cpl_dict
 import system.temperature_system as therm_cpl
-import system.flow_ciruit as flow
+import system.flow_circuit as flow
 import data.temperature_system_dict as therm_dict
 
 

@@ -47,6 +47,8 @@ class Channel(ABC, OutputObject):
         self.id_in = None
         self._flow_direction = channel_dict['flow_direction']
 
+        self.pressure_recovery = False
+
         self.width = channel_dict['channel_width']
         # channel width
         self.height = channel_dict['channel_height']
@@ -171,7 +173,8 @@ class Channel(ABC, OutputObject):
         f_ele = g_func.calc_friction_factor(reynolds_ele)
         # friction_factor = 64.0 / reynolds_ele
         dp = g_func.calc_pressure_drop(self.velocity, density_ele, f_ele, zeta,
-                                       self.dx, self.d_h)
+                                       self.dx, self.d_h,
+                                       self.pressure_recovery)
         # dp = (f_ele * self.dx / self.d_h + zeta_bends) \
         #     * density_ele * 0.5 * velocity_ele ** 2.0
         pressure_direction = -self._flow_direction
