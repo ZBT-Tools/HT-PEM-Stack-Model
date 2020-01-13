@@ -113,13 +113,8 @@ def calc_pressure_drop(velocity, density, f, zeta, length, diameter,
     v1 = velocity[:-1]
     v2 = velocity[1:]
     a = v2 ** 2.0 * (2. * f * length / diameter + zeta * .5)
-    if pressure_recovery:
-        b = ((v2 - v1) / length) ** 2.0
-        c = 0.0  # ((v2 - v1) / length) ** 2.0
-    else:
-        b = (v1 ** 2.0 - v2 ** 2.0) * .5
-        c = 0.0
-    return density * (a + b + c)
+    b = (v1 ** 2.0 - v2 ** 2.0) * .5
+    return density * (a + b)
 
 
 def calc_visc_mix(species_viscosity, mol_fraction, mol_mass):

@@ -30,7 +30,7 @@ def do_c_profile(func):
     return profiled_func
 
 
-n_chl = 40
+n_chl = 20
 n_subchl = 10
 
 channel_dict = {
@@ -51,7 +51,7 @@ fluid_dict = input_dicts.dict_cathode_fluid
 
 in_manifold_dict = {
     'name': 'Inlet Manifold',
-    'channel_length': 40*0.006-0.002,
+    'channel_length': 1.0,
     'p_out': channel_dict['p_out'],
     'temp_in': 300.0,
     'hum_in': 0.1,
@@ -103,18 +103,18 @@ flow_model = flow_circuit.flow_circuit_factory(flow_circuit_dict, fluid_dict,
 # print(flow_model.manifolds[1].fluid.gas.pressure)
 
 
-flow_model.update(inlet_mass_flow=1e-5)
+flow_model.update(inlet_mass_flow=1e-3)
 x = ip.interpolate_1d(flow_model.manifolds[0].x)
-flow_model.manifolds[0].zeta_other = 0.5
-flow_model.manifolds[1].zeta_other = 0.5
+flow_model.manifolds[0].zeta_other = 1.0
+flow_model.manifolds[1].zeta_other = 1.0
 flow_model.update()
 q1 = flow_model.channel_vol_flow / np.average(flow_model.channel_vol_flow)
 flow_model.manifolds[0].zeta_other = 0.4
 flow_model.manifolds[1].zeta_other = 0.4
 flow_model.update()
 q2 = flow_model.channel_vol_flow / np.average(flow_model.channel_vol_flow)
-flow_model.manifolds[0].zeta_other = 0.3
-flow_model.manifolds[1].zeta_other = 0.3
+flow_model.manifolds[0].zeta_other = 1.0
+flow_model.manifolds[1].zeta_other = 1.0
 flow_model.update()
 q3 = flow_model.channel_vol_flow / np.average(flow_model.channel_vol_flow)
 
@@ -125,13 +125,19 @@ plt.show()
 p_in = ip.interpolate_1d(flow_model.manifolds[0].p)
 p_out = ip.interpolate_1d(flow_model.manifolds[1].p)
 
-#plt.plot(p_in/np.average(p_in))
-plt.plot(p_out)
+plt.plot(p_in/np.average(p_in))
+plt.plot(p_out/np.average(p_out))
 plt.show()
-
-
-
-
-
-
-
+i = 3
+y = np.hstack((p_in[:i], flow_model.channels[i].p, p_out[:i]))
+plt.plot(y)
+i = 10
+y = np.hstack((p_in[:i], flow_model.channels[i].p, p_out[:i]))
+plt.plot(y)
+i = 17
+y = np.hstack((p_in[:i], flow_model.channels[i].p, p_out[:i]))
+plt.plot(y)
+plt.show()
+print(p_in)
+print(np.array([channel.p for channel in flow_model.channels]).transpose())
+print(p_out)
