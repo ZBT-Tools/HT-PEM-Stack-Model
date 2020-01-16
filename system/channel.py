@@ -58,6 +58,8 @@ class Channel(ABC, OutputObject):
         self.zeta_bends = channel_dict.get('bend_friction_factor', 0.0)
         self.zeta_other = \
             channel_dict.get('additional_friction_fractor', 0.0)
+        self.friction_factor = np.zeros(self.n_ele)
+
         # bend friction factor
         self.base_area = self.width * self.length
         # planar area of the channel
@@ -170,11 +172,11 @@ class Channel(ABC, OutputObject):
         reynolds_ele = ip.interpolate_1d(self.reynolds)
         zeta_bends = self.zeta_bends * self.n_bends / self.n_ele
         zeta = zeta_bends + self.zeta_other
-        f_ele = g_func.calc_friction_factor(reynolds_ele)
+        self.friction_factor[:] = g_func.calc_friction_factor(reynolds_ele)
         # friction_factor = 64.0 / reynolds_ele
-        dp = g_func.calc_pressure_drop(self.velocity, density_ele, f_ele, zeta,
-                                       self.dx, self.d_h,
-                                       self.pressure_recovery)
+        dp = g_func.calc_pressure_drop(self.velocity, density_ele,
+                                       self.friction_factor, zeta, self.dx,
+                                       self.d_h, self.pressure_recovery)
         # dp = (f_ele * self.dx / self.d_h + zeta_bends) \
         #     * density_ele * 0.5 * velocity_ele ** 2.0
         pressure_direction = -self._flow_direction

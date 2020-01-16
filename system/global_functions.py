@@ -76,17 +76,24 @@ def calc_reynolds_number(roh, v, d, visc):
     return np.divide(roh * v * d, visc, where=visc != 0.0)
 
 
-def calc_friction_factor(reynolds, method='Blasius', out=None):
+def calc_friction_factor(reynolds, method='Blasius', type='Darcy'):
     """
     Calculates the fanning friction factor between a wall
     and a fluid for the laminar and turbulent case.
     """
+    f = 1.0
+    if type == 'Darcy':
+        f = 4.0
+    elif type == 'Fanning':
+        f = 1.0
+    else:
+        ValueError('friction factor type can only be Darcy or Fanning')
     lam = np.zeros(reynolds.shape)
     turb = np.zeros(reynolds.shape)
     if method == 'Blasius':
-        lam = np.divide(16.0, reynolds, out=lam, where=reynolds > 0.0)
-        turb = 0.0791 * np.power(reynolds, -0.25, out=turb,
-                                 where=reynolds > 0.0)
+        lam = np.divide(f * 16.0, reynolds, out=lam, where=reynolds > 0.0)
+        turb = f * 0.0791 * np.power(reynolds, -0.25, out=turb,
+                                     where=reynolds > 0.0)
         return np.where(reynolds < 2100.0, lam, turb)
     else:
         raise NotImplementedError
@@ -99,7 +106,7 @@ def calc_pressure_drop(velocity, density, f, zeta, length, diameter,
     according to (Koh, 2003).
     :param density: fluid density array (element-wise)
     :param velocity: velocity array (node-wise)
-    :param f: fanning friction factor (element-wise)
+    :param f: darcy friction factor (element-wise)
     :param zeta: additional loss factors
     :param length: length of element (element-wise)
     :param diameter: hydraulic diameter of pipe
@@ -112,7 +119,7 @@ def calc_pressure_drop(velocity, density, f, zeta, length, diameter,
                          'must be element-wise (n)')
     v1 = velocity[:-1]
     v2 = velocity[1:]
-    a = v2 ** 2.0 * (2. * f * length / diameter + zeta * .5)
+    a = v2 ** 2.0 * (f * length / diameter + zeta) * 0.5
     b = (v1 ** 2.0 - v2 ** 2.0) * .5
     return density * (a + b)
 
