@@ -29,19 +29,6 @@ class Cell:
         # thermal related electrical resistance gain of the membrane
         self.calc_mem_loss = dict_cell['calc_mem_loss']
 
-        """membrane resistance parameter (Goßling)"""
-        self.fac_res_fit = 0.5913
-        self.fac_res_basic = 0.03
-        self.res_25 = 101249.82 * self.th_mem \
-            + 36.24 * self.th_mem\
-            + 2805.83 * self.th_mem + 0.021
-        self.res_65 = 3842453.95 * self.th_mem\
-            - 0.2775 * self.th_mem\
-            + 2.181 * self.th_mem + 0.029
-        self.fac_m = (np.log10(self.res_65) - np.log10(self.res_25)) / (
-                    (1000. / (65. + 273.15)) - (1000. / 25. + 273.15))
-        self.fac_n = np.log10(self.res_65) - self.fac_m * 1000. / (65. + 273.15)
-
         """heat conductivity along and through the cell layers"""
         self.width_channels = self.cathode.channel.width\
             * self.cathode.channel_numb\
@@ -210,32 +197,6 @@ class Cell:
         """
         self.omega_ca = (self.mem_base_r
                          - self.mem_acl_r * self.temp_mem) * 1.e-4
-        self.omega = self.omega_ca / self.active_area_dx
-
-    def calc_mem_resistivity_gossling(self):
-        """
-        Calculates the membrane resitace for NT-PEMFC according to Goßling
-        """
-        lambda_x = np.full(g_par.dict_case['nodes'], 0.)
-        res_t = np.exp(self.fac_m * 1.e3 / self.temp_mem + self.fac_n)
-        r_avg = (self.cathode.humidity + self.anode.humidity) * 0.5
-        for q in range(g_par.dict_case['nodes']):
-            if r_avg[q] > 0:
-                lambda_x[q] = 0.3 + 6. * r_avg[q] * (
-                            1. - np.tanh(r_avg[q] - 0.5)) + 3.9 * np.sqrt(
-                    r_avg[q]) * (1. + np.tanh((r_avg[q] - 0.89) / 0.23))
-            else:
-                lambda_x[q] = -1. / (r_avg[q] - (3. + 1. / 3.))
-        a = -0.007442
-        b = 0.006053
-        c = 0.0004702
-        d = 1.144
-        e = 8.
-        res_lambda = a + b * lambda_x + c * np.exp(d * (lambda_x - e))
-        res = res_lambda * res_t / 0.01415
-        rp = self.th_mem / res
-        self.omega_ca = 1.e-4 * (self.fac_res_basic
-                                 + rp * self.fac_res_fit)
         self.omega = self.omega_ca / self.active_area_dx
 
     def calc_mem_resistivity_springer(self):
