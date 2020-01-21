@@ -221,7 +221,6 @@ class WangFlowCircuit(ParallelFlowCircuit):
                 * self.M ** 2.0
 
 
-
 def flow_circuit_factory(dict_circuit, dict_fluid, dict_channel,
                          dict_in_manifold, dict_out_manifold, n_channels,
                          channel_multiplier=1.0):
