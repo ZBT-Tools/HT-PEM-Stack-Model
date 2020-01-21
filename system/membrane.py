@@ -11,15 +11,12 @@ class Membrane(ABC, layers.SolidLayer):
             return super(Membrane, cls).__new__(Constant)
         elif model_type is 'Springer':
             return super(Membrane, cls).__new__(SpringerMembrane)
-        elif model_type is 'Goessling':
-            return super(Membrane, cls).__new__(GoesslingMembrane)
         elif model_type is 'Kvesic':
             return super(Membrane, cls).__new__(KvesicMembrane)
         else:
             raise NotImplementedError('Specified membrane model not '
                                       'implemented. Available models are '
-                                      'Constant, Springer, Goessling and '
-                                      'Kvesic.')
+                                      'Constant, Springer, and Kvesic.')
 
     def __init__(self, membrane_dict, dx, **kwargs):
         super().__init__(membrane_dict, dx)
@@ -129,40 +126,6 @@ class SpringerMembrane(WaterTransportMembrane):
         mem_cond = (0.005139 * lambda_springer - 0.00326) \
             * np.exp(1268 * (0.0033 - 1. / self.temp))
         self.omega_ca[:] = self.thickness / mem_cond * 1.e-4
-        self.omega[:] = self.omega_ca / self.area_dx
-        return self.omega, self.omega_ca
-
-
-class GoesslingMembrane(WaterTransportMembrane):
-    def __init__(self, membrane_dict, dx, **kwargs):
-        super().__init__(membrane_dict, dx, **kwargs)
-
-        # Membrane resistance parameters
-        self.fac_res_fit = 0.5913
-        self.fac_res_basic = 0.03
-        self.res_25 = \
-            101249.82 * self.thickness + 36.24 * self.thickness \
-            + 2805.83 * self.thickness + 0.021
-        self.res_65 = \
-            3842453.95 * self.thickness - 0.2775 * self.thickness \
-            + 2.181 * self.thickness + 0.029
-        self.fac_m = (np.log10(self.res_65) - np.log10(self.res_25)) / (
-                    (1000. / (65. + 273.15)) - (1000. / 25. + 273.15))
-        self.fac_n = np.log10(self.res_65) - self.fac_m * 1000. / (65. + 273.15)
-
-    def calc_ionic_resistance(self, humidity):
-        humidity = np.average(humidity, axis=0)
-        lambda_x = np.where(humidity > 0,
-                            0.3 + 6. * humidity * (1. - np.tanh(humidity - 0.5))
-                            + 3.9 * np.sqrt(humidity)
-                            * (1. + np.tanh((humidity - 0.89) / 0.23)),
-                            -1. / (humidity - (3. + 1. / 3.)))
-        res_lambda = -0.007442 + 0.006053 * lambda_x \
-            + 0.0004702 * np.exp(1.144 * (lambda_x - 8.))
-        res_t = np.exp(self.fac_m * 1.e3 / self.temp + self.fac_n)
-        rp = self.thickness / (res_lambda * res_t) * 0.01415
-        self.omega_ca[:] = \
-            1.e-4 * (self.fac_res_basic + rp * self.fac_res_fit)
         self.omega[:] = self.omega_ca / self.area_dx
         return self.omega, self.omega_ca
 
