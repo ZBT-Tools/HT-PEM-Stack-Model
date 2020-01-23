@@ -187,10 +187,10 @@ class Channel(ABC, OutputObject):
 class IncompressibleFluidChannel(Channel):
     def __init__(self, channel_dict, fluid):
         super().__init__(channel_dict, fluid)
-        self.mass_source = np.zeros((self.fluid.n_species, self.n_ele))
+        self.mass_source = np.zeros(self.n_ele)
 
-    def update(self, mass_flow_in=None, dmass=None):
-        self.calc_mass_balance(mass_flow_in, dmass)
+    def update(self, mass_flow_in=None, mass_source=None):
+        self.calc_mass_balance(mass_flow_in, mass_source)
         self.fluid.update(self.temp, self.p)
         self.calc_flow_velocity()
         self.calc_pressure()

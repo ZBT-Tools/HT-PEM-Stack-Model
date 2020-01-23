@@ -94,7 +94,7 @@ def calc_friction_factor(reynolds, method='Blasius', type='Darcy'):
         lam = np.divide(f * 16.0, reynolds, out=lam, where=reynolds > 0.0)
         turb = f * 0.0791 * np.power(reynolds, -0.25, out=turb,
                                      where=reynolds > 0.0)
-        return np.where(reynolds < 2100.0, lam, turb)
+        return np.where(reynolds < 2200.0, lam, turb)
     else:
         raise NotImplementedError
 
