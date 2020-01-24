@@ -57,7 +57,7 @@ class ParallelFlowCircuit(ABC, OutputObject):
         self.n_channels = len(self.channels)
         self.channel_multiplier = channel_multiplier
         self.tolerance = 1e-6
-        self.max_iter = 10
+        self.max_iter = 5
 
         self.mass_flow_in = self.manifolds[0].mass_flow_total[0]
         self.vol_flow_in = 0.0
@@ -133,8 +133,6 @@ class ParallelFlowCircuit(ABC, OutputObject):
             channel.p_out = ip.interpolate_1d(self.manifolds[1].p)[i]
             channel.update(mass_flow_in=
                            channel_mass_flow_in[i]/self.channel_multiplier)
-            print('channel.reynolds: ', channel.reynolds)
-        print('channel_mass_flow_in: ', channel_mass_flow_in)
         # Inlet header update
         self.manifolds[0].p_out = self.channels[-1].p[0]
         if self.multi_component:
@@ -207,9 +205,12 @@ class WangFlowCircuit(ParallelFlowCircuit):
         # self.zeta = np.zeros(self.n_channels)
         self.xsi = 1.0
         self.H = self.manifolds[0].cross_area / self.manifolds[1].cross_area
-        self.M = np.sum(np.array([np.average(channel.cross_area)
-                                  for channel in self.channels])) \
+        F_c = np.array([np.average(channel.cross_area)
+                        for channel in self.channels])
+        self.M = g_func.add_source(F_c, F_c[1:], direction=-1) \
             / self.manifolds[0].cross_area
+        # print('self.M: ', self.M)
+        # self.M = np.sum(F_c) / self.manifolds[0].cross_area
         self.E = self.manifolds[0].length / self.manifolds[0].d_h
         self.D_star = self.manifolds[0].d_h / self.manifolds[1].d_h
         self.sqr_M = self.M ** 2.0
@@ -221,25 +222,17 @@ class WangFlowCircuit(ParallelFlowCircuit):
     def update_channels(self):
         super().update_channels()
         if self.initialize:
-            print(np.array([channel.zeta_bends * channel.n_bends
-                                     for channel in self.channels]))
-            print(np.array([np.sum(channel.friction_factor * channel.dx /
-                                   channel.d_h)
-                            for channel in self.channels]))
-            print(np.array([channel.friction_factor
-                            for channel in self.channels]))
-            print(np.array([channel.reynolds
-                            for channel in self.channels]))
-            print(np.array([channel.d_h for channel in self.channels]))
-            print(np.array([channel.length for channel in self.channels]))
-            self.zeta = np.array([channel.zeta_bends * channel.n_bends
-                                     for channel in self.channels]) \
-                + np.array([np.sum(channel.friction_factor * channel.dx /
-                                   channel.d_h)
-                            for channel in self.channels])
-            self.zeta[:] += 0.0 + self.manifolds[0].zeta_other \
-                + self.manifolds[1].zeta_other
-            self.zeta *= 1.0
+            self.f_in = np.copy(self.manifolds[0].friction_factor)
+            self.f_out = np.copy(self.manifolds[1].friction_factor)
+        # if self.initialize:
+        self.zeta = np.array([channel.zeta_bends * channel.n_bends
+                                 for channel in self.channels]) \
+            + np.array([np.sum(channel.friction_factor * channel.dx /
+                               channel.d_h)
+                        for channel in self.channels])
+        self.zeta[:] += 1.0 + self.manifolds[0].zeta_other \
+            + self.manifolds[1].zeta_other
+        # self.zeta[:] = 10.0
         self.initialize = False
 
     def single_loop(self, inlet_mass_flow=None):
@@ -254,71 +247,99 @@ class WangFlowCircuit(ParallelFlowCircuit):
 
         k_in_0 = 0.6
         k_out_0 = 1.0
-        b_in = 0.15
-        b_out = 0.15
+        b_in = 0.01
+        b_out = 0.01
         W_0 = self.vol_flow_in / mfd_in.cross_area
+        print('W_0: ', W_0)
+        print('Re_0:', W_0 * mfd_in.fluid.density[0] * mfd_in.d_h /
+              mfd_in.fluid.viscosity[0])
+        print('mfd_in.velocity[:-1]: ', mfd_in.velocity[:-1])
         # mfd_in.velocity[0] = W_0
 
         print('zeta = ', self.zeta)
 
         f_in = mfd_in.friction_factor
         f_out = mfd_out.friction_factor
-        print(mfd_in.reynolds)
+        # f_in = self.f_in
+        # f_out = self.f_out
         print('f_in: ', f_in)
         print('f_out: ', f_out)
-        # f_in = f_out = 0.043
+        # f_in[:] = 0.038
+        # f_out[:] = 0.038
         k_in = k_in_0 + b_in * np.log(mfd_in.velocity[:-1] / W_0)
         k_out = k_out_0 + b_out * np.log(mfd_out.velocity[:-1] / W_0)
 
-        Q = 2.0 / (3.0 * self.zeta) * (k_in - k_out * self.sqr_H) * self.sqr_M
+        Q = 2.0 / (3.0 * self.zeta) * (k_in - k_out * self.sqr_H) \
+            * self.sqr_M
         R = - 0.25 * self.E * self.xsi / self.zeta \
             * (f_in + f_out * self.D_star * self.sqr_H) * self.sqr_M
-        Q_3 = np.power(Q, 3.0)
-        condition = np.square(R) + Q_3
+        avg_R = np.average(R)
+        avg_Q = np.average(Q)
 
+        cube_Q = np.power(Q, 3.0)
+        condition = np.square(R) + cube_Q
+        avg_condition = np.square(avg_R) + np.power(avg_Q, 3.0)
+        condition_0 = np.square(R[0]) + np.power(Q[0], 3.0)
         x = mfd_in.x / mfd_in.length
         one_third = 1.0 / 3.0
+        print('avg_condition: ', avg_condition)
+        print('condition: ', condition)
+        w = 1.0
         for i in range(self.n_channels):
-            if condition[i] < 0.0:
-                theta = np.arccos(R[i]/np.sqrt(-Q_3[i]))
-                sqrt_Q = np.sqrt(-Q[i])
+            # print('w_i: ', w)
+            # k_in_i = k_in_0 + b_in * np.log(w)
+            # k_out_i = k_out_0 + b_out * np.log(w * self.H)
+            # Q_i = 2.0 / (3.0 * self.zeta[i]) * (
+            #             k_in_i - k_out_i * self.sqr_H) * self.sqr_M
+            # R_i = - 0.25 * self.E * self.xsi / self.zeta[i] \
+            #     * (f_in[i] + f_out[i] * self.D_star * self.sqr_H) * self.sqr_M
+            # cube_Q_i = np.power(Q_i, 3.0)
+            # square_R_i = np.square(R_i)
+            # condition_i = square_R_i + cube_Q_i
+            # print('cube_Q_i: ', cube_Q_i)
+            # print('square_R_i: ', square_R_i)
+            condition_i = condition[i]
+            R_i = R[i]
+            Q_i = Q[i]
+            cube_Q_i = cube_Q[i]
+            # print('condition: ', condition_i)
+
+            if condition_i < 0.0:
+                theta = np.arccos(R_i/np.sqrt(-cube_Q_i))
+                sqrt_Q = np.sqrt(-Q_i)
                 r_1 = 2.0 * sqrt_Q * np.cos(theta * one_third)
                 r_2 = 2.0 * sqrt_Q * np.cos((theta + 2.0*np.pi) * one_third)
                 w = (np.exp(r_1 + r_2 * x[i+1]) - np.exp(r_2 + r_1 * x[i+1])) \
                     / (np.exp(r_1) - np.exp(r_2))
-            elif condition[i] == 0.0:
-                r = - 0.5 * np.power(R[i], one_third)
+                print('i :', i, ', condition < 0,  w: ', w)
+            elif condition_i == 0.0:
+                r = - 0.5 * np.power(R_i, one_third)
                 w = (1.0 - x[i+1]) * np.exp(r*x[i+1])
+                print('i :', i, ', condition == 0,  w: ', w)
             else:
-                sqrt_condition = np.sqrt(condition[i])
-                term_1 = np.cbrt(R[i] + sqrt_condition)
-                term_2 = np.cbrt(R[i] - sqrt_condition)
+                sqrt_condition = np.sqrt(condition_i)
+                term_1 = np.cbrt(R_i + sqrt_condition)
+                term_2 = np.cbrt(R_i - sqrt_condition)
                 B = term_1 + term_2
                 J = term_1 - term_2
                 sqrt3_J_by_2 = np.sqrt(3.0) * J * 0.5
                 w = np.exp(-B * x[i+1] * 0.5) \
                     * np.sin(sqrt3_J_by_2 * (1.0 - x[i+1])) \
                     / np.sin(sqrt3_J_by_2)
-            w *= W_0
-            mfd_in.velocity[i+1] = w
-            mfd_out.velocity[i+1] = w * self.H
+                print('i :', i, ', condition > 0,  w: ', w)
+            W = w * W_0
+            mfd_in.velocity[i+1] = W
+            mfd_out.velocity[i+1] = W * self.H \
+                * mfd_in.fluid.density[i+1] / mfd_out.fluid.density[i+1]
 
-        print('condition: ', condition)
+        # print('condition: ', condition)
         mass_flow_in = \
             mfd_in.velocity * mfd_in.fluid.density * mfd_in.cross_area
         self.channel_mass_flow[:] = mass_flow_in[:-1] - mass_flow_in[1:]
         self.channel_vol_flow[:] = \
             self.channel_mass_flow / ip.interpolate_1d(mfd_in.fluid.density)
-        print('velocity: ', mfd_in.velocity)
-        print('mass flow: ', self.channel_mass_flow)
-
-        # for i, channel in enumerate(self.channels):
-        #     k_in_i = k_in_0 + b_in * np.log(mfd_in.velocity[i] / W_0)
-        #     k_out_i = k_out_0 + b_out * np.log(mfd_out.velocity[i] / W_0)
-        #     Q_i = 2.0 / (3.0 * self.zeta[i]) * (k_in_i - k_out_i * self.sqr_H) \
-        #         * self.sqr_M
-        #     R_i = - 0.25 * self.E * self.xsi / self.zeta[i] \
-        #         * (f_in[i] + f_out[i] * self.D_star * self.sqr_H) * self.sqr_M
+        # print('distribution: ', self.channel_vol_flow/(np.sum(
+        #     self.channel_vol_flow)/self.n_channels))
 
 
 def flow_circuit_factory(dict_circuit, dict_fluid, dict_channel,

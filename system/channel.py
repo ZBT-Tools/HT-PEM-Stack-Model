@@ -49,26 +49,26 @@ class Channel(ABC, OutputObject):
 
         self.pressure_recovery = False
 
+        # Geometry
         self.width = channel_dict['channel_width']
-        # channel width
-        self.height = channel_dict['channel_height']
-        # channel height
+        self.cross_shape = channel_dict.get('cross_sectional_shape',
+                                            'rectangular')
+        if self.cross_shape == 'rectangular':
+            self.height = channel_dict['channel_height']
+            self.cross_area = self.width * self.height
+            self.d_h = 4. * self.cross_area / (2. * (self.width + self.height))
+        elif self.cross_shape == 'circular':
+            self.d_h = channel_dict['channel_diameter']
+            self.cross_area = self.d_h ** 2.0 / 4.0 * np.pi
+        else:
+            raise NotImplementedError
         self.n_bends = channel_dict.get('bend_number', 0)
-        # number of channel bends
         self.zeta_bends = channel_dict.get('bend_friction_factor', 0.0)
         self.zeta_other = \
             channel_dict.get('additional_friction_fractor', 0.0)
         self.friction_factor = np.zeros(self.n_ele)
-
-        # bend friction factor
         self.base_area = self.width * self.length
-        # planar area of the channel
         self.base_area_dx = self.width * self.dx
-        # planar area of an element of the channel
-        self.cross_area = self.width * self.height
-        # channel cross-sectional area
-        self.d_h = 4. * self.cross_area / (2. * (self.width + self.height))
-        # channel hydraulic diameter
 
         # Flow
         self.velocity = np.zeros(self.n_nodes)

@@ -30,12 +30,14 @@ def do_c_profile(func):
     return profiled_func
 
 
-n_chl = 9
+n_chl = 50
 n_subchl = 1
 
 channel_dict = {
     'name': 'Channel',
     'channel_length': 0.4,
+    'cross_sectional_shape': 'circular',
+    'channel_diameter': 0.00295,
     'p_out': 101325.0,
     'temp_in': 300.0,
     'hum_in': 0.1,
@@ -61,8 +63,8 @@ in_manifold_dict = {
     'temp_in': 300.0,
     'hum_in': 0.1,
     'flow_direction': 1,
-    'channel_width': 0.012,
-    'channel_height': 0.012,
+    'channel_width': 0.0075,
+    'channel_height': 0.0075,
     'bend_number': 0,
     'bend_friction_factor': 0.0,
     'additional_friction_fractor': 0.0
@@ -82,13 +84,26 @@ flow_model = flow_circuit.flow_circuit_factory(flow_circuit_dict, fluid_dict,
                                                out_manifold_dict, n_chl,
                                                n_subchl)
 
-flow_model.update(inlet_mass_flow=0.822e-2)
-x = ip.interpolate_1d(flow_model.manifolds[0].x)
+
+x = (ip.interpolate_1d(flow_model.manifolds[0].x)
+     - flow_model.manifolds[0].dx * 0.5) \
+    / (flow_model.manifolds[0].length - flow_model.manifolds[0].dx[0])
+# x = flow_model.manifolds[0].x / flow_model.manifolds[0].length
+
+flow_model.update(inlet_mass_flow=0.010125*3.333)
 q = flow_model.channel_vol_flow / np.average(flow_model.channel_vol_flow)
-print(flow_model.manifolds[0].reynolds[0])
-print(q)
-print(flow_model.manifolds[0].dx)
-plt.plot(x, q)
+reynolds = flow_model.manifolds[0].reynolds[0]
+plt.plot(x, q, label='Re='+str(reynolds))
+
+# flow_model.update(inlet_mass_flow=0.01485)
+# q = flow_model.channel_vol_flow / np.average(flow_model.channel_vol_flow)
+# reynolds = flow_model.manifolds[0].reynolds[0]
+# plt.plot(x, q, label='Re='+str(reynolds))
+
+plt.legend()
+plt.ylim([0.4, 2.2])
+plt.xlim([0.0, 1.0])
+
+plt.yticks([0.4, 1.0, 1.6, 2.2])
 plt.show()
-p_in = ip.interpolate_1d(flow_model.manifolds[0].p)
-p_out = ip.interpolate_1d(flow_model.manifolds[1].p)
+
