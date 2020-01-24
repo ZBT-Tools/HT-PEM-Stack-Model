@@ -207,10 +207,12 @@ class WangFlowCircuit(ParallelFlowCircuit):
         self.H = self.manifolds[0].cross_area / self.manifolds[1].cross_area
         F_c = np.array([np.average(channel.cross_area)
                         for channel in self.channels])
-        self.M = g_func.add_source(F_c, F_c[1:], direction=-1) \
-            / self.manifolds[0].cross_area
+        print('F_c: ', F_c)
+        sum_Fc = g_func.add_source(np.copy(F_c), F_c[1:], direction=-1)
+        print('sum_Fc: ', sum_Fc)
+        self.M = sum_Fc / np.average(self.manifolds[0].cross_area)
         # print('self.M: ', self.M)
-        # self.M = np.sum(F_c) / self.manifolds[0].cross_area
+        #self.M = np.sum(F_c) / np.average(self.manifolds[0].cross_area)
         self.E = self.manifolds[0].length / self.manifolds[0].d_h
         self.D_star = self.manifolds[0].d_h / self.manifolds[1].d_h
         self.sqr_M = self.M ** 2.0
@@ -262,8 +264,8 @@ class WangFlowCircuit(ParallelFlowCircuit):
         f_out = mfd_out.friction_factor
         # f_in = self.f_in
         # f_out = self.f_out
-        print('f_in: ', f_in)
-        print('f_out: ', f_out)
+        #print('f_in: ', f_in)
+        #print('f_out: ', f_out)
         # f_in[:] = 0.038
         # f_out[:] = 0.038
         k_in = k_in_0 + b_in * np.log(mfd_in.velocity[:-1] / W_0)

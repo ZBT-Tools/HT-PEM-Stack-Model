@@ -37,7 +37,7 @@ channel_dict = {
     'name': 'Channel',
     'channel_length': 0.4,
     'cross_sectional_shape': 'circular',
-    'channel_diameter': 0.00295,
+    'channel_diameter': 0.00298,
     'p_out': 101325.0,
     'temp_in': 300.0,
     'hum_in': 0.1,
