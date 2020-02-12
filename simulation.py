@@ -170,31 +170,10 @@ class Simulation:
         # self.mem_loss_ui = []
         # # average membrane voltage losses
 
-        # load input dictionaries
-        stack_dict = input_dicts.dict_stack
-        cell_dict = input_dicts.dict_cell
-        mem_dict = input_dicts.dict_membrane
-        anode_dict = input_dicts.dict_anode
-        cathode_dict = input_dicts.dict_cathode
-        ano_channel_dict = input_dicts.dict_anode_channel
-        cat_channel_dict = input_dicts.dict_cathode_channel
-        ano_fluid_dict = input_dicts.dict_anode_fluid
-        cat_fluid_dict = input_dicts.dict_cathode_fluid
-        ano_manifold_dict = input_dicts.dict_mfold_ano
-        cat_manifold_dict = input_dicts.dict_mfold_cat
-        electrical_dict = input_dicts.dict_electrical_coupling
-        temperature_dict = input_dicts.dict_temp_sys
-        output_dict = input_dicts.dict_output
-
-        half_cell_dicts = [cathode_dict, anode_dict]
-        channel_dicts = [cat_channel_dict, ano_channel_dict]
-        fluid_dicts = [cat_fluid_dict, ano_fluid_dict]
-        manifold_dicts = [cat_manifold_dict, ano_manifold_dict]
         # initialize stack object
-        self.stack = stack.Stack(stack_dict, cell_dict, mem_dict,
-                                 half_cell_dicts, channel_dicts, fluid_dicts,
-                                 manifold_dicts, electrical_dict,
-                                 temperature_dict)
+        self.stack = stack.Stack()
+
+        output_dict = input_dicts.dict_output
         self.output = output.Output(output_dict)
 
         self.temp_old = np.zeros_like(self.stack.temp_sys.temp_layer_vec)

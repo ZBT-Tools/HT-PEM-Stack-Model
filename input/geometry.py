@@ -27,13 +27,12 @@ coolant_channel_length = 0.651
 coolant_channel_height = 1.e-3
 # width of the coolant channel [m]
 coolant_channel_width = 1.e-3
-# number of coolant channels
+# number of coolant channels per cell
 coolant_channel_number = 10.
 # channel bends [n]
 coolant_channel_bends = 48.
 # bend pressure loss coefficient of the channel bends
 coolant_bend_pressure_loss_coefficient = 0.1
-
 
 """"Cell Geometry """
 # thickness of the membrane [m]
@@ -55,15 +54,24 @@ cell_width = 100.e-3
 
 
 """Manifold Geometry"""
+# Model type
+anode_manifold_model = 'Koh'
+cathode_manifold_model = 'Koh'
+coolant_manifold_model = 'Koh'
+
 # Configuration: U- or Z-shape
 anode_manifold_configuration = 'U'
 cathode_manifold_configuration = 'U'
+coolant_manifold_configuration = 'U'
 # manifold height [m]
 manifold_height = 10.5e-3
+coolant_manifold_height = 10e-3
 # manifold width [m]
 manifold_width = 5.5e-3
+coolant_manifold_width = 10e-3
 # geometrical pressure loss coefficient of the manifold header
 manifold_pressure_loss_coefficient = 0.1
+coolant_manifold_pressure_loss_coefficient = 0.1
 
 """Stack Settings"""
 # number of the pemfc

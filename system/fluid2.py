@@ -5,7 +5,7 @@ from system.output_object import OutputObject
 import system.species as species
 
 
-class Fluid(ABC, OutputObject):
+class OneDimensionalFluid(ABC, OutputObject):
 
     PROPERTY_NAMES = ['Density', 'Specific Heat', 'Viscosity',
                       'Thermal Conductivity']
@@ -15,28 +15,37 @@ class Fluid(ABC, OutputObject):
         print("__init__ for Fluid")
         super().__init__()
         self.name = name
+        self.nodes = nx
+        self.print_variables = \
+            {
+                'names': ['temperature', 'pressure'],
+                'units': ['K', 'Pa'],
+                'sub_names': ['None', 'None']
+            }
+        self.combine_print_variables(self.print_variables,
+                                     kwargs.get('print_variables', None))
         try:
-            if len(temperature) == nx:
+            if len(temperature) == self.nodes:
                 self.temperature = temperature
             else:
                 raise ValueError('Argument temperature must be scalar or of '
                                  'length nx')
         except TypeError:
-            self.temperature = np.zeros(nx)
+            self.temperature = np.zeros(self.nodes)
             self.temperature.fill(temperature)
         try:
-            if len(pressure) == nx:
+            if len(pressure) == self.nodes:
                 self.pressure = pressure
             else:
                 raise ValueError('Argument pressure must be scalar or of '
                                  'length nx')
         except TypeError:
-            self.pressure = np.zeros(nx)
+            self.pressure = np.zeros(self.nodes)
             self.pressure.fill(pressure)
 
         self.property = dict()
         for name in self.PROPERTY_NAMES:
-            self.property[name] = np.zeros(nx)
+            self.property[name] = np.zeros(self.nodes)
 
     @abstractmethod
     def update(self, temperature, pressure, *args, **kwargs):
@@ -71,16 +80,94 @@ class Fluid(ABC, OutputObject):
     def specific_heat(self):
         return self.property['Specific Heat']
 
+    # @density.setter
+    # def density(self, value):
+    #     self.property['Density'] = value
+    #
+    # @viscosity.setter
+    # def viscosity(self, value):
+    #     self.property['Viscosity'] = value
+    #
+    # @thermal_conductivity.setter
+    # def thermal_conductivity(self, value):
+    #     self.property['Thermal Conductivity'] = value
+    #
+    # @specific_heat.setter
+    # def specific_heat(self, value):
+    #     self.property['Specific Heat'] = value
 
-class IncompressibleFluid(Fluid):
+    def rescale(self, new_nx):
+        if new_nx != self.nodes:
+            attr_list = [a for a in dir(self) if not a.startswith('__')]
+            for name in attr_list:
+                attr = getattr(self, name)
+                if name == 'property':
+                    for key in attr.keys():
+                        rescaled = self.rescale_attribute(attr[key], new_nx)
+                        print(name, key)
+                        print(rescaled)
+                        if rescaled is not None:
+                            attr[key] = rescaled
+                            print(attr[key])
+                else:
+                    type_attr = getattr(type(self), name, None)
+                    if not isinstance(type_attr, property):
+                        rescaled = self.rescale_attribute(attr, new_nx)
+                        print(name)
+                        print(rescaled)
+                        if rescaled is not None:
+                            setattr(self, name, rescaled)
+                            print(getattr(self, name))
+        self.add_print_variables(self.print_variables)
+
+    def rescale_attribute(self, attribute, new_nx):
+        if isinstance(attribute, np.ndarray):
+            return self.rescale_array(attribute, new_nx)
+        else:
+            return None
+
+    def rescale_array(self, array, new_nx):
+        try:
+            return self.linear_rescale_1d(array, new_nx)
+        except ValueError:
+            return self.linear_rescale_2d(array, new_nx)
+
+    def linear_rescale_1d(self, array, new_nodes):
+        if new_nodes != self.nodes:
+            if len(array.shape) == 1:
+                first = array[0]
+                last = array[-1]
+                return np.linspace(first, last, new_nodes)
+            else:
+                raise ValueError('argument array must be one-dimensional')
+        else:
+            raise TypeError('argument array must be of type numpy.ndarray')
+
+    def linear_rescale_2d(self, array, new_nodes):
+        if new_nodes != self.nodes:
+            if isinstance(array, np.ndarray):
+                if len(array.shape) == 2:
+                    first = array[0, :]
+                    last = array[-1, :]
+                    linear_rescaled = \
+                        np.array([np.linspace(first[i], last[i], new_nodes)
+                                  for i in range(len(first))])
+                    return linear_rescaled.transpose()
+                else:
+                    raise ValueError('argument array must be one-dimensional')
+            else:
+                raise TypeError('argument array must be of type numpy.ndarray')
+
+
+class ConstantFluid(OneDimensionalFluid):
     def __init__(self, nx, name, fluid_props, temperature=298.15,
                  pressure=101325.0, **kwargs):
         print("__init__ for IncompressibleFluid")
         super().__init__(nx, temperature, pressure, **kwargs)
         self.name = name
-        if not isinstance(fluid_props, species.FluidProperties):
+        if not isinstance(fluid_props, species.ConstantProperties):
             raise TypeError('Argument fluid_props must be of type '
-                            'FluidProperties')
+                            'ConstantProperties')
         else:
             self.property['Density'][:] = fluid_props.density
             self.property['Specific Heat'][:] = fluid_props.specific_heat
@@ -95,16 +182,61 @@ class IncompressibleFluid(Fluid):
         pass
 
 
-class GasMixture(Fluid):
+class IncompressibleFluid(OneDimensionalFluid):
+    def __init__(self, nx, name, fluid_props, temperature=298.15,
+                 pressure=101325.0, **kwargs):
+        print("__init__ for IncompressibleFluid")
+        super().__init__(nx, temperature, pressure, **kwargs)
+        self.name = name
+        if isinstance(fluid_props, species.IncompressibleProperties):
+            self.properties = fluid_props
+        else:
+            raise TypeError('Argument fluid_props must be of type '
+                            'IncompressibleProperties')
+
+    def update(self, temperature, pressure=101325.0, *args, **kwargs):
+        super().update(temperature, pressure)
+        self.calc_properties(self.temperature, pressure)
+
+    def calc_property(self, property_name, temperature):
+        """
+        Wrapper function for the native property functions
+        :param property_name: name of self.PROPERTY_NAMES to calculate
+        :param temperature: 1D temperature array
+        :return: the calculated 1D array of the specific property
+        """
+        return self.properties.calc_property(property_name, temperature)
+
+    def calc_properties(self, temperature, pressure=101325.0, **kwargs):
+        """
+        Wrapper function to calculate the classes properties
+        :param temperature: 1D temperature array
+        :param pressure: float or 1D pressure array
+        :return: the calculated 1D array of the specific property
+        """
+        for prop in self.PROPERTY_NAMES:
+            self.property[prop][:] = \
+                self.calc_property(prop, temperature)
+
+
+class GasMixture(OneDimensionalFluid):
+
     def __init__(self, nx, name, species_dict, mole_fractions,
                  temperature=298.15, pressure=101325.0, **kwargs):
         print("__init__ for Gas Mixture")
-        super().__init__(nx, temperature, pressure, **kwargs)
+        print_variables = \
+            {
+                'names': ['mole_fraction'],
+                'units': ['-'],
+                'sub_names': ['self.species.names']
+            }
+        super().__init__(nx, temperature, pressure,
+                         print_variables=print_variables, **kwargs)
         self.name = name
         species_names = list(species_dict.keys())
         self.n_species = len(species_names)
         self.gas_constant = g_par.constants['R']
-        self.species = species.GasSpecies(species_names)
+        self.species = species.GasProperties(species_names)
         self.species_viscosity = \
             self.species.calc_viscosity(np.full(nx, temperature))
 
@@ -116,22 +248,24 @@ class GasMixture(Fluid):
             raise ValueError('Initial mole fractions must be provided '
                              'for all species and add up to unity')
 
-        array_shape = (nx, self.n_species)
+        self.array_shape_2d = (nx, self.n_species)
         self._mole_fraction = \
-            np.ones(array_shape) * mole_fractions
+            np.ones(self.array_shape_2d) * mole_fractions
         self.mw = np.sum(self._mole_fraction * self.species.mw, axis=-1)
         mass_fraction_init = \
             mole_fractions * self.species.mw / \
             np.sum(mole_fractions * self.species.mw)
         self._mass_fraction = \
-            np.ones(array_shape) * mass_fraction_init
-        self._concentration = np.zeros(array_shape)
+            np.ones(self.array_shape_2d) * mass_fraction_init
+        self._concentration = np.zeros(self.array_shape_2d)
         if isinstance(type(self), GasMixture):
             self.calc_properties(temperature, pressure, method='ideal')
             self._concentration[:] = self.calc_concentration().transpose()
 
-        self.add_print_data(self.mole_fraction, 'Mole Fraction',
-                            sub_names=self.species.names)
+        # self.add_print_data(self.mole_fraction, 'Mole Fraction',
+        #                     sub_names=self.species.names)
+        print(self.print_variables)
+        self.add_print_variables(self.print_variables)
 
     @property
     def mole_fraction(self):
@@ -287,12 +421,19 @@ class GasMixture(Fluid):
                 self.calc_property(prop, temperature, pressure, method)
 
 
-class TwoPhaseMixture(Fluid):
+class TwoPhaseMixture(OneDimensionalFluid):
     def __init__(self, nx, name, species_dict, mole_fractions,
                  liquid_props=None, temperature=298.15, pressure=101325.0,
                  **kwargs):
         print("__init__ for TwoPhaseMixture")
-        super().__init__(nx, name, temperature, pressure, **kwargs)
+        print_variables = \
+            {
+                'names': ['humidity'],
+                'units': ['-'],
+                'sub_names': ['None']
+            }
+        super().__init__(nx, name, temperature, pressure,
+                         print_variables=print_variables, **kwargs)
         if not isinstance(species_dict, dict):
             raise TypeError('Argument species_dict must be a dict '
                             'containing all species names and their '
@@ -302,14 +443,14 @@ class TwoPhaseMixture(Fluid):
         phase_change_species_names = \
             [key for key in species_dict
              if 'gas' and 'liquid' in species_dict[key]]
-
         if liquid_props is None:
             liquid_props = \
-                species.FluidProperties(phase_change_species_names[0])
+                species.IncompressibleProperties(phase_change_species_names[0])
             self.phase_change_species = \
-                species.PhaseChangeSpecies({liquid_props.name: liquid_props})
+                species.PhaseChangeProperties({liquid_props.name: liquid_props})
         elif isinstance(liquid_props, dict):
-            self.phase_change_species = species.PhaseChangeSpecies(liquid_props)
+            self.phase_change_species = \
+                species.PhaseChangeProperties(liquid_props)
         else:
             raise TypeError('Data for PhaseChangeSpecies object '
                             'can only be provided as dictionary with species '
@@ -334,14 +475,14 @@ class TwoPhaseMixture(Fluid):
 
         # Total properties (both phases)
         self.n_species = len(species_dict)
-        array_shape = (nx, self.n_species)
+        self.array_shape_2d = self.gas.array_shape_2d
         self._mole_fraction = \
-            np.ones(array_shape) * mole_fractions
+            np.ones(self.array_shape_2d) * mole_fractions
         mass_fraction_init = \
             mole_fractions * self.gas.species.mw / \
             np.sum(mole_fractions * self.gas.species.mw)
         self._mass_fraction = \
-            np.ones(array_shape) * mass_fraction_init
+            np.ones(self.array_shape_2d) * mass_fraction_init
         self.mw = np.zeros(nx)
 
         self.liquid_mass_fraction = np.zeros(nx)
@@ -350,8 +491,15 @@ class TwoPhaseMixture(Fluid):
         self.saturation_pressure = np.zeros(nx)
 
         # Print data
-        self.add_print_data(self.humidity, 'Humidity')
+        self.add_print_variables(self.print_variables)
+        # self.add_print_data(self.humidity, 'Humidity')
+        # print(self.print_data)
+        # print(self.gas.print_data)
 
+    def rescale(self, new_nx):
+        self.gas.rescale(new_nx)
+        self.liquid.rescale(new_nx)
+        super().rescale(new_nx)
     # @property
     # def mole_fraction_gas(self):
     #     return self._mole_fraction_gas.transpose()
@@ -359,6 +507,7 @@ class TwoPhaseMixture(Fluid):
     # @property
     # def mass_fraction_gas(self):
     #     return self._mass_fraction_gas.transpose()
+
     @property
     def mole_fraction(self):
         return self._mole_fraction.transpose()
@@ -444,7 +593,7 @@ class TwoPhaseMixture(Fluid):
         r_t = self.gas.gas_constant * self.temperature
         total_gas_conc = self.pressure / r_t
         conc = self.mole_fraction * total_gas_conc
-        all_conc = np.copy(conc)
+        # all_conc = np.copy(conc)
         sat_conc = self.saturation_pressure / r_t
         dry_mole_fraction = np.copy(self.mole_fraction)
         dry_mole_fraction[self.id_pc] = 0.0
@@ -491,12 +640,22 @@ class TwoPhaseMixture(Fluid):
             self._mole_fraction[:, self.id_pc] * self.pressure / p_sat
 
 
+def liquid_factory(nx, name, liquid_props, temperature, pressure):
+    if isinstance(liquid_props, species.ConstantProperties):
+        return ConstantFluid(nx, name, liquid_props, temperature, pressure)
+    elif isinstance(liquid_props, species.IncompressibleProperties):
+        return IncompressibleFluid(nx, name, liquid_props,
+                                   temperature, pressure)
+    else:
+        raise TypeError('argument liquid_props must be of type '
+                        'ConstantProperties or IncompressibleProperties')
+
+
 def fluid_factory(nx, name, liquid_props=None, species_dict=None,
                   mole_fractions=None, temperature=298.15,
                   pressure=101325.0, **kwargs):
     if species_dict is None:
-        return IncompressibleFluid(nx, name, liquid_props, temperature,
-                                   pressure)
+        return liquid_factory(nx, name, liquid_props, temperature, pressure)
     else:
         species_types = list(species_dict.values())
         species_types_str = ' '.join(species_types)
@@ -508,13 +667,10 @@ def fluid_factory(nx, name, liquid_props=None, species_dict=None,
                                    liquid_props, temperature, pressure)
         elif 'liquid' in species_types_str and 'gas' \
                 not in species_types_str:
-            return IncompressibleFluid(nx, name, liquid_props, temperature,
-                                       pressure)
+            return liquid_factory(nx, name, liquid_props, temperature, pressure)
         else:
-            raise NotImplementedError('Only fluid types of GasMixture, '
-                                      'Liquid, and TwoPhaseMixture are '
-                                      'implemented and must be indicated '
-                                      'in the species_dict')
+            raise NotImplementedError
+
 # test_species = species.GasSpecies(['O2', 'N2', 'H2'])
 
 # temp = np.array([[300.0, 400.0], [300.0, 400.0]])

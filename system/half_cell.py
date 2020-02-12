@@ -16,7 +16,7 @@ class HalfCell:
     # Class variables constant across all instances of the class
     # (under construction)
 
-    def __init__(self, halfcell_dict, cell_dict, channel_dict, fluid_dict):
+    def __init__(self, halfcell_dict, cell_dict, channel):
         self.name = halfcell_dict['name']
         self.n_nodes = g_par.dict_case['nodes']
         n_ele = self.n_nodes - 1
@@ -27,16 +27,8 @@ class HalfCell:
         self.width = cell_dict["width"]
         self.length = cell_dict["length"]
 
-        # Initialize fluid object
-        fluid = \
-            fluids.Fluid(self.n_nodes, fluid_dict['fluid_name'],
-                         fluid_dict.get('fluid_components', None),
-                         mole_fractions_init=
-                         fluid_dict.get('inlet_composition', None))
-
-        # Initialize channel object
-        self.channel = chl.Channel(channel_dict, fluid)
-
+        # Get reference to channel object
+        self.channel = channel
         # number of channels of each half cell
         self.n_channel = halfcell_dict['channel_number']
         area_factor = self.length * self.width \

@@ -4,6 +4,13 @@ import os
 # from numba import jit
 
 
+def ensure_list(variable):
+    if isinstance(variable, (list, tuple)):
+        return variable
+    else:
+        return [variable]
+
+
 def add_source(var, source, direction=1, tri_mtx=None):
     """
     Add discrete 1d source of length n-1 to var of length n

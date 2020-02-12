@@ -2,6 +2,8 @@ import input.physical_properties as phy_prop
 import input.geometry as geom
 import input.simulation as sim
 import input.operating_conditions as op_con
+import data.global_parameters as g_par
+import system.species as species
 import numpy as np
 import copy
 
@@ -113,6 +115,24 @@ dict_anode = {
     'calc_gdl_diff_loss': sim.calc_gdl_loss
     }
 
+dict_cathode_fluid = {
+    'fluid_name': 'Cathode Gas',
+    'fluid_components': op_con.cathode_species,
+    'inlet_composition': op_con.cathode_inlet_composition,
+    'temp_init': op_con.temp_air_in,
+    'press_init': op_con.p_manifold_cathode_out,
+    'nodes': g_par.dict_case['nodes']
+}
+
+dict_anode_fluid = {
+    'fluid_name': 'Anode Gas',
+    'fluid_components': op_con.anode_species,
+    'inlet_composition': op_con.anode_inlet_composition,
+    'temp_init': op_con.temp_anode_gas_in,
+    'press_init': op_con.p_manifold_anode_out,
+    'nodes': g_par.dict_case['nodes']
+}
+
 dict_cathode_channel = {
     'name': 'Cathode Channel',
     'channel_length': geom.channel_length,
@@ -126,20 +146,12 @@ dict_cathode_channel = {
     'bend_friction_factor': geom.bend_pressure_loss_coefficient
     }
 
-dict_cathode_fluid = {
-    'fluid_name': 'Cathode Gas',
-    'fluid_components': op_con.cathode_species,
-    'inlet_composition': op_con.cathode_inlet_composition,
-    'temp_init': op_con.temp_air_in,
-    'press_init': op_con.p_manifold_cathode_out
-}
-
 dict_anode_channel = {
     'name': 'Anode Channel',
     'channel_length': geom.channel_length,
     'p_out': op_con.p_manifold_anode_out,
     'temp_in': op_con.temp_anode_gas_in,
-    #'hum_in': op_con.inlet_humidity_anode,
+     # 'hum_in': op_con.inlet_humidity_anode,
     'flow_direction': geom.anode_flow_direction,
     'channel_width': geom.channel_width,
     'channel_height': geom.channel_height,
@@ -147,58 +159,144 @@ dict_anode_channel = {
     'bend_friction_factor': geom.bend_pressure_loss_coefficient
     }
 
-dict_anode_fluid = {
-    'fluid_name': 'Anode Gas',
-    'fluid_components': op_con.anode_species,
-    'inlet_composition': op_con.anode_inlet_composition,
-    'temp_init': op_con.temp_anode_gas_in,
-    'press_init': op_con.p_manifold_anode_out
-}
+dict_cathode_flow_circuit = {
+    'name': 'Anode Flow Circuit',
+    'type': geom.cathode_manifold_model,
+    'shape': geom.cathode_manifold_configuration
+    }
 
-dict_cathode_manifold = {
-    'name': 'Cathode Manifold',
-    'configuration': geom.cathode_manifold_configuration,
+dict_anode_flow_circuit = {
+    'name': 'Anode Flow Circuit',
+    'type': geom.anode_manifold_model,
+    'shape': geom.anode_manifold_configuration
+    }
+
+dict_cathode_in_manifold = {
+    'name': 'Cathode Inlet Manifold',
+    'channel_length': 0.09,
     'p_out': op_con.p_manifold_cathode_out,
     'temp_in': op_con.temp_air_in,
-    # 'hum_in': op_con.inlet_humidity_anode,
+    'flow_direction': 1,
     'channel_width': geom.manifold_width,
     'channel_height': geom.manifold_height,
-    'additional_friction_factor': geom.manifold_pressure_loss_coefficient
+    'bend_number': 0,
+    'bend_friction_factor': 0.0,
+    'additional_friction_fractor': geom.manifold_pressure_loss_coefficient
     }
 
-dict_anode_manifold = {
-    'name': 'Anode Manifold',
-    'configuration': geom.anode_manifold_configuration,
+dict_cathode_out_manifold = copy.deepcopy(dict_cathode_in_manifold)
+dict_cathode_out_manifold['name'] = 'Cathode Outlet Manifold'
+
+dict_anode_in_manifold = {
+    'name': 'Anode Inlet Manifold',
+    'channel_length': 0.09,
     'p_out': op_con.p_manifold_anode_out,
     'temp_in': op_con.temp_anode_gas_in,
+    'flow_direction': 1,
     'channel_width': geom.manifold_width,
     'channel_height': geom.manifold_height,
-    'additional_friction_factor': geom.manifold_pressure_loss_coefficient
+    'bend_number': 0,
+    'bend_friction_factor': 0.0,
+    'additional_friction_fractor': geom.manifold_pressure_loss_coefficient
     }
 
-# dict_anode_manifold = copy.deepcopy(dict_cathode_manifold)
+dict_anode_out_manifold = copy.deepcopy(dict_anode_in_manifold)
+dict_anode_out_manifold['name'] = 'Anode Outlet Manifold'
 
-dict_mfold_cat = {
-    'name': 'Cathode Manifold',
-    'cell_number': geom.cell_number,
-    'header_width': geom.manifold_width,
-    'header_height': geom.manifold_height,
-    'kf': geom.manifold_pressure_loss_coefficient,
-    'cell_height': np.full(geom.cell_number,
-                           2. * (geom.bipolar_plate_thickness
-                                 + geom.gas_diffusion_layer_thickness
-                                 + geom.catalyst_layer_thickness)
-                           + geom.membrane_thickness),
-    # 'cell_channel_length': np.full(geom.cell_number, geom.channel_length),
-    # 'cell_channel_cross_area': np.full(geom.cell_number,
-    #                                    geom.channel_width
-    #                                    * geom.channel_height),
-    'p_out': op_con.p_manifold_cathode_out
+dict_coolant_fluid = {
+    'fluid_name': 'Coolant',
+    'fluid_components': None,
+    'inlet_composition': None,
+    'liquid_props':
+        species.ConstantProperties(phy_prop.coolant_name,
+                                   specific_heat=phy_prop.heat_capacity_coolant,
+                                   density=phy_prop.density_coolant,
+                                   viscosity=phy_prop.dynamic_viscosity_coolant,
+                                   thermal_conductivity=
+                                   phy_prop.thermal_conductivity_coolant),
+    'temp_init': op_con.temp_coolant_in,
+    'press_init': op_con.p_manifold_anode_out,
+    'nodes': g_par.dict_case['nodes']
     }
 
-dict_mfold_ano = copy.deepcopy(dict_mfold_cat)
-dict_mfold_ano['name'] = 'Anode Manifold'
-dict_mfold_ano['p_out'] = op_con.p_manifold_anode_out
+dict_coolant_channel = {
+    'name': 'Coolant Channel',
+    'channel_length': geom.coolant_channel_length,
+    'p_out': op_con.p_manifold_cathode_out,
+    'temp_in': op_con.temp_coolant_in,
+    #'hum_in': op_con.inlet_humidity_cathode,
+    'flow_direction': geom.cathode_flow_direction,
+    'channel_width': geom.coolant_channel_width,
+    'channel_height': geom.coolant_channel_height,
+    'bend_number': geom.coolant_channel_bends,
+    'bend_friction_factor': geom.coolant_bend_pressure_loss_coefficient
+    }
+
+dict_coolant_flow_circuit = {
+    'name': 'Coolant Flow Circuit',
+    'type': geom.coolant_manifold_model,
+    'shape': geom.coolant_manifold_configuration
+    }
+
+dict_coolant_in_manifold = {
+    'name': 'Coolant Inlet Manifold',
+    'channel_length': None,
+    'p_out': op_con.p_manifold_cathode_out,
+    'temp_in': op_con.temp_air_in,
+    'flow_direction': 1,
+    'channel_width': geom.manifold_width,
+    'channel_height': geom.manifold_height,
+    'bend_number': 0,
+    'bend_friction_factor': 0.0,
+    'additional_friction_fractor': geom.manifold_pressure_loss_coefficient
+    }
+
+dict_coolant_out_manifold = copy.deepcopy(dict_coolant_in_manifold)
+dict_coolant_out_manifold['name'] = 'Coolant Outlet Manifold'
+
+# dict_cathode_manifold = {
+#     'name': 'Cathode Manifold',
+#     'configuration': geom.cathode_manifold_configuration,
+#     'p_out': op_con.p_manifold_cathode_out,
+#     'temp_in': op_con.temp_air_in,
+#     # 'hum_in': op_con.inlet_humidity_anode,
+#     'channel_width': geom.manifold_width,
+#     'channel_height': geom.manifold_height,
+#     'additional_friction_factor': geom.manifold_pressure_loss_coefficient
+#     }
+#
+# dict_anode_manifold = {
+#     'name': 'Anode Manifold',
+#     'configuration': geom.anode_manifold_configuration,
+#     'p_out': op_con.p_manifold_anode_out,
+#     'temp_in': op_con.temp_anode_gas_in,
+#     'channel_width': geom.manifold_width,
+#     'channel_height': geom.manifold_height,
+#     'additional_friction_factor': geom.manifold_pressure_loss_coefficient
+#     }
+#
+# dict_mfold_cat = {
+#     'name': 'Cathode Manifold',
+#     'cell_number': geom.cell_number,
+#     'header_width': geom.manifold_width,
+#     'header_height': geom.manifold_height,
+#     'kf': geom.manifold_pressure_loss_coefficient,
+#     'cell_height': np.full(geom.cell_number,
+#                            2. * (geom.bipolar_plate_thickness
+#                                  + geom.gas_diffusion_layer_thickness
+#                                  + geom.catalyst_layer_thickness)
+#                            + geom.membrane_thickness),
+#     # 'cell_channel_length': np.full(geom.cell_number, geom.channel_length),
+#     # 'cell_channel_cross_area': np.full(geom.cell_number,
+#     #                                    geom.channel_width
+#     #                                    * geom.channel_height),
+#     'p_out': op_con.p_manifold_cathode_out
+#     }
+#
+#
+# dict_mfold_ano = copy.deepcopy(dict_mfold_cat)
+# dict_mfold_ano['name'] = 'Anode Manifold'
+# dict_mfold_ano['p_out'] = op_con.p_manifold_anode_out
 
 dict_electrical_coupling =\
     {

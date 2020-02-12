@@ -1,4 +1,5 @@
 import numpy as np
+import string
 
 
 class OutputObject:
@@ -20,3 +21,19 @@ class OutputObject:
                 {'value': data_array, 'units': str(units)}
         else:
             raise ValueError('argument data_array must be 1- or 2-dimensional')
+
+    def add_print_variables(self, print_variables):
+        for i, name in enumerate(print_variables['names']):
+            attr = eval('self.' + name)
+            description = string.capwords(name.replace('_', ' '))
+            units = print_variables['units'][i]
+            sub_names = eval(print_variables['sub_names'][i])
+            self.add_print_data(attr, description,
+                                units=units, sub_names=sub_names)
+
+    @staticmethod
+    def combine_print_variables(dict_a, dict_b):
+        if dict_b is not None:
+            for key in dict_a.keys():
+                dict_a[key] += dict_b[key]
+        return dict_a

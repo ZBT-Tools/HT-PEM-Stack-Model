@@ -14,9 +14,15 @@ stoichiometry_cathode = 2.
 stoichiometry_anode = 2.
 # pem-type (True = HT-PEM, False = NT-PEM)
 is_ht_pem = False
+# reaction stoichiometry
+cathode_reaction_stoich = [-1.0, 0.0, 2.0]
+anode_reaction_stoich = [-2.0, 0.0, 0.0]
+# reaction charge number
+cathode_charge_number = 4.0
+anode_charge_number = 4.0
 
 """"Thermal Settings"""
-# mass flow_circuit.py of the coolant per channel [kg/s]
+# mass flow of the coolant per channel [kg/s]
 mass_flow_coolant = 1.e-2
 # air inlet temperature [K]
 temp_air_in = 340.
@@ -45,7 +51,7 @@ p_manifold_cathode_out = 1.e5
 # pressure at the outlet of the anode manifold [Pa]
 p_manifold_anode_out = 1.e5
 
-"""Species settings"""
+"""Fluid settings"""
 # species names
 # cathode_species = {'O2': 'gas', 'N2': 'gas', 'H2O': 'gas-liquid'}
 cathode_species = {'O2': 'gas', 'N2': 'gas', 'H2O': 'gas-liquid'}
@@ -56,9 +62,9 @@ anode_species = {'H2': 'gas', 'N2': 'gas', 'H2O': 'gas-liquid'}
 # inlet composition (molar fractions)
 cathode_inlet_composition = [0.21, 0.79, 0.0]
 anode_inlet_composition = [0.5, 0.5, 0.0]
-# reaction stoichiometry
-cathode_reaction_stoich = [-1.0, 0.0, 2.0]
-anode_reaction_stoich = [-2.0, 0.0, 0.0]
-# reaction charge number
-cathode_charge_number = 4.0
-anode_charge_number = 4.0
+
+# coolant settings
+coolant_name = 'H2O'
+coolant_density = 997.0
+# cooalant_viscosity =
+

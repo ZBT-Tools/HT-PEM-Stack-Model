@@ -52,8 +52,11 @@ channel_dict = {
 
 fluid_dict = {
     'fluid_name': 'Cathode Gas',
+    'fluid_components': op_con.cathode_species,
+    'inlet_composition': op_con.cathode_inlet_composition,
     'temp_init': op_con.temp_air_in,
-    'press_init': op_con.p_manifold_cathode_out
+    'press_init': op_con.p_manifold_cathode_out,
+    'nodes': g_par.dict_case['nodes']
 }
 
 in_manifold_dict = {
@@ -75,7 +78,7 @@ out_manifold_dict['name'] = 'Outlet Manifold'
 
 flow_circuit_dict = {
     'name': 'Flow Circuit',
-    'type': 'Wang',
+    'type': 'Koh',
     'shape': 'U'
     }
 
@@ -90,16 +93,27 @@ x = (ip.interpolate_1d(flow_model.manifolds[0].x)
     / (flow_model.manifolds[0].length - flow_model.manifolds[0].dx[0])
 # x = flow_model.manifolds[0].x / flow_model.manifolds[0].length
 
-flow_model.update(inlet_mass_flow=0.010125*3.333)
+flow_model.update(inlet_mass_flow=1e-4)
 q = flow_model.channel_vol_flow / np.average(flow_model.channel_vol_flow)
 reynolds = flow_model.manifolds[0].reynolds[0]
-plt.plot(x, q, label='Re='+str(reynolds))
+plt.plot(x, q, label='Re={0:.2f}'.format(reynolds))
 
+# print(dir(flow_model.channels[0].fluid))
+# print(flow_model.channels[0].fluid.__dir__())
 # flow_model.update(inlet_mass_flow=0.01485)
 # q = flow_model.channel_vol_flow / np.average(flow_model.channel_vol_flow)
 # reynolds = flow_model.manifolds[0].reynolds[0]
 # plt.plot(x, q, label='Re='+str(reynolds))
-
+fluid = flow_model.channels[0].fluid
+print(fluid.gas.print_data)
+#fluid.gas._mole_fraction.resize((7, fluid.gas.n_species), refcheck=False)
+#fluid.gas.add_print_data(fluid.gas.mole_fraction, 'Mole Fraction',
+#                         sub_names=fluid.gas.species.names)
+# fluid.gas._mole_fraction[0, 0] = 1.0
+fluid.rescale(10)
+print(fluid.temperature)
+print(fluid.gas.mole_fraction)
+print(fluid.print_data)
 plt.legend()
 plt.ylim([0.4, 2.2])
 plt.xlim([0.0, 1.0])

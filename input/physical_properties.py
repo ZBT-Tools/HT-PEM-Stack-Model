@@ -55,13 +55,17 @@ thermal_conductivity_gas_diffusion_electrode_x = 1.e0
 thermal_conductivity_membrane_z = .26e0
 # thermal conductivity of the membrane in plane  [W/(mK)]
 thermal_conductivity_membrane_x = .26e0
-heat_capacity_coolant = 2.5e3
+
+# constant coolant properties
+coolant_name = 'FRAGOLTHERM S-15-A at 60°C'
+# specific heat of the coolant [J/(kg-K)]
+heat_capacity_coolant = 2010.0
 # thermal conductivity of the coolant [W/(mK)]
-thermal_conductivity_coolant = 0.22
+thermal_conductivity_coolant = 0.159
 # density of the coolant [kg/m3]
-density_coolant = 1052.
-# dynamic viscosity of the coolant
-dynamic_viscosity_coolant = 56.e-3
+density_coolant = 981.0
+# dynamic viscosity of the coolant [Pa-s]
+dynamic_viscosity_coolant = 9.81e-3
 
 
 

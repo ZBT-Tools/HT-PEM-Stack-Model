@@ -8,13 +8,16 @@ import data.electrical_coupling_dict as el_cpl_dict
 import system.temperature_system as therm_cpl
 import system.flow_circuit as flow
 import data.temperature_system_dict as therm_dict
+import data.input_dicts as in_dicts
 
 
 class Stack:
 
-    def __init__(self, stack_dict, cell_dict, membrane_dict, half_cell_dicts,
-                 channel_dicts, fluid_dicts, mfd_dicts, electrical_dict,
-                 temperature_dict):
+    def __init__(self):
+
+        # Read input dictionaries
+        stack_dict = in_dicts.dict_stack
+
         # Handover
         self.n_cells = stack_dict['cell_number']
         # number of cells of the stack
@@ -30,6 +33,52 @@ class Stack:
         # switch to calculate the current density distribution
         self.calc_flow_dis = stack_dict['calc_flow_distribution']
         # switch to calculate the flow_circuit.py distribution
+
+        cell_dict = in_dicts.dict_cell
+        membrane_dict = in_dicts.dict_membrane
+        anode_dict = in_dicts.dict_anode
+        cathode_dict = in_dicts.dict_cathode
+        ano_channel_dict = in_dicts.dict_anode_channel
+        cat_channel_dict = in_dicts.dict_cathode_channel
+        ano_fluid_dict = in_dicts.dict_anode_fluid
+        cat_fluid_dict = in_dicts.dict_cathode_fluid
+        ano_in_manifold_dict = in_dicts.dict_anode_in_manifold
+        cat_in_manifold_dict = in_dicts.dict_cathode_in_manifold
+        ano_out_manifold_dict = in_dicts.dict_anode_out_manifold
+        cat_out_manifold_dict = in_dicts.dict_cathode_out_manifold
+        electrical_dict = in_dicts.dict_electrical_coupling
+        temperature_dict = in_dicts.dict_temp_sys
+
+        half_cell_dicts = [cathode_dict, anode_dict]
+        channel_dicts = [cat_channel_dict, ano_channel_dict]
+        fluid_dicts = [cat_fluid_dict, ano_fluid_dict]
+        manifold_in_dicts = [cat_in_manifold_dict, ano_in_manifold_dict]
+        manifold_out_dicts = [cat_out_manifold_dict, ano_out_manifold_dict]
+        flow_circuit_dicts = [in_dicts.dict_cathode_flow_circuit,
+                              in_dicts.dict_anode_flow_circuit]
+
+
+
+        # Setup flow models
+        cathode_flow_circuit = \
+            flow.flow_circuit_factory(flow_circuit_dicts[0], fluid_dicts[0],
+                                      channel_dicts[0], manifold_in_dicts[0],
+                                      manifold_out_dicts[0], self.n_cells,
+                                      half_cell_dicts[0]['channel_number'])
+        anode_flow_circuit = \
+            flow.flow_circuit_factory(flow_circuit_dicts[1], fluid_dicts[1],
+                                      channel_dicts[1], manifold_in_dicts[1],
+                                      manifold_out_dicts[1], self.n_cells,
+                                      half_cell_dicts[1]['channel_number'])
+
+        coolant_fluid_dict = in_dicts.dict_coolant_fluid
+
+        coolant_flow_circuit = \
+            flow.flow_circuit_factory(flow_circuit_dicts[1], fluid_dicts[1],
+                                      channel_dicts[1], manifold_in_dicts[1],
+                                      manifold_out_dicts[1], self.n_cells,
+                                      half_cell_dicts[1]['channel_number'])
+
         self.cells = []
         # Initialize individual cells
         for i in range(self.n_cells):
@@ -48,8 +97,13 @@ class Stack:
                 cell_dict['first_cell'] = False
                 cell_dict['last_cell'] = False
                 cell_dict['heat_pow'] = temperature_dict['heat_pow']
+
+            cathode_channel = cathode_flow_circuit.channels[i]
+            anode_channel = anode_flow_circuit.channels[i]
+            channels = [cathode_channel, anode_channel]
+            # initialize cell object
             cell = cl.Cell(i, cell_dict, membrane_dict, half_cell_dicts,
-                           channel_dicts, fluid_dicts)
+                           channels)
             if i == 0:
                 cell.coordinates[0] = 0.0
                 cell.coordinates[1] = cell.thickness
@@ -69,20 +123,15 @@ class Stack:
         cathode_channel_multiplier = self.cells[0].half_cells[0].n_channel
         anode_channel_multiplier = self.cells[0].half_cells[1].n_channel
 
-        self.manifolds = \
-            [mfd.Manifold(mfd_dicts[0],
-                          self.cells, cathode_channels,
-                          cathode_channel_multiplier),
-             mfd.Manifold(mfd_dicts[1],
-                          self.cells, anode_channels,
-                          anode_channel_multiplier)]
-        self.manifolds[0].head_stoi = self.cells[0].cathode.stoi
-        self.manifolds[1].head_stoi = self.cells[0].anode.stoi
-
-        flow_model = flow.flow_circuit_factory(fluid_dict, channel_dict,
-                                               in_manifold_dict,
-                                               out_manifold_dict, n_chl,
-                                               n_subchl)
+        # self.manifolds = \
+        #     [mfd.Manifold(mfd_dicts[0],
+        #                   self.cells, cathode_channels,
+        #                   cathode_channel_multiplier),
+        #      mfd.Manifold(mfd_dicts[1],
+        #                   self.cells, anode_channels,
+        #                   anode_channel_multiplier)]
+        # self.manifolds[0].head_stoi = self.cells[0].cathode.stoi
+        # self.manifolds[1].head_stoi = self.cells[0].anode.stoi
 
         # Initialize the electrical coupling
         if self.n_cells > 1:

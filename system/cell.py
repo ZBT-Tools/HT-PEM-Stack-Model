@@ -10,7 +10,7 @@ from system.output_object import OutputObject
 class Cell(OutputObject):
 
     def __init__(self, number, cell_dict, membrane_dict, half_cell_dicts,
-                 channel_dicts, fluid_dicts):
+                 channels):
         super().__init__()
         self.cell_dict = cell_dict
         self.name = 'Cell ' + str(number)
@@ -36,7 +36,7 @@ class Cell(OutputObject):
         # Create half cell objects
 
         self.half_cells = [h_c.HalfCell(half_cell_dicts[i], cell_dict,
-                                        channel_dicts[i], fluid_dicts[i])
+                                        channels[i])
                            for i in range(2)]
         self.cathode = self.half_cells[0]
         self.anode = self.half_cells[1]

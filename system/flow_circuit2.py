@@ -12,7 +12,7 @@ from abc import ABC, abstractmethod
 
 class ParallelFlowCircuit(ABC, OutputObject):
     def __new__(cls, dict_flow_circuit, manifolds, channels,
-                channel_multiplier=1.0):
+                n_subchannels=1.0):
         circuit_type = dict_flow_circuit.get('type', 'Koh')
         if circuit_type == 'Koh':
             return super(ParallelFlowCircuit, cls).\
@@ -24,7 +24,7 @@ class ParallelFlowCircuit(ABC, OutputObject):
             raise NotImplementedError
 
     def __init__(self, dict_flow_circuit, manifolds, channels,
-                 channel_multiplier=1.0):
+                 n_subchannels=1.0):
         super().__init__()
         self.name = dict_flow_circuit['name']
         assert isinstance(dict_flow_circuit, dict)
@@ -55,11 +55,12 @@ class ParallelFlowCircuit(ABC, OutputObject):
             self.multi_component = False
 
         self.n_channels = len(self.channels)
-        self.channel_multiplier = channel_multiplier
+        self.n_subchannels = n_subchannels
         self.tolerance = 1e-6
         self.max_iter = 5
 
-        self.mass_flow_in = self.manifolds[0].mass_flow_total[0]
+        self.mass_flow_in = \
+            self.manifolds[0].mass_flow_total[self.manifolds[0].node_in]
         self.vol_flow_in = 0.0
         self.channel_mass_flow = \
             np.ones(self.n_channels) * self.mass_flow_in / self.n_channels
@@ -79,13 +80,15 @@ class ParallelFlowCircuit(ABC, OutputObject):
         if inlet_mass_flow is not None:
             self.mass_flow_in = inlet_mass_flow
             self.channel_mass_flow[:] = self.mass_flow_in / self.n_channels
+            node_in = self.manifolds[0].node_in
             self.vol_flow_in = \
-                inlet_mass_flow / self.manifolds[0].fluid.density[0]
+                inlet_mass_flow / self.manifolds[0].fluid.density[node_in]
             self.initialize = True
 
         channel_vol_flow_old = np.zeros(self.channel_vol_flow.shape)
         channel_vol_flow_old[:] = 1e3
         for i in range(self.max_iter):
+            print('Flow Circuit Iteration: # ', str(i+1))
             self.single_loop()
             error = \
                 np.sum(
@@ -115,15 +118,17 @@ class ParallelFlowCircuit(ABC, OutputObject):
         else:
             channel_mass_flow_in = self.channel_mass_flow
             channel_mass_flow_out = \
-                np.array([channel.mass_flow_total[-1]
+                np.array([channel.mass_flow_total[channel.node_out]
                           for channel in self.channels])
-            channel_mass_flow_out *= self.channel_multiplier
+            channel_mass_flow_out *= self.n_subchannels
 
         if self.multi_component:
-            mass_fraction = np.array([channel.fluid.mass_fraction[:, -1]
-                                      for channel in self.channels]).transpose()
+            mass_fraction = \
+                np.array([channel.fluid.mass_fraction[:, channel.node_out]
+                          for channel in self.channels]).transpose()
         else:
             mass_fraction = 1.0
+
         mass_source = channel_mass_flow_out * mass_fraction
         # mass_source = self.channel_mass_flow * mass_fraction
         self.manifolds[1].update(mass_flow_in=0.0, mass_source=mass_source)
@@ -132,30 +137,36 @@ class ParallelFlowCircuit(ABC, OutputObject):
         for i, channel in enumerate(self.channels):
             channel.p_out = ip.interpolate_1d(self.manifolds[1].p)[i]
             channel.update(mass_flow_in=
-                           channel_mass_flow_in[i]/self.channel_multiplier)
+                           channel_mass_flow_in[i]/self.n_subchannels)
         # Inlet header update
-        self.manifolds[0].p_out = self.channels[-1].p[0]
+        node_in = self.channels[-1].node_in
+        self.manifolds[0].p_out = self.channels[-1].p[node_in]
         if self.multi_component:
-            mass_fraction = np.array([channel.fluid.mass_fraction[:, 0]
-                                      for channel in self.channels]).transpose()
+            mass_fraction = \
+                np.array([channel.fluid.mass_fraction[:, channel.node_out]
+                          for channel in self.channels]).transpose()
         else:
             mass_fraction = 1.0
         mass_source = -self.channel_mass_flow * mass_fraction
         self.manifolds[0].update(mass_flow_in=self.mass_flow_in,
                                  mass_source=mass_source)
+        node_in = self.manifolds[0].node_in
         self.vol_flow_in = \
-            self.mass_flow_in / self.manifolds[0].fluid.density[0]
+            self.mass_flow_in / self.manifolds[0].fluid.density[node_in]
 
 
 class KohFlowCircuit(ParallelFlowCircuit):
 
     def __init__(self, dict_flow_circuit, manifolds, channels,
-                 channel_multiplier=1.0):
+                 n_subchannels=1.0):
         super().__init__(dict_flow_circuit, manifolds, channels,
-                         channel_multiplier)
+                         n_subchannels)
         # Distribution factor
         self.alpha = np.ones(self.n_channels)
-        self.dp_ref = self.channels[-1].p[0] - self.channels[-1].p[-1]
+        node_in = self.channels[-1].node_in
+        node_out = self.channels[-1].node_out
+        self.dp_ref = \
+            self.channels[-1].p[node_in] - self.channels[-1].p[node_out]
         self.k_perm = np.zeros(self.n_channels)
         self.l_by_a = np.array([channel.length / channel.cross_area
                                 for channel in self.channels])
@@ -171,8 +182,9 @@ class KohFlowCircuit(ParallelFlowCircuit):
         if inlet_mass_flow is not None:
             self.mass_flow_in = inlet_mass_flow
         self.update_channels()
-        dp_channel = np.array([channel.p[0] - channel.p[-1]
-                               for channel in self.channels])
+        dp_channel = \
+            np.array([channel.p[channel.node_in] - channel.p[channel.node_out]
+                      for channel in self.channels])
         vol_flow_channel = np.array([np.average(channel.vol_flow)
                                      for channel in self.channels])
         visc_channel = np.array([np.average(channel.fluid.viscosity)
@@ -186,21 +198,22 @@ class KohFlowCircuit(ParallelFlowCircuit):
         self.dp_ref = dp_channel[-1]
         self.alpha[:] = (p_in - p_out) / self.dp_ref
         self.dp_ref = self.vol_flow_in / np.sum(self.alpha) * self.l_by_a \
-            * visc_channel[-1] / self.k_perm[-1] / self.channel_multiplier
-        p_in += -self.manifolds[0].p_out + self.manifolds[1].p[-1] + self.dp_ref
+            * visc_channel[-1] / self.k_perm[-1] / self.n_subchannels
+        p_in += self.dp_ref + self.manifolds[1].p[self.manifolds[1].node_out] \
+            - self.manifolds[0].p_out
         self.alpha[:] = (p_in - p_out) / self.dp_ref
         self.channel_vol_flow[:] = (p_in - p_out) * self.k_perm / self.l_by_a \
-            * self.channel_multiplier / visc_channel
-        density = np.array([channel.fluid.density[0] for channel in
-                            self.channels])
+            * self.n_subchannels / visc_channel
+        density = np.array([channel.fluid.density[channel.node_in]
+                            for channel in self.channels])
         self.channel_mass_flow[:] = self.channel_vol_flow * density
 
 
 class WangFlowCircuit(ParallelFlowCircuit):
     def __init__(self, dict_flow_circuit, manifolds, channels,
-                 channel_multiplier=1.0):
+                 n_subchannels=1.0):
         super().__init__(dict_flow_circuit, manifolds, channels,
-                         channel_multiplier)
+                         n_subchannels)
 
         # self.zeta = np.zeros(self.n_channels)
         self.xsi = 1.0
@@ -212,7 +225,7 @@ class WangFlowCircuit(ParallelFlowCircuit):
         print('sum_Fc: ', sum_Fc)
         self.M = sum_Fc / np.average(self.manifolds[0].cross_area)
         # print('self.M: ', self.M)
-        #self.M = np.sum(F_c) / np.average(self.manifolds[0].cross_area)
+        # self.M = np.sum(F_c) / np.average(self.manifolds[0].cross_area)
         self.E = self.manifolds[0].length / self.manifolds[0].d_h
         self.D_star = self.manifolds[0].d_h / self.manifolds[1].d_h
         self.sqr_M = self.M ** 2.0
@@ -240,8 +253,9 @@ class WangFlowCircuit(ParallelFlowCircuit):
     def single_loop(self, inlet_mass_flow=None):
         if inlet_mass_flow is not None:
             self.mass_flow_in = inlet_mass_flow
+            node_in = self.manifolds[0].node_in
             self.vol_flow_in = self.mass_flow_in \
-                / self.manifolds[0].fluid.density[0]
+                / self.manifolds[0].fluid.density[node_in]
         self.update_channels()
 
         mfd_in = self.manifolds[0]
@@ -344,38 +358,65 @@ class WangFlowCircuit(ParallelFlowCircuit):
         #     self.channel_vol_flow)/self.n_channels))
 
 
-def flow_circuit_factory(dict_circuit, dict_fluid, dict_channel,
+def flow_circuit_factory(dict_circuit, fluid_dict, dict_channel,
                          dict_in_manifold, dict_out_manifold, n_channels,
                          channel_multiplier=1.0):
-    nx = g_par.dict_case['nodes']
-    fluid_name = dict_fluid['fluid_name']
-    species_dict = dict_fluid.get('fluid_components', None)
-    mole_fractions = dict_fluid.get('inlet_composition', None)
+    nx = fluid_dict['nodes']
+    fluid_name = fluid_dict['fluid_name']
+    species_dict = fluid_dict.get('fluid_components', None)
+    mole_fractions = fluid_dict.get('inlet_composition', None)
+    liquid_props = fluid_dict.get('liquid_props', None)
     temperature = dict_in_manifold['temp_in']
     pressure = dict_out_manifold['p_out']
-    if species_dict is None:
-        liquid_props = species.ConstantProperties('Test', density=997.0,
-                                                  viscosity=9e-4,
-                                                  thermal_conductivity=0.21,
-                                                  specific_heat=4100.0)
-    else:
-        liquid_props = None
-    fluid = \
+    print('species_dict:', species_dict)
+
+    fluid_dict = \
         [fluids.fluid_factory(nx, fluid_name, liquid_props=liquid_props,
                               species_dict=species_dict,
                               mole_fractions=mole_fractions,
                               temperature=temperature, pressure=pressure)
          for i in range(n_channels)]
-    channels = [chl.Channel(dict_channel, fluid[i]) for i in range(n_channels)]
-    fluid = \
+    channels = [chl.Channel(dict_channel, fluid_dict[i]) for i in range(n_channels)]
+    fluid_dict = \
         [fluids.fluid_factory(n_channels + 1, fluid_name,
                               liquid_props=liquid_props,
                               species_dict=species_dict,
                               mole_fractions=mole_fractions,
                               temperature=temperature, pressure=pressure)
          for i in range(2)]
-    manifolds = [chl.Channel(dict_in_manifold, fluid[0]),
-                 chl.Channel(dict_out_manifold, fluid[1])]
+    manifolds = [chl.Channel(dict_in_manifold, fluid_dict[0]),
+                 chl.Channel(dict_out_manifold, fluid_dict[1])]
 
     return ParallelFlowCircuit(dict_circuit, manifolds, channels,
-                               channel_multiplier=channel_multiplier)
+                               n_subchannels=channel_multiplier)
+
+
+def flow_circuit_factory2(dict_circuit, dict_in_manifold, dict_out_manifold,
+                          channels, channel_multiplier=1.0):
+    if not isinstance(channels, (list, tuple)):
+        raise TypeError('argument channels must be a list of type Channel')
+    if not isinstance(channels[0], chl.Channel):
+        raise TypeError('argument channels must be a list of type Channel')
+
+    temperature = dict_in_manifold['temp_in']
+    pressure = dict_out_manifold['p_out']
+
+    fluid_dict = \
+        [fluids.fluid_factory(nx, fluid_name, liquid_props=liquid_props,
+                              species_dict=species_dict,
+                              mole_fractions=mole_fractions,
+                              temperature=temperature, pressure=pressure)
+         for i in range(n_channels)]
+    channels = [chl.Channel(dict_channel, fluid_dict[i]) for i in range(n_channels)]
+    fluid_dict = \
+        [fluids.fluid_factory(n_channels + 1, fluid_name,
+                              liquid_props=liquid_props,
+                              species_dict=species_dict,
+                              mole_fractions=mole_fractions,
+                              temperature=temperature, pressure=pressure)
+         for i in range(2)]
+    manifolds = [chl.Channel(dict_in_manifold, fluid_dict[0]),
+                 chl.Channel(dict_out_manifold, fluid_dict[1])]
+
+    return ParallelFlowCircuit(dict_circuit, manifolds, channels,
+                               n_subchannels=channel_multiplier)

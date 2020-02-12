@@ -97,7 +97,7 @@ class GasMixture(Fluid):
         self.name = name
         species_names = list(species_dict.keys())
         self.gas_constant = g_par.constants['R']
-        self.species = species.GasSpecies(species_names)
+        self.species = species.GasProperties(species_names)
         self.species_viscosity = \
             self.species.calc_viscosity(np.full(nx, temp_init))
 
@@ -314,9 +314,9 @@ class TwoPhaseMixture(GasMixture):
         if liquid_props is None:
             liquid = species.FluidProperties(phase_change_species_names[0])
             self.phase_change_species = \
-                species.PhaseChangeSpecies({liquid.name: liquid})
+                species.PhaseChangeProperties({liquid.name: liquid})
         elif isinstance(liquid_props, dict):
-            self.phase_change_species = species.PhaseChangeSpecies(liquid_props)
+            self.phase_change_species = species.PhaseChangeProperties(liquid_props)
         else:
             raise TypeError('Data for PhaseChangeSpecies object '
                             'can only be provided as dictionary with species '

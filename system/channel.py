@@ -10,7 +10,8 @@ from system.output_object import OutputObject
 class Channel(ABC, OutputObject):
     def __new__(cls, channel_dict, fluid):
 
-        if type(fluid) is fluids.IncompressibleFluid:
+        if type(fluid) is fluids.IncompressibleFluid \
+                or type(fluid) is fluids.ConstantFluid:
             return super(Channel, cls).__new__(IncompressibleFluidChannel)
         elif type(fluid) is fluids.GasMixture:
             return super(Channel, cls).__new__(GasMixtureChannel)
@@ -44,8 +45,9 @@ class Channel(ABC, OutputObject):
         # inlet temperature
 
         self.tri_mtx = None
-        self.id_in = None
-        self._flow_direction = channel_dict['flow_direction']
+        self.node_in = None
+        self.node_out = None
+        self.flow_direction = channel_dict['flow_direction']
 
         self.pressure_recovery = False
 
@@ -107,9 +109,11 @@ class Channel(ABC, OutputObject):
                              'must be either 1 or -1')
         self._flow_direction = flow_direction
         if self._flow_direction == 1:
-            self.id_in = 0
+            self.node_in = 0
+            self.node_out = -1
         else:
-            self.id_in = -1
+            self.node_in = -1
+            self.node_out = 0
         ones = np.zeros((self.n_ele, self.n_ele))
         ones.fill(1.0)
         if self._flow_direction == 1:
@@ -254,7 +258,6 @@ class GasMixtureChannel(Channel):
 
             self.mole_flow[:] = \
                 (mass_flow.transpose() / self.fluid.species.mw).transpose()
-
         if mass_source is not None:
             if np.shape(mass_source) == (self.fluid.n_species, self.n_ele):
                 self.mole_source[:] = \
@@ -291,7 +294,7 @@ class TwoPhaseMixtureChannel(GasMixtureChannel):
 
     def update(self, mass_flow_in=None, mass_source=None):
         self.calc_mass_balance(mass_flow_in, mass_source)
-        self.fluid.update(self.temp, self.p, self.mole_flow[:, 0])
+        self.fluid.update(self.temp, self.p, self.mole_flow[:, self.node_in])
         self.calc_two_phase_flow()
         self.calc_flow_velocity()
         self.calc_pressure()
