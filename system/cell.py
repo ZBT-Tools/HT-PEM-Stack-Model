@@ -66,7 +66,7 @@ class Cell(OutputObject):
 
         # Cell coordinates in z-direction (stacking/current direction)
         # will be initialized correctly through stack class
-        self.coordinates = [0.0, 0.0]
+        self.coords = [0.0, 0.0]
 
         self.mem_base_r = cell_dict['mem_base_r']
         # basic electrical resistance of the membrane

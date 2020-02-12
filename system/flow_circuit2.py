@@ -358,65 +358,53 @@ class WangFlowCircuit(ParallelFlowCircuit):
         #     self.channel_vol_flow)/self.n_channels))
 
 
-def flow_circuit_factory(dict_circuit, fluid_dict, dict_channel,
-                         dict_in_manifold, dict_out_manifold, n_channels,
-                         channel_multiplier=1.0):
-    nx = fluid_dict['nodes']
-    fluid_name = fluid_dict['fluid_name']
-    species_dict = fluid_dict.get('fluid_components', None)
-    mole_fractions = fluid_dict.get('inlet_composition', None)
-    liquid_props = fluid_dict.get('liquid_props', None)
+def factory(dict_circuit, dict_fluids, dict_channel,
+            dict_in_manifold, dict_out_manifold, n_channels,
+            channel_multiplier=1.0):
+    nx = dict_fluids['nodes']
+    fluid_name = dict_fluids['fluid_name']
+    species_dict = dict_fluids.get('fluid_components', None)
+    mole_fractions = dict_fluids.get('inlet_composition', None)
+    liquid_props = dict_fluids.get('liquid_props', None)
     temperature = dict_in_manifold['temp_in']
     pressure = dict_out_manifold['p_out']
     print('species_dict:', species_dict)
 
-    fluid_dict = \
-        [fluids.fluid_factory(nx, fluid_name, liquid_props=liquid_props,
-                              species_dict=species_dict,
-                              mole_fractions=mole_fractions,
-                              temperature=temperature, pressure=pressure)
+    fluids_list = \
+        [fluids.factory(nx, fluid_name, liquid_props=liquid_props,
+                        species_dict=species_dict,
+                        mole_fractions=mole_fractions,
+                        temperature=temperature, pressure=pressure)
          for i in range(n_channels)]
-    channels = [chl.Channel(dict_channel, fluid_dict[i]) for i in range(n_channels)]
-    fluid_dict = \
-        [fluids.fluid_factory(n_channels + 1, fluid_name,
-                              liquid_props=liquid_props,
-                              species_dict=species_dict,
-                              mole_fractions=mole_fractions,
-                              temperature=temperature, pressure=pressure)
+    channels = [chl.Channel(dict_channel, fluids_list[i])
+                for i in range(n_channels)]
+    fluids_list = \
+        [fluids.factory(n_channels + 1, fluid_name,
+                        liquid_props=liquid_props,
+                        species_dict=species_dict,
+                        mole_fractions=mole_fractions,
+                        temperature=temperature, pressure=pressure)
          for i in range(2)]
-    manifolds = [chl.Channel(dict_in_manifold, fluid_dict[0]),
-                 chl.Channel(dict_out_manifold, fluid_dict[1])]
+    manifolds = [chl.Channel(dict_in_manifold, fluids_list[0]),
+                 chl.Channel(dict_out_manifold, fluids_list[1])]
 
     return ParallelFlowCircuit(dict_circuit, manifolds, channels,
                                n_subchannels=channel_multiplier)
 
 
-def flow_circuit_factory2(dict_circuit, dict_in_manifold, dict_out_manifold,
-                          channels, channel_multiplier=1.0):
+def factory2(dict_circuit, dict_in_manifold, dict_out_manifold,
+             channels, channel_multiplier=1.0):
     if not isinstance(channels, (list, tuple)):
         raise TypeError('argument channels must be a list of type Channel')
     if not isinstance(channels[0], chl.Channel):
         raise TypeError('argument channels must be a list of type Channel')
 
-    temperature = dict_in_manifold['temp_in']
-    pressure = dict_out_manifold['p_out']
+    n_channels = len(channels)
+    in_manifold_fluid = copy.deepcopy(channels[0].fluid).rescale(n_channels + 1)
+    out_manifold_fluid = copy.deepcopy(in_manifold_fluid)
 
-    fluid_dict = \
-        [fluids.fluid_factory(nx, fluid_name, liquid_props=liquid_props,
-                              species_dict=species_dict,
-                              mole_fractions=mole_fractions,
-                              temperature=temperature, pressure=pressure)
-         for i in range(n_channels)]
-    channels = [chl.Channel(dict_channel, fluid_dict[i]) for i in range(n_channels)]
-    fluid_dict = \
-        [fluids.fluid_factory(n_channels + 1, fluid_name,
-                              liquid_props=liquid_props,
-                              species_dict=species_dict,
-                              mole_fractions=mole_fractions,
-                              temperature=temperature, pressure=pressure)
-         for i in range(2)]
-    manifolds = [chl.Channel(dict_in_manifold, fluid_dict[0]),
-                 chl.Channel(dict_out_manifold, fluid_dict[1])]
+    manifolds = [chl.Channel(dict_in_manifold, in_manifold_fluid),
+                 chl.Channel(dict_out_manifold, out_manifold_fluid)]
 
     return ParallelFlowCircuit(dict_circuit, manifolds, channels,
                                n_subchannels=channel_multiplier)

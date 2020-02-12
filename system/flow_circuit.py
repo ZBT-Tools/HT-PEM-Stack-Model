@@ -228,16 +228,16 @@ def flow_circuit_factory(dict_circuit, dict_fluid, dict_channel,
                          channel_multiplier=1.0):
     nx = g_par.dict_case['nodes']
     fluid = \
-        [fluids.fluid_factory(nx, dict_fluid['fluid_name'],
-                              species_dict=dict_fluid['fluid_components'],
-                              mole_fractions=
+        [fluids.factory(nx, dict_fluid['fluid_name'],
+                        species_dict=dict_fluid['fluid_components'],
+                        mole_fractions=
                               dict_fluid['inlet_composition'])
          for i in range(n_channels)]
     channels = [chl.Channel(dict_channel, fluid[i]) for i in range(n_channels)]
     fluid = \
-        [fluids.fluid_factory(n_channels + 1, dict_fluid['fluid_name'],
-                              species_dict=dict_fluid['fluid_components'],
-                              mole_fractions=
+        [fluids.factory(n_channels + 1, dict_fluid['fluid_name'],
+                        species_dict=dict_fluid['fluid_components'],
+                        mole_fractions=
                               dict_fluid['inlet_composition'])
          for i in range(2)]
     manifolds = [chl.Channel(dict_in_manifold, fluid[0]),

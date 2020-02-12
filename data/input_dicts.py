@@ -159,21 +159,9 @@ dict_anode_channel = {
     'bend_friction_factor': geom.bend_pressure_loss_coefficient
     }
 
-dict_cathode_flow_circuit = {
-    'name': 'Anode Flow Circuit',
-    'type': geom.cathode_manifold_model,
-    'shape': geom.cathode_manifold_configuration
-    }
-
-dict_anode_flow_circuit = {
-    'name': 'Anode Flow Circuit',
-    'type': geom.anode_manifold_model,
-    'shape': geom.anode_manifold_configuration
-    }
-
 dict_cathode_in_manifold = {
     'name': 'Cathode Inlet Manifold',
-    'channel_length': 0.09,
+    'channel_length': None,
     'p_out': op_con.p_manifold_cathode_out,
     'temp_in': op_con.temp_air_in,
     'flow_direction': 1,
@@ -189,7 +177,7 @@ dict_cathode_out_manifold['name'] = 'Cathode Outlet Manifold'
 
 dict_anode_in_manifold = {
     'name': 'Anode Inlet Manifold',
-    'channel_length': 0.09,
+    'channel_length': None,
     'p_out': op_con.p_manifold_anode_out,
     'temp_in': op_con.temp_anode_gas_in,
     'flow_direction': 1,
@@ -202,6 +190,18 @@ dict_anode_in_manifold = {
 
 dict_anode_out_manifold = copy.deepcopy(dict_anode_in_manifold)
 dict_anode_out_manifold['name'] = 'Anode Outlet Manifold'
+
+dict_cathode_flow_circuit = {
+    'name': 'Anode Flow Circuit',
+    'type': geom.cathode_manifold_model,
+    'shape': geom.cathode_manifold_configuration
+    }
+
+dict_anode_flow_circuit = {
+    'name': 'Anode Flow Circuit',
+    'type': geom.anode_manifold_model,
+    'shape': geom.anode_manifold_configuration
+    }
 
 dict_coolant_fluid = {
     'fluid_name': 'Coolant',

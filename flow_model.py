@@ -82,10 +82,10 @@ flow_circuit_dict = {
     'shape': 'U'
     }
 
-flow_model = flow_circuit.flow_circuit_factory(flow_circuit_dict, fluid_dict,
-                                               channel_dict, in_manifold_dict,
-                                               out_manifold_dict, n_chl,
-                                               n_subchl)
+flow_model = flow_circuit.factory(flow_circuit_dict, fluid_dict,
+                                  channel_dict, in_manifold_dict,
+                                  out_manifold_dict, n_chl,
+                                  n_subchl)
 
 
 x = (ip.interpolate_1d(flow_model.manifolds[0].x)

@@ -6,7 +6,9 @@ import system.manifold as mfd
 import system.electrical_coupling as el_cpl
 import data.electrical_coupling_dict as el_cpl_dict
 import system.temperature_system as therm_cpl
-import system.flow_circuit as flow
+import system.flow_circuit2 as flow_circuit
+import system.channel as chl
+import system.fluid2 as fluid
 import data.temperature_system_dict as therm_dict
 import data.input_dicts as in_dicts
 
@@ -57,30 +59,26 @@ class Stack:
         flow_circuit_dicts = [in_dicts.dict_cathode_flow_circuit,
                               in_dicts.dict_anode_flow_circuit]
 
+        # Setup fluid channels
+        fluids, channels = [], []
+        for i in range(len(half_cell_dicts)):
+            fluids.append(
+                fluid.factory(fluid_dicts[i]['nodes'],
+                              fluid_dicts[i]['name'],
+                              liquid_props=
+                              fluid_dicts[i].get('liquid_props', None),
+                              species_dict=
+                              fluid_dicts[i].get('fluid_components', None),
+                              mole_fractions=
+                              fluid_dicts[i].get('inlet_composition', None),
+                              temperature=manifold_in_dicts[i]['temp_in'],
+                              pressure=manifold_out_dicts[i]['p_out']))
+            channels.append([chl.Channel(channel_dicts[i],
+                                         copy.deepcopy(fluids[i]))
+                             for j in range(self.n_cells)])
 
-
-        # Setup flow models
-        cathode_flow_circuit = \
-            flow.flow_circuit_factory(flow_circuit_dicts[0], fluid_dicts[0],
-                                      channel_dicts[0], manifold_in_dicts[0],
-                                      manifold_out_dicts[0], self.n_cells,
-                                      half_cell_dicts[0]['channel_number'])
-        anode_flow_circuit = \
-            flow.flow_circuit_factory(flow_circuit_dicts[1], fluid_dicts[1],
-                                      channel_dicts[1], manifold_in_dicts[1],
-                                      manifold_out_dicts[1], self.n_cells,
-                                      half_cell_dicts[1]['channel_number'])
-
-        coolant_fluid_dict = in_dicts.dict_coolant_fluid
-
-        coolant_flow_circuit = \
-            flow.flow_circuit_factory(flow_circuit_dicts[1], fluid_dicts[1],
-                                      channel_dicts[1], manifold_in_dicts[1],
-                                      manifold_out_dicts[1], self.n_cells,
-                                      half_cell_dicts[1]['channel_number'])
-
+        # Setup fuel cells
         self.cells = []
-        # Initialize individual cells
         for i in range(self.n_cells):
             if self.n_cells == 1:
                 cell_dict['first_cell'] = True
@@ -98,22 +96,42 @@ class Stack:
                 cell_dict['last_cell'] = False
                 cell_dict['heat_pow'] = temperature_dict['heat_pow']
 
-            cathode_channel = cathode_flow_circuit.channels[i]
-            anode_channel = anode_flow_circuit.channels[i]
-            channels = [cathode_channel, anode_channel]
+            cell_channels = [channels[0][i], channels[1][i]]
             # initialize cell object
             cell = cl.Cell(i, cell_dict, membrane_dict, half_cell_dicts,
-                           channels)
+                           cell_channels)
             if i == 0:
-                cell.coordinates[0] = 0.0
-                cell.coordinates[1] = cell.thickness
+                cell.coords[0] = 0.0
+                cell.coords[1] = cell.thickness
             else:
-                cell.coordinates[0] = self.cells[i-1].coordinates[1]
-                cell.coordinates[1] = cell.coordinates[0] + cell.thickness
+                cell.coords[0] = self.cells[i - 1].coords[1]
+                cell.coords[1] = cell.coords[0] + cell.thickness
             self.cells.append(cell)
 
         # self.set_stoichiometry(np.full(self.n_cells, self.stoi_cat),
         #                        np.full(self.n_cells, self.stoi_ano))
+
+        # Setup flow circuits
+        manifold_length = \
+            self.cells[-1].coords[-1] - self.cells[0].coords[0]
+        fluid_circuits = []
+        for i in range(len(half_cell_dicts)):
+            manifold_in_dicts[i]['channel_length'] = manifold_length
+            manifold_out_dicts[i]['channel_length'] = manifold_length
+            sub_channel_number = half_cell_dicts[i]['channel_number']
+            fluid_circuits.append(flow_circuit.factory2(flow_circuit_dicts[i],
+                                                        manifold_in_dicts[i],
+                                                        manifold_out_dicts[i],
+                                                        channels[i],
+                                                        sub_channel_number))
+
+        cool_fluid_dict = in_dicts.dict_coolant_fluid
+
+        cool_flow_circuit = \
+            flow_circuit.factory(flow_circuit_dicts[1], fluid_dicts[1],
+                                 channel_dicts[1], manifold_in_dicts[1],
+                                 manifold_out_dicts[1], self.n_cells,
+                                 half_cell_dicts[1]['channel_number'])
 
         # Initialize the manifolds
         cathode_channels = \

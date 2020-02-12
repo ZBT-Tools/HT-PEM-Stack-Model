@@ -97,6 +97,12 @@ class OneDimensionalFluid(ABC, OutputObject):
     #     self.property['Specific Heat'] = value
 
     def rescale(self, new_nx):
+        """
+        linearly rescales all numpy arrays with the 1D discretization as first
+        dimension
+        :param new_nx: new discretization along first dimension
+        :return: only modification of attributes
+        """
         if new_nx != self.nodes:
             attr_list = [a for a in dir(self) if not a.startswith('__')]
             for name in attr_list:
@@ -104,20 +110,15 @@ class OneDimensionalFluid(ABC, OutputObject):
                 if name == 'property':
                     for key in attr.keys():
                         rescaled = self.rescale_attribute(attr[key], new_nx)
-                        print(name, key)
-                        print(rescaled)
                         if rescaled is not None:
                             attr[key] = rescaled
-                            print(attr[key])
                 else:
                     type_attr = getattr(type(self), name, None)
                     if not isinstance(type_attr, property):
                         rescaled = self.rescale_attribute(attr, new_nx)
-                        print(name)
-                        print(rescaled)
+
                         if rescaled is not None:
                             setattr(self, name, rescaled)
-                            print(getattr(self, name))
         self.add_print_variables(self.print_variables)
 
     def rescale_attribute(self, attribute, new_nx):
@@ -264,7 +265,6 @@ class GasMixture(OneDimensionalFluid):
 
         # self.add_print_data(self.mole_fraction, 'Mole Fraction',
         #                     sub_names=self.species.names)
-        print(self.print_variables)
         self.add_print_variables(self.print_variables)
 
     @property
@@ -651,9 +651,9 @@ def liquid_factory(nx, name, liquid_props, temperature, pressure):
                         'ConstantProperties or IncompressibleProperties')
 
 
-def fluid_factory(nx, name, liquid_props=None, species_dict=None,
-                  mole_fractions=None, temperature=298.15,
-                  pressure=101325.0, **kwargs):
+def factory(nx, name, liquid_props=None, species_dict=None,
+            mole_fractions=None, temperature=298.15,
+            pressure=101325.0, **kwargs):
     if species_dict is None:
         return liquid_factory(nx, name, liquid_props, temperature, pressure)
     else:
