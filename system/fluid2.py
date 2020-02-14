@@ -36,13 +36,13 @@ class OneDimensionalFluid(ABC, OutputObject):
             self.property[name] = np.zeros(self.nodes)
 
     @staticmethod
-    def write_input_to_array(input_value, attribute_array):
-        if np.ndim(input_value) == 0 \
-                or input_value.shape == attribute_array.shape:
-            attribute_array[:] = input_value
+    def write_input_to_array(value, array):
+        if np.ndim(value) == 0 \
+                or value.shape == array.shape:
+            array[:] = value
         else:
             raise ValueError('argument input_value must be scalar or '
-                             'have the same shape as attribute_array')
+                             'have the same shape as 1D array')
 
     @abstractmethod
     def update(self, temperature, pressure, *args, **kwargs):
