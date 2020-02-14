@@ -24,33 +24,30 @@ class OneDimensionalFluid(ABC, OutputObject):
             }
         self.combine_print_variables(self.print_variables,
                                      kwargs.get('print_variables', None))
-        try:
-            if len(temperature) == self.nodes:
-                self.temperature = temperature
-            else:
-                raise ValueError('Argument temperature must be scalar or of '
-                                 'length nx')
-        except TypeError:
-            self.temperature = np.zeros(self.nodes)
-            self.temperature.fill(temperature)
-        try:
-            if len(pressure) == self.nodes:
-                self.pressure = pressure
-            else:
-                raise ValueError('Argument pressure must be scalar or of '
-                                 'length nx')
-        except TypeError:
-            self.pressure = np.zeros(self.nodes)
-            self.pressure.fill(pressure)
+        temperature = np.asarray(temperature)
+        pressure = np.asarray(pressure)
+        self._temperature = np.zeros(self.nodes)
+        self._pressure = np.zeros(self.nodes)
+        self.write_input_to_array(temperature, self._temperature)
+        self.write_input_to_array(pressure, self._pressure)
 
         self.property = dict()
         for name in self.PROPERTY_NAMES:
             self.property[name] = np.zeros(self.nodes)
 
+    @staticmethod
+    def write_input_to_array(input_value, attribute_array):
+        if np.ndim(input_value) == 0 \
+                or input_value.shape == attribute_array.shape:
+            attribute_array[:] = input_value
+        else:
+            raise ValueError('argument input_value must be scalar or '
+                             'have the same shape as attribute_array')
+
     @abstractmethod
     def update(self, temperature, pressure, *args, **kwargs):
-        self.temperature[:] = temperature
-        self.pressure[:] = pressure
+        self._temperature[:] = temperature
+        self._pressure[:] = pressure
 
     @abstractmethod
     def calc_properties(self, temperature, pressure=101325.0, **kwargs):
@@ -63,6 +60,22 @@ class OneDimensionalFluid(ABC, OutputObject):
         array with different species along the provided axis.
         """
         return composition / np.sum(composition, axis)
+
+    @property
+    def temperature(self):
+        return self._temperature
+
+    @property
+    def pressure(self):
+        return self._pressure
+
+    @temperature.setter
+    def temperature(self, value):
+        self.write_input_to_array(value, self._temperature)
+
+    @pressure.setter
+    def pressure(self, value):
+        self.write_input_to_array(value, self._pressure)
 
     @property
     def density(self):
@@ -187,17 +200,16 @@ class IncompressibleFluid(OneDimensionalFluid):
     def __init__(self, nx, name, fluid_props, temperature=298.15,
                  pressure=101325.0, **kwargs):
         print("__init__ for IncompressibleFluid")
-        super().__init__(nx, temperature, pressure, **kwargs)
-        self.name = name
         if isinstance(fluid_props, species.IncompressibleProperties):
             self.properties = fluid_props
         else:
             raise TypeError('Argument fluid_props must be of type '
                             'IncompressibleProperties')
+        super().__init__(nx, name, temperature, pressure, **kwargs)
 
     def update(self, temperature, pressure=101325.0, *args, **kwargs):
         super().update(temperature, pressure)
-        self.calc_properties(self.temperature, pressure)
+        self.calc_properties(self._temperature, self._pressure)
 
     def calc_property(self, property_name, temperature):
         """
@@ -231,17 +243,17 @@ class GasMixture(OneDimensionalFluid):
                 'units': ['-'],
                 'sub_names': ['self.species.names']
             }
-        super().__init__(nx, temperature, pressure,
+        super().__init__(nx, name, temperature, pressure,
                          print_variables=print_variables, **kwargs)
         self.name = name
         species_names = list(species_dict.keys())
-        self.n_species = len(species_names)
+        # self.n_species = len(species_names)
         self.gas_constant = g_par.constants['R']
         self.species = species.GasProperties(species_names)
-        self.species_viscosity = \
-            self.species.calc_viscosity(np.full(nx, temperature))
-
         self.n_species = len(self.species.names)
+        self.species_viscosity = \
+            self.species.calc_viscosity(self._temperature)
+
         if isinstance(mole_fractions, (list, tuple)):
             mole_fractions = np.asarray(mole_fractions)
         if len(mole_fractions) != self.n_species \
@@ -260,7 +272,8 @@ class GasMixture(OneDimensionalFluid):
             np.ones(self.array_shape_2d) * mass_fraction_init
         self._concentration = np.zeros(self.array_shape_2d)
         if isinstance(type(self), GasMixture):
-            self.calc_properties(temperature, pressure, method='ideal')
+            self.calc_properties(self._temperature, self._pressure,
+                                 method='ideal')
             self._concentration[:] = self.calc_concentration().transpose()
 
         # self.add_print_data(self.mole_fraction, 'Mole Fraction',
@@ -283,19 +296,19 @@ class GasMixture(OneDimensionalFluid):
     def concentration(self, value):
         self._concentration[:] = value.transpose()
 
-    def update(self, temperature, pressure, composition=None, method='ideal',
-               *args, **kwargs):
+    def update(self, temperature, pressure, mole_composition=None,
+               method='ideal', *args, **kwargs):
         super().update(temperature, pressure)
-        if composition is None:
-            composition = self.mole_fraction
-        elif np.shape(composition)[0] != self.n_species:
+        if mole_composition is None:
+            mole_composition = self.mole_fraction
+        elif np.shape(mole_composition)[0] != self.n_species:
             raise ValueError('First dimension of composition must be equal to '
                              'number of species')
-        self.calc_mole_fraction(composition)
+        self.calc_mole_fraction(mole_composition)
         self.calc_molar_mass()
         self._mass_fraction[:] = \
             self.calc_mass_fraction(self._mole_fraction)
-        self.calc_properties(self.temperature, self.pressure, method)
+        self.calc_properties(self._temperature, self._pressure, method)
         self._concentration[:] = \
             self.calc_concentration().transpose()
 
@@ -303,7 +316,8 @@ class GasMixture(OneDimensionalFluid):
         """
         Calculates the gas phase molar concentrations.
         """
-        total_mol_conc = self.pressure / (self.gas_constant * self.temperature)
+        total_mol_conc = self._pressure \
+            / (self.gas_constant * self._temperature)
         return self._mole_fraction.transpose() * total_mol_conc
 
     def calc_mole_fraction(self, composition):
@@ -330,6 +344,11 @@ class GasMixture(OneDimensionalFluid):
         Calculates the mixture viscosity of a
         gas according to Herning and Zipperer.
         """
+        print(temperature)
+        print(self._temperature)
+        print(self.species_viscosity)
+        print(self.n_species)
+        print(self.species.calc_viscosity(temperature))
         self.species_viscosity[:] = self.species.calc_viscosity(temperature)
         spec_visc = self.species_viscosity.transpose()
         x_sqrt_mw = self._mole_fraction * np.sqrt(self.species.mw)
@@ -457,12 +476,12 @@ class TwoPhaseMixture(OneDimensionalFluid):
                             'name as key and FluidProperties object as value '
                             'for the liquid properties')
         self.liquid = IncompressibleFluid(nx, name, fluid_props=liquid_props,
-                                          temperature=self.temperature,
-                                          pressure=self.pressure)
+                                          temperature=self._temperature,
+                                          pressure=self._pressure)
         self.gas = GasMixture(nx, name, species_dict=gas_species_dict,
                               mole_fractions=mole_fractions,
-                              temperature=self.temperature,
-                              pressure=self.pressure)
+                              temperature=self._temperature,
+                              pressure=self._pressure)
         ids_pc = [self.species.names.index(name) for name in
                   phase_change_species_names]
         if len(ids_pc) > 1:
@@ -509,6 +528,26 @@ class TwoPhaseMixture(OneDimensionalFluid):
     #     return self._mass_fraction_gas.transpose()
 
     @property
+    def temperature(self):
+        return self._temperature
+
+    @property
+    def pressure(self):
+        return self._pressure
+
+    @temperature.setter
+    def temperature(self, value):
+        self.write_input_to_array(value, self._temperature)
+        self.gas._temperature = self._temperature
+        self.liquid._temperature = self._temperature
+
+    @pressure.setter
+    def pressure(self, value):
+        self.write_input_to_array(value, self._pressure)
+        self.gas._pressure = self._pressure
+        self.liquid._pressure = self._pressure
+
+    @property
     def mole_fraction(self):
         return self._mole_fraction.transpose()
 
@@ -520,13 +559,13 @@ class TwoPhaseMixture(OneDimensionalFluid):
     def species(self):
         return self.gas.species
 
-    def update(self, temperature, pressure, composition=None, method='ideal',
-               *args, **kwargs):
+    def update(self, temperature, pressure, mole_composition=None,
+               method='ideal', *args, **kwargs):
         super().update(temperature, pressure)
-        if composition is not None:
-            if np.sum(composition) > 0.0:
+        if mole_composition is not None:
+            if np.sum(mole_composition) > 0.0:
                 self._mole_fraction[:] = \
-                    self.calc_fraction(composition).transpose()
+                    self.calc_fraction(mole_composition).transpose()
 
         self.mw[:] = self.gas.calc_molar_mass(self.mole_fraction)
         self._mass_fraction[:] = \
@@ -590,8 +629,8 @@ class TwoPhaseMixture(OneDimensionalFluid):
         :return: gas phase concentration and total concentration arrays
         (n_species x n_nodes)
         """
-        r_t = self.gas.gas_constant * self.temperature
-        total_gas_conc = self.pressure / r_t
+        r_t = self.gas.gas_constant * self._temperature
+        total_gas_conc = self._pressure / r_t
         conc = self.mole_fraction * total_gas_conc
         # all_conc = np.copy(conc)
         sat_conc = self.saturation_pressure / r_t
@@ -637,7 +676,7 @@ class TwoPhaseMixture(OneDimensionalFluid):
         """
         p_sat = self.saturation_pressure
         self.humidity[:] = \
-            self._mole_fraction[:, self.id_pc] * self.pressure / p_sat
+            self._mole_fraction[:, self.id_pc] * self._pressure / p_sat
 
 
 def liquid_factory(nx, name, liquid_props, temperature, pressure):
@@ -654,6 +693,32 @@ def liquid_factory(nx, name, liquid_props, temperature, pressure):
 def factory(nx, name, liquid_props=None, species_dict=None,
             mole_fractions=None, temperature=298.15,
             pressure=101325.0, **kwargs):
+    if species_dict is None:
+        return liquid_factory(nx, name, liquid_props, temperature, pressure)
+    else:
+        species_types = list(species_dict.values())
+        species_types_str = ' '.join(species_types)
+        if 'gas' in species_types_str and 'liquid' not in species_types_str:
+            return GasMixture(nx, name, species_dict, mole_fractions,
+                              temperature, pressure)
+        elif 'gas' in species_types_str and 'liquid' in species_types_str:
+            return TwoPhaseMixture(nx, name, species_dict, mole_fractions,
+                                   liquid_props, temperature, pressure)
+        elif 'liquid' in species_types_str and 'gas' \
+                not in species_types_str:
+            return liquid_factory(nx, name, liquid_props, temperature, pressure)
+        else:
+            raise NotImplementedError
+
+
+def factory2(fluid_dict):
+    nx = fluid_dict['nodes']
+    name = fluid_dict['name']
+    liquid_props = fluid_dict.get('liquid_props', None)
+    species_dict = fluid_dict.get('fluid_components', None)
+    mole_fractions = fluid_dict.get('inlet_composition', None)
+    temperature = fluid_dict.get('temp_in', 293.15)
+    pressure = fluid_dict.get('p_out', 101325.0)
     if species_dict is None:
         return liquid_factory(nx, name, liquid_props, temperature, pressure)
     else:

@@ -116,7 +116,7 @@ dict_anode = {
     }
 
 dict_cathode_fluid = {
-    'fluid_name': 'Cathode Gas',
+    'name': 'Cathode Gas',
     'fluid_components': op_con.cathode_species,
     'inlet_composition': op_con.cathode_inlet_composition,
     'temp_init': op_con.temp_air_in,
@@ -125,7 +125,7 @@ dict_cathode_fluid = {
 }
 
 dict_anode_fluid = {
-    'fluid_name': 'Anode Gas',
+    'name': 'Anode Gas',
     'fluid_components': op_con.anode_species,
     'inlet_composition': op_con.anode_inlet_composition,
     'temp_init': op_con.temp_anode_gas_in,
@@ -232,27 +232,28 @@ dict_coolant_channel = {
     'bend_friction_factor': geom.coolant_bend_pressure_loss_coefficient
     }
 
+dict_coolant_in_manifold = {
+    'name': 'Coolant Inlet Manifold',
+    'channel_length': None,
+    'p_out': op_con.p_manifold_cathode_out,
+    'temp_in': op_con.temp_coolant_in,
+    'flow_direction': 1,
+    'channel_width': geom.coolant_manifold_width,
+    'channel_height': geom.coolant_manifold_width,
+    'bend_number': 0,
+    'bend_friction_factor': 0.0,
+    'additional_friction_fractor':
+        geom.coolant_manifold_pressure_loss_coefficient
+    }
+
+dict_coolant_out_manifold = copy.deepcopy(dict_coolant_in_manifold)
+dict_coolant_out_manifold['name'] = 'Coolant Outlet Manifold'
+
 dict_coolant_flow_circuit = {
     'name': 'Coolant Flow Circuit',
     'type': geom.coolant_manifold_model,
     'shape': geom.coolant_manifold_configuration
     }
-
-dict_coolant_in_manifold = {
-    'name': 'Coolant Inlet Manifold',
-    'channel_length': None,
-    'p_out': op_con.p_manifold_cathode_out,
-    'temp_in': op_con.temp_air_in,
-    'flow_direction': 1,
-    'channel_width': geom.manifold_width,
-    'channel_height': geom.manifold_height,
-    'bend_number': 0,
-    'bend_friction_factor': 0.0,
-    'additional_friction_fractor': geom.manifold_pressure_loss_coefficient
-    }
-
-dict_coolant_out_manifold = copy.deepcopy(dict_coolant_in_manifold)
-dict_coolant_out_manifold['name'] = 'Coolant Outlet Manifold'
 
 # dict_cathode_manifold = {
 #     'name': 'Cathode Manifold',

@@ -54,8 +54,8 @@ class TemperatureSystem:
         # height of the coolant channel
         width_cool = temp_dict['channel_width']
         # width of the coolant channel
-        n_cool_cell = temp_dict['cool_ch_numb']
-        # number of coolant channels
+        self.n_cool_cell = temp_dict['cool_ch_numb']
+        # number of coolant channels per cell
         # end plate heat power
         self.lambda_cool = temp_dict['cool_lambda']
         # thermal conductivity from the channel to the coolant
@@ -101,7 +101,7 @@ class TemperatureSystem:
         # voltage loss at the cathode side:0 and at the anode side:1
         #self.omega = np.full((self.n_cells, self.n_ele), 0.)
         # electrical resistance of the membrane
-        self.g_cool = cp_cool * m_flow_cool * n_cool_cell
+        self.g_cool = cp_cool * m_flow_cool * self.n_cool_cell
         # coolant heat capacity flow_circuit.py
 
         """Calculating the coolant to channel thermal conductance"""
@@ -140,7 +140,7 @@ class TemperatureSystem:
         # convection coefficient between the coolant and the channel wall
         conv_area = d_h_cool * np.pi * ch_length / self.n_ele
         # convection area of the channel wall
-        self.k_cool = conv_coeff_ch * conv_area * n_cool_cell
+        self.k_cool = conv_coeff_ch * conv_area * self.n_cool_cell
         # thermal conductance between the element channel area and the coolant
 
         """Building up the result temperature list and arrays"""

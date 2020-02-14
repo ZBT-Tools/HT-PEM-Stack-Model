@@ -11,6 +11,12 @@ def ensure_list(variable):
         return [variable]
 
 
+def fill_transposed(in_array, shape):
+    transposed_array = np.zeros(shape).transpose()
+    transposed_array[:] = in_array
+    return transposed_array.transpose()
+
+
 def add_source(var, source, direction=1, tri_mtx=None):
     """
     Add discrete 1d source of length n-1 to var of length n

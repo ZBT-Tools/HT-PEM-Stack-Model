@@ -2,6 +2,7 @@ import warnings
 import data.gas_properties as g_prop
 import numpy as np
 import data.global_parameters as g_par
+import system.global_functions as g_func
 import system.channel as chl
 import system.fluid2 as fluids
 import system.layers as layers
@@ -239,35 +240,74 @@ class HalfCell:
         This function coordinates the program sequence
         """
         # self.calc_temp_fluid_ele()
-        mole_flow_in, mole_source = self.calc_mass_balance(current_density)
+        # mole_flow_in, mole_source = self.calc_mass_balance(current_density)
         if not self.break_program:
             # self.channel.update(mole_flow_in, mole_source)
-            self.channel.mole_flow[:] = mole_flow_in
-            self.channel.mole_source[:] = mole_source
+            # self.channel.mole_flow[:] = mole_flow_in
+            self.channel.mass_source[:], self.channel.mole_source[:] = \
+                self.calc_mass_source(current_density)
             self.update_voltage_loss(current_density)
 
-    def calc_mass_balance(self, current_density):
-        n_species = self.channel.fluid.n_species
-        mole_flow_in = np.zeros((n_species, self.n_nodes))
-        mole_source = np.zeros((n_species, self.n_ele))
-        mole_flow_in[self.id_fuel, :], mole_source[self.id_fuel, :] = \
-            self.calc_fuel_flow(current_density)
-        mole_flow_in[self.id_inert, :] = \
-            mole_flow_in[self.id_fuel, self.channel.id_in] \
-            * self.inert_reac_ratio
-        air_flow_in = np.sum(mole_flow_in[:, self.channel.id_in])
-        mole_flow_in[self.id_h2o, :], mole_source[self.id_h2o, :] = \
-            self.calc_water_flow(current_density, air_flow_in)
-        return mole_flow_in, mole_source
+    # def calc_mass_balance(self, current_density, stoi=None):
+    #     n_species = self.channel.fluid.n_species
+    #     mole_flow_in = np.zeros((n_species, self.n_nodes))
+    #     mole_source = np.zeros((n_species, self.n_ele))
+    #     mole_flow_in[self.id_fuel, :], mole_source[self.id_fuel, :] = \
+    #         self.calc_fuel_flow(current_density, stoi)
+    #     mole_flow_in[self.id_inert, :] = \
+    #         mole_flow_in[self.id_fuel, self.channel.id_in] \
+    #         * self.inert_reac_ratio
+    #     air_flow_in = np.sum(mole_flow_in[:, self.channel.id_in])
+    #     mole_flow_in[self.id_h2o, :], mole_source[self.id_h2o, :] = \
+    #         self.calc_water_flow(current_density, air_flow_in)
+    #     return mole_flow_in, mole_source
 
-    def update_voltage_loss(self, current_density):
-        self.calc_electrode_loss(current_density)
+    def calc_mass_balance(self, current_density, stoi=None):
+        mass_flow_in, mole_flow_in = self.calc_inlet_flow(stoi)
+        mass_flow_in = g_func.fill_transposed(mass_flow_in,
+                                              self.channel.mass_flow.shape)
+        mole_flow_in = g_func.fill_transposed(mole_flow_in,
+                                              self.channel.mole_flow.shape)
+        mass_source, mole_source = self.calc_mass_source(current_density)
+        return mass_flow_in, mole_flow_in, mass_source, mole_source
 
-    def calc_fuel_flow(self, current_density):
+    def calc_inlet_flow(self, stoi=None):
+        if stoi is None:
+            stoi = self.stoi
+        mole_flow_in = np.zeros(self.channel.fluid.n_species)
+        mole_flow_in[self.id_fuel] = self.target_cd * self.active_area * stoi \
+            * abs(self.n_stoi[self.id_fuel]) / (self.n_charge * self.faraday)
+
+        inlet_composition = \
+            self.channel.fluid.mole_fraction[:, self.channel.node_in]
+        for i in range(len(mole_flow_in)):
+            if i != self.id_fuel:
+                mole_flow_in[i] = mole_flow_in[self.id_fuel] \
+                    * inlet_composition[i] / inlet_composition[self.id_fuel]
+        mass_flow_in = mole_flow_in / self.channel.fluid.species.mw
+        return mass_flow_in, mole_flow_in
+
+    def calc_mass_source(self, current_density):
+        mole_source = np.zeros((self.channel.fluid.n_species, self.n_ele))
+
+        for i in range(len(mole_source)):
+            mole_source[i] = current_density * self.active_area_dx \
+                * self.n_stoi[i] / (self.n_charge * self.faraday)
+
+        # water cross flow
+        mole_source[self.id_h2o] += self.active_area_dx * self.w_cross_flow \
+            * self.channel.flow_direction
+        mass_source = (mole_source.transpose()
+                       / self.channel.fluid.species.mw).transpose()
+        return mass_source, mole_source
+
+    def calc_fuel_flow(self, current_density, stoi=None):
         """
-        Calculates the reactant molar flow_circuit.py [mol/s]
+        Calculates the reactant molar flow [mol/s]
         """
-        mol_flow_in = self.target_cd * self.active_area * self.stoi \
+        if stoi is None:
+            stoi = self.stoi
+        mol_flow_in = self.target_cd * self.active_area * stoi \
             * abs(self.n_stoi[self.id_fuel]) / (self.n_charge * self.faraday)
         dmol = current_density * self.active_area_dx \
             * self.n_stoi[self.id_fuel] / (self.n_charge * self.faraday)
@@ -277,7 +317,7 @@ class HalfCell:
 
     def calc_water_flow(self, current_density, air_flow_in):
         """"
-        Calculates the water molar flow_circuit.py [mol/s]
+        Calculates the water molar flow [mol/s]
         """
         if not isinstance(self.channel.fluid, fluids.TwoPhaseMixture):
             raise TypeError('Fluid in channel must be of type TwoPhaseMixture')
@@ -291,9 +331,12 @@ class HalfCell:
             * current_density / (self.n_charge * self.faraday)
         dmol += h2o_prod
         h2o_cross = self.active_area_dx * self.w_cross_flow \
-            * self.channel._flow_direction
+            * self.channel.flow_direction
         dmol += h2o_cross
         return mol_flow_in, dmol
+
+    def update_voltage_loss(self, current_density):
+        self.calc_electrode_loss(current_density)
 
     def calc_activation_loss(self, current_density, reac_conc_ele,
                              reac_conc_in):
@@ -345,7 +388,7 @@ class HalfCell:
         """
         reac_conc = self.channel.fluid.concentration[self.id_fuel]
         reac_conc_ele = ip.interpolate_1d(reac_conc)
-        if self.channel._flow_direction == 1:
+        if self.channel.flow_direction == 1:
             reac_conc_in = reac_conc[:-1]
         else:
             reac_conc_in = reac_conc[1:]

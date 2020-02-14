@@ -2,7 +2,7 @@
 
 """Simulation Settings"""
 # discretization of the flow_circuit.py channel along the x-axis
-elements = 4
+elements = 5
 # convergence criteria of the simulation
 convergence_criteria = 1.e-6
 # maximum number of iterations

@@ -111,7 +111,7 @@ print(fluid.gas.print_data)
 #                         sub_names=fluid.gas.species.names)
 # fluid.gas._mole_fraction[0, 0] = 1.0
 fluid.rescale(10)
-print(fluid.temperature)
+print(fluid._temperature)
 print(fluid.gas.mole_fraction)
 print(fluid.print_data)
 plt.legend()

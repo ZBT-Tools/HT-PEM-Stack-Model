@@ -45,8 +45,8 @@ class Channel(ABC, OutputObject):
         # inlet temperature
 
         self.tri_mtx = None
-        self.node_in = None
-        self.node_out = None
+        self.id_in = None
+        self.id_out = None
         self.flow_direction = channel_dict['flow_direction']
 
         self.pressure_recovery = False
@@ -109,11 +109,11 @@ class Channel(ABC, OutputObject):
                              'must be either 1 or -1')
         self._flow_direction = flow_direction
         if self._flow_direction == 1:
-            self.node_in = 0
-            self.node_out = -1
+            self.id_in = 0
+            self.id_out = -1
         else:
-            self.node_in = -1
-            self.node_out = 0
+            self.id_in = -1
+            self.id_out = 0
         ones = np.zeros((self.n_ele, self.n_ele))
         ones.fill(1.0)
         if self._flow_direction == 1:
@@ -218,16 +218,17 @@ class GasMixtureChannel(Channel):
         arr_shape = (self.fluid.n_species, self.n_nodes)
         self.mole_flow = np.zeros(arr_shape)
         self.mass_flow = np.zeros(arr_shape)
+        self.mass_source = np.zeros((self.fluid.n_species, self.n_ele))
         self.mole_source = np.zeros((self.fluid.n_species, self.n_ele))
 
         self.add_print_data(self.mole_flow, 'Mole Flow',
                             'mol/s', self.fluid.species.names)
 
-    def update(self, mole_flow_in=None, dmol=None):
-        self.calc_mass_balance(mole_flow_in, dmol)
-        if mole_flow_in is None:
-            mole_flow_in = self.mole_flow[:, 0]
-        self.fluid.update(self.temp, self.p, mole_flow_in)
+    def update(self, mass_flow_in=None, mass_source=None):
+        self.calc_mass_balance(mass_flow_in, mass_source)
+        # if mass_flow_in is None:
+        #     mass_flow_in = self.mass_flow[:, self.id_in]
+        self.fluid.update(self.temp, self.p, self.mole_flow)
         self.calc_flow_velocity()
         self.calc_pressure()
         self.calc_heat_transfer_coeff()
@@ -238,28 +239,39 @@ class GasMixtureChannel(Channel):
     def calc_mass_balance(self, mass_flow_in=None, mass_source=None):
         """
         Calculate mass balance in 1D channel
-        :param mass_flow_in: inlet mol flow_circuit.py
+        :param mass_flow_in: inlet mass flow
         :param mass_source: 2D array (n_species x n_elements) of discretized
                             mass source
         :return: None
         """
         if mass_flow_in is not None:
-            try:
-                if len(mass_flow_in) == len(self.mass_flow):
-                    mass_flow = mass_flow_in
-                elif np.shape(mass_flow_in) == self.mass_flow_total.shape:
-                    mass_flow = \
-                        np.outer(self.fluid.mass_fraction, mass_flow_in)
-                else:
-                    raise ValueError('size of first dimension of mass_flow_in '
-                                     'must be n_species')
-            except TypeError:
-                mass_flow = self.fluid.mass_fraction * mass_flow_in
-
-            self.mole_flow[:] = \
-                (mass_flow.transpose() / self.fluid.species.mw).transpose()
+            mass_flow_in = np.asarray(mass_flow_in)
+            if mass_flow_in.shape == self.mass_flow.shape:
+                # mass_flow = mass_flow_in
+                mass_flow_in = mass_flow_in[:, self.id_in]
+                mass_flow = \
+                    g_func.fill_transposed(mass_flow_in, self.mass_flow.shape)
+            elif mass_flow_in.shape == self.mass_flow_total.shape:
+                mass_flow = np.outer(self.fluid.mass_fraction[:, self.id_in],
+                                     mass_flow_in)
+            elif mass_flow_in.shape == (self.mass_flow.shape[0],):
+                mass_flow = \
+                    g_func.fill_transposed(mass_flow_in, self.mass_flow.shape)
+            elif np.ndim(mass_flow_in) == 0:
+                mass_flow_total = np.zeros(self.mass_flow_total.shape)
+                mass_flow_total[:] = mass_flow_in
+                mass_flow = np.outer(self.fluid.mass_fraction[:, self.id_in],
+                                     mass_flow_total)
+            else:
+                raise ValueError(
+                    'provided mass flow cannot be converted to array'
+                    ' of shape: ', self.mass_flow.shape)
+            self.mass_flow[:] = mass_flow
+            # self.mole_flow[:] = \
+            #     (mass_flow.transpose() / self.fluid.species.mw).transpose()
         if mass_source is not None:
             if np.shape(mass_source) == (self.fluid.n_species, self.n_ele):
+                self.mass_source[:] = mass_source
                 self.mole_source[:] = \
                     (mass_source.transpose()
                      / self.fluid.species.mw).transpose()
@@ -267,13 +279,15 @@ class GasMixtureChannel(Channel):
                 raise ValueError('shape of mass_source does not conform '
                                  'to mole_source array')
         for i in range(self.fluid.n_species):
-            g_func.add_source(self.mole_flow[i], self.mole_source[i],
+            g_func.add_source(self.mass_flow[i], self.mass_source[i],
                               self.flow_direction, self.tri_mtx)
 
+        self.mass_flow_total[:] = np.sum(self.mass_flow, axis=0)
+        # self.mass_flow[:] = \
+        #     (self.mole_flow.transpose() * self.fluid.species.mw).transpose()
+        self.mole_flow[:] = \
+            (self.mass_flow.transpose() / self.fluid.species.mw).transpose()
         self.mole_flow_total[:] = np.sum(self.mole_flow, axis=0)
-        self.mass_flow[:] = \
-            (self.mole_flow.transpose() * self.fluid.species.mw).transpose()
-        self.mass_flow_total[:] = self.mole_flow_total * self.fluid.mw
 
 
 class TwoPhaseMixtureChannel(GasMixtureChannel):
@@ -294,7 +308,7 @@ class TwoPhaseMixtureChannel(GasMixtureChannel):
 
     def update(self, mass_flow_in=None, mass_source=None):
         self.calc_mass_balance(mass_flow_in, mass_source)
-        self.fluid.update(self.temp, self.p, self.mole_flow[:, self.node_in])
+        self.fluid.update(self.temp, self.p, self.mole_flow)
         self.calc_two_phase_flow()
         self.calc_flow_velocity()
         self.calc_pressure()
@@ -317,7 +331,7 @@ class TwoPhaseMixtureChannel(GasMixtureChannel):
 
     def calc_two_phase_flow(self):
         """
-        Calculates the condensed phase flow_circuit.py and updates mole and mass fractions
+        Calculates the condensed phase flow and updates mole and mass fractions
         """
         mole_flow_liq_total = self.mole_flow_total \
             * self.fluid.liquid_mole_fraction
