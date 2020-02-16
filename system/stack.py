@@ -117,8 +117,8 @@ class Stack:
             self.cells[-1].coords[-1] - self.cells[0].coords[0]
         self.fluid_circuits = []
         for i in range(len(half_cell_dicts)):
-            manifold_in_dicts[i]['channel_length'] = manifold_length
-            manifold_out_dicts[i]['channel_length'] = manifold_length
+            manifold_in_dicts[i]['length'] = manifold_length
+            manifold_out_dicts[i]['length'] = manifold_length
             sub_channel_number = self.cells[0].half_cells[i].n_channel
             self.fluid_circuits.append(
                 flow_circuit.factory2(flow_circuit_dicts[i],
@@ -127,6 +127,8 @@ class Stack:
                                       channels[i], sub_channel_number))
 
         coolant_dict = in_dicts.dict_coolant_fluid
+        in_dicts.dict_coolant_in_manifold['length'] = manifold_length
+        in_dicts.dict_coolant_out_manifold['length'] = manifold_length
         coolant_dict['temp_in'] = in_dicts.dict_coolant_in_manifold['temp_in']
         coolant_dict['p_out'] = in_dicts.dict_coolant_out_manifold['p_out']
         coolant = fluid.factory2(coolant_dict)
@@ -230,12 +232,13 @@ class Stack:
                 self.break_program = True
                 break
         if not self.break_program:
+            # if self.n_cells > 1:
+            #     if self.calc_flow_dis:
+            self.update_flows()
             # self.stack_dynamic_properties()
             if self.calc_temp:
                 self.update_temperature_coupling()
-            if self.n_cells > 1:
-                if self.calc_flow_dis:
-                    self.update_flows()
+
             self.i_cd_old[:] = self.i_cd
             if self.calc_cd:
                 self.update_electrical_coupling()

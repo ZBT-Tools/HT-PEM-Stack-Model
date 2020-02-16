@@ -402,12 +402,6 @@ def factory2(dict_circuit, dict_in_manifold, dict_out_manifold,
     in_manifold_fluid.rescale(n_channels + 1)
     out_manifold_fluid = copy.deepcopy(in_manifold_fluid)
 
-    print('temperature: ', in_manifold_fluid.gas._temperature)
-    print('pressure: ', in_manifold_fluid.gas._pressure)
-
-    print('spec_visc: ', in_manifold_fluid.gas.species_viscosity)
-
-
     manifolds = [chl.Channel(dict_in_manifold, in_manifold_fluid),
                  chl.Channel(dict_out_manifold, out_manifold_fluid)]
 

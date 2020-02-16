@@ -284,9 +284,9 @@ class TemperatureSystem:
         """
         for i, cell in enumerate(self.cells):
             self.channel_heat_transfer(cell.temp_layer[1],
-                                       cell.cathode.temp_fluid,
-                                       cell.cathode.g_fluid,
-                                       cell.cathode.k_ht_coeff, 1)
+                                       cell.cathode.channel.fluid.temperature,
+                                       cell.cathode.channel.g_fluid,
+                                       cell.cathode.channel.k_coeff, 1)
             # for j in range(self.n_ele):
             #     self.temp_fluid[0, i, j+1], self.heat_fluid[0, i, j] = \
             #         self.element_heat_transfer(self.temp_layer[i][1, j],
@@ -296,12 +296,12 @@ class TemperatureSystem:
             #                                    cell.cathode.k_ht_coeff[j])
             cell.cathode.temp_fluid[0] = cell.cathode.channel.temp_in
             cell.cathode.temp_fluid_ele = \
-                ip.interpolate_1d(cell.cathode.temp_fluid)
+                ip.interpolate_1d(cell.cathode.channel.fluid.temperature)
 
             self.channel_heat_transfer(cell.temp_layer[4],
-                                       cell.anode.temp_fluid,
-                                       cell.anode.g_fluid,
-                                       cell.anode.k_ht_coeff, -1)
+                                       cell.anode.channel.fluid.temperature,
+                                       cell.anode.channel.g_fluid,
+                                       cell.anode.channel.k_coeff, -1)
             # for j in reversed(range(self.n_ele)):
             #     self.temp_fluid[1, i, j], self.heat_fluid[1, i, j] = \
             #         self.element_heat_transfer(self.temp_layer[i][4, j],

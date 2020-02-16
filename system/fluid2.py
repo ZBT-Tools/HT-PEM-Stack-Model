@@ -252,8 +252,7 @@ class GasMixture(OneDimensionalFluid):
         self.species = species.GasProperties(species_names)
         self.n_species = len(self.species.names)
         self.species_viscosity = \
-            self.species.calc_viscosity(self._temperature)
-
+            self.species.calc_viscosity(self._temperature).transpose()
         if isinstance(mole_fractions, (list, tuple)):
             mole_fractions = np.asarray(mole_fractions)
         if len(mole_fractions) != self.n_species \
@@ -344,22 +343,18 @@ class GasMixture(OneDimensionalFluid):
         Calculates the mixture viscosity of a
         gas according to Herning and Zipperer.
         """
-        print(temperature)
-        print(self._temperature)
-        print(self.species_viscosity)
-        print(self.n_species)
-        print(self.species.calc_viscosity(temperature))
-        self.species_viscosity[:] = self.species.calc_viscosity(temperature)
-        spec_visc = self.species_viscosity.transpose()
+        self.species_viscosity[:] = \
+            self.species.calc_viscosity(temperature).transpose()
         x_sqrt_mw = self._mole_fraction * np.sqrt(self.species.mw)
-        return np.sum(spec_visc * x_sqrt_mw, axis=-1)/np.sum(x_sqrt_mw, axis=-1)
+        return np.sum(self.species_viscosity * x_sqrt_mw, axis=-1) \
+            / np.sum(x_sqrt_mw, axis=-1)
 
     def calc_wilke_coefficients(self):
         """
         Calculates the wilke coefficients for
         each species combination of a gas.
         """
-        visc = self.species_viscosity
+        visc = self.species_viscosity.transpose()
         mw = self.species.mw
         alpha = []
         for i in range(self.n_species):

@@ -279,7 +279,7 @@ class HalfCell:
             * abs(self.n_stoi[self.id_fuel]) / (self.n_charge * self.faraday)
 
         inlet_composition = \
-            self.channel.fluid.mole_fraction[:, self.channel.node_in]
+            self.channel.fluid.mole_fraction[:, self.channel.id_in]
         for i in range(len(mole_flow_in)):
             if i != self.id_fuel:
                 mole_flow_in[i] = mole_flow_in[self.id_fuel] \
@@ -386,7 +386,7 @@ class HalfCell:
         """
         Calculates the full voltage losses of the electrode
         """
-        reac_conc = self.channel.fluid.concentration[self.id_fuel]
+        reac_conc = self.channel.fluid.gas.concentration[self.id_fuel]
         reac_conc_ele = ip.interpolate_1d(reac_conc)
         if self.channel.flow_direction == 1:
             reac_conc_in = reac_conc[:-1]

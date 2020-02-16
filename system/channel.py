@@ -28,10 +28,11 @@ class Channel(ABC, OutputObject):
         super().__init__()
         self.name = channel_dict['name']
         self.fluid = fluid
-        self.length = channel_dict['channel_length']
+        self.length = channel_dict['length']
         # channel length
         self.n_nodes = len(self.fluid.density)
         self.n_ele = self.n_nodes - 1
+
         self.x = np.linspace(0.0, self.length, self.n_nodes)
         self.dx = np.diff(self.x)
         # element length

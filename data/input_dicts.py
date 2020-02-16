@@ -135,7 +135,7 @@ dict_anode_fluid = {
 
 dict_cathode_channel = {
     'name': 'Cathode Channel',
-    'channel_length': geom.channel_length,
+    'length': geom.channel_length,
     'p_out': op_con.p_manifold_cathode_out,
     'temp_in': op_con.temp_air_in,
     #'hum_in': op_con.inlet_humidity_cathode,
@@ -148,7 +148,7 @@ dict_cathode_channel = {
 
 dict_anode_channel = {
     'name': 'Anode Channel',
-    'channel_length': geom.channel_length,
+    'length': geom.channel_length,
     'p_out': op_con.p_manifold_anode_out,
     'temp_in': op_con.temp_anode_gas_in,
      # 'hum_in': op_con.inlet_humidity_anode,
@@ -161,7 +161,7 @@ dict_anode_channel = {
 
 dict_cathode_in_manifold = {
     'name': 'Cathode Inlet Manifold',
-    'channel_length': None,
+    'length': None,
     'p_out': op_con.p_manifold_cathode_out,
     'temp_in': op_con.temp_air_in,
     'flow_direction': 1,
@@ -177,7 +177,7 @@ dict_cathode_out_manifold['name'] = 'Cathode Outlet Manifold'
 
 dict_anode_in_manifold = {
     'name': 'Anode Inlet Manifold',
-    'channel_length': None,
+    'length': None,
     'p_out': op_con.p_manifold_anode_out,
     'temp_in': op_con.temp_anode_gas_in,
     'flow_direction': 1,
@@ -204,7 +204,7 @@ dict_anode_flow_circuit = {
     }
 
 dict_coolant_fluid = {
-    'fluid_name': 'Coolant',
+    'name': 'Coolant',
     'fluid_components': None,
     'inlet_composition': None,
     'liquid_props':
@@ -221,7 +221,7 @@ dict_coolant_fluid = {
 
 dict_coolant_channel = {
     'name': 'Coolant Channel',
-    'channel_length': geom.coolant_channel_length,
+    'length': geom.coolant_channel_length,
     'p_out': op_con.p_manifold_cathode_out,
     'temp_in': op_con.temp_coolant_in,
     #'hum_in': op_con.inlet_humidity_cathode,
@@ -234,7 +234,6 @@ dict_coolant_channel = {
 
 dict_coolant_in_manifold = {
     'name': 'Coolant Inlet Manifold',
-    'channel_length': None,
     'p_out': op_con.p_manifold_cathode_out,
     'temp_in': op_con.temp_coolant_in,
     'flow_direction': 1,
