@@ -1,4 +1,5 @@
 import numpy as np
+from scipy import ndimage
 from matplotlib import pyplot as plt
 import os
 # from numba import jit
@@ -50,6 +51,22 @@ def add_source(var, source, direction=1, tri_mtx=None):
     else:
         raise ValueError('parameter direction must be either 1 or -1')
     return var
+
+
+def fill_surrounding_average_1d(array, axis=-1):
+    mask = np.zeros((3, 3))
+    weights = np.array([1.0, 0.0, 1.0])
+    if axis in (-1, 1):
+        mask[1, :] = weights
+
+    elif axis == 0:
+        mask[:, 1] = weights
+    else:
+        raise ValueError('argument axis can only be 0, 1 or -1')
+
+    averaged = ndimage.generic_filter(array, np.nanmean, footprint=mask,
+                                      mode='constant', cval=np.NaN)
+    return np.where(array == 0, averaged, array)
 
 
 def construct_empty_stack_array(cell_array, n_cells):

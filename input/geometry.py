@@ -64,10 +64,10 @@ anode_manifold_configuration = 'U'
 cathode_manifold_configuration = 'U'
 coolant_manifold_configuration = 'U'
 # manifold height [m]
-manifold_height = 10.5e-3
+manifold_height = 10e-3
 coolant_manifold_height = 10e-3
 # manifold width [m]
-manifold_width = 5.5e-3
+manifold_width = 10e-3
 coolant_manifold_width = 10e-3
 # geometrical pressure loss coefficient of the manifold header
 manifold_pressure_loss_coefficient = 0.1

@@ -309,6 +309,9 @@ class TwoPhaseMixtureChannel(GasMixtureChannel):
 
     def update(self, mass_flow_in=None, mass_source=None):
         self.calc_mass_balance(mass_flow_in, mass_source)
+        print('mass_source: ', mass_source)
+        print('mass_flow_in: ', mass_flow_in)
+        print('mole_flow: ', self.mole_flow)
         self.fluid.update(self.temp, self.p, self.mole_flow)
         self.calc_two_phase_flow()
         self.calc_flow_velocity()

@@ -1,5 +1,6 @@
 import numpy as np
 import data.global_parameters as g_par
+import system.global_functions as g_func
 from abc import ABC, abstractmethod
 from system.output_object import OutputObject
 import system.species as species
@@ -59,7 +60,9 @@ class OneDimensionalFluid(ABC, OutputObject):
         Calculates mixture fractions based on a multi-dimensional
         array with different species along the provided axis.
         """
-        return composition / np.sum(composition, axis)
+        comp_sum = np.sum(composition, axis)
+        # comp_sum_ma = np.where(comp_sum == 0.0, 1.0, comp_sum)
+        return composition / comp_sum
 
     @property
     def temperature(self):
@@ -303,7 +306,9 @@ class GasMixture(OneDimensionalFluid):
         elif np.shape(mole_composition)[0] != self.n_species:
             raise ValueError('First dimension of composition must be equal to '
                              'number of species')
-        self.calc_mole_fraction(mole_composition)
+
+        mole_composition = g_func.fill_surrounding_average_1d(mole_composition)
+        self._mole_fraction[:] = self.calc_mole_fraction(mole_composition)
         self.calc_molar_mass()
         self._mass_fraction[:] = \
             self.calc_mass_fraction(self._mole_fraction)
@@ -319,8 +324,8 @@ class GasMixture(OneDimensionalFluid):
             / (self.gas_constant * self._temperature)
         return self._mole_fraction.transpose() * total_mol_conc
 
-    def calc_mole_fraction(self, composition):
-        self._mole_fraction[:] = self.calc_fraction(composition).transpose()
+    def calc_mole_fraction(self, mole_composition):
+        return self.calc_fraction(mole_composition).transpose()
 
     def calc_molar_mass(self, mole_fraction=None):
         if mole_fraction is None:
@@ -330,8 +335,10 @@ class GasMixture(OneDimensionalFluid):
 
     def calc_mass_fraction(self, mole_fraction, molar_mass=None):
         if molar_mass is None:
+            # mw = np.where(self.mw == 0.0, 1.0, self.mw)
             return np.outer(1.0 / self.mw, self.species.mw) * mole_fraction
         else:
+            # molar_mass = np.where(molar_mass == 0.0, 1.0, molar_mass)
             return np.outer(1.0 / molar_mass, self.species.mw) * mole_fraction
 
     def calc_specific_heat(self, temperature):
@@ -346,6 +353,7 @@ class GasMixture(OneDimensionalFluid):
         self.species_viscosity[:] = \
             self.species.calc_viscosity(temperature).transpose()
         x_sqrt_mw = self._mole_fraction * np.sqrt(self.species.mw)
+        x_sqrt_mw = np.where(x_sqrt_mw == 0.0, 1.0, x_sqrt_mw)
         return np.sum(self.species_viscosity * x_sqrt_mw, axis=-1) \
             / np.sum(x_sqrt_mw, axis=-1)
 
@@ -558,6 +566,8 @@ class TwoPhaseMixture(OneDimensionalFluid):
                method='ideal', *args, **kwargs):
         super().update(temperature, pressure)
         if mole_composition is not None:
+            mole_composition = \
+                g_func.fill_surrounding_average_1d(mole_composition)
             if np.sum(mole_composition) > 0.0:
                 self._mole_fraction[:] = \
                     self.calc_fraction(mole_composition).transpose()
@@ -576,11 +586,16 @@ class TwoPhaseMixture(OneDimensionalFluid):
         total_conc[self.id_pc] = np.sum(dry_conc, axis=0) \
             * self.mole_fraction[self.id_pc] \
             / (1.0 - self.mole_fraction[self.id_pc])
+        sum_total_conc = np.sum(total_conc, axis=0)
+        sum_total_conc = np.where(sum_total_conc == 0.0, 1.0, sum_total_conc)
         self.liquid_mole_fraction[:] = \
-            1.0 - np.sum(gas_conc, axis=0)/np.sum(total_conc, axis=0)
+            1.0 - np.sum(gas_conc, axis=0) /np.sum(total_conc, axis=0)
+        sum_total_conc_mw = np.sum(total_conc * self.mw, axis=0)
+        sum_total_conc_mw = \
+            np.where(sum_total_conc_mw == 0.0, 1.0, sum_total_conc_mw)
         self.liquid_mass_fraction[:] = \
-            1.0 - np.sum(gas_conc * self.gas.mw, axis=0)/np.sum(total_conc *
-                                                                self.mw, axis=0)
+            1.0 - np.sum(gas_conc * self.gas.mw, axis=0) \
+            / np.sum(total_conc * self.mw, axis=0)
 
         self.calc_properties(temperature, pressure, method)
         self.calc_humidity()
