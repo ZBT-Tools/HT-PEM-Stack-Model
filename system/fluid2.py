@@ -61,6 +61,10 @@ class OneDimensionalFluid(ABC, OutputObject):
         array with different species along the provided axis.
         """
         comp_sum = np.sum(composition, axis)
+        mask_values = comp_sum * composition
+        mask = np.ma.masked_values(comp_sum * composition, 0.0)
+        composition = g_func.fill_surrounding_average_1d(composition,
+                                                         mask=mask_values)
         # comp_sum_ma = np.where(comp_sum == 0.0, 1.0, comp_sum)
         return composition / comp_sum
 
@@ -306,8 +310,6 @@ class GasMixture(OneDimensionalFluid):
         elif np.shape(mole_composition)[0] != self.n_species:
             raise ValueError('First dimension of composition must be equal to '
                              'number of species')
-
-        mole_composition = g_func.fill_surrounding_average_1d(mole_composition)
         self._mole_fraction[:] = self.calc_mole_fraction(mole_composition)
         self.calc_molar_mass()
         self._mass_fraction[:] = \
@@ -566,11 +568,11 @@ class TwoPhaseMixture(OneDimensionalFluid):
                method='ideal', *args, **kwargs):
         super().update(temperature, pressure)
         if mole_composition is not None:
-            mole_composition = \
-                g_func.fill_surrounding_average_1d(mole_composition)
+            # mole_composition = \
+            #     g_func.fill_surrounding_average_1d(mole_composition)
             if np.sum(mole_composition) > 0.0:
                 self._mole_fraction[:] = \
-                    self.calc_fraction(mole_composition).transpose()
+                    self.gas.calc_mole_fraction(mole_composition)
 
         self.mw[:] = self.gas.calc_molar_mass(self.mole_fraction)
         self._mass_fraction[:] = \

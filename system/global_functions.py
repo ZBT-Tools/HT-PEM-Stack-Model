@@ -53,21 +53,23 @@ def add_source(var, source, direction=1, tri_mtx=None):
     return var
 
 
-def fill_surrounding_average_1d(array, axis=-1):
-    mask = np.zeros((3, 3))
+def fill_surrounding_average_1d(array, axis=-1, mask=None):
+    footprint = np.zeros((3, 3))
     weights = np.array([1.0, 0.0, 1.0])
     if axis in (-1, 1):
-        mask[1, :] = weights
+        footprint[1, :] = weights
 
     elif axis == 0:
-        mask[:, 1] = weights
+        footprint[:, 1] = weights
     else:
         raise ValueError('argument axis can only be 0, 1 or -1')
 
-    averaged = ndimage.generic_filter(array, np.nanmean, footprint=mask,
+    averaged = ndimage.generic_filter(array, np.nanmean, footprint=footprint,
                                       mode='constant', cval=np.NaN)
-    array_sum = np.sum(array, axis=axis)
-    return np.where(array_sum == 0.0, averaged, array)
+    if mask is None:
+        return np.where(array == 0.0, averaged, array)
+    else:
+        return np.where(mask == 0.0, averaged, array)
 
 
 def construct_empty_stack_array(cell_array, n_cells):
