@@ -134,8 +134,21 @@ class Channel(ABC, OutputObject):
         """
         prandtl = self.fluid.viscosity * self.fluid.specific_heat / \
             self.fluid.thermal_conductivity
-
+        print(self.fluid.viscosity)
+        print('Specific Heat')
+        print(self.fluid.specific_heat)
+        if isinstance(self, TwoPhaseMixtureChannel):
+            print('Gas Specific Heat')
+            print(self.fluid.gas.specific_heat)
+            print('Liquid Specific Heat')
+            print(self.fluid.liquid.specific_heat)
+            print('Liquid Mass Fraction')
+            print(self.fluid.liquid_mass_fraction)
+        print(self.fluid.thermal_conductivity)
         d_by_l = self.d_h / self.length
+        print(self.reynolds)
+        print(prandtl)
+        print(self.fluid.temperature)
         sqrt_re_pr_dbyl = np.sqrt(self.reynolds * prandtl * d_by_l)
         nu_1 = 3.66
         nu_2 = 1.66 * sqrt_re_pr_dbyl
@@ -345,10 +358,12 @@ class TwoPhaseMixtureChannel(GasMixtureChannel):
             self.mole_flow_total - mole_flow_liq_total
         self.mass_flow_gas_total[:] = \
             self.mass_flow_total - mass_flow_liq_total
+        gas_mole_fraction = self.fluid.gas.mole_fraction
+        mole_fraction = self.fluid.mole_fraction
         self.mole_flow_gas[:] = \
-            self.mole_flow_gas_total * self.fluid.mole_fraction
+            self.mole_flow_gas_total * self.fluid.gas.mole_fraction
         self.mass_flow_gas[:] = \
-            self.mass_flow_gas_total * self.fluid.mass_fraction
+            self.mass_flow_gas_total * self.fluid.gas.mass_fraction
         self.mole_flow_liq[:] = self.mole_flow - self.mole_flow_gas
         self.calc_cond_rate()
 

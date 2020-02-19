@@ -22,7 +22,7 @@ class HalfCell:
         self.n_nodes = g_par.dict_case['nodes']
         n_ele = self.n_nodes - 1
         self.n_ele = n_ele
-        # Discretization in elements and nodes along the x-axis (flow_circuit.py axis)
+        # Discretization in elements and nodes along the x-axis (flow axis)
 
         """half cell geometry parameter"""
         self.width = cell_dict["width"]
@@ -157,7 +157,7 @@ class HalfCell:
         self.w_cross_flow = np.zeros(n_ele)
         # cross water flux through the membrane
         # self.g_fluid = np.zeros(n_nodes)
-        # heat capacity flow_circuit.py of the species mixture including fluid water
+        # heat capacity flow of the species mixture including fluid water
         # self.cp_fluid = np.zeros(n_nodes)
         # heat capacity of the species mixture including fluid water
         # self.mol_flow_liq_w = np.zeros(n_nodes)
@@ -180,7 +180,7 @@ class HalfCell:
         # self.mol_flow_gas_total = np.zeros(n_nodes)
         # self.mass_flow_gas_total = np.zeros(n_nodes)
 
-        # # fluid mass flow_circuit.py
+        # # fluid mass flow
         # self.vol_flow_gas = np.zeros(n_nodes)
         # # molar flux of the gas phase
         # (0: Reactant, 1: Water, 2: Inert Species

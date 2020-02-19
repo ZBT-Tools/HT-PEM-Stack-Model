@@ -192,7 +192,7 @@ dict_anode_out_manifold = copy.deepcopy(dict_anode_in_manifold)
 dict_anode_out_manifold['name'] = 'Anode Outlet Manifold'
 
 dict_cathode_flow_circuit = {
-    'name': 'Anode Flow Circuit',
+    'name': 'Cathode Flow Circuit',
     'type': geom.cathode_manifold_model,
     'shape': geom.cathode_manifold_configuration
     }

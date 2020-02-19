@@ -30,7 +30,7 @@ class Manifold:
         self.cell_p = None
         self.cell_R_avg = None
 
-        # Get name of half cells for the flow_circuit.py circuit (Anode or Cathode)
+        # Get name of half cells for the flow circuit (Anode or Cathode)
         half_cell_name = self.name.split()[0]
         half_cell_names = [self.cells[0].half_cells[0].name,
                            self.cells[0].half_cells[1].name]
@@ -288,7 +288,7 @@ class Manifold:
 
     def calc_criteria(self):
         """
-        Calculation of the convergence of the flow_circuit.py distribution.
+        Calculation of the convergence of the flow distribution.
         """
         self.criteria = \
             np.sum(((self.cell_mol_flow[0] - self.cell_mol_flow_old)

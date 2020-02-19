@@ -40,7 +40,7 @@ inlet_humidity_anode = 0.
 p_manifold_cathode_out = 1.e5
 # pressure at the outlet of the anode manifold [Pa]
 p_manifold_anode_out = 1.e5
-# mass flow_circuit.py of the coolant per channel [kg/s]
+# mass flow of the coolant per channel [kg/s]
 mass_flow_coolant = 1.e-4
 
 """Cell Settings"""

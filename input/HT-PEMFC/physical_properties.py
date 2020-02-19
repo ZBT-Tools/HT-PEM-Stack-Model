@@ -70,9 +70,9 @@ manifold_pressure_loss_coefficient = 0.4
 bend_pressure_loss_coefficient = 0.1
 # number of channel bends
 channel_bends = 48.
-# cathode channel gas flow_circuit.py direction
+# cathode channel gas flow direction
 cathode_channel_flow_direction = True
-# anode channel gas flow_circuit.py direction
+# anode channel gas flow direction
 anode_channel_flow_direction = False
 
 

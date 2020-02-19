@@ -586,13 +586,15 @@ class TwoPhaseMixture(OneDimensionalFluid):
         total_conc[self.id_pc] = np.sum(dry_conc, axis=0) \
             * self.mole_fraction[self.id_pc] \
             / (1.0 - self.mole_fraction[self.id_pc])
-        sum_total_conc = np.sum(total_conc, axis=0)
-        sum_total_conc = np.where(sum_total_conc == 0.0, 1.0, sum_total_conc)
+        print('pressure')
+        print(self.pressure)
+        print('gas_conc')
+        print(gas_conc)
+        print('total_conc')
+        print(total_conc)
         self.liquid_mole_fraction[:] = \
-            1.0 - np.sum(gas_conc, axis=0) /np.sum(total_conc, axis=0)
-        sum_total_conc_mw = np.sum(total_conc * self.mw, axis=0)
-        sum_total_conc_mw = \
-            np.where(sum_total_conc_mw == 0.0, 1.0, sum_total_conc_mw)
+            1.0 - np.sum(gas_conc, axis=0) / np.sum(total_conc, axis=0)
+
         self.liquid_mass_fraction[:] = \
             1.0 - np.sum(gas_conc * self.gas.mw, axis=0) \
             / np.sum(total_conc * self.mw, axis=0)

@@ -35,7 +35,7 @@ class Stack:
         self.calc_cd = stack_dict['calc_current_density']
         # switch to calculate the current density distribution
         self.calc_flow_dis = stack_dict['calc_flow_distribution']
-        # switch to calculate the flow_circuit.py distribution
+        # switch to calculate the flow distribution
 
         cell_dict = in_dicts.dict_cell
         membrane_dict = in_dicts.dict_membrane
@@ -315,7 +315,7 @@ class Stack:
     # def stack_dynamic_properties(self):
     #     """
     #     This function sums up the dynamic values inside the cells
-    #     necessary to calculate the flow_circuit.py distribution,
+    #     necessary to calculate the flow distribution,
     #     the electrical coupling or the temperature coupling
     #     """
     #     v_alarm = []

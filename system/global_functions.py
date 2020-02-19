@@ -23,7 +23,7 @@ def add_source(var, source, direction=1, tri_mtx=None):
     Add discrete 1d source of length n-1 to var of length n
     :param var: 1d array of quantity variable
     :param source: 1d array of source to add to var
-    :param direction: flow_circuit.py direction (1: along array counter, -1: opposite to
+    :param direction: flow direction (1: along array counter, -1: opposite to
     array counter)
     :param tri_mtx: if triangle matrix (2D array, nxn) is not provided,
     it will be created temporarily
@@ -66,7 +66,8 @@ def fill_surrounding_average_1d(array, axis=-1):
 
     averaged = ndimage.generic_filter(array, np.nanmean, footprint=mask,
                                       mode='constant', cval=np.NaN)
-    return np.where(array == 0, averaged, array)
+    array_sum = np.sum(array, axis=axis)
+    return np.where(array_sum == 0.0, averaged, array)
 
 
 def construct_empty_stack_array(cell_array, n_cells):
