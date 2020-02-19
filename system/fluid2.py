@@ -54,19 +54,16 @@ class OneDimensionalFluid(ABC, OutputObject):
     def calc_properties(self, temperature, pressure=101325.0, **kwargs):
         pass
 
-    @staticmethod
-    def calc_fraction(composition, axis=0):
+    def calc_fraction(self, composition, axis=0):
         """
         Calculates mixture fractions based on a multi-dimensional
         array with different species along the provided axis.
         """
-        comp_sum = np.sum(composition, axis)
-        mask_values = comp_sum * composition
-        mask = np.ma.masked_values(comp_sum * composition, 0.0)
-        composition = g_func.fill_surrounding_average_1d(composition,
-                                                         mask=mask_values)
-        # comp_sum_ma = np.where(comp_sum == 0.0, 1.0, comp_sum)
-        return composition / comp_sum
+        try:
+            return composition / np.sum(composition, axis)
+        except FloatingPointError:
+            composition = g_func.fill_surrounding_average_1d(composition, axis)
+            return self.calc_fraction(composition, axis)
 
     @property
     def temperature(self):
@@ -568,8 +565,6 @@ class TwoPhaseMixture(OneDimensionalFluid):
                method='ideal', *args, **kwargs):
         super().update(temperature, pressure)
         if mole_composition is not None:
-            # mole_composition = \
-            #     g_func.fill_surrounding_average_1d(mole_composition)
             if np.sum(mole_composition) > 0.0:
                 self._mole_fraction[:] = \
                     self.gas.calc_mole_fraction(mole_composition)
