@@ -59,9 +59,10 @@ class OneDimensionalFluid(ABC, OutputObject):
         Calculates mixture fractions based on a multi-dimensional
         array with different species along the provided axis.
         """
-        try:
-            return composition / np.sum(composition, axis)
-        except FloatingPointError:
+        comp_sum = np.sum(composition, axis)
+        if np.min(np.abs(comp_sum)) > 1e-8:
+            return composition / comp_sum
+        else:
             composition = g_func.fill_surrounding_average_1d(composition, axis)
             return self.calc_fraction(composition, axis)
 
@@ -565,7 +566,7 @@ class TwoPhaseMixture(OneDimensionalFluid):
                method='ideal', *args, **kwargs):
         super().update(temperature, pressure)
         if mole_composition is not None:
-            if np.sum(mole_composition) > 0.0:
+            if np.max(mole_composition) > 1e-10:
                 self._mole_fraction[:] = \
                     self.gas.calc_mole_fraction(mole_composition)
 

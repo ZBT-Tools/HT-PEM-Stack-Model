@@ -190,13 +190,14 @@ class Simulation:
 
         cell_voltages = []
         for i, tar_cd in enumerate(target_current_density):
-            g_par.dict_case['tar_cd'] = tar_cd
+            # g_par.dict_case['tar_cd'] = tar_cd
             counter = 0
             while True:
-                if counter == 0:
-                    self.stack.i_cd.fill(tar_cd)
                 self.save_old_value()
-                self.stack.update()
+                if counter == 0:
+                    self.stack.update(tar_cd)
+                else:
+                    self.stack.update()
                 if self.stack.break_program:
                     break
                 self.calc_convergence_criteria()

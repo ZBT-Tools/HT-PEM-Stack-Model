@@ -13,7 +13,7 @@ stoichiometry_cathode = 2.
 # anode stoichiometry
 stoichiometry_anode = 2.
 # pem-type (True = HT-PEM, False = NT-PEM)
-is_ht_pem = False
+is_ht_pem = True
 # reaction stoichiometry
 cathode_reaction_stoich = [-1.0, 0.0, 2.0]
 anode_reaction_stoich = [-2.0, 0.0, 0.0]

@@ -284,7 +284,7 @@ class HalfCell:
             if i != self.id_fuel:
                 mole_flow_in[i] = mole_flow_in[self.id_fuel] \
                     * inlet_composition[i] / inlet_composition[self.id_fuel]
-        mass_flow_in = mole_flow_in / self.channel.fluid.species.mw
+        mass_flow_in = mole_flow_in * self.channel.fluid.species.mw
         return mass_flow_in, mole_flow_in
 
     def calc_mass_source(self, current_density):
@@ -298,7 +298,7 @@ class HalfCell:
         mole_source[self.id_h2o] += self.active_area_dx * self.w_cross_flow \
             * self.channel.flow_direction
         mass_source = (mole_source.transpose()
-                       / self.channel.fluid.species.mw).transpose()
+                       * self.channel.fluid.species.mw).transpose()
         return mass_source, mole_source
 
     def calc_fuel_flow(self, current_density, stoi=None):

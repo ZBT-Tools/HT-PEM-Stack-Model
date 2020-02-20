@@ -142,8 +142,8 @@ class ParallelFlowCircuit(ABC, OutputObject):
         self.manifolds[0].p_out = self.channels[-1].p[id_in]
         if self.multi_component:
             mass_fraction = \
-                np.array([channel.fluid.mass_fraction[:, channel.id_out]
-                          for channel in self.channels]).transpose()
+                ip.interpolate_along_axis(self.manifolds[0].fluid.mass_fraction,
+                                          axis=-1)
         else:
             mass_fraction = 1.0
         mass_source = -self.channel_mass_flow * mass_fraction

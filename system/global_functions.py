@@ -63,10 +63,10 @@ def fill_surrounding_average_1d(array, axis=0):
     else:
         raise ValueError('argument axis can only be 0, 1 or -1')
 
-    mask_array = np.sum(array, axis) * np.ones(array.shape)
+    mask_array = np.sum(np.abs(array), axis) * np.ones(array.shape)
     averaged = ndimage.generic_filter(array, np.nanmean, footprint=footprint,
                                       mode='constant', cval=np.NaN)
-    return np.where(mask_array == 0.0, averaged, array)
+    return np.where(mask_array < 1e-10, averaged, array)
 
 
 def construct_empty_stack_array(cell_array, n_cells):

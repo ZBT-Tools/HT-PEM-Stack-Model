@@ -220,10 +220,14 @@ class Stack:
         # self.temp_fluid_ano = np.zeros(self.n_cells)
         # # inlet and outlet temperature of the anode channel fluid
 
-    def update(self):
+    def update(self, current_density=None):
         """
         This function coordinates the program sequence
         """
+        update_inflows = False
+        if current_density is not None:
+            self.i_cd[:] = current_density
+            update_inflows = True
         for i, cell in enumerate(self.cells):
             # self.cells[j].set_current_density(self.i_cd[j, :])
             cell.i_cd[:] = self.i_cd[i, :]
@@ -234,7 +238,7 @@ class Stack:
         if not self.break_program:
             # if self.n_cells > 1:
             #     if self.calc_flow_dis:
-            self.update_flows()
+            self.update_flows(update_inflows)
             # self.stack_dynamic_properties()
             if self.calc_temp:
                 self.update_temperature_coupling()
@@ -244,14 +248,15 @@ class Stack:
                 self.update_electrical_coupling()
         # print('Current density', self.i_cd)
 
-    def update_flows(self):
+    def update_flows(self, update_inflows=False):
         """
         This function updates the flow distribution of gas over the stack cells
         """
-        mass_flows_in = self.calc_mass_flows()
+        mass_flows_in = [None, None]
+        if update_inflows:
+            mass_flows_in[:] = self.calc_mass_flows()
         for i in range(len(self.fluid_circuits)):
             self.fluid_circuits[i].update(mass_flows_in[i])
-
         self.coolant_circuit.update()
 
         # n_ch = self.cells[0].cathode.n_channel
