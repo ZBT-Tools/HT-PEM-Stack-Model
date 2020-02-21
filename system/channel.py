@@ -42,7 +42,9 @@ class Channel(ABC, OutputObject):
         # outlet and initial pressure
         self.temp_in = channel_dict['temp_in']
         self.temp = np.zeros(self.p.shape)
-        self.temp.fill(self.temp_in)
+        self.temp[:] = self.temp_in
+        self.temp_ele = np.zeros(self.n_ele)
+        self.temp_ele[:] = self.temp_in
         # inlet temperature
 
         self.tri_mtx = None
@@ -134,21 +136,7 @@ class Channel(ABC, OutputObject):
         """
         prandtl = self.fluid.viscosity * self.fluid.specific_heat / \
             self.fluid.thermal_conductivity
-        print(self.fluid.viscosity)
-        print('Specific Heat')
-        print(self.fluid.specific_heat)
-        if isinstance(self, TwoPhaseMixtureChannel):
-            print('Gas Specific Heat')
-            print(self.fluid.gas.specific_heat)
-            print('Liquid Specific Heat')
-            print(self.fluid.liquid.specific_heat)
-            print('Liquid Mass Fraction')
-            print(self.fluid.liquid_mass_fraction)
-        print(self.fluid.thermal_conductivity)
         d_by_l = self.d_h / self.length
-        print(self.reynolds)
-        print(prandtl)
-        print(self.fluid.temperature)
         sqrt_re_pr_dbyl = np.sqrt(self.reynolds * prandtl * d_by_l)
         nu_1 = 3.66
         nu_2 = 1.66 * sqrt_re_pr_dbyl
@@ -210,6 +198,7 @@ class IncompressibleFluidChannel(Channel):
     def update(self, mass_flow_in=None, mass_source=None):
         self.calc_mass_balance(mass_flow_in, mass_source)
         self.fluid.update(self.temp, self.p)
+        self.temp_ele[:] = ip.interpolate_1d(self.temp)
         self.calc_flow_velocity()
         self.calc_pressure()
         self.calc_heat_transfer_coeff()
@@ -223,7 +212,6 @@ class IncompressibleFluidChannel(Channel):
         if mass_source is not None:
             g_func.add_source(self.mass_flow_total, self.mass_source,
                               self.flow_direction, self.tri_mtx)
-
 
 class GasMixtureChannel(Channel):
     def __init__(self, channel_dict, fluid):
@@ -243,6 +231,7 @@ class GasMixtureChannel(Channel):
         # if mass_flow_in is None:
         #     mass_flow_in = self.mass_flow[:, self.id_in]
         self.fluid.update(self.temp, self.p, self.mole_flow)
+        self.temp_ele[:] = ip.interpolate_1d(self.temp)
         self.calc_flow_velocity()
         self.calc_pressure()
         self.calc_heat_transfer_coeff()
@@ -315,17 +304,16 @@ class TwoPhaseMixtureChannel(GasMixtureChannel):
         self.mole_flow_gas = np.zeros(arr_shape)
         self.mass_flow_gas = np.zeros(arr_shape)
         self.mass_flow_liq = np.zeros(arr_shape)
-        self.cond_rate = np.zeros(self.n_nodes)
+        self.cond_rate_ele = np.zeros(self.n_ele)
+        self.condensation_heat = np.zeros(self.n_ele)
 
         self.add_print_data(self.mole_flow_gas, 'Gas Mole Flow', 'mol/s',
                             self.fluid.species.names)
 
     def update(self, mass_flow_in=None, mass_source=None):
         self.calc_mass_balance(mass_flow_in, mass_source)
-        print('mass_source: ', mass_source)
-        print('mass_flow_in: ', mass_flow_in)
-        print('mole_flow: ', self.mole_flow)
         self.fluid.update(self.temp, self.p, self.mole_flow)
+        self.temp_ele[:] = ip.interpolate_1d(self.temp)
         self.calc_two_phase_flow()
         self.calc_flow_velocity()
         self.calc_pressure()
@@ -366,16 +354,31 @@ class TwoPhaseMixtureChannel(GasMixtureChannel):
             self.mass_flow_gas_total * self.fluid.gas.mass_fraction
         self.mole_flow_liq[:] = self.mole_flow - self.mole_flow_gas
         self.calc_cond_rate()
+        self.calc_condensation_heat()
 
     def calc_cond_rate(self):
         """
         Calculates the molar condensation rate of the phase change species in
         the channel.
         """
-        cond_rate_ele = np.ediff1d(self.mole_flow_liq[self.fluid.id_pc])
-        self.cond_rate[:] = \
-            self.flow_direction * ip.interpolate_1d(cond_rate_ele,
-                                                    add_edge_points=True)
+        # cond_rate_ele = np.ediff1d(self.mole_flow_liq[self.fluid.id_pc])
+        # self.cond_rate[:] = \
+        #     self.flow_direction * ip.interpolate_1d(cond_rate_ele,
+        #                                             add_edge_points=True)
+
+        self.cond_rate_ele[:] = self.flow_direction \
+            * np.ediff1d(self.mole_flow_liq[self.fluid.id_pc])
+
+    def calc_condensation_heat(self):
+        """
+        Calculates the molar condensation rate of the phase change species in
+        the channel.
+        """
+        condensation_rate = self.flow_direction \
+            * np.ediff1d(self.mole_flow_liq[self.fluid.id_pc])
+        vaporization_enthalpy = self.fluid.phase_change_species.\
+            calc_vaporization_enthalpy(self.temp_ele)
+        self.condensation_heat[:] = condensation_rate * vaporization_enthalpy
 
     def calc_heat_capacitance(self):
         self.g_fluid[:] = self.mass_flow_total * self.fluid.specific_heat

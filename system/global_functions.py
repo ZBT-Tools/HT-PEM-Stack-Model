@@ -1,5 +1,6 @@
 import numpy as np
 from scipy import ndimage
+import data.global_parameters as g_par
 from matplotlib import pyplot as plt
 import os
 # from numba import jit
@@ -66,7 +67,7 @@ def fill_surrounding_average_1d(array, axis=0):
     mask_array = np.sum(np.abs(array), axis) * np.ones(array.shape)
     averaged = ndimage.generic_filter(array, np.nanmean, footprint=footprint,
                                       mode='constant', cval=np.NaN)
-    return np.where(mask_array < 1e-10, averaged, array)
+    return np.where(mask_array < g_par.SMALL, averaged, array)
 
 
 def construct_empty_stack_array(cell_array, n_cells):
@@ -92,18 +93,18 @@ def calc_diff(vec):
     return vec[:-1] - vec[1:]
 
 
-def calc_rho(p, r, t):
+def calc_rho(pressure, gas_constant, temperature):
     """
     Calculates the density of an ideal gas.
     """
-    return p / (r * t)
+    return pressure / (gas_constant * temperature)
 
 
-def calc_reynolds_number(roh, v, d, visc):
+def calc_reynolds_number(rho, v, d, visc):
     """"
     Calculates the reynolds number of an given fluid.
     """
-    return np.divide(roh * v * d, visc, where=visc != 0.0)
+    return np.divide(rho * v * d, visc, where=visc != 0.0)
 
 
 def calc_friction_factor(reynolds, method='Blasius', type='Darcy'):

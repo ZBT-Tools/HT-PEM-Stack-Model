@@ -93,7 +93,7 @@ class ParallelFlowCircuit(ABC, OutputObject):
                 np.sum(
                     np.divide(self.channel_vol_flow - channel_vol_flow_old,
                               self.channel_vol_flow,
-                              where=channel_vol_flow_old != 0.0) ** 2.0)
+                              where=self.channel_vol_flow != 0.0) ** 2.0)
             # print(channel_vol_flow_old)
             # print(self.channel_vol_flow)
             channel_vol_flow_old[:] = self.channel_vol_flow
@@ -186,26 +186,28 @@ class KohFlowCircuit(ParallelFlowCircuit):
                       for channel in self.channels])
         vol_flow_channel = np.array([np.average(channel.vol_flow)
                                      for channel in self.channels])
-        visc_channel = np.array([np.average(channel.fluid.viscosity)
+        if np.max(np.abs(vol_flow_channel)) > g_par.SMALL:
+            visc_channel = np.array([np.average(channel.fluid.viscosity)
+                                     for channel in self.channels])
+            velocity = np.array([np.average(channel.velocity)
                                  for channel in self.channels])
-        velocity = np.array([np.average(channel.velocity)
-                             for channel in self.channels])
-        p_in = ip.interpolate_1d(self.manifolds[0].p)
-        p_out = ip.interpolate_1d(self.manifolds[1].p)
-        self.k_perm[:] = vol_flow_channel / dp_channel * visc_channel \
-            * self.l_by_a
-        self.dp_ref = dp_channel[-1]
-        self.alpha[:] = (p_in - p_out) / self.dp_ref
-        self.dp_ref = self.vol_flow_in / np.sum(self.alpha) * self.l_by_a \
-            * visc_channel[-1] / self.k_perm[-1] / self.n_subchannels
-        p_in += self.dp_ref + self.manifolds[1].p[self.manifolds[1].id_out] \
-            - self.manifolds[0].p_out
-        self.alpha[:] = (p_in - p_out) / self.dp_ref
-        self.channel_vol_flow[:] = (p_in - p_out) * self.k_perm / self.l_by_a \
-            * self.n_subchannels / visc_channel
-        density = np.array([channel.fluid.density[channel.id_in]
-                            for channel in self.channels])
-        self.channel_mass_flow[:] = self.channel_vol_flow * density
+            p_in = ip.interpolate_1d(self.manifolds[0].p)
+            p_out = ip.interpolate_1d(self.manifolds[1].p)
+            self.k_perm[:] = vol_flow_channel / dp_channel * visc_channel \
+                * self.l_by_a
+            self.dp_ref = dp_channel[-1]
+            self.alpha[:] = (p_in - p_out) / self.dp_ref
+            self.dp_ref = self.vol_flow_in / np.sum(self.alpha) * self.l_by_a \
+                * visc_channel[-1] / self.k_perm[-1] / self.n_subchannels
+            p_in += self.dp_ref \
+                + self.manifolds[1].p[self.manifolds[1].id_out] \
+                - self.manifolds[0].p_out
+            self.alpha[:] = (p_in - p_out) / self.dp_ref
+            self.channel_vol_flow[:] = (p_in - p_out) \
+                * self.k_perm / self.l_by_a * self.n_subchannels / visc_channel
+            density = np.array([channel.fluid.density[channel.id_in]
+                                for channel in self.channels])
+            self.channel_mass_flow[:] = self.channel_vol_flow * density
 
 
 class WangFlowCircuit(ParallelFlowCircuit):

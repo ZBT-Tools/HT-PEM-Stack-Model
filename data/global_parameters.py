@@ -3,6 +3,10 @@ import input.operating_conditions as op_con
 import input.simulation as sim
 import numpy as np
 
+SMALL = 1e-10
+
+GAS_CONSTANT = 8.314459848
+FARADAY = 96485.3328959
 
 constants = {
     'R': 8.314459848,

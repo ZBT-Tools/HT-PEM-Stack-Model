@@ -284,7 +284,7 @@ class TemperatureSystem:
         """
         for i, cell in enumerate(self.cells):
             self.channel_heat_transfer(cell.temp_layer[1],
-                                       cell.cathode.channel.fluid.temperature,
+                                       cell.cathode.channel.temp,
                                        cell.cathode.channel.g_fluid,
                                        cell.cathode.channel.k_coeff, 1)
             # for j in range(self.n_ele):
@@ -294,12 +294,12 @@ class TemperatureSystem:
             #                                     self.temp_fluid[0, i, j+1]],
             #                                    cell.cathode.g_fluid[j],
             #                                    cell.cathode.k_ht_coeff[j])
-            cell.cathode.temp_fluid[0] = cell.cathode.channel.temp_in
-            cell.cathode.temp_fluid_ele = \
-                ip.interpolate_1d(cell.cathode.channel.fluid.temperature)
+            # cell.cathode.temp_fluid[0] = cell.cathode.channel.temp_in
+            cat_temp_fluid_ele = \
+                ip.interpolate_1d(cell.cathode.channel.temp)
 
             self.channel_heat_transfer(cell.temp_layer[4],
-                                       cell.anode.channel.fluid.temperature,
+                                       cell.anode.channel.temp,
                                        cell.anode.channel.g_fluid,
                                        cell.anode.channel.k_coeff, -1)
             # for j in reversed(range(self.n_ele)):
@@ -309,9 +309,9 @@ class TemperatureSystem:
             #                                     self.temp_fluid[1, i, j]],
             #                                    cell.anode.g_fluid[j],
             #                                    cell.anode.k_ht_coeff[j])
-            cell.anode.temp_fluid[0] = cell.anode.channel.temp_in
-            cell.anode.temp_fluid_ele = \
-                ip.interpolate_1d(cell.anode.temp_fluid)
+            # cell.anode.temp_fluid[0] = cell.anode.channel.temp_in
+            ano_temp_fluid_ele = \
+                ip.interpolate_1d(cell.anode.channel.temp)
 
         # self.temp_fluid[0] = np.array([cell.cathode.temp_fluid
         #                                for cell in self.cells])
@@ -357,12 +357,13 @@ class TemperatureSystem:
         to the system must be defined negative.
         """
         for i, cell in enumerate(self.cells):
-            cell.heat_rhs_dyn.fill(0.0)
+            cell.heat_rhs_dyn[:] = 0.0
+
             # Cathode bpp-gde source
-            h_vap = w_prop.water.calc_h_vap(cell.cathode.temp_fluid[:-1])
-            source = \
-                cell.cathode.k_ht_coeff * cell.cathode.temp_fluid_ele \
-                + h_vap * cell.cathode.cond_rate[:-1]
+            # h_vap = w_prop.water.calc_h_vap(cell.cathode.channel.temp[:-1])
+            channel = cell.cathode.channel
+            source = channel.k_coeff * channel.temp_ele \
+                + getattr(channel, 'condensation_heat', 0.0)
             cell.add_explicit_layer_source(cell.heat_rhs_dyn, source, 1)
 
             # Cathode gde-mem source
@@ -372,15 +373,18 @@ class TemperatureSystem:
                 (self.e_tn - self.e_0 + cell.cathode.v_loss) * current \
                 + ohmic_heat_membrane
             cell.add_explicit_layer_source(cell.heat_rhs_dyn, source, 2)
+
             # Anode gde-mem source
             source = \
                 cell.anode.v_loss * current \
                 + ohmic_heat_membrane
             cell.add_explicit_layer_source(cell.heat_rhs_dyn, source, 3)
+
             # Anode bpp-gde source
-            h_vap = w_prop.water.calc_h_vap(cell.anode.temp_fluid[:-1])
-            source = h_vap * cell.anode.cond_rate[:-1] \
-                + cell.anode.k_ht_coeff * cell.anode.temp_fluid_ele
+            # h_vap = w_prop.water.calc_h_vap(cell.anode.temp_fluid[:-1])
+            channel = cell.anode.channel
+            source = channel.k_coeff * channel.temp_ele \
+                + getattr(channel, 'condensation_heat', 0.0)
             cell.add_explicit_layer_source(cell.heat_rhs_dyn, source, 4)
 
             # Cooling channels
@@ -407,10 +411,10 @@ class TemperatureSystem:
         for i, cell in enumerate(self.cells):
             cell.heat_mtx_dyn.fill(0.0)
             source_vectors.append(np.zeros(np.shape(cell.heat_rhs_dyn)))
-            source = -cell.cathode.k_ht_coeff
+            source = -cell.cathode.channel.k_coeff
             matrix, source_vec_1 = \
                 cell.add_implicit_layer_source(cell.heat_mtx_dyn, source, 1)
-            source = -cell.anode.k_ht_coeff
+            source = -cell.anode.channel.k_coeff
             matrix, source_vec_2 = \
                 cell.add_implicit_layer_source(cell.heat_mtx_dyn, source, 4)
             source_vectors[i] = source_vec_1 + source_vec_2

@@ -60,7 +60,7 @@ class OneDimensionalFluid(ABC, OutputObject):
         array with different species along the provided axis.
         """
         comp_sum = np.sum(composition, axis)
-        if np.min(np.abs(comp_sum)) > 1e-8:
+        if np.min(np.abs(comp_sum)) > g_par.SMALL:
             return composition / comp_sum
         else:
             composition = g_func.fill_surrounding_average_1d(composition, axis)
@@ -325,7 +325,10 @@ class GasMixture(OneDimensionalFluid):
         return self._mole_fraction.transpose() * total_mol_conc
 
     def calc_mole_fraction(self, mole_composition):
-        return self.calc_fraction(mole_composition).transpose()
+        if np.min(mole_composition) < 0.0:
+            raise ValueError('mole_composition must not be smaller zero')
+        mole_fraction = self.calc_fraction(mole_composition).transpose()
+        return mole_fraction
 
     def calc_molar_mass(self, mole_fraction=None):
         if mole_fraction is None:
@@ -566,7 +569,7 @@ class TwoPhaseMixture(OneDimensionalFluid):
                method='ideal', *args, **kwargs):
         super().update(temperature, pressure)
         if mole_composition is not None:
-            if np.max(mole_composition) > 1e-10:
+            if np.max(mole_composition) > g_par.SMALL:
                 self._mole_fraction[:] = \
                     self.gas.calc_mole_fraction(mole_composition)
 
@@ -584,12 +587,7 @@ class TwoPhaseMixture(OneDimensionalFluid):
         total_conc[self.id_pc] = np.sum(dry_conc, axis=0) \
             * self.mole_fraction[self.id_pc] \
             / (1.0 - self.mole_fraction[self.id_pc])
-        print('pressure')
-        print(self.pressure)
-        print('gas_conc')
-        print(gas_conc)
-        print('total_conc')
-        print(total_conc)
+
         self.liquid_mole_fraction[:] = \
             1.0 - np.sum(gas_conc, axis=0) / np.sum(total_conc, axis=0)
 
