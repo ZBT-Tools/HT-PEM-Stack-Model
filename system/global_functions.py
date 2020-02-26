@@ -13,11 +13,29 @@ def ensure_list(variable):
         return [variable]
 
 
+def full_like(array):
+    """faster than native numpy version"""
+    result = np.zeros(array.shape)
+    result[:] = array
+    return result
+
+
+def full(shape, value):
+    """faster than native numpy version"""
+    result = np.zeros(shape)
+    result[:] = value
+    return result
+
+
+def zeros_like(array):
+    """faster than native numpy version"""
+    return np.zeros(array.shape)
+
+
 def fill_transposed(in_array, shape):
     transposed_array = np.zeros(shape).transpose()
     transposed_array[:] = in_array
     return transposed_array.transpose()
-
 
 def add_source(var, source, direction=1, tri_mtx=None):
     """

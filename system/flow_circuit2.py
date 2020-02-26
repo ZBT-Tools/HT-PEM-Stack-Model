@@ -130,13 +130,15 @@ class ParallelFlowCircuit(ABC, OutputObject):
 
         mass_source = channel_mass_flow_out * mass_fraction
         # mass_source = self.channel_mass_flow * mass_fraction
-        self.manifolds[1].update(mass_flow_in=0.0, mass_source=mass_source)
+        self.manifolds[1].update(mass_flow_in=0.0, mass_source=mass_source,
+                                 update_heat=False)
 
         # Channel update
         for i, channel in enumerate(self.channels):
             channel.p_out = ip.interpolate_1d(self.manifolds[1].p)[i]
             channel.update(mass_flow_in=
-                           channel_mass_flow_in[i]/self.n_subchannels)
+                           channel_mass_flow_in[i]/self.n_subchannels,
+                           update_heat=False)
         # Inlet header update
         id_in = self.channels[-1].id_in
         self.manifolds[0].p_out = self.channels[-1].p[id_in]
@@ -148,7 +150,7 @@ class ParallelFlowCircuit(ABC, OutputObject):
             mass_fraction = 1.0
         mass_source = -self.channel_mass_flow * mass_fraction
         self.manifolds[0].update(mass_flow_in=self.mass_flow_in,
-                                 mass_source=mass_source)
+                                 mass_source=mass_source, update_heat=False)
         id_in = self.manifolds[0].id_in
         self.vol_flow_in = \
             self.mass_flow_in / self.manifolds[0].fluid.density[id_in]

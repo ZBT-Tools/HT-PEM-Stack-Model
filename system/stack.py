@@ -174,10 +174,15 @@ class Stack:
         self.i_target = g_par.dict_case['target_current_density']
 
         # current density array
-        self.i_cd = np.full((self.n_cells, n_ele), self.i_target)
+        self.i_cd = np.zeros((self.n_cells, n_ele))
+        self.i_cd[:] = self.i_target
 
         # current density array of previous iteration step
         self.i_cd_old = np.copy(self.i_cd)
+
+        self.temp_old = np.zeros(self.temp_sys.temp_layer_vec.shape)
+        self.temp_old[:] = self.temp_sys.temp_layer_vec
+
 
         # self.v_cell = []
         # # cell voltage
@@ -230,8 +235,8 @@ class Stack:
             update_inflows = True
         for i, cell in enumerate(self.cells):
             # self.cells[j].set_current_density(self.i_cd[j, :])
-            cell.i_cd[:] = self.i_cd[i, :]
-            cell.update()
+            # cell.i_cd[:] = self.i_cd[i, :]
+            cell.update(self.i_cd[i, :])
             if cell.break_program:
                 self.break_program = True
                 break
@@ -244,6 +249,7 @@ class Stack:
                 self.update_temperature_coupling()
 
             self.i_cd_old[:] = self.i_cd
+            self.temp_old[:] = self.temp_sys.temp_layer_vec
             if self.calc_cd:
                 self.update_electrical_coupling()
         # print('Current density', self.i_cd)

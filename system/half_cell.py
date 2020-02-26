@@ -235,17 +235,20 @@ class HalfCell:
         # for i, item in enumerate(self.mol_mass):
         #     self.r_species[i] = g_par.constants['R'] / item
 
-    def update(self, current_density):
+    def update(self, current_density, channel_update=False):
         """
         This function coordinates the program sequence
         """
         # self.calc_temp_fluid_ele()
         # mole_flow_in, mole_source = self.calc_mass_balance(current_density)
+
         if not self.break_program:
             # self.channel.update(mole_flow_in, mole_source)
             # self.channel.mole_flow[:] = mole_flow_in
             self.channel.mass_source[:], self.channel.mole_source[:] = \
                 self.calc_mass_source(current_density)
+            if channel_update:
+                self.channel.update()
             self.update_voltage_loss(current_density)
 
     # def calc_mass_balance(self, current_density, stoi=None):

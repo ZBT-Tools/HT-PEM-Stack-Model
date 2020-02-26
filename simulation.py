@@ -176,9 +176,6 @@ class Simulation:
         output_dict = input_dicts.dict_output
         self.output = output.Output(output_dict)
 
-        self.temp_old = np.zeros_like(self.stack.temp_sys.temp_layer_vec)
-        # defined temperature of the last iteration
-
     # @do_c_profile
     def update(self):
         """
@@ -193,7 +190,6 @@ class Simulation:
             # g_par.dict_case['tar_cd'] = tar_cd
             counter = 0
             while True:
-                self.save_old_value()
                 if counter == 0:
                     self.stack.update(tar_cd)
                 else:
@@ -210,7 +206,8 @@ class Simulation:
                     break
             if not self.stack.break_program:
                 voltage_loss = self.save_voltages(self.stack)
-                cell_voltages.append(np.average(self.stack.v_cell))
+                cell_voltages.append(np.average([cell.v for cell in
+                                                 self.stack.cells]))
 
                 mfd_criteria = \
                     (np.array(self.mfd_ano_criteria)
@@ -293,7 +290,7 @@ class Simulation:
         #                     - self.stack.temp_sys.temp_layer[0][0, 0]))
         #                   / self.stack.temp_sys.temp_layer[0][0, 0]))
         self.temp_criteria =\
-            np.abs(np.sum(((self.temp_old
+            np.abs(np.sum(((self.stack.temp_old
                             - self.stack.temp_sys.temp_layer_vec)
                           / self.stack.temp_sys.temp_layer_vec) ** 2.0))
 
@@ -301,14 +298,6 @@ class Simulation:
         # self.mfd_cat_criteria.append(self.stack.manifolds[0].criteria)
         # self.mfd_ano_criteria.append(self.stack.manifolds[1].criteria)
         self.i_ca_criteria_process.append(self.i_ca_criteria)
-
-    def save_old_value(self):
-        """
-        Saves a defined temperature value of the current iteration
-        as the old temperature value for the next iteration.
-        """
-        #self.temp_old = self.stack.temp_sys.temp_layer[0][0, 0]
-        self.temp_old[:] = self.stack.temp_sys.temp_layer_vec
 
 
 start_time = timeit.default_timer()

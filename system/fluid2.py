@@ -42,7 +42,7 @@ class OneDimensionalFluid(ABC, OutputObject):
                 or value.shape == array.shape:
             array[:] = value
         else:
-            raise ValueError('argument input_value must be scalar or '
+            raise ValueError('argument value must be scalar or '
                              'have the same shape as 1D array')
 
     @abstractmethod
