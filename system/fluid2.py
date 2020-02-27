@@ -47,8 +47,8 @@ class OneDimensionalFluid(ABC, OutputObject):
 
     @abstractmethod
     def update(self, temperature, pressure, *args, **kwargs):
-        self._temperature[:] = temperature
-        self._pressure[:] = pressure
+        self.temperature = temperature
+        self.pressure = pressure
 
     @abstractmethod
     def calc_properties(self, temperature, pressure=101325.0, **kwargs):

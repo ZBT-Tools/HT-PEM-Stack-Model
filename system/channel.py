@@ -92,8 +92,31 @@ class Channel(ABC, OutputObject):
         self.add_print_data(self.temp, 'Fluid Temperature', 'K')
         self.add_print_data(self.p, 'Fluid Pressure', 'Pa')
 
+    def update(self, mass_flow_in=None, mass_source=None,
+               wall_temp=None, heat_flux=None,
+               update_flow=True, update_heat=True, **kwargs):
+        if mass_flow_in is not None or mass_source is not None:
+            self.update_mass(mass_flow_in=mass_flow_in,
+                             mass_source=mass_source,
+                             update_fluid=kwargs.get('update_fluid', True))
+        if update_flow:
+            self.update_flow(update_fluid=kwargs.get('update_fluid', False))
+
+        if update_heat:
+            self.update_heat(wall_temp=wall_temp, heat_flux=heat_flux,
+                             update_fluid=kwargs.get('update_fluid', True))
+
     @abstractmethod
-    def update(self, *args, **kwargs):
+    def update_mass(self, mass_flow_in=None, mass_source=None,
+                    update_fluid=True):
+        pass
+
+    @abstractmethod
+    def update_flow(self, update_fluid=False):
+        pass
+
+    @abstractmethod
+    def update_heat(self, wall_temp=None, heat_flux=None, update_fluid=True):
         pass
 
     def calc_flow_velocity(self):
@@ -248,17 +271,37 @@ class IncompressibleFluidChannel(Channel):
         super().__init__(channel_dict, fluid)
         self.mass_source = np.zeros(self.n_ele)
 
-    def update(self, mass_flow_in=None, mass_source=None, update_flow=True,
-               update_heat=True):
+    # def update(self, mass_flow_in=None, mass_source=None,
+    #            wall_temp=None, heat_flux=None,
+    #            update_flow=True, update_heat=True, **kwargs):
+    #     self.calc_mass_balance(mass_flow_in, mass_source)
+    #     self.fluid.update(self.temp, self.p)
+    #     if update_flow:
+    #         self.calc_flow_velocity()
+    #         self.calc_pressure()
+    #     if update_heat:
+    #         self.calc_heat_transfer_coeff()
+    #         self.calc_heat_capacitance()
+    #         self.calc_heat_transfer(wall_temp=wall_temp, heat_flux=heat_flux)
+
+    def update_mass(self, mass_flow_in=None, mass_source=None,
+                    update_fluid=True):
         self.calc_mass_balance(mass_flow_in, mass_source)
-        self.fluid.update(self.temp, self.p)
-        self.temp_ele[:] = ip.interpolate_1d(self.temp)
-        if update_flow:
-            self.calc_flow_velocity()
-            self.calc_pressure()
-        if update_heat:
-            self.calc_heat_transfer_coeff()
-            self.calc_heat_capacitance()
+        if update_fluid:
+            self.fluid.update(self.temp, self.p)
+
+    def update_flow(self, update_fluid=False):
+        self.calc_flow_velocity()
+        self.calc_pressure()
+        if update_fluid:
+            self.fluid.update(self.temp, self.p)
+
+    def update_heat(self, wall_temp=None, heat_flux=None, update_fluid=True):
+        self.calc_heat_transfer_coeff()
+        self.calc_heat_capacitance()
+        self.calc_heat_transfer(wall_temp=wall_temp, heat_flux=heat_flux)
+        if update_fluid:
+            self.fluid.update(self.temp, self.p)
 
     def calc_mass_balance(self, mass_flow_in=None, mass_source=None):
         if mass_flow_in is not None:
@@ -283,17 +326,38 @@ class GasMixtureChannel(Channel):
         self.add_print_data(self.mole_flow, 'Mole Flow',
                             'mol/s', self.fluid.species.names)
 
-    def update(self, mass_flow_in=None, mass_source=None, update_flow=True,
-               update_heat=True):
+    # def update(self, mass_flow_in=None, mass_source=None,
+    #            wall_temp=None, heat_flux=None,
+    #            update_flow=True, update_heat=True, **kwargs):
+    #     self.calc_mass_balance(mass_flow_in, mass_source)
+    #     self.fluid.update(self.temp, self.p, self.mole_flow)
+    #     if update_flow:
+    #         self.calc_flow_velocity()
+    #         self.calc_pressure()
+    #     if update_heat:
+    #         self.calc_heat_transfer_coeff()
+    #         self.calc_heat_capacitance()
+    #         self.calc_heat_transfer(wall_temp=wall_temp, heat_flux=heat_flux)
+    #         self.fluid.update(self.temp, self.p, self.mole_flow)
+
+    def update_mass(self, mass_flow_in=None, mass_source=None,
+                    update_fluid=True):
         self.calc_mass_balance(mass_flow_in, mass_source)
-        self.fluid.update(self.temp, self.p, self.mole_flow)
-        self.temp_ele[:] = ip.interpolate_1d(self.temp)
-        if update_flow:
-            self.calc_flow_velocity()
-            self.calc_pressure()
-        if update_heat:
-            self.calc_heat_transfer_coeff()
-            self.calc_heat_capacitance()
+        if update_fluid:
+            self.fluid.update(self.temp, self.p, self.mole_flow)
+
+    def update_flow(self, update_fluid=False):
+        self.calc_flow_velocity()
+        self.calc_pressure()
+        if update_fluid:
+            self.fluid.update(self.temp, self.p, self.mole_flow)
+
+    def update_heat(self, wall_temp=None, heat_flux=None, update_fluid=True):
+        self.calc_heat_transfer_coeff()
+        self.calc_heat_capacitance()
+        self.calc_heat_transfer(wall_temp=wall_temp, heat_flux=heat_flux)
+        if update_fluid:
+            self.fluid.update(self.temp, self.p, self.mole_flow)
 
     def calc_mass_balance(self, mass_flow_in=None, mass_source=None):
         """
@@ -367,18 +431,26 @@ class TwoPhaseMixtureChannel(GasMixtureChannel):
         self.add_print_data(self.mole_flow_gas, 'Gas Mole Flow', 'mol/s',
                             self.fluid.species.names)
 
-    def update(self, mass_flow_in=None, mass_source=None, update_flow=True,
-               update_heat=True):
-        self.calc_mass_balance(mass_flow_in, mass_source)
-        self.fluid.update(self.temp, self.p, self.mole_flow)
-        self.temp_ele[:] = ip.interpolate_1d(self.temp)
+    # def update(self, mass_flow_in=None, mass_source=None,
+    #            wall_temp=None, heat_flux=None,
+    #            update_flow=True, update_heat=True, **kwargs):
+    #     if mass_flow_in is not None or mass_source is not None:
+    #         self.calc_mass_balance(mass_flow_in, mass_source)
+    #         self.fluid.update(self.temp, self.p, self.mole_flow)
+    #         self.calc_two_phase_flow()
+    #     if update_flow:
+    #         self.calc_flow_velocity()
+    #         self.calc_pressure()
+    #     if update_heat:
+    #         self.calc_heat_transfer_coeff()
+    #         self.calc_heat_capacitance()
+    #         self.calc_heat_transfer(wall_temp=wall_temp, heat_flux=heat_flux)
+
+    def update_mass(self, mass_flow_in=None, mass_source=None,
+                    update_fluid=True):
+        super().update_mass(mass_flow_in=mass_flow_in, mass_source=mass_source,
+                            update_fluid=update_fluid)
         self.calc_two_phase_flow()
-        if update_flow:
-            self.calc_flow_velocity()
-            self.calc_pressure()
-        if update_heat:
-            self.calc_heat_transfer_coeff()
-            self.calc_heat_capacitance()
 
     def calc_flow_velocity(self):
         """
@@ -389,10 +461,6 @@ class TwoPhaseMixtureChannel(GasMixtureChannel):
         self.velocity[:] = np.maximum(self.vol_flow_gas / self.cross_area, 0.0)
         self.reynolds[:] = self.velocity * self.d_h * self.fluid.density \
             / self.fluid.viscosity
-
-    def calc_mass_balance(self, mass_flow_in=None, mass_source=None):
-        super().calc_mass_balance(mass_flow_in, mass_source)
-        # self.calc_two_phase_flow()
 
     def calc_two_phase_flow(self):
         """
