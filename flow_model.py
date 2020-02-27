@@ -35,15 +35,15 @@ n_subchl = 1
 
 channel_dict = {
     'name': 'Channel',
-    'channel_length': 0.4,
+    'length': 0.4,
     'cross_sectional_shape': 'circular',
-    'channel_diameter': 0.00298,
+    'diameter': 0.00298,
     'p_out': 101325.0,
     'temp_in': 300.0,
     'hum_in': 0.1,
     'flow_direction': 1,
-    'channel_width': 0.003,
-    'channel_height': 0.003,
+    'width': 0.003,
+    'height': 0.003,
     'bend_number': 0,
     'bend_friction_factor': 0.1,
     'additional_friction_fractor': 0.0
@@ -61,13 +61,13 @@ fluid_dict = {
 
 in_manifold_dict = {
     'name': 'Inlet Manifold',
-    'channel_length': 0.09,
+    'length': 0.09,
     'p_out': channel_dict['p_out'],
     'temp_in': 300.0,
     'hum_in': 0.1,
     'flow_direction': 1,
-    'channel_width': 0.0075,
-    'channel_height': 0.0075,
+    'width': 0.0075,
+    'height': 0.0075,
     'bend_number': 0,
     'bend_friction_factor': 0.0,
     'additional_friction_fractor': 0.0

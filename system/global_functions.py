@@ -101,7 +101,50 @@ def construct_empty_stack_array(cell_array, n_cells):
     else:
         cell_array_shape = (len(cell_array))
     stack_array_shape = (n_cells,) + cell_array_shape
-    return np.full(stack_array_shape, 0.0)
+    return np.zeros(stack_array_shape)
+
+
+def calc_temp_heat_transfer(wall_temp, fluid_temp, capacity_rate, heat_coeff,
+                            flow_direction):
+    wall_temp = np.asarray(wall_temp)
+    fluid_temp = np.asarray(fluid_temp)
+    capacity_rate = np.asarray(capacity_rate)
+    heat_coeff = np.asarray(heat_coeff)
+    assert capacity_rate.shape == wall_temp.shape
+    assert heat_coeff.shape == wall_temp.shape
+    fluid_temp_avg = np.asarray(fluid_temp[:-1] + fluid_temp[1:]) * .5
+    id_range = range(len(wall_temp))
+    if flow_direction == -1:
+        id_range = reversed(id_range)
+    for i in id_range:
+        fluid_avg = fluid_temp_avg[i]
+        fluid_out_old = 5e5
+        error = 1e3
+        iter = 0
+        itermax = 10
+        while error > 1e-4 and iter <= itermax:
+            if flow_direction == -1:
+                fluid_in = fluid_temp[i + 1]
+            else:
+                fluid_in = fluid_temp[i]
+            delta_temp = wall_temp[i] - fluid_avg
+            q = heat_coeff[i] * delta_temp
+            fluid_out = fluid_in + q / capacity_rate[i]
+            if fluid_in < wall_temp[i]:
+                fluid_out = np.minimum(wall_temp[i] - 1e-3, fluid_out)
+            else:
+                fluid_out = np.maximum(wall_temp[i] + 1e-3, fluid_out)
+            fluid_avg = (fluid_in + fluid_out) * 0.5
+            error = np.abs(fluid_out_old - fluid_out) / fluid_out
+            fluid_out_old = np.copy(fluid_out)
+            iter += 1
+        if flow_direction == -1:
+            fluid_temp[i] = fluid_out
+        else:
+            fluid_temp[i + 1] = fluid_out
+    fluid_temp_avg = np.asarray(fluid_temp[:-1] + fluid_temp[1:]) * .5
+    heat = heat_coeff * (wall_temp - fluid_temp_avg)
+    return fluid_temp, heat
 
 
 def calc_diff(vec):

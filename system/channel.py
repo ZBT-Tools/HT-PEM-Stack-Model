@@ -5,6 +5,11 @@ import system.global_functions as g_func
 import system.interpolation as ip
 from abc import ABC, abstractmethod
 from system.output_object import OutputObject
+try:
+    import system.channel_heat_transfer as cht
+    cht_found = True
+except ModuleNotFoundError:
+    cht_found = False
 
 
 class Channel(ABC, OutputObject):
@@ -52,16 +57,18 @@ class Channel(ABC, OutputObject):
         self.pressure_recovery = False
 
         # Geometry
-        self.width = channel_dict['channel_width']
+        self.width = channel_dict['width']
         self.cross_shape = channel_dict.get('cross_sectional_shape',
                                             'rectangular')
         if self.cross_shape == 'rectangular':
-            self.height = channel_dict['channel_height']
+            self.height = channel_dict['height']
             self.cross_area = self.width * self.height
             self.d_h = 4. * self.cross_area / (2. * (self.width + self.height))
+            self.surface_area = 2.0 * (self.width + self.height) * self.dx
         elif self.cross_shape == 'circular':
-            self.d_h = channel_dict['channel_diameter']
+            self.d_h = channel_dict['diameter']
             self.cross_area = self.d_h ** 2.0 / 4.0 * np.pi
+            self.surface_area = self.d_h * np.pi * self.dx
         else:
             raise NotImplementedError
         self.n_bends = channel_dict.get('bend_number', 0)
@@ -186,18 +193,54 @@ class Channel(ABC, OutputObject):
         self.p.fill(self.p_out)
         g_func.add_source(self.p, dp, pressure_direction)
 
-    # def calc_heat_transfer(self, wall_temp):
-    #     wall_temp = np.asarray(wall_temp)
-    #     if np.ndim(wall_temp) == 0:
-    #         wall_temp = g_func.full(self.temp_ele.shape, wall_temp)
-    #     elif wall_temp.shape != self.temp_ele.shape:
-    #         raise ValueError('wall temperature array must be element-based')
-    #
-    #     # for i in range(len(self.temp_ele)):
-    #     #     temp_in = self.temp[i]
-    #     #     temp_out = self.temp[i+1]
-    #     #     log_mean_temp =
-
+    def calc_heat_transfer(self, wall_temp=None, heat_flux=None):
+        """
+        Calculates heat transfer to fluid and its temperature variation
+        due to the heat transfer. If wall_temp is provided, the corresponding
+        heat exchange is returned. If heat_flux is provided,
+        the corresponding wall_temp is returned.
+        wall_temp is provided,
+        :param wall_temp: 1D element-based array
+        :param heat_flux: 1D element-based array
+        :return: if wall_temp is provided, heat array is returned;
+                 if heat_flux is provided, wall temperature is returned
+        """
+        g_fluid = ip.interpolate_1d(self.g_fluid)
+        if wall_temp is None and heat_flux is None:
+            raise ValueError('either wall_temp or heat_flux must be provided')
+        elif wall_temp is not None and heat_flux is not None:
+            raise ValueError('either wall_temp or heat_flux must be provided')
+        elif wall_temp is not None:
+            if np.ndim(wall_temp) == 0:
+                wall_temp = g_func.full(self.temp_ele.shape, wall_temp)
+            elif wall_temp.shape != self.temp_ele.shape:
+                raise ValueError('wall temperature array must be element-based')
+            if cht_found:
+                fluid_temp, heat = \
+                    cht.calc_heat_transfer(wall_temp, self.temp,
+                                           g_fluid, self.k_coeff,
+                                           self.flow_direction)
+            else:
+                fluid_temp, heat = \
+                    g_func.calc_temp_heat_transfer(wall_temp, self.temp,
+                                                   g_fluid, self.k_coeff,
+                                                   self.flow_direction)
+            self.temp[:] = fluid_temp
+            self.temp_ele[:] = ip.interpolate_1d(self.temp)
+            return heat
+        elif heat_flux is not None:
+            if np.ndim(heat_flux) == 0:
+                heat_flux = g_func.full(self.temp_ele.shape, heat_flux)
+            elif heat_flux.shape != self.temp_ele.shape:
+                raise ValueError('wall temperature array must be element-based')
+            heat = heat_flux * self.surface_area
+            dtemp = heat / g_fluid
+            g_func.add_source(self.temp, dtemp,
+                              self.flow_direction, self.tri_mtx)
+            self.temp_ele[:] = ip.interpolate_1d(self.temp)
+            return self.temp_ele + heat / self.k_coeff
+        else:
+            raise ValueError
 
 
 class IncompressibleFluidChannel(Channel):

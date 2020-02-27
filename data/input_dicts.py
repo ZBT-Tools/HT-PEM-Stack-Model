@@ -140,8 +140,8 @@ dict_cathode_channel = {
     'temp_in': op_con.temp_air_in,
     #'hum_in': op_con.inlet_humidity_cathode,
     'flow_direction': geom.cathode_flow_direction,
-    'channel_width': geom.channel_width,
-    'channel_height': geom.channel_height,
+    'width': geom.channel_width,
+    'height': geom.channel_height,
     'bend_number': geom.channel_bends,
     'bend_friction_factor': geom.bend_pressure_loss_coefficient
     }
@@ -153,8 +153,8 @@ dict_anode_channel = {
     'temp_in': op_con.temp_anode_gas_in,
      # 'hum_in': op_con.inlet_humidity_anode,
     'flow_direction': geom.anode_flow_direction,
-    'channel_width': geom.channel_width,
-    'channel_height': geom.channel_height,
+    'width': geom.channel_width,
+    'height': geom.channel_height,
     'bend_number': geom.channel_bends,
     'bend_friction_factor': geom.bend_pressure_loss_coefficient
     }
@@ -165,8 +165,8 @@ dict_cathode_in_manifold = {
     'p_out': op_con.p_manifold_cathode_out,
     'temp_in': op_con.temp_air_in,
     'flow_direction': 1,
-    'channel_width': geom.manifold_width,
-    'channel_height': geom.manifold_height,
+    'width': geom.manifold_width,
+    'height': geom.manifold_height,
     'bend_number': 0,
     'bend_friction_factor': 0.0,
     'additional_friction_fractor': geom.manifold_pressure_loss_coefficient
@@ -181,8 +181,8 @@ dict_anode_in_manifold = {
     'p_out': op_con.p_manifold_anode_out,
     'temp_in': op_con.temp_anode_gas_in,
     'flow_direction': 1,
-    'channel_width': geom.manifold_width,
-    'channel_height': geom.manifold_height,
+    'width': geom.manifold_width,
+    'height': geom.manifold_height,
     'bend_number': 0,
     'bend_friction_factor': 0.0,
     'additional_friction_fractor': geom.manifold_pressure_loss_coefficient
@@ -226,8 +226,8 @@ dict_coolant_channel = {
     'temp_in': op_con.temp_coolant_in,
     #'hum_in': op_con.inlet_humidity_cathode,
     'flow_direction': geom.cathode_flow_direction,
-    'channel_width': geom.coolant_channel_width,
-    'channel_height': geom.coolant_channel_height,
+    'width': geom.coolant_channel_width,
+    'height': geom.coolant_channel_height,
     'bend_number': geom.coolant_channel_bends,
     'bend_friction_factor': geom.coolant_bend_pressure_loss_coefficient
     }
@@ -237,8 +237,8 @@ dict_coolant_in_manifold = {
     'p_out': op_con.p_manifold_cathode_out,
     'temp_in': op_con.temp_coolant_in,
     'flow_direction': 1,
-    'channel_width': geom.coolant_manifold_width,
-    'channel_height': geom.coolant_manifold_width,
+    'width': geom.coolant_manifold_width,
+    'height': geom.coolant_manifold_width,
     'bend_number': 0,
     'bend_friction_factor': 0.0,
     'additional_friction_fractor':
