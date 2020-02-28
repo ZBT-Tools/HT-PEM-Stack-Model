@@ -209,8 +209,25 @@ class Stack:
             mass_flows_in[:] = self.calc_mass_flows()
         for i in range(len(self.fluid_circuits)):
             self.fluid_circuits[i].update(mass_flows_in[i])
-        coolant_mass_flow = coolant_circuit.
-        self.coolant_circuit.update()
+        dtemp_target = 10.0
+        if update_inflows:
+            over_potential = 0.5
+            heat = self.i_target * over_potential  \
+                * self.cells[0].width * self.cells[0].height * self.n_cells
+            cp_cool = np.average([np.average(channel.fluid.specific_heat)
+                                  for channel in self.coolant_circuit.channels])
+            cool_mass_flow = heat / (cp_cool * dtemp_target)
+        else:
+            id_in = self.coolant_circuit.manifolds[0].id_in
+            temp_in = self.coolant_circuit.manifolds[0].temp[id_in]
+            temp_out = np.sum([channel.temp[channel.id_out]
+                               * channel.g_fluid[channel.id_out]
+                               for channel in self.coolant_circuit.channels])
+            temp_out /= np.sum([channel.g_fluid[channel.id_out]
+                                for channel in self.coolant_circuit.channels])
+            temp_ratio = abs(temp_out - temp_in) / dtemp_target
+            cool_mass_flow = self.coolant_circuit.mass_flow_in * temp_ratio
+        self.coolant_circuit.update(cool_mass_flow)
 
     def update_electrical_coupling(self):
         """

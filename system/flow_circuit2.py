@@ -130,12 +130,16 @@ class ParallelFlowCircuit(ABC, OutputObject):
 
         mass_source = channel_mass_flow_out * mass_fraction
         # mass_source = self.channel_mass_flow * mass_fraction
+        channel_enthalpy_out = \
+            np.asarray([chnl.g_fluid[chnl.id_out] * chnl.temp[chnl.id_out]
+                        for chnl in self.channels]) * self.n_subchannels
         self.manifolds[1].update(mass_flow_in=0.0, mass_source=mass_source,
-                                 update_heat=False)
-
+                                 update_heat=False,
+                                 enthalpy_source=channel_enthalpy_out)
         # Channel update
         for i, channel in enumerate(self.channels):
             channel.p_out = ip.interpolate_1d(self.manifolds[1].p)[i]
+            channel.temp[channel.id_in] = self.manifolds[0].temp_ele[i]
             channel.update(mass_flow_in=
                            channel_mass_flow_in[i]/self.n_subchannels,
                            update_heat=False)

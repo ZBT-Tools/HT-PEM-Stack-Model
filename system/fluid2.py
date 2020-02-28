@@ -345,9 +345,12 @@ class GasMixture(OneDimensionalFluid):
             # molar_mass = np.where(molar_mass == 0.0, 1.0, molar_mass)
             return np.outer(1.0 / molar_mass, self.species.mw) * mole_fraction
 
-    def calc_specific_heat(self, temperature):
+    def calc_specific_heat(self, temperature, mass_fraction=None):
         species_cp = self.species.calc_specific_heat(temperature).transpose()
-        return np.sum(self._mass_fraction * species_cp, axis=-1)
+        if mass_fraction is None:
+            return np.sum(self._mass_fraction * species_cp, axis=-1)
+        else:
+            return np.sum(mass_fraction.transpose() * species_cp, axis=-1)
 
     def calc_viscosity(self, temperature):
         """

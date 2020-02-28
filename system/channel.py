@@ -96,8 +96,8 @@ class Channel(ABC, OutputObject):
         self.add_print_data(self.p, 'Fluid Pressure', 'Pa')
 
     def update(self, mass_flow_in=None, mass_source=None,
-               wall_temp=None, heat_flux=None,
-               update_flow=True, update_heat=True, **kwargs):
+               wall_temp=None, heat_flux=None, update_flow=True,
+               update_heat=True, enthalpy_source=None, **kwargs):
         if mass_flow_in is not None or mass_source is not None:
             self.update_mass(mass_flow_in=mass_flow_in,
                              mass_source=mass_source,
@@ -107,7 +107,8 @@ class Channel(ABC, OutputObject):
 
         if update_heat:
             self.update_heat(wall_temp=wall_temp, heat_flux=heat_flux,
-                             update_fluid=kwargs.get('update_fluid', False))
+                             update_fluid=kwargs.get('update_fluid', False),
+                             enthalpy_source=enthalpy_source)
 
     @abstractmethod
     def update_mass(self, mass_flow_in=None, mass_source=None,
@@ -119,7 +120,8 @@ class Channel(ABC, OutputObject):
         pass
 
     @abstractmethod
-    def update_heat(self, wall_temp=None, heat_flux=None, update_fluid=True):
+    def update_heat(self, wall_temp=None, heat_flux=None, update_fluid=True,
+                    enthalpy_source=None):
         pass
 
     def calc_flow_velocity(self):
@@ -236,7 +238,7 @@ class Channel(ABC, OutputObject):
         """
         g_fluid = ip.interpolate_1d(self.g_fluid)
         if wall_temp is None and heat_flux is None:
-            raise ValueError('either wall_temp or heat_flux must be provided')
+            return None
         elif wall_temp is not None and heat_flux is not None:
             raise ValueError('either wall_temp or heat_flux must be provided')
         elif wall_temp is not None:
@@ -277,6 +279,19 @@ class Channel(ABC, OutputObject):
         else:
             raise ValueError
 
+    def calc_mix_temperature(self, enthalpy_source):
+        assert enthalpy_source.shape == self.temp_ele.shape
+        if np.sum(np.abs(enthalpy_source)) > 0.0:
+            if self.flow_direction == -1:
+                enthalpy_in = self.g_fluid[1:] * self.temp[1:]
+                self.temp[:-1] = 1.0 / self.g_fluid[:-1] \
+                    * (enthalpy_in + self.heat + enthalpy_source)
+            else:
+                enthalpy_in = self.g_fluid[:-1] * self.temp[:-1]
+                self.temp[1:] = 1.0 / self.g_fluid[:1] \
+                    * (enthalpy_in + self.heat + enthalpy_source)
+            self.temp_ele[:] = ip.interpolate_1d(self.temp)
+
 
 class IncompressibleFluidChannel(Channel):
     def __init__(self, channel_dict, fluid):
@@ -308,10 +323,13 @@ class IncompressibleFluidChannel(Channel):
         if update_fluid:
             self.fluid.update(self.temp, self.p)
 
-    def update_heat(self, wall_temp=None, heat_flux=None, update_fluid=True):
+    def update_heat(self, wall_temp=None, heat_flux=None, update_fluid=True,
+                    enthalpy_source=None):
         self.calc_heat_transfer_coeff()
         self.calc_heat_capacitance()
         self.calc_heat_transfer(wall_temp=wall_temp, heat_flux=heat_flux)
+        if enthalpy_source is not None:
+            self.calc_mix_temperature(enthalpy_source)
         if update_fluid:
             self.fluid.update(self.temp, self.p)
 
@@ -364,10 +382,13 @@ class GasMixtureChannel(Channel):
         if update_fluid:
             self.fluid.update(self.temp, self.p, self.mole_flow)
 
-    def update_heat(self, wall_temp=None, heat_flux=None, update_fluid=True):
+    def update_heat(self, wall_temp=None, heat_flux=None, update_fluid=True,
+                    enthalpy_source=None):
         self.calc_heat_transfer_coeff()
         self.calc_heat_capacitance()
         self.calc_heat_transfer(wall_temp=wall_temp, heat_flux=heat_flux)
+        if enthalpy_source is not None:
+            self.calc_mix_temperature(enthalpy_source)
         if update_fluid:
             self.fluid.update(self.temp, self.p, self.mole_flow)
 
@@ -486,8 +507,6 @@ class TwoPhaseMixtureChannel(GasMixtureChannel):
             self.mole_flow_total - mole_flow_liq_total
         self.mass_flow_gas_total[:] = \
             self.mass_flow_total - mass_flow_liq_total
-        gas_mole_fraction = self.fluid.gas.mole_fraction
-        mole_fraction = self.fluid.mole_fraction
         self.mole_flow_gas[:] = \
             self.mole_flow_gas_total * self.fluid.gas.mole_fraction
         self.mass_flow_gas[:] = \
