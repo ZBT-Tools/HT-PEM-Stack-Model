@@ -24,8 +24,8 @@ class ParallelFlowCircuit(ABC, OutputObject):
 
     def __init__(self, dict_flow_circuit, manifolds, channels,
                  n_subchannels=1.0):
-        super().__init__()
-        self.name = dict_flow_circuit['name']
+        name = dict_flow_circuit['name']
+        super().__init__(name)
         assert isinstance(dict_flow_circuit, dict)
         assert isinstance(manifolds, (list, tuple))
         assert isinstance(channels,  (list, tuple))

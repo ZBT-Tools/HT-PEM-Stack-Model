@@ -2,17 +2,17 @@
 
 """Simulation Settings"""
 # discretization of the flow channel along the x-axis
-elements = 5
+elements = 10
 # convergence criteria of the simulation
 convergence_criteria = 1.e-6
 # maximum number of iterations
-maximum_iteration_number = 2
+maximum_iteration_number = 10
 # minimum number of iterations
-minimum_iteration_number = 0
+minimum_iteration_number = 3
 # output csv data
-save_csv_data = False
+save_csv_data = True
 # output plots
-save_plot_data = False
+save_plot_data = True
 # calculate the PEMFC stack temperatures
 calc_temperature = True
 # calculate the current density distribution

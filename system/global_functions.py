@@ -37,6 +37,7 @@ def fill_transposed(in_array, shape):
     transposed_array[:] = in_array
     return transposed_array.transpose()
 
+
 def add_source(var, source, direction=1, tri_mtx=None):
     """
     Add discrete 1d source of length n-1 to var of length n
@@ -211,10 +212,10 @@ def calc_pressure_drop(velocity, density, f, zeta, length, diameter,
                          'must be element-wise (n)')
     v1 = velocity[:-1]
     v2 = velocity[1:]
-    a = v2 ** 2.0 * (f * length / diameter + zeta) * 0.5
-    b = (v1 ** 2.0 - v2 ** 2.0) * .5
-    return density * (a + b)
-
+    a = density * v2 ** 2.0 * (f * length / diameter + zeta) * 0.5
+    # b = 0.0
+    b = (density * v1 ** 2.0 - density * v2 ** 2.0) * .5
+    return a + b
 
 def calc_visc_mix(species_viscosity, mol_fraction, mol_mass):
     """

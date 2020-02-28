@@ -14,7 +14,7 @@ class OneDimensionalFluid(ABC, OutputObject):
     def __init__(self, nx, name, temperature=298.15, pressure=101325.0,
                  **kwargs):
         print("__init__ for Fluid")
-        super().__init__()
+        super().__init__(name)
         self.name = name
         self.nodes = nx
         self.print_variables = \
@@ -258,8 +258,9 @@ class GasMixture(OneDimensionalFluid):
         self.n_species = len(self.species.names)
         self.species_viscosity = \
             self.species.calc_viscosity(self._temperature).transpose()
-        if isinstance(mole_fractions, (list, tuple)):
-            mole_fractions = np.asarray(mole_fractions)
+
+        mole_fractions = g_func.ensure_list(mole_fractions)
+        mole_fractions = np.asarray(mole_fractions)
         if len(mole_fractions) != self.n_species \
                 or np.sum(mole_fractions) != 1.0:
             raise ValueError('Initial mole fractions must be provided '
@@ -650,10 +651,13 @@ class TwoPhaseMixture(OneDimensionalFluid):
                 conc[self.id_pc] = np.where(conc[self.id_pc] > sat_conc,
                                             sat_conc, conc[self.id_pc])
             else:
-                conc[i] = \
-                    np.where(conc[self.id_pc] > sat_conc,
-                             (total_gas_conc - sat_conc) * dry_mole_fraction[i],
-                             conc[i])
+                try:
+                    conc[i] = \
+                        np.where(conc[self.id_pc] > sat_conc,
+                                 (total_gas_conc - sat_conc) * dry_mole_fraction[i],
+                                 conc[i])
+                except FloatingPointError:
+                    raise FloatingPointError
         return np.maximum(conc, 0.0)
 
     # def calc_concentration(self):

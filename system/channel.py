@@ -7,9 +7,9 @@ from abc import ABC, abstractmethod
 from system.output_object import OutputObject
 try:
     import system.channel_heat_transfer as cht
-    cht_found = True
+    CHT_FOUND = True
 except ModuleNotFoundError:
-    cht_found = False
+    CHT_FOUND = False
 
 
 class Channel(ABC, OutputObject):
@@ -30,8 +30,8 @@ class Channel(ABC, OutputObject):
                                       'implemented')
 
     def __init__(self, channel_dict, fluid):
-        super().__init__()
-        self.name = channel_dict['name']
+        name = channel_dict['name']
+        super().__init__(name)
         self.fluid = fluid
         self.length = channel_dict['length']
         # channel length
@@ -88,8 +88,11 @@ class Channel(ABC, OutputObject):
 
         # Heat Transfer
         self.k_coeff = np.zeros(self.n_ele)
+        self.heat = np.zeros(self.n_ele)
+        self.wall_temp = np.zeros(self.n_ele)
 
         self.add_print_data(self.temp, 'Fluid Temperature', 'K')
+        self.add_print_data(self.wall_temp, 'Wall Temperature', 'K')
         self.add_print_data(self.p, 'Fluid Pressure', 'Pa')
 
     def update(self, mass_flow_in=None, mass_source=None,
@@ -104,7 +107,7 @@ class Channel(ABC, OutputObject):
 
         if update_heat:
             self.update_heat(wall_temp=wall_temp, heat_flux=heat_flux,
-                             update_fluid=kwargs.get('update_fluid', True))
+                             update_fluid=kwargs.get('update_fluid', False))
 
     @abstractmethod
     def update_mass(self, mass_flow_in=None, mass_source=None,
@@ -189,9 +192,8 @@ class Channel(ABC, OutputObject):
 
         ht_coeff = nusselt * self.fluid.thermal_conductivity / self.d_h
         # convection coefficient between the coolant and the channel wall
-        conv_area = self.d_h * np.pi * self.length / self.n_ele
         # convection area of the channel wall
-        self.k_coeff[:] = ip.interpolate_1d(ht_coeff) * conv_area
+        self.k_coeff[:] = ip.interpolate_1d(ht_coeff) * self.surface_area
 
     def calc_heat_capacitance(self):
         self.g_fluid[:] = self.mass_flow_total * self.fluid.specific_heat
@@ -213,8 +215,12 @@ class Channel(ABC, OutputObject):
         # dp = (f_ele * self.dx / self.d_h + zeta_bends) \
         #     * density_ele * 0.5 * velocity_ele ** 2.0
         pressure_direction = -self._flow_direction
-        self.p.fill(self.p_out)
+        self.p[:] = self.p_out
         g_func.add_source(self.p, dp, pressure_direction)
+        # if np.any(self.p < (self.p[self.id_out] - 1e-5)):
+        #     raise ValueError('Pressure dropped below outlet pressure, please '
+        #                      'check boundary conditions. Pressure calculation'
+        #                      'is only adequate for incompressible flows.')
 
     def calc_heat_transfer(self, wall_temp=None, heat_flux=None):
         """
@@ -238,7 +244,7 @@ class Channel(ABC, OutputObject):
                 wall_temp = g_func.full(self.temp_ele.shape, wall_temp)
             elif wall_temp.shape != self.temp_ele.shape:
                 raise ValueError('wall temperature array must be element-based')
-            if cht_found:
+            if CHT_FOUND:
                 fluid_temp, heat = \
                     cht.calc_heat_transfer(wall_temp, self.temp,
                                            g_fluid, self.k_coeff,
@@ -248,6 +254,8 @@ class Channel(ABC, OutputObject):
                     g_func.calc_temp_heat_transfer(wall_temp, self.temp,
                                                    g_fluid, self.k_coeff,
                                                    self.flow_direction)
+            self.wall_temp[:] = wall_temp
+            self.heat[:] = heat
             self.temp[:] = fluid_temp
             self.temp_ele[:] = ip.interpolate_1d(self.temp)
             return heat
@@ -258,10 +266,14 @@ class Channel(ABC, OutputObject):
                 raise ValueError('wall temperature array must be element-based')
             heat = heat_flux * self.surface_area
             dtemp = heat / g_fluid
+            self.temp[:] = self.temp[self.id_in]
             g_func.add_source(self.temp, dtemp,
                               self.flow_direction, self.tri_mtx)
+            self.heat[:] = heat
             self.temp_ele[:] = ip.interpolate_1d(self.temp)
-            return self.temp_ele + heat / self.k_coeff
+            wall_temp = self.temp_ele + heat / self.k_coeff
+            self.wall_temp[:] = wall_temp
+            return wall_temp
         else:
             raise ValueError
 

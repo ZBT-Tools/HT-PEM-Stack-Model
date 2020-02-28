@@ -34,7 +34,7 @@ class ElectricalCoupling:
         # conductance in z-direction
         self.cell_c_mid = []
         # cell_c array for the main diagonal of the matrix self.mat_const
-        self.resistance = np.zeros((self.n_cells, self.n_ele))
+        self.resistance = np.zeros((self.n_cells, self.n_ele)).flatten()
         # 2-d-array of the combined cell & bipolar plate
         # resistance in z-direction
         self.mat = np.zeros((self.n_ele, self.n_cells + 1))
@@ -83,7 +83,7 @@ class ElectricalCoupling:
         """
         resistance = \
             np.asarray([cell.resistance for cell in self.cells])
-        self.resistance = resistance.flatten()
+        self.resistance[:] = resistance.flatten()
         conductance = (self.c_width * self.dx / resistance).flatten()
         self.update_mat(conductance)
         self.update_right_side(conductance)
@@ -130,4 +130,4 @@ class ElectricalCoupling:
             print('test')
         i_cd = np.reshape(i_ca_vec.flatten(order='C'),
                           (self.n_cells, self.n_ele))
-        self.i_cd = i_cd / np.average(i_cd) * self.i_cd_tar
+        self.i_cd[:] = i_cd / np.average(i_cd) * self.i_cd_tar

@@ -13,7 +13,7 @@ stoichiometry_cathode = 2.
 # anode stoichiometry
 stoichiometry_anode = 2.
 # pem-type (True = HT-PEM, False = NT-PEM)
-is_ht_pem = True
+is_ht_pem = False
 # reaction stoichiometry
 cathode_reaction_stoich = [-1.0, 0.0, 2.0]
 anode_reaction_stoich = [-2.0, 0.0, 0.0]
@@ -22,7 +22,7 @@ cathode_charge_number = 4.0
 anode_charge_number = 4.0
 
 """"Thermal Settings"""
-# mass flow of the coolant per channel [kg/s]
+# total mass flow of the coolant per channel [kg/s]
 mass_flow_coolant = 1.e-2
 # air inlet temperature [K]
 temp_air_in = 340.

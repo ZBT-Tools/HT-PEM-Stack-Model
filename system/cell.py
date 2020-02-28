@@ -5,15 +5,16 @@ import system.matrix_functions as mtx
 import system.membrane as membrane
 import system.interpolation as ip
 from system.output_object import OutputObject
+import copy
 
 
 class Cell(OutputObject):
 
     def __init__(self, number, cell_dict, membrane_dict, half_cell_dicts,
                  channels):
-        super().__init__()
+        name = 'Cell ' + str(number)
+        super().__init__(name)
         self.cell_dict = cell_dict
-        self.name = 'Cell ' + str(number)
         print('Initializing: ', self.name)
         self.n_layer = 5
         self.n_electrodes = 2
@@ -33,7 +34,11 @@ class Cell(OutputObject):
         self.width = self.cell_dict['width']
         self.length = self.cell_dict['length']
 
+        half_cell_dicts = copy.deepcopy(half_cell_dicts)
         # Create half cell objects
+        for i in range(len(half_cell_dicts)):
+            name = self.name + ': ' + half_cell_dicts[i]['name']
+            half_cell_dicts[i]['name'] = name
 
         self.half_cells = [h_c.HalfCell(half_cell_dicts[i], cell_dict,
                                         channels[i])
@@ -72,47 +77,12 @@ class Cell(OutputObject):
         # basic electrical resistance of the membrane
         self.mem_acl_r = cell_dict['mem_acl_r']
         # thermal related electrical resistance gain of the membrane
-        # self.calc_mem_loss = cell_dict['calc_mem_loss']
 
         self.is_ht_pem = self.cell_dict['is_ht_pem']
-
-        # Membrane resistance parameter (Goßling)
-        # self.fac_res_fit = 0.5913
-        # self.fac_res_basic = 0.03
-        # self.res_25 = 101249.82 * self.th_mem \
-        #     + 36.24 * self.th_mem\
-        #     + 2805.83 * self.th_mem + 0.021
-        # self.res_65 = 3842453.95 * self.th_mem\
-        #     - 0.2775 * self.th_mem\
-        #     + 2.181 * self.th_mem + 0.029
-        # self.fac_m = (np.log10(self.res_65) - np.log10(self.res_25)) / (
-        #             (1000. / (65. + 273.15)) - (1000. / 25. + 273.15))
-        # self.fac_n = np.log10(self.res_65) - self.fac_m * 1000. / (65. + 273.15)
 
         """heat conductivity along and through the cell layers"""
         self.width_straight_channels = self.cathode.width_straight_channels
         self.active_area_dx = self.width_straight_channels * self.dx
-        # self.k_bpp_z = \
-        #     self.lambda_bpp[0] * self.active_area_dx / self.cathode.th_bpp
-        # # heat conductivity through the bipolar plate
-        # self.k_gde_z = \
-        #     self.lambda_gde[0] * self.active_area_dx / self.cathode.th_gde
-        # # heat conductivity through the gas diffusion electrode
-        # self.k_mem_z = \
-        #     self.lambda_mem[0] * self.active_area_dx / self.th_mem
-        # # heat conductivity through the membrane
-        # self.k_bpp_x = self.width_straight_channels * self.lambda_bpp[1] \
-        #                * self.cathode.th_bpp / self.cathode.channel.dx
-        # # heat conductivity along the bipolar plate
-        # self.k_gp = (self.width_straight_channels
-        #              * (self.lambda_bpp[1] * self.cathode.th_bpp
-        #                 + self.lambda_gde[1] * self.cathode.th_gde)) \
-        #     / (2. * self.cathode.channel.dx)
-        # # heat conductivity alon the bipolar plate and gas diffusion electrode
-        # self.k_gm = (self.width_straight_channels
-        #              * (self.lambda_mem[1] * self.th_mem
-        #                 + self.lambda_gde[1] * self.cathode.th_gde)) \
-        #     / (2. * self.cathode.channel.dx)
 
         # heat conductivity along the gas diffusion electrode and membrane
         self.th_layer = \
@@ -147,33 +117,6 @@ class Cell(OutputObject):
         if self.last_cell:
             self.thermal_conductance_x[-1] *= 0.5
 
-        # # reordering thermal conductivities
-        # self.lambda_thermal = \
-        #     np.asarray([[cell_dict['thermal conductivity bpp'][0],
-        #                  cell_dict['thermal conductivity gde'][0],
-        #                  membrane_dict['thermal conductivity'][0],
-        #                  cell_dict['thermal conductivity gde'][0],
-        #                  cell_dict['thermal conductivity bpp'][0]],
-        #                 [cell_dict['thermal conductivity bpp'][1],
-        #                  cell_dict['thermal conductivity gde'][1],
-        #                  membrane_dict['thermal conductivity'][1],
-        #                  cell_dict['thermal conductivity gde'][1],
-        #                  cell_dict['thermal conductivity bpp'][1]]])
-        #
-        # self.k_layer_z = \
-        #     np.outer(self.lambda_thermal[0] / self.th_layer,
-        #              self.active_area_dx)
-        # self.k_layer_x = self.lambda_thermal[1] * self.th_layer
-        # self.k_layer_x = (self.k_layer_x + np.roll(self.k_layer_x, 1)) * 0.5
-        # self.k_layer_x = np.hstack((self.k_layer_x, self.k_layer_x[0]))
-        # self.k_layer_x =\
-        #     np.outer(self.k_layer_x, self.width_straight_channels / self.dx)
-        #
-        # if self.first_cell:
-        #     self.k_layer_x[0] *= 0.5
-        # if self.last_cell:
-        #     self.k_layer_x[-1] *= 0.5
-
         if self.last_cell:
             self.heat_cond_mtx = \
                 mtx.build_cell_conductance_matrix(self.thermal_conductance_x,
@@ -185,7 +128,7 @@ class Cell(OutputObject):
                                                   self.thermal_conductance_z[:-1],
                                                   n_ele)
         self.heat_mtx_const = self.heat_cond_mtx.copy()
-        self.heat_mtx_dyn = np.zeros_like(self.heat_mtx_const)
+        self.heat_mtx_dyn = np.zeros(self.heat_mtx_const.shape)
         self.heat_mtx = self.heat_mtx_dyn.copy()
 
         self.heat_rhs_const = np.full(self.n_layer * n_ele, 0.0)
@@ -238,7 +181,6 @@ class Cell(OutputObject):
         self.temp_layer = np.full((self.n_layer, n_ele), cell_dict['temp_init'])
         # layer temperature
         # coolant inlet temperature
-        self.temp_cool = np.full(n_ele, cell_dict['temp_cool_in'])
         self.temp_names = ['Cathode BPP-BPP',
                            'Cathode BPP-GDE',
                            'Cathode GDE-MEM',
@@ -250,21 +192,12 @@ class Cell(OutputObject):
         # membrane temperature
         self.i_cd = np.full(n_ele, 1.)
         # current density
-        self.omega_ca = np.zeros(n_ele)
-        # area specific membrane resistance
-        self.omega = np.full(n_ele, 0.)
-        # membrane resistance
-        # self.w_cross_flow = np.zeros(n_ele)
-        # water cross flux through the membrane
-        # self.mem_loss = np.full(n_ele, 0.)
-        # voltage loss at the membrane
         self.v = np.full(n_ele, 0.)
         # cell voltage
         self.resistance = np.full(n_ele, 0.)
         # cell resistance
 
         self.add_print_data(self.i_cd, 'Current Density', 'A/m²')
-        self.add_print_data(self.temp_cool, 'Coolant Temperature', 'K')
         self.add_print_data(self.temp_layer, 'Temperature', 'K',
                             self.temp_names[:self.n_layer-1])
 
@@ -321,7 +254,7 @@ class Cell(OutputObject):
         """
         This function coordinates the program sequence
         """
-        self.i_cd = current_density
+        self.i_cd[:] = current_density
         # self.temp_mem[:] = .5 * (self.temp_layer[2] + self.temp_layer[3])
         self.membrane.temp = .5 * (self.temp_layer[2] + self.temp_layer[3])
         if isinstance(self.membrane, membrane.WaterTransportMembrane):

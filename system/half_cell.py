@@ -30,6 +30,7 @@ class HalfCell:
 
         # Get reference to channel object
         self.channel = channel
+        self.channel.name = self.name + ': Channel'
         # number of channels of each half cell
         self.n_channel = halfcell_dict['channel_number']
         area_factor = self.length * self.width \
@@ -156,84 +157,6 @@ class HalfCell:
         # pressure drop in the channel through bends
         self.w_cross_flow = np.zeros(n_ele)
         # cross water flux through the membrane
-        # self.g_fluid = np.zeros(n_nodes)
-        # heat capacity flow of the species mixture including fluid water
-        # self.cp_fluid = np.zeros(n_nodes)
-        # heat capacity of the species mixture including fluid water
-        # self.mol_flow_liq_w = np.zeros(n_nodes)
-        # molar liquid water flux
-        # self.p = np.full(n_nodes, self.channel.p_out)
-        # # channel pressure
-        # self.cond_rate = np.zeros(n_nodes)
-        # self.cond_rate_ele = np.zeros(n_ele)
-        # # condensation rate of water
-        # self.humidity = np.zeros(n_nodes)
-        # # gas mixture humidity
-        # self.u = np.zeros(n_nodes)
-        # channel velocity
-        # self.fwd_mat = np.tril(np.full((n_ele, n_ele), 1.))
-        # forward matrix
-        # self.bwd_mat = np.triu(np.full((n_ele, n_ele), 1.))
-        # backward matrix
-        # self.mol_flow_total = np.zeros(n_nodes)
-        # self.mass_flow_total = np.zeros(n_nodes)
-        # self.mol_flow_gas_total = np.zeros(n_nodes)
-        # self.mass_flow_gas_total = np.zeros(n_nodes)
-
-        # # fluid mass flow
-        # self.vol_flow_gas = np.zeros(n_nodes)
-        # # molar flux of the gas phase
-        # (0: Reactant, 1: Water, 2: Inert Species
-        # self.mol_flow = np.full((self.n_species, n_nodes), 0.)
-        # self.mol_flow_liq = np.array(self.mol_flow)
-        # self.mol_flow_gas = np.array(self.mol_flow)
-        # self.mass_flow = np.array(self.mol_flow)
-        # self.mass_flow_gas = np.array(self.mol_flow)
-        # self.mass_flow_liq = np.array(self.mol_flow)
-        # self.gas_conc = np.array(self.mol_flow)
-        # molar concentration of each species
-        # self.mol_fraction = np.array(self.mol_flow)
-        # self.mol_fraction_gas = np.array(self.mol_fraction)
-        # # molar fraction of the species in the gas phase
-        # self.mass_fraction = np.array(self.mol_fraction)
-        # self.mass_fraction_gas = np.array(self.mass_fraction)
-        # self.temp_fluid = np.full(n_nodes, self.channel.temp_in)
-        # self.temp_fluid_ele = np.full(n_ele, self.channel.temp_in)
-        # # temperature of the fluid in the channel
-        # self.rho_gas = np.full(n_nodes, 1.)
-        # # density of the gas phase
-        # self.visc_gas = np.full(n_nodes, 1.e-5)
-        # # viscosity of the gas phase
-        #
-        #
-        # # mass fraction of the species in the gas phase
-        # self.r_gas = np.full(n_nodes, 0.)
-        # # gas constant of the gas phase
-        # # self.r_species = np.full(self.n_species, 0.)
-        # # gas constant of the species
-        # self.cp = np.array(self.mol_flow)
-        # # heat capacity of the species in the gas phase
-        # self.lambdas = np.array(self.mol_flow)
-        # # heat conductivity of the species in the gas phase
-        # self.visc = np.array(self.mol_flow)
-        # # viscosity of the species in the gas phase
-        # # self.temp_fluid_ele = np.zeros(n_ele)
-        # # element based temperature of the gas phase
-        # self.cp_gas = np.zeros(n_nodes)
-        # # heat capacity of the gas phase
-        # self.ht_coeff = np.zeros(n_ele)
-        # # convection coefficient between the gas phase and the channel
-        # self.k_ht_coeff = np.zeros(n_ele)
-        # # heat conductivity between the gas phase and the channel
-        # self.cp_gas_ele = np.zeros(n_ele)
-        # # element based heat capacity
-        # self.lambda_gas = np.zeros(n_nodes)
-        # self.lambda_gas_ele = np.zeros(n_ele)
-        # # heat conductivity of the gas phase
-        # self.Pr = np.zeros(n_ele)
-        # # prandtl number of the gas phase
-        # for i, item in enumerate(self.mol_mass):
-        #     self.r_species[i] = g_par.constants['R'] / item
 
     def update(self, current_density, channel_update=False):
         """
