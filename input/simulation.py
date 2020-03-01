@@ -2,11 +2,11 @@
 
 """Simulation Settings"""
 # discretization of the flow channel along the x-axis
-elements = 10
+elements = 3
 # convergence criteria of the simulation
 convergence_criteria = 1.e-6
 # maximum number of iterations
-maximum_iteration_number = 10
+maximum_iteration_number = 100
 # minimum number of iterations
 minimum_iteration_number = 3
 # output csv data

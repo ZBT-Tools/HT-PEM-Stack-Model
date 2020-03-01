@@ -37,34 +37,16 @@ class Simulation:
         # maximal number of iterations before force termination#
         self.min_it = dict_simulation['minimum_iteration']
 
-        n_cells = input_dicts.dict_stack['cell_number']
-        # number of stack cells
-        n_nodes = g_par.dict_case['nodes']
-        # node points of the x-grid
-
         self.timing = {'start': 0.0,
                        'initialization': 0.0,
                        'simulation': 0.0,
                        'output': 0.0}
 
         """General variables"""
-
-        self.mfd_cat_criteria = []
-        # array of the cathodic mdf criteria over the iterations
-        self.mfd_ano_criteria = []
-        # array of the anodic mdf criteria over the iterations
-        self.i_ca_criteria_process = []
-        # array of the current density criteria over the iterations
-        self.temp_criteria_process = []
-        # array of the temperature criteria over the iterations
-        self.i_ca_criteria = None
-        # convergence criteria of the current density
-        self.temp_criteria = None
-        # convergence criteria of the temperature
-
         # initialize stack object
         self.stack = stack.Stack()
 
+        # initialize output object
         output_dict = input_dicts.dict_output
         self.output = output.Output(output_dict)
 
@@ -78,6 +60,8 @@ class Simulation:
             target_current_density = [target_current_density]
 
         cell_voltages = []
+        current_errors = []
+        temp_errors = []
         for i, tar_cd in enumerate(target_current_density):
             # g_par.dict_case['tar_cd'] = tar_cd
             counter = 0
@@ -88,46 +72,37 @@ class Simulation:
                     self.stack.update()
                 if self.stack.break_program:
                     break
-                self.calc_convergence_criteria()
+                current_error, temp_error = self.calc_convergence_criteria()
+                current_errors.append(current_error)
+                temp_errors.append(temp_error)
                 if len(target_current_density) < 1:
                     print(counter)
                 counter += 1
-                if ((self.i_ca_criteria < self.it_crit
-                     and self.temp_criteria < self.it_crit)
+                if ((current_error < self.it_crit and temp_error < self.it_crit)
                         and counter > self.min_it) or counter > self.max_it:
                     break
             if not self.stack.break_program:
-                voltage_loss = self.save_voltages(self.stack)
+                voltage_loss = self.get_voltage_losses(self.stack)
                 cell_voltages.append(np.average([cell.v for cell in
                                                  self.stack.cells]))
 
-                mfd_criteria = \
-                    (np.array(self.mfd_ano_criteria)
-                     + np.array(self.mfd_cat_criteria)) * .5
                 case_name = 'Case'+str(i)
                 self.output.save(case_name, self.stack)
                 path = os.path.join(self.output.output_dir, case_name, 'plots')
-                self.output.plot([mfd_criteria,
-                                  self.i_ca_criteria_process,
-                                  self.temp_criteria_process],
+                self.output.plot([current_errors, temp_errors],
                                  'ERR', 'Iteration', 'log', ['k', 'r', 'b'],
-                                 'Convergence', 0.,
-                                 len(self.temp_criteria_process),
-                                 ['Flow Distribution', 'Current Density',
-                                  'Temperature'], path)
+                                 'Convergence', 0., len(current_errors),
+                                 ['Current Density', 'Temperature'], path)
             else:
                 target_current_density = target_current_density[0:-i]
                 break
-            self.mfd_ano_criteria = []
-            self.mfd_cat_criteria = []
-            self.temp_criteria_process = []
-            self.i_ca_criteria_process = []
+
         if len(target_current_density) > 1:
             self.output.plot_polarization_curve(voltage_loss, cell_voltages,
                                                 target_current_density)
 
     @staticmethod
-    def save_voltages(fc_stack):
+    def get_voltage_losses(fc_stack):
         """
         Saves the average voltage losses of the stack
         """
@@ -174,22 +149,18 @@ class Simulation:
         Calculates the convergence criteria according to (Koh, 2003)
         """
         i_cd_vec = self.stack.i_cd.flatten()
-        self.i_ca_criteria = \
+        current_error = \
             np.abs(np.sum(((i_cd_vec - self.stack.i_cd_old.flatten())
                            / i_cd_vec) ** 2.0))
         # self.temp_criteria =\
         #     np.abs(np.sum(((self.temp_old
         #                     - self.stack.temp_sys.temp_layer[0][0, 0]))
         #                   / self.stack.temp_sys.temp_layer[0][0, 0]))
-        self.temp_criteria =\
+        temp_error =\
             np.abs(np.sum(((self.stack.temp_old
                             - self.stack.temp_sys.temp_layer_vec)
                           / self.stack.temp_sys.temp_layer_vec) ** 2.0))
-
-        self.temp_criteria_process.append(self.temp_criteria)
-        # self.mfd_cat_criteria.append(self.stack.manifolds[0].criteria)
-        # self.mfd_ano_criteria.append(self.stack.manifolds[1].criteria)
-        self.i_ca_criteria_process.append(self.i_ca_criteria)
+        return current_error, temp_error
 
 
 start_time = timeit.default_timer()

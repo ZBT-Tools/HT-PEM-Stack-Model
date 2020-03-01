@@ -309,53 +309,53 @@ class Output:
         #               'Flow Distribution', 'Cell Number', 'linear', ['k'],
         #               'Distribution', 0., n_cells - 1, ['Cathode'], path)
 
-        x_vec_z = np.array([0.,
-                           geom.bipolar_plate_thickness,
-                           geom.gas_diffusion_layer_thickness,
-                           geom.membrane_thickness,
-                           geom.gas_diffusion_layer_thickness])
-        x_vec_e = np.array([geom.bipolar_plate_thickness,
-                            geom.bipolar_plate_thickness,
-                            geom.gas_diffusion_layer_thickness,
-                            geom.membrane_thickness,
-                            geom.gas_diffusion_layer_thickness])
-        x_vec_l = np.array([geom.bipolar_plate_thickness,
-                            geom.bipolar_plate_thickness,
-                            geom.gas_diffusion_layer_thickness,
-                            geom.membrane_thickness,
-                            geom.gas_diffusion_layer_thickness,
-                            geom.bipolar_plate_thickness])
-        x = []
-        n_cells = fc_stack.n_cells
-        n_ele = g_par.dict_case['elements']
-        for j in range(n_cells):
-            if j is 0:
-                x.append(x_vec_z)
-            elif 0 < j < n_cells - 1:
-                x.append(x_vec_e)
-            else:
-                x.append(x_vec_l)
-        x = np.cumsum(np.block(x))
-        t = fc_stack.temp_sys.temp_layer
-        for i in range(n_ele):
-            t_vec = []
-            for j in range(n_cells):
-                if j is not n_cells - 1:
-                    t_vec.append(np.array([t[j][0, i], t[j][1, i],
-                                           t[j][2, i], t[j][3, i], t[j][4, i]]))
-                else:
-                    t_vec.append(np.array([t[j][0, i], t[j][1, i], t[j][2, i],
-                                           t[j][3, i], t[j][4, i], t[j][5, i]]))
-            plt.plot(x, np.block(t_vec),
-                     color=plt.cm.coolwarm((i + 1.e-20) / float(n_ele)))
-        plt.xlim(0, x[-1])
-        plt.xlabel('Stack Location $[m]$', fontsize=16)
-        plt.ylabel('Temperature $[K]$', fontsize=16)
-        plt.tick_params(labelsize=14)
-        plt.autoscale(tight=True, axis='both', enable=True)
-        plt.tight_layout()
-        plt.savefig(os.path.join(path, 'z-Cut-Temperature.png'), format='png')
-        plt.close()
+        # x_vec_z = np.array([0.,
+        #                    geom.bipolar_plate_thickness,
+        #                    geom.gas_diffusion_layer_thickness,
+        #                    geom.membrane_thickness,
+        #                    geom.gas_diffusion_layer_thickness])
+        # x_vec_e = np.array([geom.bipolar_plate_thickness,
+        #                     geom.bipolar_plate_thickness,
+        #                     geom.gas_diffusion_layer_thickness,
+        #                     geom.membrane_thickness,
+        #                     geom.gas_diffusion_layer_thickness])
+        # x_vec_l = np.array([geom.bipolar_plate_thickness,
+        #                     geom.bipolar_plate_thickness,
+        #                     geom.gas_diffusion_layer_thickness,
+        #                     geom.membrane_thickness,
+        #                     geom.gas_diffusion_layer_thickness,
+        #                     geom.bipolar_plate_thickness])
+        # x = []
+        # n_cells = fc_stack.n_cells
+        # n_ele = g_par.dict_case['elements']
+        # for j in range(n_cells):
+        #     if j is 0:
+        #         x.append(x_vec_z)
+        #     elif 0 < j < n_cells - 1:
+        #         x.append(x_vec_e)
+        #     else:
+        #         x.append(x_vec_l)
+        # x = np.cumsum(np.block(x))
+        # t = fc_stack.temp_sys.temp_layer
+        # for i in range(n_ele):
+        #     t_vec = []
+        #     for j in range(n_cells):
+        #         if j is not n_cells - 1:
+        #             t_vec.append(np.array([t[j][0, i], t[j][1, i],
+        #                                    t[j][2, i], t[j][3, i], t[j][4, i]]))
+        #         else:
+        #             t_vec.append(np.array([t[j][0, i], t[j][1, i], t[j][2, i],
+        #                                    t[j][3, i], t[j][4, i], t[j][5, i]]))
+        #     plt.plot(x, np.block(t_vec),
+        #              color=plt.cm.coolwarm((i + 1.e-20) / float(n_ele)))
+        # plt.xlim(0, x[-1])
+        # plt.xlabel('Stack Location $[m]$', fontsize=16)
+        # plt.ylabel('Temperature $[K]$', fontsize=16)
+        # plt.tick_params(labelsize=14)
+        # plt.autoscale(tight=True, axis='both', enable=True)
+        # plt.tight_layout()
+        # plt.savefig(os.path.join(path, 'z-Cut-Temperature.png'), format='png')
+        # plt.close()
 
         # for j in range(n_cells):
         #     print(np.average(fc_stack.i_cd[j, :]))

@@ -21,18 +21,18 @@ class Membrane(ABC, layers.SolidLayer):
     def __init__(self, membrane_dict, dx, **kwargs):
         super().__init__(membrane_dict, dx)
 
-        self.temp = np.zeros_like(self.dx)
+        self.temp = np.zeros(self.dx.shape)
         # membrane temperature
         self.ionic_conductivity = \
             membrane_dict.get('ionic conductivity', 1.0e-3)
         # constant ionic conductivity of membrane
-        self.omega_ca = np.zeros_like(self.dx)
+        self.omega_ca = np.zeros(self.dx.shape)
         # area specific membrane resistance
-        self.omega = np.zeros_like(self.dx)
+        self.omega = np.zeros(self.dx.shape)
         # membrane resistance
         self.calc_loss = membrane_dict.get('calc_loss', True)
 
-        self.v_loss = np.zeros_like(self.dx)
+        self.v_loss = np.zeros(self.dx.shape)
         # voltage loss at the membrane
         self.ionic_conductance = self.calc_conductance(self.ionic_conductivity)
 
@@ -60,7 +60,7 @@ class WaterTransportMembrane(Membrane, ABC):
 
         self.vapour_coeff = membrane_dict['vapour transport coefficient']
         self.acid_group_conc = membrane_dict['acid group concentration']
-        self.w_cross_flow = np.zeros_like(self.dx)
+        self.w_cross_flow = np.zeros(self.dx.shape)
         self.faraday_const = g_par.constants['F']
         # water cross flux through the membrane
 

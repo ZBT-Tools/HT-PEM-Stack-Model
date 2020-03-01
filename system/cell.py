@@ -1,5 +1,6 @@
 import numpy as np
 import data.global_parameters as g_par
+import system.global_functions as g_func
 import system.half_cell as h_c
 import system.matrix_functions as mtx
 import system.membrane as membrane
@@ -176,9 +177,10 @@ class Cell(OutputObject):
             + self.anode.th_bpp \
             + self.anode.th_gde
 
-        self.v_loss = np.full(n_ele, 0.)
+        self.v_loss = np.zeros(n_ele)
         # voltage loss
-        self.temp_layer = np.full((self.n_layer, n_ele), cell_dict['temp_init'])
+        self.temp_layer = \
+            g_func.full((self.n_layer, n_ele), cell_dict['temp_init'])
         # layer temperature
         # coolant inlet temperature
         self.temp_names = ['Cathode BPP-BPP',
@@ -285,88 +287,6 @@ class Cell(OutputObject):
             self.membrane.update(self.i_cd, humidity_ele)
             self.calc_voltage_loss()
             self.calc_resistance()
-
-    # def calc_cross_water_flux(self):
-    #     """
-    #     Calculates the water cross flux through the membrane
-    #     according to (Springer, 1991).
-    #     """
-    #     vap_coeff = g_par.dict_case['vap_m_temp_coeff']
-    #
-    #     dw = 2.1e-7 * np.exp(-2436. / self.temp_mem)
-    #     humidity = np.asarray([self.cathode.humidity, self.anode.humidity])
-    #     humidity_ele = \
-    #         np.array([ip.interpolate_1d(humidity[0]),
-    #                   ip.interpolate_1d(humidity[1])])
-    #     water_content = 0.043 + 17.81 * humidity_ele \
-    #         - 39.85 * humidity_ele ** 2. + 36. * humidity_ele ** 3.
-    #     zeta_plus = water_content[0] + water_content[1] \
-    #         + self.i_cd / (2. * vap_coeff * g_par.dict_case['mol_con_m']
-    #                        * g_par.constants['F'])
-    #     zeta_negative = \
-    #         (water_content[0] - water_content[1]
-    #          + 5. * self.i_cd / (2. * vap_coeff * g_par.dict_case['mol_con_m']
-    #                              * g_par.constants['F'])) \
-    #         / (1. + dw * zeta_plus / (self.membrane.thickness * vap_coeff))
-    #     m_c = 0.5 * (zeta_plus + zeta_negative)
-    #     m_a = 0.5 * (zeta_plus - zeta_negative)
-    #     self.w_cross_flow = \
-    #         self.i_cd / g_par.constants['F'] + g_par.dict_case['mol_con_m'] \
-    #         * dw * (m_a ** 2. - m_c ** 2.) / (2. * self.membrane.thickness)
-
-    # def calc_mem_resistivity_kvesic(self):
-    #     """
-    #     Calculates the membrane resistivity and resistance
-    #     according to (Kvesic, 2013).
-    #     """
-    #     self.omega_ca[:] = \
-    #         (self.mem_base_r - self.mem_acl_r * self.temp_mem) * 1.e-4
-    #     self.omega[:] = self.omega_ca / self.active_area_dx
-
-    # def calc_mem_resistivity_gossling(self):
-    #     """
-    #     Calculates the membrane resitance for NT-PEMFC according to Goßling
-    #     """
-    #     res_t = np.exp(self.fac_m * 1.e3 / self.temp_mem + self.fac_n)
-    #     r_avg = (self.cathode.humidity + self.anode.humidity) * 0.5
-    #     lambda_x = np.where(r_avg > 0,
-    #                         0.3 + 6. * r_avg * (1. - np.tanh(r_avg - 0.5))
-    #                         + 3.9 * np.sqrt(r_avg)
-    #                         * (1. + np.tanh((r_avg - 0.89) / 0.23)),
-    #                         -1. / (r_avg - (3. + 1. / 3.)))
-    #     res_lambda = -0.007442 + 0.006053 * lambda_x \
-    #         + 0.0004702 * np.exp(1.144 * (lambda_x - 8.))
-    #     res = res_lambda * res_t / 0.01415
-    #     rp = self.th_mem / res
-    #     self.omega_ca[:] = \
-    #         1.e-4 * (self.fac_res_basic + rp * self.fac_res_fit)
-    #     self.omega[:] = self.omega_ca / self.active_area_dx
-
-    # def calc_mem_resistivity_springer(self):
-    #     """
-    #     Calculates the membrane resistivity
-    #     for NT-PEMFC according to (Springer, 1991).
-    #     """
-    #     humidity = (self.cathode.humidity + self.anode.humidity) * 0.5
-    #     humidity_ele = ip.interpolate_1d(humidity)
-    #     lambda_springer = \
-    #         np.where(humidity_ele < 1.0,
-    #                  0.043 + 17.81 * humidity_ele
-    #                  - 39.85 * humidity_ele ** 2. + 36. * humidity_ele ** 3.,
-    #                  14.0 + 1.4 * (humidity_ele - 1.0))
-    #     lambda_springer[lambda_springer < 1.0] = 1.0
-    #     mem_cond = (0.005139 * lambda_springer - 0.00326) \
-    #         * np.exp(1268 * (0.0033 - 1. / self.temp_mem))
-    #     self.omega_ca[:] = self.membrane.thickness / mem_cond * 1.e-4
-
-    # def calc_membrane_loss(self):
-    #     """
-    #     Calculates the voltage loss at the membrane.
-    #     """
-    #     if not self.calc_mem_loss:
-    #         self.mem_loss[:] = 0.
-    #     else:
-    #         self.mem_loss[:] = self.omega_ca * self.i_cd
 
     def calc_voltage_loss(self):
         """

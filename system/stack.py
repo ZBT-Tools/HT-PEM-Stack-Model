@@ -142,9 +142,9 @@ class Stack:
                                   cool_channels, n_cool_cell)
 
         # Initialize the electrical coupling
-        if self.n_cells > 1:
-            self.elec_sys = \
-                el_cpl.ElectricalCoupling(electrical_dict, self, self.cells)
+        # if self.n_cells > 1:
+        self.elec_sys = \
+            el_cpl.ElectricalCoupling(electrical_dict, self, self.cells)
 
         # Initialize temperature system
         self.temp_sys = therm_cpl.TemperatureSystem(temperature_dict,
@@ -182,22 +182,17 @@ class Stack:
             update_inflows = True
         self.update_flows(update_inflows)
         for i, cell in enumerate(self.cells):
-            # self.cells[j].set_current_density(self.i_cd[j, :])
-            # cell.i_cd[:] = self.i_cd[i, :]
             cell.update(self.i_cd[i, :])
             if cell.break_program:
                 self.break_program = True
                 break
+        self.i_cd_old[:] = self.i_cd
+        self.temp_old[:] = self.temp_sys.temp_layer_vec
         if not self.break_program:
-            # if self.n_cells > 1:
-            #     if self.calc_flow_dis:
-            # self.stack_dynamic_properties()
             if self.calc_temp:
                 self.update_temperature_coupling()
             if self.calc_cd:
                 self.update_electrical_coupling()
-            self.i_cd_old[:] = self.i_cd
-            self.temp_old[:] = self.temp_sys.temp_layer_vec
         print('Current density', self.i_cd)
 
     def update_flows(self, update_inflows=False):
@@ -234,11 +229,11 @@ class Stack:
         This function updates current distribution over the stack cells
         """
         # self.el_cpl_stack.update_values(self.stack_cell_r, self.v_loss)
-        if self.n_cells > 1:
-            self.elec_sys.update()
-            self.i_cd[:] = self.elec_sys.i_cd[:]
-        else:
-            self.i_cd[0] = self.cells[0].i_cd
+        # if self.n_cells > 1:
+        self.elec_sys.update()
+        self.i_cd[:] = self.elec_sys.i_cd[:]
+        # else:
+        #     self.i_cd[0] = self.cells[0].i_cd
 
     def update_temperature_coupling(self):
         """
