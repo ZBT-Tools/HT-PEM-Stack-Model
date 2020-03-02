@@ -96,14 +96,10 @@ class Constant(Membrane):
         super().__init__(membrane_dict, dx, **kwargs)
         self.w_cross_flow = np.zeros_like(self.dx)
         # water cross flux through the membrane
-        self.omega, self.omega_ca = self.calc_ionic_resistance()
-
-    def calc_ionic_resistance(self):
-        self.omega[:] = 1.0 / self.ionic_conductance[-1]
+        self.omega[:] = 1.0 / self.ionic_conductance[0]
         self.omega_ca[:] = self.omega * self.area_dx
-        return self.omega, self.omega_ca
 
-    def update(self, current_density, humidity, *args):
+    def calc_ionic_resistance(self, *args):
         pass
 
 
@@ -124,8 +120,8 @@ class SpringerMembrane(WaterTransportMembrane):
                      14.0 + 1.4 * (humidity - 1.0))
         lambda_springer[lambda_springer < 1.0] = 1.0
         mem_cond = (0.005139 * lambda_springer - 0.00326) \
-            * np.exp(1268 * (0.0033 - 1. / self.temp))
-        self.omega_ca[:] = self.thickness / mem_cond * 1.e-4
+            * np.exp(1268.0 * (0.0033 - 1. / self.temp)) * 1e2
+        self.omega_ca[:] = self.thickness / mem_cond  # * 1.e-4
         self.omega[:] = self.omega_ca / self.area_dx
         return self.omega, self.omega_ca
 
@@ -140,6 +136,6 @@ class KvesicMembrane(Membrane):
 
     def calc_ionic_resistance(self):
         self.omega_ca[:] = \
-            (self.basic_resistance - self.temp_coeff * self.temp) * 1.e-4
+            (self.basic_resistance - self.temp_coeff * self.temp) * 1e-2
         self.omega[:] = self.omega_ca / self.area_dx
         return self.omega, self.omega_ca

@@ -72,7 +72,7 @@ class ParallelFlowCircuit(ABC, OutputObject):
         self.initialize = True
         self.update_channels()
 
-    def update(self, inlet_mass_flow=None):
+    def update(self, inlet_mass_flow=None, calc_distribution=False):
         """
         Update the flow circuit
         """
@@ -85,25 +85,28 @@ class ParallelFlowCircuit(ABC, OutputObject):
             self.initialize = True
 
         channel_vol_flow_old = np.zeros(self.channel_vol_flow.shape)
-        channel_vol_flow_old[:] = 1e3
-        for i in range(self.max_iter):
-            print('Flow Circuit Iteration: # ', str(i+1))
-            self.single_loop()
-            error = \
-                np.sum(
-                    np.divide(self.channel_vol_flow - channel_vol_flow_old,
-                              self.channel_vol_flow,
-                              where=self.channel_vol_flow != 0.0) ** 2.0)
-            # print(channel_vol_flow_old)
-            # print(self.channel_vol_flow)
-            channel_vol_flow_old[:] = self.channel_vol_flow
-            # print(error)
-            if error < self.tolerance:
-                break
-            if i == (self.max_iter - 1):
-                print('Maximum number of iterations n = {} with error = {} in '
-                      'update() of {} '
-                      'reached'.format(self.max_iter, error, self))
+        channel_vol_flow_old[:] = 1e8
+        if calc_distribution:
+            for i in range(self.max_iter):
+                print('Flow Circuit Iteration: # ', str(i+1))
+                self.single_loop()
+                error = \
+                    np.sum(
+                        np.divide(self.channel_vol_flow - channel_vol_flow_old,
+                                  self.channel_vol_flow,
+                                  where=self.channel_vol_flow != 0.0) ** 2.0)
+                # print(channel_vol_flow_old)
+                # print(self.channel_vol_flow)
+                channel_vol_flow_old[:] = self.channel_vol_flow
+                # print(error)
+                if error < self.tolerance:
+                    break
+                if i == (self.max_iter - 1):
+                    print('Maximum number of iterations n = {} '
+                          'with error = {} in update() of {} '
+                          'reached'.format(self.max_iter, error, self))
+        else:
+            self.update_channels()
 
     @abstractmethod
     def single_loop(self, inlet_mass_flow=None):

@@ -1,6 +1,3 @@
-import numpy as np
-
-
 """ This file contains the geometry data"""
 
 """Electrochemistry"""

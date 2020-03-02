@@ -41,14 +41,14 @@ class HalfCell:
                              'channels')
 
         self.rib_width = self.channel.width * (area_factor - 1.0)
-        self.width_straight_channels = self.channel.width * self.n_channel \
-            + self.rib_width * (self.n_channel + 1)
+        self.width_straight_channels = \
+            (self.channel.width + self.rib_width) * self.n_channel
         self.length_straight_channels = (self.length * self.width) \
             / self.width_straight_channels
-        self.active_area = area_factor * self.channel.base_area
+        self._active_area = area_factor * self.channel.base_area
         # self.active_area = area_factor * self.channel.base_area
         # factor active area with ribs / active channel area
-        self.active_area_dx = area_factor * self.channel.base_area_dx
+        self._active_area_dx = area_factor * self.channel.base_area_dx
         # self.active_area_dx = area_factor * self.channel.base_area_dx
 
         self.id_fuel = 0
@@ -201,8 +201,8 @@ class HalfCell:
         if stoi is None:
             stoi = self.stoi
         mole_flow_in = np.zeros(self.channel.fluid.n_species)
-        mole_flow_in[self.id_fuel] = self.target_cd * self.active_area * stoi \
-            * abs(self.n_stoi[self.id_fuel]) / (self.n_charge * self.faraday)
+        mole_flow_in[self.id_fuel] = self.target_cd * self._active_area * stoi \
+                                     * abs(self.n_stoi[self.id_fuel]) / (self.n_charge * self.faraday)
 
         inlet_composition = \
             self.channel.fluid.mole_fraction[:, self.channel.id_in]
@@ -217,12 +217,12 @@ class HalfCell:
         mole_source = np.zeros((self.channel.fluid.n_species, self.n_ele))
 
         for i in range(len(mole_source)):
-            mole_source[i] = current_density * self.active_area_dx \
+            mole_source[i] = current_density * self._active_area_dx \
                 * self.n_stoi[i] / (self.n_charge * self.faraday)
 
         # water cross flow
-        mole_source[self.id_h2o] += self.active_area_dx * self.w_cross_flow \
-            * self.channel.flow_direction
+        mole_source[self.id_h2o] += self._active_area_dx * self.w_cross_flow \
+                                    * self.channel.flow_direction
         mass_source = (mole_source.transpose()
                        * self.channel.fluid.species.mw).transpose()
         return mass_source, mole_source
@@ -233,9 +233,9 @@ class HalfCell:
         """
         if stoi is None:
             stoi = self.stoi
-        mol_flow_in = self.target_cd * self.active_area * stoi \
-            * abs(self.n_stoi[self.id_fuel]) / (self.n_charge * self.faraday)
-        dmol = current_density * self.active_area_dx \
+        mol_flow_in = self.target_cd * self._active_area * stoi \
+                      * abs(self.n_stoi[self.id_fuel]) / (self.n_charge * self.faraday)
+        dmol = current_density * self._active_area_dx \
             * self.n_stoi[self.id_fuel] / (self.n_charge * self.faraday)
         # g_func.add_source(self.mol_flow[self.id_fuel], dmol,
         #                   self.flow_direction)
@@ -253,16 +253,18 @@ class HalfCell:
         mol_flow_in = air_flow_in * sat_p * humidity_in / \
             (self.channel.p[id_in] - humidity_in * sat_p)
         dmol = np.zeros_like(current_density)
-        h2o_prod = self.active_area_dx * self.n_stoi[self.id_h2o] \
-            * current_density / (self.n_charge * self.faraday)
+        h2o_prod = self._active_area_dx * self.n_stoi[self.id_h2o] \
+                   * current_density / (self.n_charge * self.faraday)
         dmol += h2o_prod
-        h2o_cross = self.active_area_dx * self.w_cross_flow \
-            * self.channel.flow_direction
+        h2o_cross = self._active_area_dx * self.w_cross_flow \
+                    * self.channel.flow_direction
         dmol += h2o_cross
         return mol_flow_in, dmol
 
     def update_voltage_loss(self, current_density):
         self.calc_electrode_loss(current_density)
+        current = current_density * self._active_area_dx
+        self.v_loss[:] += current / self.bpp.electrical_conductance[0]
 
     def calc_activation_loss(self, current_density, reac_conc_ele,
                              reac_conc_in):

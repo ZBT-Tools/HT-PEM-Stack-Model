@@ -22,7 +22,7 @@ class SolidLayer:
             self.calc_conductance(self.electrical_conductivity)
 
     def calc_conductance(self, conductivity, effective=True):
-        if np.isscalar(conductivity):
+        if np.ndim(conductivity) == 0:
             conductance_x = \
                 self.width * self.thickness * conductivity / self.dx
             conductance_z = self.area_dx * conductivity / self.thickness

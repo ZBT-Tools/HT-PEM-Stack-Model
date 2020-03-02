@@ -27,7 +27,7 @@ class ElectricalCoupling:
         # number of the elements along the channel
         self.i_cd = np.zeros((self.n_cells, self.n_ele))
         # current density of the elements in z-direction
-        self.resistance = np.zeros((self.n_cells, self.n_ele)).flatten()
+        # self.resistance = np.zeros((self.n_cells, self.n_ele)).flatten()
         # combined cell & bipolar plate resistance vector in z-direction
         self.v_end_plate = np.zeros(self.n_ele)
         # accumulated voltage loss over the stack at the lower end plate
@@ -53,18 +53,19 @@ class ElectricalCoupling:
         """
         Coordinates the program sequence
         """
-        resistance = \
-            np.asarray([cell.resistance for cell in self.cells])
-        self.resistance[:] = resistance.flatten()
-        conductance = np.asarray([cell.active_area_dx / cell.resistance
-                                  for cell in self.cells]).flatten()
+        # resistance = \
+        #     np.asarray([cell.resistance for cell in self.cells])
+        # self.resistance[:] = resistance.flatten()
+
+        conductance_z = \
+            np.asarray([cell.conductance_z for cell in self.cells]).flatten()
         # conductance = (self.c_width * self.dx / resistance).flatten()
         # conductance = 1.0 / self.resistance
         if self.n_cells > 1:
-            self.update_mat(conductance)
-            self.rhs[:] = \
-                self.calc_boundary_condition(conductance)
-            self.calc_i(conductance)
+            self.update_mat(conductance_z)
+            self.rhs[:self.n_ele] = \
+                self.calc_boundary_condition(conductance_z)
+            self.calc_i(conductance_z)
 
     def update_mat(self, conductance):
         """
@@ -86,14 +87,17 @@ class ElectricalCoupling:
         v_loss = \
             np.asarray([np.average(cell.v_loss, weights=cell.active_area_dx)
                         for cell in self.cells])
-        cell_0 = self.cells[0]
-        v_loss_bc = np.average(cell_0.v_loss, weights=cell_0.active_area_dx)
         v_loss_total = np.sum(v_loss)
-        i_bc = v_loss_bc * conductance[:self.n_ele]
-        i_correction_factor = self.i_cd_tar * cell_0.active_area_dx \
+        cell_0 = self.cells[0]
+        v_loss_0 = np.average(cell_0.v_loss, weights=cell_0.active_area_dx)
+        i_bc = v_loss_0 * cell_0.conductance_z
+        i_target = self.i_cd_tar * cell_0.active_area_dx
+        i_correction_factor = i_target \
             / np.average(i_bc, weights=cell_0.active_area_dx)
-        i_bc *= - 1.0 * i_correction_factor
-        return i_bc
+        # i_correction_factor = self.i_cd_tar \
+        #     / np.average(i_bc, weights=cell_0.active_area_dx)
+        v_loss_total *= - 1.0 * i_correction_factor
+        return v_loss_total * cell_0.conductance_z
 
     def calc_i(self, conductance):
         """
@@ -102,11 +106,16 @@ class ElectricalCoupling:
         """
         # v_new = np.linalg.tensorsolve(self.mat, self.rhs)
         v_new = spsolve(self.mat, self.rhs)
+        mat_const = self.mat_const.toarray()
+        mat = self.mat.toarray()
+        results = np.matmul(mat, v_new)
         self.v_end_plate[:] = - self.rhs[:self.n_ele] / conductance[:self.n_ele]
         v_new = np.hstack((self.v_end_plate, v_new, np.zeros(self.n_ele)))
         v_diff = v_new[:-self.n_ele] - v_new[self.n_ele:]
+        active_area = \
+            np.array([cell.active_area_dx for cell in self.cells]).flatten()
         try:
-            i_ca_vec = v_diff / self.resistance
+            i_ca_vec = v_diff * conductance / active_area
         except ValueError:
             print('test')
         i_cd = np.reshape(i_ca_vec.flatten(order='C'),

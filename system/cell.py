@@ -34,6 +34,7 @@ class Cell(OutputObject):
 
         self.width = self.cell_dict['width']
         self.length = self.cell_dict['length']
+        self.active_area = self.width * self.length
 
         half_cell_dicts = copy.deepcopy(half_cell_dicts)
         # Create half cell objects
@@ -192,11 +193,12 @@ class Cell(OutputObject):
         # interface names according to temperature array
         self.temp_mem = np.zeros(n_ele)
         # membrane temperature
-        self.i_cd = np.full(n_ele, 1.)
+        self.i_cd = np.zeros(n_ele)
         # current density
-        self.v = np.full(n_ele, 0.)
+        self.v = np.zeros(n_ele)
         # cell voltage
-        self.resistance = np.full(n_ele, 0.)
+        # self.resistance_z = np.zeros(n_ele)
+        self.conductance_z = np.zeros(n_ele)
         # cell resistance
 
         self.add_print_data(self.i_cd, 'Current Density', 'A/m²')
@@ -242,7 +244,6 @@ class Cell(OutputObject):
         matrix_size = matrix.shape[0]
         if layer_id is None:
             if np.isscalar(coefficient):
-
                 source_vector = np.full(matrix_size, coefficient)
             else:
                 source_vector = np.asarray(coefficient)
@@ -262,7 +263,6 @@ class Cell(OutputObject):
         if isinstance(self.membrane, membrane.WaterTransportMembrane):
             self.cathode.w_cross_flow[:] = self.membrane.w_cross_flow
             self.anode.w_cross_flow[:] = self.membrane.w_cross_flow
-
         # self.cathode.set_layer_temperature([self.temp[2], self.temp[3],
         #                                     self.temp[4]])
         # self.anode.set_layer_temperature([self.temp[0], self.temp[1]])
@@ -286,7 +286,7 @@ class Cell(OutputObject):
                           ip.interpolate_1d(humidity[1])])
             self.membrane.update(self.i_cd, humidity_ele)
             self.calc_voltage_loss()
-            self.calc_resistance()
+            self.calc_conductance()
 
     def calc_voltage_loss(self):
         """
@@ -300,13 +300,11 @@ class Cell(OutputObject):
         self.v_loss[:] = np.minimum(self.v_loss, self.e_0)
         self.v[:] = self.e_0 - self.v_loss
 
-    def calc_resistance(self):
+    def calc_conductance(self):
         """
         Calculates the area-specific electrical resistance of the element in
         z-direction
         """
-        self.resistance[:] = self.v_loss / self.i_cd \
-            + self.cathode.bpp.thickness / \
-            self.cathode.bpp.electrical_conductivity \
-            + self.anode.bpp.thickness / \
-            self.anode.bpp.electrical_conductivity
+        current = self.i_cd * self.active_area_dx
+        resistance_z = self.v_loss / current
+        self.conductance_z[:] = 1 / resistance_z
