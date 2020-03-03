@@ -38,8 +38,6 @@ class TemperatureSystem:
         else:
             self.cool_ch_bc = False
 
-        self.temp_amb = temp_dict['temp_amb']
-        # ambient temperature
         self.e_tn = g_par.dict_case['v_tn']
         # thermodynamic neutral cell potential
         self.e_0 = g_par.dict_case['e_0']
@@ -67,18 +65,19 @@ class TemperatureSystem:
 
         # Add constant source and sink coefficients to heat conductance matrix
         # Heat transfer to ambient
-        # alpha_amb = temp_dict['alpha_amb']
-        #
-        # for cell in self.cells:
-        #     cell.k_amb = cell.calc_ambient_conductance(alpha_amb)
-        #     if cell.last_cell:
-        #         k_amb_vector = cell.k_amb.transpose().flatten()
-        #     else:
-        #         k_amb_vector = cell.k_amb[:-1].transpose().flatten()
-        #
-        #     cell.add_implicit_layer_source(cell.heat_mtx_const, -k_amb_vector)
-        #     cell.add_explicit_layer_source(cell.heat_rhs_const,
-        #                                    k_amb_vector * self.temp_amb)
+        alpha_amb = temp_dict['alpha_amb']
+        temp_amb = temp_dict['temp_amb']
+        # ambient temperature
+        for cell in self.cells:
+            cell.k_amb = cell.calc_ambient_conductance(alpha_amb)
+            if cell.last_cell:
+                k_amb_vector = cell.k_amb.transpose().flatten()
+            else:
+                k_amb_vector = cell.k_amb[:-1].transpose().flatten()
+
+            cell.add_implicit_layer_source(cell.heat_mtx_const, -k_amb_vector)
+            cell.add_explicit_layer_source(cell.heat_rhs_const,
+                                           k_amb_vector * temp_amb)
 
         self.rhs_const = \
             np.hstack([cell.heat_rhs_const for cell in self.cells])
@@ -87,7 +86,7 @@ class TemperatureSystem:
             mtx.create_index_lists(self.cells)
 
         self.mtx_const = self.connect_cells()
-        self.sparse_solve = False
+        self.sparse_solve = True
         if self.sparse_solve:
             self.mtx_const = sparse.csr_matrix(self.mtx_const)
 
@@ -107,9 +106,8 @@ class TemperatureSystem:
         """
         This function coordinates the program sequence
         """
-        # self.change_value_shape()
-        # self.update_gas_channel()
-        # self.update_coolant_channel()
+        self.update_gas_channel()
+        self.update_coolant_channel()
         self.update_temp_layer()
 
     def update_temp_layer(self):
@@ -156,30 +154,36 @@ class TemperatureSystem:
             cell.heat_rhs_dyn[:] = 0.0
 
             # Cathode bpp-gde source
-            k_coeff = 0.0
             # h_vap = w_prop.water.calc_h_vap(cell.cathode.channel.temp[:-1])
             channel = cell.cathode.channel
-            source = k_coeff * channel.temp_ele
-            #source += getattr(channel, 'condensation_heat', 0.0)
+            source = channel.k_coeff * channel.temp_ele
+            source += getattr(channel, 'condensation_heat', 0.0)
             cell.add_explicit_layer_source(cell.heat_rhs_dyn, source, 1)
 
-            # Cathode gde-mem source
             current = cell.i_cd * cell.active_area_dx
-            ohmic_heat_membrane = \
+            half_ohmic_heat_membrane = \
                 0.5 * cell.membrane.omega * np.square(current)
-            source = ohmic_heat_membrane # \
-                # + (self.e_tn - self.e_0 + cell.cathode.v_loss) * current
+
+            # Cathode gde-mem source
+            source[:] = 0.0
+            reaction_heat = \
+                0.5 * (self.e_tn - self.e_0 + cell.cathode.v_loss) * current
+            source += half_ohmic_heat_membrane
+            source += reaction_heat
             cell.add_explicit_layer_source(cell.heat_rhs_dyn, source, 2)
 
             # Anode gde-mem source
-            source = ohmic_heat_membrane # + cell.anode.v_loss * current
+            source[:] = 0.0
+            source += half_ohmic_heat_membrane
+            reaction_heat = cell.anode.v_loss * current
+            source += reaction_heat
             cell.add_explicit_layer_source(cell.heat_rhs_dyn, source, 3)
 
             # Anode bpp-gde source
             # h_vap = w_prop.water.calc_h_vap(cell.anode.temp_fluid[:-1])
             channel = cell.anode.channel
-            source = k_coeff * channel.temp_ele
-            #source += getattr(channel, 'condensation_heat', 0.0)
+            source = channel.k_coeff * channel.temp_ele
+            source += getattr(channel, 'condensation_heat', 0.0)
             cell.add_explicit_layer_source(cell.heat_rhs_dyn, source, 4)
 
             # Cooling channels
@@ -209,16 +213,15 @@ class TemperatureSystem:
         """
         source_vectors = []
         for i, cell in enumerate(self.cells):
-            k_coeff = 0.0
             cell.heat_mtx_dyn[:, :] = 0.0
             source_vectors.append(np.zeros(cell.heat_rhs_dyn.shape))
             # add thermal conductance for heat transfer to cathode gas
-            source = - k_coeff # -cell.cathode.channel.k_coeff
+            source = -cell.cathode.channel.k_coeff
             matrix, source_vec_1 = \
                 cell.add_implicit_layer_source(cell.heat_mtx_dyn, source, 1)
 
             # add thermal conductance for heat transfer to anode gas
-            source = -k_coeff # -cell.anode.channel.k_coeff
+            source = -cell.anode.channel.k_coeff
             matrix, source_vec_2 = \
                 cell.add_implicit_layer_source(cell.heat_mtx_dyn, source, 4)
 
@@ -268,6 +271,7 @@ class TemperatureSystem:
         """
         for i, cell in enumerate(self.cells):
             for j in range(cell.n_layer):
-                index_vector = cell.index_array[j]
+                # index_vector = cell.index_array[j]
+                index_vector = self.index_list[i][j]
                 cell.temp_layer[j] = self.temp_layer_vec[index_vector]
 

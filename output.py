@@ -7,6 +7,7 @@ import input.geometry as geom
 import shutil
 import data.global_parameters as g_par
 import system.global_functions as g_func
+import system.stack as stack
 from itertools import cycle, islice
 
 
@@ -32,7 +33,7 @@ class Output:
         if self.save_plot:
             self.output_plots(folder_name, fc_stack)
         if self.save_csv:
-            self.output_csv(folder_name, fc_stack)
+            self.output(folder_name, fc_stack)
 
     @staticmethod
     def clean_directory(directory):
@@ -360,7 +361,9 @@ class Output:
         # for j in range(n_cells):
         #     print(np.average(fc_stack.i_cd[j, :]))
 
-    def output_csv(self, folder_name, fc_stack):
+    def output(self, folder_name, fc_stack):
+        assert isinstance(fc_stack, stack.Stack)
+
         csv_path = os.path.join(self.output_dir, folder_name, 'csv_data')
         plot_path = os.path.join(self.output_dir, folder_name, 'plots')
         if not os.path.exists(csv_path):
@@ -414,30 +417,49 @@ class Output:
                         cell.print_data[1][base_name][sub_name]['value']
                 write_data(sub_name + ' ' + base_name, var_array)
 
-        # # Write half cell values
-        # for i in range(len(cells[0].half_cells)):
-        #     electrode_name = cells[0].half_cells[i].name
-        #     for name, content in cells[0].half_cells[i].print_data[0].items():
-        #         value = content['value']
-        #         var_array = \
-        #             g_func.construct_empty_stack_array(value, fc_stack.n_cells)
-        #         for j, cell in enumerate(cells):
-        #             var_array[j] = \
-        #                 cell.half_cells[i].print_data[0][name]['value']
-        #         write_data(electrode_name + ' ' + name, var_array)
-        #
-        #     for base_name, sub_dict \
-        #             in cells[0].half_cells[i].print_data[1].items():
-        #         for sub_name, content in sub_dict.items():
-        #             value = content['value']
-        #             var_array = \
-        #                 g_func.construct_empty_stack_array(value,
-        #                                                    fc_stack.n_cells)
-        #             for j, cell in enumerate(cells):
-        #                 var_array[j] = \
-        #                     cell.half_cells[i].print_data[1][base_name][sub_name]['value']
-        #             write_data(electrode_name + ' ' + sub_name + ' ' + base_name,
-        #                        var_array)
+        # Write flow circuit values
+        n_fluid_circuits = 3
+        print('test')
+        for name, content in fc_stack.fluid_circuits[0].print_data[0].items():
+            value = content['value']
+            var_array = \
+                g_func.construct_empty_stack_array(value, n_fluid_circuits)
+            var_array[0] = \
+                fc_stack.fluid_circuits[0].print_data[0][name]['value']
+            var_array[1] = \
+                fc_stack.fluid_circuits[1].print_data[0][name]['value']
+            var_array[2] = \
+                fc_stack.coolant_circuit[2].print_data[0][name]['value']
+            write_data(name, var_array)
+
+        # Write half cell values
+        for i in range(len(cells[0].half_cells)):
+            electrode_name = cells[0].half_cells[i].name
+            half_cell_0 = cells[0].half_cells[i]
+            for name, content in half_cell_0.channel.print_data[0].items():
+                value = content['value']
+                var_array = \
+                    g_func.construct_empty_stack_array(value, fc_stack.n_cells)
+                for j, cell in enumerate(cells):
+                    half_cell = cell.half_cells[i]
+                    var_array[j] = \
+                        half_cell.channel.print_data[0][name]['value']
+                write_data(electrode_name + ' ' + name, var_array)
+
+            for base_name, sub_dict \
+                    in half_cell_0.channel.print_data[1].items():
+                for sub_name, content in sub_dict.items():
+                    value = content['value']
+                    var_array = \
+                        g_func.construct_empty_stack_array(value,
+                                                           fc_stack.n_cells)
+                    for j, cell in enumerate(cells):
+                        half_cell = cell.half_cells[i]
+                        var_array[j] = \
+                            half_cell.channel.print_data[1][base_name][
+                                sub_name]['value']
+                    write_data(electrode_name + ' ' + sub_name + ' ' + base_name,
+                               var_array)
                 # file_name = electrode_name + '_' \
                 #     + sub_name.replace(' ', '_') + '.csv'
                 # file_path = os.path.join(csv_path, file_name)
