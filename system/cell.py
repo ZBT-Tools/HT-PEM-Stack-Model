@@ -120,22 +120,23 @@ class Cell(OutputObject):
             self.thermal_conductance_x[-1] *= 0.5
 
         if self.last_cell:
-            self.heat_cond_mtx = \
+            heat_cond_mtx = \
                 mtx.build_cell_conductance_matrix(self.thermal_conductance_x,
                                                   self.thermal_conductance_z,
                                                   n_ele)
         else:
-            self.heat_cond_mtx = \
+            heat_cond_mtx = \
                 mtx.build_cell_conductance_matrix(self.thermal_conductance_x[:-1],
                                                   self.thermal_conductance_z[:-1],
                                                   n_ele)
-        self.heat_mtx_const = self.heat_cond_mtx.copy()
+        self.heat_mtx_const = heat_cond_mtx
+        # self.heat_mtx_const = np.zeros(self.heat_cond_mtx.shape)
         self.heat_mtx_dyn = np.zeros(self.heat_mtx_const.shape)
-        self.heat_mtx = self.heat_mtx_dyn.copy()
+        self.heat_mtx = np.zeros(self.heat_mtx_dyn.shape)
 
-        self.heat_rhs_const = np.full(self.n_layer * n_ele, 0.0)
-        self.heat_rhs_dyn = np.zeros_like(self.heat_rhs_const)
-        self.heat_rhs = self.heat_rhs_dyn.copy()
+        self.heat_rhs_const = np.zeros(self.n_layer * n_ele)
+        self.heat_rhs_dyn = np.zeros(self.heat_rhs_const.shape)
+        self.heat_rhs = np.zeros(self.heat_rhs_dyn.shape)
 
         # Create array for each thermal layer with indices according to
         # corresponding position in center diagonal of conductance matrix and

@@ -14,6 +14,7 @@ is_ht_pem = False
 # reaction stoichiometry
 cathode_reaction_stoich = [-1.0, 0.0, 2.0]
 anode_reaction_stoich = [-2.0, 0.0, 0.0]
+anode_reaction_stoich = cathode_reaction_stoich
 # reaction charge number
 cathode_charge_number = 4.0
 anode_charge_number = 4.0
@@ -30,11 +31,11 @@ temp_coolant_in = 340.
 # environment temperature [K]
 temp_environment = 298.15
 # heat power of the endplates [W]
-endplates_heat_power = 50.
+endplates_heat_power = 0.
 # convection coefficient between the stack walls and the environment [W/(m^2K)]
 convection_coefficient_stack_environment = 10.0
 # initial temperature [K]
-temp_initial = 350.
+temp_initial = 340.
 
 """Humidification"""
 # # cathode inlet gas relative humidity
@@ -53,15 +54,13 @@ p_manifold_anode_out = 1.e5
 # cathode_species = {'O2': 'gas', 'N2': 'gas', 'H2O': 'gas-liquid'}
 cathode_species = {'O2': 'gas', 'N2': 'gas', 'H2O': 'gas-liquid'}
 anode_species = {'H2': 'gas', 'N2': 'gas', 'H2O': 'gas-liquid'}
+anode_species = cathode_species
 # # molar masses (kg/mol)
 # cathode_molar_mass = [0.032, 0.028, 0.018]
 # anode_molar_mass = [0.002, 0.028, 0.018]
 # inlet composition (molar fractions)
 cathode_inlet_composition = [0.21, 0.79, 0.0]
 anode_inlet_composition = [0.5, 0.5, 0.0]
+anode_inlet_composition = cathode_inlet_composition
 
-# coolant settings
-coolant_name = 'H2O'
-coolant_density = 997.0
-# cooalant_viscosity =
 

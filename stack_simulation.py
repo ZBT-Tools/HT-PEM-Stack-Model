@@ -64,6 +64,7 @@ class Simulation:
         temp_errors = []
         for i, tar_cd in enumerate(target_current_density):
             # g_par.dict_case['tar_cd'] = tar_cd
+            simulation_start_time = timeit.default_timer()
             counter = 0
             while True:
                 if counter == 0:
@@ -81,6 +82,29 @@ class Simulation:
                 if ((current_error < self.it_crit and temp_error < self.it_crit)
                         and counter > self.min_it) or counter > self.max_it:
                     break
+            simulation_stop_time = timeit.default_timer()
+            simulation_time = simulation_stop_time - simulation_start_time
+            self.timing['simulation'] += simulation_time
+            output_start_time = timeit.default_timer()
+            print('coolant temp: ')
+            print(np.asarray([channel.temp for channel in
+                              self.stack.coolant_circuit.channels]))
+            print('cathode fluid temp: ')
+            print(np.asarray([channel.temp for channel in
+                              self.stack.fluid_circuits[0].channels]))
+            print('anode fluid temp: ')
+            print(np.asarray([channel.temp for channel in
+                              self.stack.fluid_circuits[1].channels]))
+            print('coolant heat: ')
+            print(np.asarray([channel.heat for channel in
+                              self.stack.coolant_circuit.channels]))
+            print('cathode fluid heat: ')
+            print(np.asarray([channel.heat for channel in
+                              self.stack.fluid_circuits[0].channels]))
+            print('anode fluid heat: ')
+            print(np.asarray([channel.heat for channel in
+                              self.stack.fluid_circuits[1].channels]))
+
             if not self.stack.break_program:
                 voltage_loss = self.get_voltage_losses(self.stack)
                 cell_voltages.append(np.average([cell.v for cell in
@@ -96,10 +120,14 @@ class Simulation:
             else:
                 target_current_density = target_current_density[0:-i]
                 break
-
+            output_stop_time = timeit.default_timer()
+            self.timing['output'] += output_stop_time - output_start_time
+        output_start_time = timeit.default_timer()
         if len(target_current_density) > 1:
             self.output.plot_polarization_curve(voltage_loss, cell_voltages,
                                                 target_current_density)
+        output_stop_time = timeit.default_timer()
+        self.timing['output'] += output_stop_time - output_start_time
 
     @staticmethod
     def get_voltage_losses(fc_stack):
@@ -167,9 +195,11 @@ start_time = timeit.default_timer()
 simulation = Simulation(input_dicts.simulation_dict)
 simulation.timing['start'] = start_time
 simulation.timing['initialization'] = timeit.default_timer()
-print('Initialization time:',
+print('Initialization time: ',
       simulation.timing['initialization'] - simulation.timing['start'])
-simulation.timing['start'] = start_time
+# simulation.timing['start'] = start_time
 simulation.update()
+print('Simulation time: ', simulation.timing['simulation'])
+print('Output time: ', simulation.timing['output'])
 stop_time = timeit.default_timer()
 print('Total time:', stop_time - start_time)
