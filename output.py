@@ -418,18 +418,18 @@ class Output:
                 write_data(sub_name + ' ' + base_name, var_array)
 
         # Write flow circuit values
-        n_fluid_circuits = 3
-        print('test')
-        for name, content in fc_stack.fluid_circuits[0].print_data[0].items():
+        n_fuel_circuits = len(fc_stack.fuel_circuits)
+        for name, content in fc_stack.fuel_circuits[0].print_data[0].items():
             value = content['value']
             var_array = \
-                g_func.construct_empty_stack_array(value, n_fluid_circuits)
-            var_array[0] = \
-                fc_stack.fluid_circuits[0].print_data[0][name]['value']
-            var_array[1] = \
-                fc_stack.fluid_circuits[1].print_data[0][name]['value']
-            var_array[2] = \
-                fc_stack.coolant_circuit[2].print_data[0][name]['value']
+                g_func.construct_empty_stack_array(value, n_fuel_circuits)
+            for i in range(n_fuel_circuits):
+                var_array[i] = \
+                    fc_stack.fuel_circuits[i].print_data[0][name]['value']
+            write_data(name, var_array)
+
+            var_array = \
+                fc_stack.fuel_circuits[i].print_data[0][name]['value']
             write_data(name, var_array)
 
         # Write half cell values

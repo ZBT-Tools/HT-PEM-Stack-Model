@@ -81,6 +81,7 @@ class ParallelFlowCircuit(ABC, OutputObject):
         self.update_channels()
         self.normalized_flow_distribution = \
             np.zeros(self.channel_vol_flow.shape)
+        self.add_print_variables(self.print_variables)
 
     def update(self, inlet_mass_flow=None, calc_distribution=False):
         """

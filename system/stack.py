@@ -107,12 +107,12 @@ class Stack:
         # Initialize flow circuits
         manifold_length = \
             self.cells[-1].coords[-1] - self.cells[0].coords[0]
-        self.fluid_circuits = []
+        self.fuel_circuits = []
         for i in range(len(half_cell_dicts)):
             manifold_in_dicts[i]['length'] = manifold_length
             manifold_out_dicts[i]['length'] = manifold_length
             sub_channel_number = self.cells[0].half_cells[i].n_channel
-            self.fluid_circuits.append(
+            self.fuel_circuits.append(
                 flow_circuit.factory2(flow_circuit_dicts[i],
                                       manifold_in_dicts[i],
                                       manifold_out_dicts[i],
@@ -141,6 +141,8 @@ class Stack:
                                   in_dicts.dict_coolant_out_manifold,
                                   cool_channels, n_cool_cell)
 
+        self.flow_circuits = \
+            [self.fuel_circuits[0], self.fuel_circuits[1], self.coolant_circuit]
         # Initialize the electrical coupling
         # if self.n_cells > 1:
         self.elec_sys = \
@@ -201,8 +203,8 @@ class Stack:
         mass_flows_in = [None, None]
         if update_inflows:
             mass_flows_in[:] = self.calc_mass_flows()
-        for i in range(len(self.fluid_circuits)):
-            self.fluid_circuits[i].update(mass_flows_in[i], calc_flow_dist)
+        for i in range(len(self.fuel_circuits)):
+            self.fuel_circuits[i].update(mass_flows_in[i], calc_flow_dist)
         dtemp_target = 10.0
         if update_inflows:
             n_cool_cell = self.coolant_circuit.n_subchannels
