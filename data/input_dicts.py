@@ -76,7 +76,7 @@ dict_cathode = {
     'reaction_stoichiometry': op_con.cathode_reaction_stoich,
     'th_cl': geom.catalyst_layer_thickness,
     'th_gdl': geom.gas_diffusion_layer_thickness,
-    'th_bpp': geom.bipolar_plate_thickness,
+    'th_bpp': geom.cathode_bipolar_plate_thickness,
     'porosity cl': geom.catalyst_layer_porosity,
     'porosity gdl': geom.gas_diffusion_layer_porosity,
     'tafel_slope': phy_prop.tafel_slope_cathode,
@@ -102,7 +102,7 @@ dict_anode = {
     'reaction_stoichiometry': op_con.anode_reaction_stoich,
     'th_cl': geom.catalyst_layer_thickness,
     'th_gdl': geom.gas_diffusion_layer_thickness,
-    'th_bpp': geom.bipolar_plate_thickness,
+    'th_bpp': geom.anode_bipolar_plate_thickness,
     'porosity cl': geom.catalyst_layer_porosity,
     'porosity gdl': geom.gas_diffusion_layer_porosity,
     'tafel_slope': phy_prop.tafel_slope_anode,
@@ -298,35 +298,20 @@ dict_coolant_flow_circuit = {
 # dict_mfold_ano['name'] = 'Anode Manifold'
 # dict_mfold_ano['p_out'] = op_con.p_manifold_anode_out
 
-dict_electrical_coupling =\
-    {
-        'cell_number': geom.cell_number,
-        'dx': geom.channel_length / float(sim.elements),
-        'th_bpp': geom.bipolar_plate_thickness
-        #'conducting_width': geom.rib_width * (geom.gas_channel_number + 1)
-    }
+# dict_electrical_coupling =\
+#     {
+#         'cell_number': geom.cell_number,
+#         'dx': geom.channel_length / float(sim.elements),
+#         # 'th_bpp': geom.bipolar_plate_thickness
+#         #'conducting_width': geom.rib_width * (geom.gas_channel_number + 1)
+#     }
 
 dict_temp_sys = {
-    'cell_number': geom.cell_number,
-    'nodes': sim.elements + 1,
-    'channel_length': geom.channel_length,
-    'channel_width': geom.coolant_channel_width,
-    'channel_height': geom.coolant_channel_height,
-    'gas_ch_numb': geom.gas_channel_number,
-    'cool_ch_numb': geom.coolant_channel_number,
-    'cool_ch_bc': geom.cooling_bc,
-    'temp_gas_in': [op_con.temp_air_in, op_con.temp_anode_gas_in],
-    'cool_cp': phy_prop.heat_capacity_coolant,
-    'cool_m_flow': op_con.mass_flow_coolant,
-    'cool_density': phy_prop.density_coolant,
-    'cool_visc': phy_prop.dynamic_viscosity_coolant,
-    'cool_lambda': phy_prop.thermal_conductivity_coolant,
-    'cool_th': geom.bipolar_plate_thickness * .5,
-    'heat_pow': op_con.endplates_heat_power / float(sim.elements),
-    'temp_layer_init': op_con.temp_initial,
     'temp_amb': op_con.temp_environment,
     'alpha_amb': op_con.convection_coefficient_stack_environment,
-    'cool_temp_in': op_con.temp_coolant_in
+    'heat_pow': op_con.endplates_heat_power,
+    'cool_ch_bc': geom.cooling_bc,
+    'cool_ch_numb': geom.coolant_channel_number
     }
 
 dict_output = {

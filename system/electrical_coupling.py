@@ -8,9 +8,9 @@ import system.matrix_functions as mtx
 
 class ElectricalCoupling:
 
-    def __init__(self, electrical_dict, stack, cells):
+    def __init__(self, stack):
         self.stack = stack
-        self.cells = cells
+        self.cells = stack.cells
         # Handover
         self.n_cells = self.stack.n_cells
         # number of the stack cells
@@ -42,12 +42,14 @@ class ElectricalCoupling:
             # self.cells[0].width_straight_channels
             # width of the channel
 
+            self.solve_sparse = True
             cell_mat_x_list = [cell.elec_x_mat_const for cell in self.cells]
             self.mat_const = mtx.block_diag_overlap(cell_mat_x_list,
                                                     (self.n_ele, self.n_ele))
             self.mat_const = \
                 self.mat_const[self.n_ele:-self.n_ele, self.n_ele:-self.n_ele]
-            self.mat_const = sparse.csr_matrix(self.mat_const)
+            if self.solve_sparse:
+                self.mat_const = sparse.csr_matrix(self.mat_const)
 
     def update(self):
         """
@@ -77,7 +79,8 @@ class ElectricalCoupling:
             - np.diag(cell_c_mid, 0) \
             + np.diag(conductance[:-self.n_ele][self.n_ele:], self.n_ele) \
             + np.diag(conductance[:-self.n_ele][self.n_ele:], -self.n_ele)
-        mat_dyn = sparse.csr_matrix(mat_dyn)
+        if self.solve_sparse:
+            mat_dyn = sparse.csr_matrix(mat_dyn)
         self.mat = self.mat_const + mat_dyn
 
     def calc_boundary_condition(self, conductance):
@@ -104,11 +107,14 @@ class ElectricalCoupling:
         Calculates the current density
         of the elements in z-direction.
         """
-        # v_new = np.linalg.tensorsolve(self.mat, self.rhs)
-        v_new = spsolve(self.mat, self.rhs)
-        mat_const = self.mat_const.toarray()
-        mat = self.mat.toarray()
-        results = np.matmul(mat, v_new)
+        if self.solve_sparse:
+            v_new = spsolve(self.mat, self.rhs)
+            # mat_const = self.mat_const.toarray()
+            # mat = self.mat.toarray()
+        else:
+            v_new = np.linalg.tensorsolve(self.mat, self.rhs)
+
+        # results = np.matmul(mat, v_new)
         self.v_end_plate[:] = - self.rhs[:self.n_ele] / conductance[:self.n_ele]
         v_new = np.hstack((self.v_end_plate, v_new, np.zeros(self.n_ele)))
         v_diff = v_new[:-self.n_ele] - v_new[self.n_ele:]

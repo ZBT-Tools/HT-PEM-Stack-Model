@@ -46,7 +46,8 @@ gas_diffusion_layer_thickness = 250.e-6
 # gas diffusion layer porosity [-]
 gas_diffusion_layer_porosity = 0.8
 # thickness of the bipolar plate [m]
-bipolar_plate_thickness = 2.0e-3
+cathode_bipolar_plate_thickness = 2.0e-3
+anode_bipolar_plate_thickness = 1e-3
 # length of the cell, a side of the active area [m]
 cell_length = 100.e-3
 # height of the cell, b side of the active area [m]
@@ -64,14 +65,14 @@ anode_manifold_configuration = 'U'
 cathode_manifold_configuration = 'U'
 coolant_manifold_configuration = 'U'
 # manifold height [m]
-manifold_height = 7e-3
+manifold_height = 6e-3
 coolant_manifold_height = 7e-3
 # manifold width [m]
-manifold_width = 7e-3
+manifold_width = 6e-3
 coolant_manifold_width = 7e-3
 # geometrical pressure loss coefficient of the manifold header
-manifold_pressure_loss_coefficient = 0.4
-coolant_manifold_pressure_loss_coefficient = 0.4
+manifold_pressure_loss_coefficient = 1.4
+coolant_manifold_pressure_loss_coefficient = 1.4
 
 """Stack Settings"""
 # number of the pemfc
