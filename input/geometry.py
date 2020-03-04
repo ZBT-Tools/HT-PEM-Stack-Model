@@ -18,7 +18,7 @@ bend_pressure_loss_coefficient = 0.1
 # flow direction in cathode channel along x-axis
 cathode_flow_direction = 1
 # flow direction in anode channel along x-axis
-anode_flow_direction = 1
+anode_flow_direction = -1
 
 """Coolant Channel Geometry"""
 # channel length [m]
