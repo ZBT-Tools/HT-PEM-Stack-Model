@@ -254,10 +254,10 @@ class HalfCell:
             (self.channel.p[id_in] - humidity_in * sat_p)
         dmol = np.zeros_like(current_density)
         h2o_prod = self._active_area_dx * self.n_stoi[self.id_h2o] \
-                   * current_density / (self.n_charge * self.faraday)
+            * current_density / (self.n_charge * self.faraday)
         dmol += h2o_prod
         h2o_cross = self._active_area_dx * self.w_cross_flow \
-                    * self.channel.flow_direction
+            * self.channel.flow_direction
         dmol += h2o_cross
         return mol_flow_in, dmol
 
@@ -288,10 +288,13 @@ class HalfCell:
         Calculates the diffusion voltage loss in the catalyst layer
         according to (Kulikovsky, 2013).
         """
-        i_hat = current_density / self.i_cd_char
-        short_save = np.sqrt(2. * i_hat)
-        beta = short_save / (1. + np.sqrt(1.12 * i_hat) * np.exp(short_save))\
-            + np.pi * i_hat / (2. + i_hat)
+        try:
+            i_hat = current_density / self.i_cd_char
+            short_save = np.sqrt(2. * i_hat)
+            beta = short_save / (1. + np.sqrt(1.12 * i_hat) * np.exp(short_save))\
+                + np.pi * i_hat / (2. + i_hat)
+        except FloatingPointError:
+            raise
         self.cl_diff_loss[:] = \
             ((self.prot_con_cl * self.tafel_slope ** 2.)
              / (4. * self.faraday

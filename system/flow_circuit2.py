@@ -99,7 +99,7 @@ class ParallelFlowCircuit(ABC, OutputObject):
         channel_vol_flow_old[:] = 1e8
         if calc_distribution:
             for i in range(self.max_iter):
-                print('Flow Circuit Iteration: # ', str(i+1))
+                print(self.name + ' Iteration # ', str(i+1))
                 self.single_loop()
                 error = \
                     np.sum(

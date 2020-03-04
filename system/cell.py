@@ -148,11 +148,13 @@ class Cell(OutputObject):
 
         # Set constant thermal boundary conditions
         if self.first_cell:
-            heat_bc = cell_dict['heat_pow']
-            self.add_explicit_layer_source(self.heat_rhs_const, heat_bc, 0)
+            end_plate_heat = cell_dict['heat_pow']
+            heat_dx = end_plate_heat / self.active_area * self.active_area_dx
+            self.add_explicit_layer_source(self.heat_rhs_const, heat_dx, 0)
         if self.last_cell:
-            heat_bc = cell_dict['heat_pow']
-            self.add_explicit_layer_source(self.heat_rhs_const, heat_bc, -1)
+            end_plate_heat = cell_dict['heat_pow']
+            heat_dx = end_plate_heat / self.active_area * self.active_area_dx
+            self.add_explicit_layer_source(self.heat_rhs_const, heat_dx, -1)
 
         # Create electric conductance matrix
         self.elec_cond = \

@@ -18,7 +18,7 @@ bend_pressure_loss_coefficient = 0.1
 # flow direction in cathode channel along x-axis
 cathode_flow_direction = 1
 # flow direction in anode channel along x-axis
-anode_flow_direction = -1
+anode_flow_direction = 1
 
 """Coolant Channel Geometry"""
 # channel length [m]
@@ -47,7 +47,7 @@ gas_diffusion_layer_thickness = 250.e-6
 gas_diffusion_layer_porosity = 0.8
 # thickness of the bipolar plate [m]
 cathode_bipolar_plate_thickness = 2.0e-3
-anode_bipolar_plate_thickness = 1e-3
+anode_bipolar_plate_thickness = 2.0e-3
 # length of the cell, a side of the active area [m]
 cell_length = 100.e-3
 # height of the cell, b side of the active area [m]
