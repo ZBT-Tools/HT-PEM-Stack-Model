@@ -31,6 +31,7 @@ class ElectricalCoupling:
         # combined cell & bipolar plate resistance vector in z-direction
         self.v_end_plate = np.zeros(self.n_ele)
         # accumulated voltage loss over the stack at the lower end plate
+        self.solve_sparse = False
         if self.n_cells > 1:
             self.mat = None
             # electrical conductance matrix
@@ -47,7 +48,8 @@ class ElectricalCoupling:
                                                     (self.n_ele, self.n_ele))
             self.mat_const = \
                 self.mat_const[self.n_ele:-self.n_ele, self.n_ele:-self.n_ele]
-            self.mat_const = sparse.csr_matrix(self.mat_const)
+            if self.solve_sparse:
+                self.mat_const = sparse.csr_matrix(self.mat_const)
 
     def update(self):
         """
@@ -77,7 +79,8 @@ class ElectricalCoupling:
             - np.diag(cell_c_mid, 0) \
             + np.diag(conductance[:-self.n_ele][self.n_ele:], self.n_ele) \
             + np.diag(conductance[:-self.n_ele][self.n_ele:], -self.n_ele)
-        mat_dyn = sparse.csr_matrix(mat_dyn)
+        if self.solve_sparse:
+            mat_dyn = sparse.csr_matrix(mat_dyn)
         self.mat = self.mat_const + mat_dyn
 
     def calc_boundary_condition(self, conductance):
@@ -104,10 +107,14 @@ class ElectricalCoupling:
         Calculates the current density
         of the elements in z-direction.
         """
-        # v_new = np.linalg.tensorsolve(self.mat, self.rhs)
-        v_new = spsolve(self.mat, self.rhs)
-        mat_const = self.mat_const.toarray()
-        mat = self.mat.toarray()
+        if self.solve_sparse:
+            v_new = spsolve(self.mat, self.rhs)
+            mat_const = self.mat_const.toarray()
+            mat = self.mat.toarray()
+        else:
+            v_new = np.linalg.tensorsolve(self.mat, self.rhs)
+            mat_const = self.mat_const
+            mat = self.mat
         results = np.matmul(mat, v_new)
         self.v_end_plate[:] = - self.rhs[:self.n_ele] / conductance[:self.n_ele]
         v_new = np.hstack((self.v_end_plate, v_new, np.zeros(self.n_ele)))

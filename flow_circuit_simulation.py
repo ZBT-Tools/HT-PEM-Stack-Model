@@ -7,8 +7,8 @@ import data.input_dicts as input_dicts
 import copy
 import sys
 import system.channel as chl
-import system.fluid2 as fluids
-import system.flow_circuit2 as flow_circuit
+import system.fluid as fluids
+import system.flow_circuit as flow_circuit
 import matplotlib.pyplot as plt
 import system.interpolation as ip
 

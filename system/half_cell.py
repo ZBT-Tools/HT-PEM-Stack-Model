@@ -4,7 +4,7 @@ import numpy as np
 import data.global_parameters as g_par
 import system.global_functions as g_func
 import system.channel as chl
-import system.fluid2 as fluids
+import system.fluid as fluids
 import system.layers as layers
 import sys
 import system.interpolation as ip

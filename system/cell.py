@@ -308,4 +308,4 @@ class Cell(OutputObject):
         """
         current = self.i_cd * self.active_area_dx
         resistance_z = self.v_loss / current
-        self.conductance_z[:] = 1 / resistance_z
+        self.conductance_z[:] = 1.0 / resistance_z

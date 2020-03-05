@@ -5,7 +5,7 @@ import system.global_functions as g_func
 import copy as copy
 import system.channel as chl
 from system.output_object import OutputObject
-import system.fluid2 as fluids
+import system.fluid as fluids
 from abc import ABC, abstractmethod
 
 
@@ -24,11 +24,11 @@ class ParallelFlowCircuit(ABC, OutputObject):
 
     def __init__(self, dict_flow_circuit, manifolds, channels,
                  n_subchannels=1.0, **kwargs):
-        name = dict_flow_circuit['name']
-        super().__init__(name)
+
         assert isinstance(dict_flow_circuit, dict)
         assert isinstance(manifolds, (list, tuple))
         assert isinstance(channels,  (list, tuple))
+
         err_message = 'manifolds must be tuple or list with two objects of ' \
                       'class Channel'
         if len(manifolds) != 2:
@@ -37,6 +37,9 @@ class ParallelFlowCircuit(ABC, OutputObject):
             raise TypeError(err_message)
         if not isinstance(channels[0], chl.Channel):
             raise TypeError(err_message)
+
+        name = dict_flow_circuit['name']
+        super().__init__(name)
         self.print_variables = \
             {
                 'names': ['normalized_flow_distribution'],
@@ -99,7 +102,7 @@ class ParallelFlowCircuit(ABC, OutputObject):
         channel_vol_flow_old[:] = 1e8
         if calc_distribution:
             for i in range(self.max_iter):
-                print('Flow Circuit Iteration: # ', str(i+1))
+                print(self.name + ' Iteration: # ', str(i+1))
                 self.single_loop()
                 error = \
                     np.sum(
@@ -120,8 +123,6 @@ class ParallelFlowCircuit(ABC, OutputObject):
             self.update_channels()
         self.normalized_flow_distribution[:] = \
             self.channel_mass_flow / np.average(self.channel_mass_flow)
-        print('normalized flow distribution')
-        print(self.normalized_flow_distribution)
 
     @abstractmethod
     def single_loop(self, inlet_mass_flow=None):

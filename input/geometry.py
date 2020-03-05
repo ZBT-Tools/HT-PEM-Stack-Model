@@ -70,8 +70,8 @@ coolant_manifold_height = 7e-3
 manifold_width = 7e-3
 coolant_manifold_width = 7e-3
 # geometrical pressure loss coefficient of the manifold header
-manifold_pressure_loss_coefficient = 0.4
-coolant_manifold_pressure_loss_coefficient = 0.4
+manifold_pressure_loss_coefficient = 1.4
+coolant_manifold_pressure_loss_coefficient = 1.4
 
 """Stack Settings"""
 # number of the pemfc

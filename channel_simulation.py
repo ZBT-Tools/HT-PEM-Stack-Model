@@ -2,7 +2,7 @@ import numpy as np
 import cProfile
 import sys, copy
 import system.channel as chl
-import system.fluid2 as fluids
+import system.fluid as fluids
 import system.species as species
 import matplotlib.pyplot as plt
 import system.interpolation as ip
@@ -12,20 +12,20 @@ np.set_printoptions(threshold=sys.maxsize, linewidth=10000,
 np.seterr(all='raise')
 
 
-nodes = 10
+nodes = 100
 mass_flow_hydrogen = 0.0001    # kg/s
 mass_flow_air = 0.001
 mass_flow_water = 0.002
 wall_temp = None  # 380
 # wall_temp_1 = 380.0
 # wall_temp_2 = 420.0
-heat_flux = 10000    # W/m²
+heat_flux = 100    # W/m²
 inlet_temperature = 340.0
-outlet_pressure = 501325.0
+outlet_pressure = 101325.0
 
 length = 0.1
-width = 0.003
-height = 0.003
+width = 0.001
+height = 0.001
 
 hydrogen_dict = {
     'name': 'Hydrogen',
@@ -71,7 +71,7 @@ channel_dict = {
     'width': width,
     'height': height,
     'bend_number': 0,
-    'bend_friction_factor': 0.1,
+    'bend_friction_factor': 500,
     'additional_friction_fractor': 0.01
     }
 
@@ -89,7 +89,7 @@ error = 1e5
 iter_max = 50
 temp_old = np.asarray([channel.temp for channel in channels])
 mass_flows = [mass_flow_hydrogen, mass_flow_air, mass_flow_water]
-delta_temp = 10.0
+delta_temp = 30.0
 for i in range(iter_max):
     if error < 1e-4:
         break
@@ -129,4 +129,12 @@ print('Mass Flows:')
 for i, channel in enumerate(channels):
     print(channel.fluid.name + ': ', np.average(channel.mass_flow_total))
 
+print('Pressure drop:')
+for i, channel in enumerate(channels):
+    print(channel.fluid.name + ': ', channel.p[channel.id_in]
+                                          - channel.p[channel.id_out])
+
+print('Flow Velocity:')
+for i, channel in enumerate(channels):
+    print(channel.fluid.name + ': ', channel.velocity)
 

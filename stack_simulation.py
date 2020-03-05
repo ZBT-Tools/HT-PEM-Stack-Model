@@ -86,24 +86,6 @@ class Simulation:
             simulation_time = simulation_stop_time - simulation_start_time
             self.timing['simulation'] += simulation_time
             output_start_time = timeit.default_timer()
-            print('coolant temp: ')
-            print(np.asarray([channel.temp for channel in
-                              self.stack.coolant_circuit.channels]))
-            print('cathode fluid temp: ')
-            print(np.asarray([channel.temp for channel in
-                              self.stack.fuel_circuits[0].channels]))
-            print('anode fluid temp: ')
-            print(np.asarray([channel.temp for channel in
-                              self.stack.fuel_circuits[1].channels]))
-            print('coolant heat: ')
-            print(np.asarray([channel.heat for channel in
-                              self.stack.coolant_circuit.channels]))
-            print('cathode fluid heat: ')
-            print(np.asarray([channel.heat for channel in
-                              self.stack.fuel_circuits[0].channels]))
-            print('anode fluid heat: ')
-            print(np.asarray([channel.heat for channel in
-                              self.stack.fuel_circuits[1].channels]))
 
             if not self.stack.break_program:
                 voltage_loss = self.get_voltage_losses(self.stack)

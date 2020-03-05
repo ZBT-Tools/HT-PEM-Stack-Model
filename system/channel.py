@@ -1,6 +1,6 @@
 import numpy as np
 import data.global_parameters as g_par
-import system.fluid2 as fluids
+import system.fluid as fluids
 import system.global_functions as g_func
 import system.interpolation as ip
 from abc import ABC, abstractmethod

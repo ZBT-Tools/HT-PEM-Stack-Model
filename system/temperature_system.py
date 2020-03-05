@@ -167,7 +167,7 @@ class TemperatureSystem:
             # Cathode gde-mem source
             source[:] = 0.0
             reaction_heat = \
-                0.5 * (self.e_tn - self.e_0 + cell.cathode.v_loss) * current
+                (self.e_tn - self.e_0 + cell.cathode.v_loss) * current
             source += half_ohmic_heat_membrane
             source += reaction_heat
             cell.add_explicit_layer_source(cell.heat_rhs_dyn, source, 2)
