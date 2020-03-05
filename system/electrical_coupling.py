@@ -8,9 +8,9 @@ import system.matrix_functions as mtx
 
 class ElectricalCoupling:
 
-    def __init__(self, electrical_dict, stack, cells):
+    def __init__(self, stack):
         self.stack = stack
-        self.cells = cells
+        self.cells = stack.cells
         # Handover
         self.n_cells = self.stack.n_cells
         # number of the stack cells
@@ -31,7 +31,6 @@ class ElectricalCoupling:
         # combined cell & bipolar plate resistance vector in z-direction
         self.v_end_plate = np.zeros(self.n_ele)
         # accumulated voltage loss over the stack at the lower end plate
-        self.solve_sparse = False
         if self.n_cells > 1:
             self.mat = None
             # electrical conductance matrix
@@ -43,6 +42,7 @@ class ElectricalCoupling:
             # self.cells[0].width_straight_channels
             # width of the channel
 
+            self.solve_sparse = True
             cell_mat_x_list = [cell.elec_x_mat_const for cell in self.cells]
             self.mat_const = mtx.block_diag_overlap(cell_mat_x_list,
                                                     (self.n_ele, self.n_ele))
@@ -109,13 +109,12 @@ class ElectricalCoupling:
         """
         if self.solve_sparse:
             v_new = spsolve(self.mat, self.rhs)
-            mat_const = self.mat_const.toarray()
-            mat = self.mat.toarray()
+            # mat_const = self.mat_const.toarray()
+            # mat = self.mat.toarray()
         else:
             v_new = np.linalg.tensorsolve(self.mat, self.rhs)
-            mat_const = self.mat_const
-            mat = self.mat
-        results = np.matmul(mat, v_new)
+
+        # results = np.matmul(mat, v_new)
         self.v_end_plate[:] = - self.rhs[:self.n_ele] / conductance[:self.n_ele]
         v_new = np.hstack((self.v_end_plate, v_new, np.zeros(self.n_ele)))
         v_diff = v_new[:-self.n_ele] - v_new[self.n_ele:]

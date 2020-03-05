@@ -417,7 +417,7 @@ class Output:
                         cell.print_data[1][base_name][sub_name]['value']
                 write_data(sub_name + ' ' + base_name, var_array)
 
-        # Write flow circuit values
+        # # Write flow circuit values
         # n_fuel_circuits = len(fc_stack.fuel_circuits)
         # for name, content in fc_stack.fuel_circuits[0].print_data[0].items():
         #     value = content['value']
@@ -427,10 +427,10 @@ class Output:
         #         var_array[i] = \
         #             fc_stack.fuel_circuits[i].print_data[0][name]['value']
         #     write_data(name, var_array)
-
-            # var_array = \
-            #     fc_stack.fuel_circuits[i].print_data[0][name]['value']
-            # write_data(name, var_array)
+        #
+        #     var_array = \
+        #         fc_stack.coolant_circuit.print_data[0][name]['value']
+        #     write_data(name, var_array)
 
         # Write half cell values
         for i in range(len(cells[0].half_cells)):

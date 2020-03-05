@@ -49,7 +49,7 @@ class Stack:
         cat_in_manifold_dict = in_dicts.dict_cathode_in_manifold
         ano_out_manifold_dict = in_dicts.dict_anode_out_manifold
         cat_out_manifold_dict = in_dicts.dict_cathode_out_manifold
-        electrical_dict = in_dicts.dict_electrical_coupling
+        # electrical_dict = in_dicts.dict_electrical_coupling
         temperature_dict = in_dicts.dict_temp_sys
 
         half_cell_dicts = [cathode_dict, anode_dict]
@@ -145,12 +145,10 @@ class Stack:
             [self.fuel_circuits[0], self.fuel_circuits[1], self.coolant_circuit]
         # Initialize the electrical coupling
         # if self.n_cells > 1:
-        self.elec_sys = \
-            el_cpl.ElectricalCoupling(electrical_dict, self, self.cells)
+        self.elec_sys = el_cpl.ElectricalCoupling(self)
 
         # Initialize temperature system
-        self.temp_sys = therm_cpl.TemperatureSystem(temperature_dict,
-                                                    self.cells, cool_channels)
+        self.temp_sys = therm_cpl.TemperatureSystem(self, temperature_dict)
 
         """boolean alarms"""
         self.v_alarm = False

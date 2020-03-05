@@ -29,9 +29,8 @@ molar_membrane_acid_group_concentration = 1.2e3
 vapour_mass_transport_coefficient = 0.62e-5
 
 """Electric Settings"""
-# membrane type
-#membrane_type = 'Constant'
-membrane_type = 'Constant'
+# membrane type ('Constant', 'Springer', or 'Kvesic')
+membrane_type = 'Kvesic'
 # membrane basic resistance [Ohm/m^2]
 membrane_basic_resistance = 0.19
 # membrane basic conductivity [S/m]
@@ -39,7 +38,7 @@ membrane_basic_conductivity = 5.0
 # membrane temperature slope [Ohm/(m^2K)]
 membrane_temperature_coefficient = 7.e-4
 # bipolar plate conductivity [S/m]
-electrical_conductivity_bipolar_plate = 30.0
+electrical_conductivity_bipolar_plate = 15000000.0
 # gas diffusion electrode material conductivity [S/m]
 electrical_conductivity_gde = 5000.0
 

@@ -134,7 +134,7 @@ class KvesicMembrane(Membrane):
         self.temp_coeff = membrane_dict['temperature coefficient']
         # thermal related electrical resistance gain of the membrane
 
-    def calc_ionic_resistance(self):
+    def calc_ionic_resistance(self, *args):
         self.omega_ca[:] = \
             (self.basic_resistance - self.temp_coeff * self.temp) * 1e-2
         self.omega[:] = self.omega_ca / self.area_dx

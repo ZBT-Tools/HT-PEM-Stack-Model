@@ -16,22 +16,15 @@ np.set_printoptions(linewidth=10000, threshold=None, precision=2)
 
 class TemperatureSystem:
 
-    def __init__(self, temp_dict, cells, cool_channels):
-        assert isinstance(cells, (list, tuple))
-        assert isinstance(cells[0], fcell.Cell)
-        assert isinstance(cool_channels[0], chl.Channel)
-        self.dict = temp_dict
-        self.cells = cells
-        # Handover
-        self.n_cells = temp_dict['cell_number']
+    def __init__(self, stack, temp_dict):
+        self.cells = stack.cells
+        self.cool_channels = stack.coolant_circuit.channels
+        assert isinstance(stack.cells, (list, tuple))
+        assert isinstance(self.cells[0], fcell.Cell)
+        assert isinstance(self.cool_channels[0], chl.Channel)
+        self.n_cells = stack.n_cells
         # cell number
-        self.n_nodes = temp_dict['nodes']
-        # node number
-        self.n_ele = self.n_nodes - 1
-        # element number
-
-        self.cool_channels = cool_channels
-        self.n_cool = len(cool_channels)
+        self.n_cool = len(self.cool_channels)
 
         if self.n_cool == (self.n_cells + 1):
             self.cool_ch_bc = True
