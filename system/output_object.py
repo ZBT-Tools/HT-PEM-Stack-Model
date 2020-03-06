@@ -7,8 +7,6 @@ from copy import deepcopy
 class OutputObject:
 
     _instances = set()
-    _names = []
-    _instances_strong_ref = set()
 
     def __init__(self, name):
         self._name = name
@@ -17,7 +15,6 @@ class OutputObject:
         self.print_data_2d = {}
         self.print_data = [self.print_data_1d, self.print_data_2d]
         self._instances.add(weakref.ref(self))
-        # self._instances_strong_ref.add(self)
 
     def _get_name(self):
         return self._name
@@ -50,14 +47,6 @@ class OutputObject:
         # self._names.append(self.name)
         # self._instances_strong_ref.add(self)
         return copy
-
-    @classmethod
-    def getinstances_strong_ref(cls):
-        return cls._instances_strong_ref
-
-    @classmethod
-    def get_names(cls):
-        return cls._names
 
     def add_print_data(self, data_array, name, units='-', sub_names=None):
         if data_array.ndim == 2:
