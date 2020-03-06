@@ -2,15 +2,19 @@ import numpy as np
 import string
 import weakref
 from copy import deepcopy
+import collections
 
 
 class OutputObject:
 
+    PRINT_HIERARCHY = 3
+    CLUSTER_NAMES = [['Cell', 'Flow Circuit']]
     _instances = set()
 
     def __init__(self, name):
-        self._name = name
         assert isinstance(name, str)
+        self._name = name
+
         self.print_data_1d = {}
         self.print_data_2d = {}
         self.print_data = [self.print_data_1d, self.print_data_2d]
@@ -77,3 +81,17 @@ class OutputObject:
             for key in dict_a.keys():
                 dict_a[key] += dict_b[key]
         return dict_a
+
+    @classmethod
+    def make_name_list(cls):
+        name_list = []
+        for obj in cls.getinstances():
+            obj.name_list = obj.name.split(': ')
+            name_list.append(obj.name_list)
+        return name_list
+
+    @classmethod
+    def cluster_objects(cls):
+        cluster = []
+
+

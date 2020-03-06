@@ -48,10 +48,10 @@ class ParallelFlowCircuit(ABC, OutputObject):
         self.manifolds = manifolds
         self.manifolds[0].name = self.name + ': Inlet Manifold'
         self.manifolds[0].fluid.name = self.manifolds[0].name + ': ' \
-            + type(self.manifolds[0].fluid).__name__
+            + self.manifolds[0].fluid.TYPE_NAME
         self.manifolds[1].name = self.name + ': Outlet Manifold'
         self.manifolds[1].fluid.name = self.manifolds[1].name + ': ' \
-            + type(self.manifolds[1].fluid).__name__
+            + self.manifolds[1].fluid.TYPE_NAME
         self.channels = channels
         self.manifolds[0].flow_direction = 1
         self.shape = dict_flow_circuit.get('shape', 'U')

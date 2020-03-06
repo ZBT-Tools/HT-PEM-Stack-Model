@@ -496,11 +496,12 @@ class TwoPhaseMixture(OneDimensionalFluid):
                             'can only be provided as dictionary with species '
                             'name as key and FluidProperties object as value '
                             'for the liquid properties')
-        self.liquid = IncompressibleFluid(nx, self.name,
+        self.liquid = IncompressibleFluid(nx, name + ': Liquid Phase',
                                           fluid_props=liquid_props,
                                           temperature=self._temperature,
                                           pressure=self._pressure)
-        self.gas = GasMixture(nx, self.name, species_dict=gas_species_dict,
+        self.gas = GasMixture(nx, name + ': Gas Phase',
+                              species_dict=gas_species_dict,
                               mole_fractions=mole_fractions,
                               temperature=self._temperature,
                               pressure=self._pressure)

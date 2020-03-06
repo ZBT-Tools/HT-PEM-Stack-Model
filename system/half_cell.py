@@ -28,10 +28,9 @@ class HalfCell:
         self.width = cell_dict["width"]
         self.length = cell_dict["length"]
 
-        # Get reference to channel object
+        # Reference to channel object
         self.channel = channel
         self.channel.name = self.name + ': Channel'
-
         self.channel.fluid.name = \
             self.name + ': ' + self.channel.fluid.TYPE_NAME
 
