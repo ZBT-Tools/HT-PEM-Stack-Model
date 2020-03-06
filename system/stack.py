@@ -65,9 +65,9 @@ class Stack:
         for i in range(len(half_cell_dicts)):
             fluid_dicts[i]['temp_in'] = manifold_in_dicts[i]['temp_in']
             fluid_dicts[i]['p_out'] = manifold_out_dicts[i]['p_out']
-            fluids.append(fluid.factory2(fluid_dicts[i]))
+            # fluids.append(fluid.factory2(fluid_dicts[i]))
             channels.append([chl.Channel(channel_dicts[i],
-                                         copy.deepcopy(fluids[i]))
+                                         fluid.dict_factory(fluid_dicts[i]))
                              for j in range(self.n_cells)])
 
         # Initialize fuel cells
@@ -123,7 +123,6 @@ class Stack:
         in_dicts.dict_coolant_out_manifold['length'] = manifold_length
         coolant_dict['temp_in'] = in_dicts.dict_coolant_in_manifold['temp_in']
         coolant_dict['p_out'] = in_dicts.dict_coolant_out_manifold['p_out']
-        coolant = fluid.factory2(coolant_dict)
 
         if temperature_dict['cool_ch_bc']:
             n_cool = self.n_cells + 1
@@ -131,10 +130,14 @@ class Stack:
             n_cool = self.n_cells - 1
 
         n_cool_cell = temperature_dict['cool_ch_numb']
+        cool_channels = []
+        for i in range(n_cool):
+            cool_channels.append(chl.Channel(in_dicts.dict_coolant_channel,
+                                             fluid.dict_factory(coolant_dict)))
+            cool_channels[i].name += ' ' + str(i)
+            cool_channels[i].fluid.name = \
+                cool_channels[i].name + ': ' + cool_channels[i].fluid.TYPE_NAME
 
-        cool_channels = [chl.Channel(in_dicts.dict_coolant_channel,
-                                     copy.deepcopy(coolant))
-                         for i in range(n_cool)]
         self.coolant_circuit = \
             flow_circuit.factory2(in_dicts.dict_coolant_flow_circuit,
                                   in_dicts.dict_coolant_in_manifold,

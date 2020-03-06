@@ -10,12 +10,12 @@ class OneDimensionalFluid(ABC, OutputObject):
 
     PROPERTY_NAMES = ['Density', 'Specific Heat', 'Viscosity',
                       'Thermal Conductivity']
+    TYPE_NAME = 'Base Fluid'
 
     def __init__(self, nx, name, temperature=298.15, pressure=101325.0,
                  **kwargs):
         print("__init__ for Fluid")
         super().__init__(name)
-        self.name = name
         self.nodes = nx
         self.print_variables = \
             {
@@ -179,10 +179,13 @@ class OneDimensionalFluid(ABC, OutputObject):
 
 
 class ConstantFluid(OneDimensionalFluid):
+
+    TYPE_NAME = 'Constant Fluid'
+
     def __init__(self, nx, name, fluid_props, temperature=298.15,
                  pressure=101325.0, **kwargs):
         print("__init__ for IncompressibleFluid")
-        super().__init__(nx, temperature, pressure, **kwargs)
+        super().__init__(nx, name, temperature, pressure, **kwargs)
         self.name = name
         if not isinstance(fluid_props, species.ConstantProperties):
             raise TypeError('Argument fluid_props must be of type '
@@ -202,6 +205,9 @@ class ConstantFluid(OneDimensionalFluid):
 
 
 class IncompressibleFluid(OneDimensionalFluid):
+
+    TYPE_NAME = 'Incompressible Fluid'
+
     def __init__(self, nx, name, fluid_props, temperature=298.15,
                  pressure=101325.0, **kwargs):
         print("__init__ for IncompressibleFluid")
@@ -238,6 +244,8 @@ class IncompressibleFluid(OneDimensionalFluid):
 
 
 class GasMixture(OneDimensionalFluid):
+
+    TYPE_NAME = 'Gas Mixture'
 
     def __init__(self, nx, name, species_dict, mole_fractions,
                  temperature=298.15, pressure=101325.0, **kwargs):
@@ -451,6 +459,9 @@ class GasMixture(OneDimensionalFluid):
 
 
 class TwoPhaseMixture(OneDimensionalFluid):
+
+    TYPE_NAME = 'Two-Phase Mixture'
+
     def __init__(self, nx, name, species_dict, mole_fractions,
                  liquid_props=None, temperature=298.15, pressure=101325.0,
                  **kwargs):
@@ -485,10 +496,11 @@ class TwoPhaseMixture(OneDimensionalFluid):
                             'can only be provided as dictionary with species '
                             'name as key and FluidProperties object as value '
                             'for the liquid properties')
-        self.liquid = IncompressibleFluid(nx, name, fluid_props=liquid_props,
+        self.liquid = IncompressibleFluid(nx, self.name,
+                                          fluid_props=liquid_props,
                                           temperature=self._temperature,
                                           pressure=self._pressure)
-        self.gas = GasMixture(nx, name, species_dict=gas_species_dict,
+        self.gas = GasMixture(nx, self.name, species_dict=gas_species_dict,
                               mole_fractions=mole_fractions,
                               temperature=self._temperature,
                               pressure=self._pressure)
@@ -568,6 +580,11 @@ class TwoPhaseMixture(OneDimensionalFluid):
     @property
     def species(self):
         return self.gas.species
+
+    def _set_name(self, name):
+        super()._set_name(name)
+        self.gas.name = self.name + ': Gas Phase'
+        self.liquid.name = self.name + ': Liquid Phase'
 
     def update(self, temperature, pressure, mole_composition=None,
                method='ideal', *args, **kwargs):
@@ -708,9 +725,9 @@ def liquid_factory(nx, name, liquid_props, temperature, pressure):
                         'ConstantProperties or IncompressibleProperties')
 
 
-def factory(nx, name, liquid_props=None, species_dict=None,
-            mole_fractions=None, temperature=298.15,
-            pressure=101325.0, **kwargs):
+def arg_factory(nx, name, liquid_props=None, species_dict=None,
+                mole_fractions=None, temperature=293.15,
+                pressure=101325.0, **kwargs):
     if species_dict is None:
         return liquid_factory(nx, name, liquid_props, temperature, pressure)
     else:
@@ -729,7 +746,7 @@ def factory(nx, name, liquid_props=None, species_dict=None,
             raise NotImplementedError
 
 
-def factory2(fluid_dict):
+def dict_factory(fluid_dict):
     nx = fluid_dict['nodes']
     name = fluid_dict['name']
     liquid_props = fluid_dict.get('liquid_props', None)
@@ -737,22 +754,10 @@ def factory2(fluid_dict):
     mole_fractions = fluid_dict.get('inlet_composition', None)
     temperature = fluid_dict.get('temp_in', 293.15)
     pressure = fluid_dict.get('p_out', 101325.0)
-    if species_dict is None:
-        return liquid_factory(nx, name, liquid_props, temperature, pressure)
-    else:
-        species_types = list(species_dict.values())
-        species_types_str = ' '.join(species_types)
-        if 'gas' in species_types_str and 'liquid' not in species_types_str:
-            return GasMixture(nx, name, species_dict, mole_fractions,
-                              temperature, pressure)
-        elif 'gas' in species_types_str and 'liquid' in species_types_str:
-            return TwoPhaseMixture(nx, name, species_dict, mole_fractions,
-                                   liquid_props, temperature, pressure)
-        elif 'liquid' in species_types_str and 'gas' \
-                not in species_types_str:
-            return liquid_factory(nx, name, liquid_props, temperature, pressure)
-        else:
-            raise NotImplementedError
+    return arg_factory(nx, name, liquid_props=liquid_props,
+                       species_dict=species_dict,
+                       mole_fractions=mole_fractions, temperature=temperature,
+                       pressure=pressure)
 
 # test_species = species.GasSpecies(['O2', 'N2', 'H2'])
 

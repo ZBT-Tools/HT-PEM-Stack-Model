@@ -5,6 +5,7 @@ import data.global_parameters as g_par
 import cProfile
 import timeit
 import data.input_dicts as input_dicts
+import system.output_object as out_obj
 import output
 import os
 import sys
@@ -177,12 +178,25 @@ start_time = timeit.default_timer()
 simulation = Simulation(input_dicts.simulation_dict)
 simulation.timing['start'] = start_time
 simulation.timing['initialization'] = timeit.default_timer()
-print('Initialization time: ',
-      simulation.timing['initialization'] - simulation.timing['start'])
 # simulation.timing['start'] = start_time
 simulation.update()
+print('Initialization time: ',
+      simulation.timing['initialization'] - simulation.timing['start'])
 print('Simulation time: ', simulation.timing['simulation'])
 print('Output time: ', simulation.timing['output'])
 stop_time = timeit.default_timer()
 print('Total time:', stop_time - start_time)
-print(simulation.stack.fuel_circuits[0].print_data[0])
+
+# for obj in out_obj.OutputObject.getinstances():
+#     print(obj)
+#     print(obj.name)
+
+#print(simulation.stack.cells[0].cathode.channel.fluid.name)
+for obj in out_obj.OutputObject.getinstances():
+    # print(obj)
+    print(obj.name)
+
+# for name in out_obj.OutputObject.get_names():
+#     print(name)
+
+# print(out_obj.OutputObject._names)

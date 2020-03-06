@@ -75,9 +75,9 @@ channel_dict = {
     'additional_friction_fractor': 0.01
     }
 
-hydrogen = fluids.factory2(hydrogen_dict)
-air = fluids.factory2(air_dict)
-water = fluids.factory2(water_dict)
+hydrogen = fluids.dict_factory(hydrogen_dict)
+air = fluids.dict_factory(air_dict)
+water = fluids.dict_factory(water_dict)
 fluids = [hydrogen, air, water]
 
 channel_dicts = [copy.deepcopy(channel_dict) for i in range(3)]

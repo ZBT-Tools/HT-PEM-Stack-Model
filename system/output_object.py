@@ -1,18 +1,37 @@
 import numpy as np
 import string
 import weakref
+from copy import deepcopy
 
 
 class OutputObject:
 
     _instances = set()
+    _names = []
+    _instances_strong_ref = set()
 
     def __init__(self, name):
-        self.name = name
+        self._name = name
+        assert isinstance(name, str)
         self.print_data_1d = {}
         self.print_data_2d = {}
         self.print_data = [self.print_data_1d, self.print_data_2d]
         self._instances.add(weakref.ref(self))
+        # self._instances_strong_ref.add(self)
+
+    def _get_name(self):
+        return self._name
+
+    def _set_name(self, name):
+        self._name = name
+
+    @property
+    def name(self):
+        return self._get_name()
+
+    @name.setter
+    def name(self, name):
+        self._set_name(name)
 
     @classmethod
     def getinstances(cls):
@@ -24,6 +43,21 @@ class OutputObject:
             else:
                 dead.add(ref)
         cls._instances -= dead
+
+    def copy(self):
+        copy = deepcopy(self)
+        self._instances.add(weakref.ref(copy))
+        # self._names.append(self.name)
+        # self._instances_strong_ref.add(self)
+        return copy
+
+    @classmethod
+    def getinstances_strong_ref(cls):
+        return cls._instances_strong_ref
+
+    @classmethod
+    def get_names(cls):
+        return cls._names
 
     def add_print_data(self, data_array, name, units='-', sub_names=None):
         if data_array.ndim == 2:
