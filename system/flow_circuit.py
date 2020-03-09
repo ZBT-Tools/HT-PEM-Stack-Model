@@ -7,6 +7,8 @@ import system.channel as chl
 from system.output_object import OutputObject
 import system.fluid as fluids
 from abc import ABC, abstractmethod
+import dask
+import timeit
 
 
 class ParallelFlowCircuit(ABC, OutputObject):
@@ -160,6 +162,30 @@ class ParallelFlowCircuit(ABC, OutputObject):
         self.manifolds[1].update(mass_flow_in=0.0, mass_source=mass_source,
                                  update_heat=False,
                                  enthalpy_source=channel_enthalpy_out)
+
+        # dask channel update
+        def update(channel, manifold_in, manifold_out,
+                   mass_flow, idx):
+            channel.p_out = ip.interpolate_1d(manifold_out.p)[idx]
+            channel.temp[channel.id_in] = manifold_in.temp_ele[idx]
+            channel.update(mass_flow_in=mass_flow, update_heat=False)
+
+        start_time = timeit.default_timer()
+        mass_flow_in = []
+        for i in range(len(self.channels)):
+            mass_flow_in.append(
+                dask.delayed(channel_mass_flow_in[i] / self.n_subchannels))
+        mass_flow_in = dask.compute(*mass_flow_in)
+
+        update_graph = []
+        for i, channel in enumerate(self.channels):
+            update_graph.append(
+                dask.delayed(update)(channel, self.manifolds[0],
+                                     self.manifolds[1], mass_flow_in[i], i))
+        dask.compute(*update_graph)
+        print('Dask time: ', timeit.default_timer() - start_time)
+
+        start_time = timeit.default_timer()
         # Channel update
         for i, channel in enumerate(self.channels):
             channel.p_out = ip.interpolate_1d(self.manifolds[1].p)[i]
@@ -167,6 +193,8 @@ class ParallelFlowCircuit(ABC, OutputObject):
             channel.update(mass_flow_in=
                            channel_mass_flow_in[i]/self.n_subchannels,
                            update_heat=False)
+        print('Python time: ', timeit.default_timer() - start_time)
+        
         # Inlet header update
         id_in = self.channels[-1].id_in
         self.manifolds[0].p_out = self.channels[-1].p[id_in]

@@ -65,14 +65,14 @@ anode_manifold_configuration = 'U'
 cathode_manifold_configuration = 'U'
 coolant_manifold_configuration = 'U'
 # manifold height [m]
-manifold_height = 6e-3
-coolant_manifold_height = 7e-3
+manifold_height = 15e-3
+coolant_manifold_height = 12e-3
 # manifold width [m]
-manifold_width = 6e-3
-coolant_manifold_width = 7e-3
+manifold_width = 15e-3
+coolant_manifold_width = 12e-3
 # geometrical pressure loss coefficient of the manifold header
-manifold_pressure_loss_coefficient = 1.4
-coolant_manifold_pressure_loss_coefficient = 1.4
+manifold_pressure_loss_coefficient = 0.4
+coolant_manifold_pressure_loss_coefficient = 0.4
 
 """Stack Settings"""
 # number of the pemfc

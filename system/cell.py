@@ -238,7 +238,7 @@ class Cell(OutputObject):
             else:
                 source_vector = np.asarray(-source_term)
         else:
-            source_vector = np.zeros_like(rhs_vector)
+            source_vector = np.zeros(rhs_vector.shape)
             np.put(source_vector, self.index_array[layer_id], -source_term)
         rhs_vector += source_vector
         return rhs_vector, source_vector
@@ -247,7 +247,7 @@ class Cell(OutputObject):
         matrix_size = matrix.shape[0]
         if layer_id is None:
             if np.isscalar(coefficient):
-                source_vector = np.full(matrix_size, coefficient)
+                source_vector = g_func.full(matrix_size, coefficient)
             else:
                 source_vector = np.asarray(coefficient)
         else:
