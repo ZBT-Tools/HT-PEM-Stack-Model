@@ -214,8 +214,9 @@ def calc_pressure_drop(velocity, density, f, zeta, length, diameter,
     v2 = velocity[1:]
     a = density * v2 ** 2.0 * (f * length / diameter + zeta) * 0.5
     # b = 0.0
-    b = (density * v1 ** 2.0 - density * v2 ** 2.0) * .5
+    b = (density * v2 ** 2.0 - density * v1 ** 2.0) * .5
     return a + b
+
 
 def calc_visc_mix(species_viscosity, mol_fraction, mol_mass):
     """
