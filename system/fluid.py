@@ -54,7 +54,7 @@ class OneDimensionalFluid(ABC, OutputObject):
     def calc_properties(self, temperature, pressure=101325.0, **kwargs):
         pass
 
-    def calc_fraction(self, composition, axis=0):
+    def calc_fraction(self, composition, axis=0, recursion_count=0):
         """
         Calculates mixture fractions based on a multi-dimensional
         array with different species along the provided axis.
@@ -63,8 +63,13 @@ class OneDimensionalFluid(ABC, OutputObject):
         if np.min(np.abs(comp_sum)) > g_par.SMALL:
             return composition / comp_sum
         else:
+            if recursion_count > self.nodes:
+                raise ValueError('maximum recursion depth reached. '
+                                 'check input composition')
             composition = g_func.fill_surrounding_average_1d(composition, axis)
-            return self.calc_fraction(composition, axis)
+            recursion_count += 1
+            return self.calc_fraction(composition, axis,
+                                      recursion_count=recursion_count)
 
     @property
     def temperature(self):

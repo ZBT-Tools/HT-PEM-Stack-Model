@@ -91,7 +91,7 @@ class ParallelFlowCircuit(ABC, OutputObject):
             np.zeros(self.channel_vol_flow.shape)
         self.add_print_variables(self.print_variables)
 
-    def update(self, inlet_mass_flow=None, calc_distribution=False):
+    def update(self, inlet_mass_flow=None, calc_distribution=True):
         """
         Update the flow circuit
         """
@@ -170,22 +170,22 @@ class ParallelFlowCircuit(ABC, OutputObject):
             channel.temp[channel.id_in] = manifold_in.temp_ele[idx]
             channel.update(mass_flow_in=mass_flow, update_heat=False)
 
-        start_time = timeit.default_timer()
-        mass_flow_in = []
-        for i in range(len(self.channels)):
-            mass_flow_in.append(
-                dask.delayed(channel_mass_flow_in[i] / self.n_subchannels))
-        mass_flow_in = dask.compute(*mass_flow_in)
+        # start_time = timeit.default_timer()
+        # mass_flow_in = []
+        # for i in range(len(self.channels)):
+        #     mass_flow_in.append(
+        #         dask.delayed(channel_mass_flow_in[i] / self.n_subchannels))
+        # mass_flow_in = dask.compute(*mass_flow_in)
+        #
+        # update_graph = []
+        # for i, channel in enumerate(self.channels):
+        #     update_graph.append(
+        #         dask.delayed(update)(channel, self.manifolds[0],
+        #                              self.manifolds[1], mass_flow_in[i], i))
+        # dask.compute(*update_graph)
+        # print('Dask time: ', timeit.default_timer() - start_time)
 
-        update_graph = []
-        for i, channel in enumerate(self.channels):
-            update_graph.append(
-                dask.delayed(update)(channel, self.manifolds[0],
-                                     self.manifolds[1], mass_flow_in[i], i))
-        dask.compute(*update_graph)
-        print('Dask time: ', timeit.default_timer() - start_time)
-
-        start_time = timeit.default_timer()
+        # start_time = timeit.default_timer()
         # Channel update
         for i, channel in enumerate(self.channels):
             channel.p_out = ip.interpolate_1d(self.manifolds[1].p)[i]
@@ -193,7 +193,7 @@ class ParallelFlowCircuit(ABC, OutputObject):
             channel.update(mass_flow_in=
                            channel_mass_flow_in[i]/self.n_subchannels,
                            update_heat=False)
-        print('Python time: ', timeit.default_timer() - start_time)
+        # print('Python time: ', timeit.default_timer() - start_time)
         
         # Inlet header update
         id_in = self.channels[-1].id_in

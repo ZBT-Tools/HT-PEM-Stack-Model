@@ -61,20 +61,20 @@ fluid_dict = {
 
 in_manifold_dict = {
     'name': 'Inlet Manifold',
-    'length': 0.09,
+    'length': 0.4,
     'p_out': channel_dict['p_out'],
     'temp_in': 300.0,
-    'hum_in': 0.1,
     'flow_direction': 1,
-    'width': 0.0075,
-    'height': 0.0075,
+    'width': 0.01,
+    'height': 0.01,
     'bend_number': 0,
     'bend_friction_factor': 0.0,
-    'additional_friction_fractor': 0.0
+    'additional_friction_fractor': -0.02
     }
 
 out_manifold_dict = copy.deepcopy(in_manifold_dict)
 out_manifold_dict['name'] = 'Outlet Manifold'
+out_manifold_dict['additional_friction_fractor'] = -0.03
 
 flow_circuit_dict = {
     'name': 'Flow Circuit',
@@ -93,7 +93,7 @@ x = (ip.interpolate_1d(flow_model.manifolds[0].x)
     / (flow_model.manifolds[0].length - flow_model.manifolds[0].dx[0])
 # x = flow_model.manifolds[0].x / flow_model.manifolds[0].length
 
-flow_model.update(inlet_mass_flow=1e-4)
+flow_model.update(inlet_mass_flow=8e-4)
 q = flow_model.channel_vol_flow / np.average(flow_model.channel_vol_flow)
 reynolds = flow_model.manifolds[0].reynolds[0]
 plt.plot(x, q, label='Re={0:.2f}'.format(reynolds))
@@ -111,7 +111,7 @@ print(fluid.gas.print_data)
 #                         sub_names=fluid.gas.species.names)
 # fluid.gas._mole_fraction[0, 0] = 1.0
 fluid.rescale(10)
-print(fluid._temperature)
+print(fluid.temperature)
 print(fluid.gas.mole_fraction)
 print(fluid.print_data)
 plt.legend()
