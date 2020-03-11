@@ -7,8 +7,6 @@ import system.channel as chl
 from system.output_object import OutputObject
 import system.fluid as fluids
 from abc import ABC, abstractmethod
-import dask
-import timeit
 
 
 class ParallelFlowCircuit(ABC, OutputObject):
