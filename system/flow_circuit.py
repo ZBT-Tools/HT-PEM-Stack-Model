@@ -244,7 +244,7 @@ class KohFlowCircuit(ParallelFlowCircuit):
                       for channel in self.channels])
         vol_flow_channel = np.array([np.average(channel.vol_flow)
                                      for channel in self.channels])
-        if np.max(np.abs(vol_flow_channel)) > g_par.SMALL:
+        if np.min(np.abs(vol_flow_channel)) > g_par.SMALL:
             visc_channel = np.array([np.average(channel.fluid.viscosity)
                                      for channel in self.channels])
             velocity = np.array([np.average(channel.velocity)

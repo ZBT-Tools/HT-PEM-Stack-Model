@@ -5,6 +5,8 @@ from matplotlib import pyplot as plt
 import os
 # from numba import jit
 
+SMALL = 1e-12
+
 
 def ensure_list(variable):
     if isinstance(variable, (list, tuple)):
@@ -73,6 +75,43 @@ def add_source(var, source, direction=1, tri_mtx=None):
     return var
 
 
+def fill_last_zeros(array, axis=-1, axis_sum=None):
+    if axis == 0:
+        array_t = array.transpose()
+        return fill_last_zeros(array_t, axis=-1).transpose()
+    if axis_sum is None:
+        axis_sum = np.abs(np.sum(array, axis=0))
+    shape = array.shape
+    prev = np.arange(shape[-1])
+    prev[axis_sum < SMALL] = 0
+    prev = np.maximum.accumulate(prev)
+    return array[:, prev]
+
+
+def fill_first_zeros(array, axis=-1, axis_sum=None):
+    array = np.flip(array, axis)
+    return np.flip(fill_last_zeros(array, axis), axis, axis_sum)
+
+
+def fill_zero_sum(array, axis=-1, axis_sum=None):
+    if axis == 0:
+        array_t = array.transpose()
+        return fill_zero_sum(array_t, axis=-1).transpose()
+    elif axis in (-1, 1):
+        if axis_sum is None:
+            axis_sum = np.abs(np.sum(array, axis=0))
+        else:
+            axis_sum = np.abs(axis_sum)
+    else:
+        raise ValueError('axis must be 0, 1 or -1. only 2D-arrays allowed.')
+    nonzero = np.nonzero(axis_sum)[0]
+    if nonzero[-1] != len(array) - 1:
+        array = fill_last_zeros(array, axis_sum=axis_sum)
+    if nonzero[0] != 0:
+        array = fill_first_zeros(array, axis_sum=axis_sum)
+    return array
+
+
 def fill_surrounding_average_1d(array, axis=0):
     footprint = np.zeros((3, 3))
     weights = np.array([1.0, 0.0, 1.0])
@@ -86,7 +125,7 @@ def fill_surrounding_average_1d(array, axis=0):
     mask_array = np.sum(np.abs(array), axis) * np.ones(array.shape)
     averaged = ndimage.generic_filter(array, np.nanmean, footprint=footprint,
                                       mode='constant', cval=np.NaN)
-    return np.where(mask_array < g_par.SMALL, averaged, array)
+    return np.where(mask_array < SMALL, averaged, array)
 
 
 def construct_empty_stack_array(cell_array, n_cells):
