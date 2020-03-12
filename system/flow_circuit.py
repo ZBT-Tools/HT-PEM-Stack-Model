@@ -106,7 +106,10 @@ class ParallelFlowCircuit(ABC, OutputObject):
         if calc_distribution:
             for i in range(self.max_iter):
                 print(self.name + ' Iteration # ', str(i+1))
-                self.single_loop()
+                if i == 0:
+                    self.single_loop(update_channels=True)
+                else:
+                    self.single_loop(update_channels=False)
                 error = \
                     np.sum(
                         np.divide(self.channel_vol_flow - channel_vol_flow_old,
@@ -130,7 +133,7 @@ class ParallelFlowCircuit(ABC, OutputObject):
         print(self.normalized_flow_distribution)
 
     @abstractmethod
-    def single_loop(self, inlet_mass_flow=None):
+    def single_loop(self, inlet_mass_flow=None, update_channels=True):
         pass
 
     def update_channels(self):
@@ -225,45 +228,51 @@ class KohFlowCircuit(ParallelFlowCircuit):
         self.k_perm = np.zeros(self.n_channels)
         self.l_by_a = np.array([channel.length / channel.cross_area
                                 for channel in self.channels])
+        self.visc_channel = np.zeros(self.n_channels)
+        self.dp_channel = np.zeros(self.n_channels)
 
     def update_channels(self):
         super().update_channels()
         self.initialize = False
 
-    def single_loop(self, inlet_mass_flow=None):
+    def single_loop(self, inlet_mass_flow=None, update_channels=False):
         """
         Update the flow circuit
         """
         if inlet_mass_flow is not None:
             self.mass_flow_in = inlet_mass_flow
-        self.update_channels()
-        dp_channel = \
-            np.array([channel.p[channel.id_in] - channel.p[channel.id_out]
-                      for channel in self.channels])
-        vol_flow_channel = np.array([np.average(channel.vol_flow)
-                                     for channel in self.channels])
-        if np.min(np.abs(vol_flow_channel)) > g_par.SMALL:
-            visc_channel = np.array([np.average(channel.fluid.viscosity)
-                                     for channel in self.channels])
-            velocity = np.array([np.average(channel.velocity)
-                                 for channel in self.channels])
-            p_in = ip.interpolate_1d(self.manifolds[0].p)
-            p_out = ip.interpolate_1d(self.manifolds[1].p)
-            self.k_perm[:] = vol_flow_channel / dp_channel * visc_channel \
-                * self.l_by_a
-            self.dp_ref = dp_channel[-1]
-            self.alpha[:] = (p_in - p_out) / self.dp_ref
-            self.dp_ref = self.vol_flow_in / np.sum(self.alpha) * self.l_by_a \
-                * visc_channel[-1] / self.k_perm[-1] / self.n_subchannels
-            p_in += self.dp_ref \
-                + self.manifolds[1].p[self.manifolds[1].id_out] \
-                - self.manifolds[0].p_out
-            self.alpha[:] = (p_in - p_out) / self.dp_ref
-            self.channel_vol_flow[:] = (p_in - p_out) \
-                * self.k_perm / self.l_by_a * self.n_subchannels / visc_channel
-            density = np.array([channel.fluid.density[channel.id_in]
-                                for channel in self.channels])
-            self.channel_mass_flow[:] = self.channel_vol_flow * density
+        if update_channels:
+            self.update_channels()
+            self.dp_channel[:] = \
+                np.array([channel.p[channel.id_in] - channel.p[channel.id_out]
+                          for channel in self.channels])
+            self.channel_vol_flow[:] = \
+                np.array([np.average(channel.vol_flow)
+                          for channel in self.channels])
+        # if np.min(np.abs(vol_flow_channel)) > g_par.SMALL:
+            self.visc_channel[:] = \
+                np.array([np.average(channel.fluid.viscosity)
+                          for channel in self.channels])
+        velocity = np.array([np.average(channel.velocity)
+                             for channel in self.channels])
+        p_in = ip.interpolate_1d(self.manifolds[0].p)
+        p_out = ip.interpolate_1d(self.manifolds[1].p)
+        if self.initialize:
+            self.k_perm[:] = self.channel_vol_flow / self.dp_channel \
+                * self.visc_channel * self.l_by_a
+        self.dp_ref = np.minimum(self.dp_channel[-1], 1e-3)
+        self.alpha[:] = (p_in - p_out) / self.dp_ref
+        self.dp_ref = self.vol_flow_in / np.sum(self.alpha) * self.l_by_a \
+            * self.visc_channel[-1] / self.k_perm[-1] / self.n_subchannels
+        p_in += self.dp_ref \
+            + self.manifolds[1].p[self.manifolds[1].id_out] \
+            - self.manifolds[0].p_out
+        self.alpha[:] = (p_in - p_out) / self.dp_ref
+        self.channel_vol_flow[:] = (p_in - p_out) * self.k_perm \
+            / self.l_by_a * self.n_subchannels / self.visc_channel
+        density = np.array([channel.fluid.density[channel.id_in]
+                            for channel in self.channels])
+        self.channel_mass_flow[:] = self.channel_vol_flow * density
 
 
 class WangFlowCircuit(ParallelFlowCircuit):
