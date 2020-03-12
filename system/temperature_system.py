@@ -4,8 +4,6 @@ from scipy import sparse
 from scipy.sparse.linalg import spsolve
 import data.global_parameters as g_par
 import system.global_functions as g_func
-import data.water_properties as w_prop
-import system.interpolation as ip
 import system.matrix_functions as mtx
 import system.channel as chl
 import system.cell as fcell

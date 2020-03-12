@@ -1,15 +1,11 @@
 import numpy as np
-import copy as copy
 import data.global_parameters as g_par
 import system.cell as cl
-import system.manifold as mfd
 import system.electrical_coupling as el_cpl
-import data.electrical_coupling_dict as el_cpl_dict
 import system.temperature_system as therm_cpl
 import system.flow_circuit as flow_circuit
 import system.channel as chl
 import system.fluid as fluid
-import data.temperature_system_dict as therm_dict
 import data.input_dicts as in_dicts
 
 

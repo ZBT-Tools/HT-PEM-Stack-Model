@@ -42,8 +42,8 @@ channel_dict = {
     'temp_in': 300.0,
     'hum_in': 0.1,
     'flow_direction': 1,
-    'width': 0.003,
-    'height': 0.003,
+    'width': 0.001,
+    'height': 0.001,
     'bend_number': 0,
     'bend_friction_factor': 0.1,
     'additional_friction_fractor': 0.0
@@ -61,20 +61,20 @@ fluid_dict = {
 
 in_manifold_dict = {
     'name': 'Inlet Manifold',
-    'length': 0.4,
+    'length': 0.1,
     'p_out': channel_dict['p_out'],
     'temp_in': 300.0,
     'flow_direction': 1,
-    'width': 0.01,
-    'height': 0.01,
+    'width': 0.012,
+    'height': 0.012,
     'bend_number': 0,
     'bend_friction_factor': 0.0,
-    'additional_friction_fractor': -0.02
+    'additional_friction_fractor': -0.0
     }
 
 out_manifold_dict = copy.deepcopy(in_manifold_dict)
 out_manifold_dict['name'] = 'Outlet Manifold'
-out_manifold_dict['additional_friction_fractor'] = -0.03
+out_manifold_dict['additional_friction_fractor'] = 0.00
 
 flow_circuit_dict = {
     'name': 'Flow Circuit',
@@ -93,7 +93,7 @@ x = (ip.interpolate_1d(flow_model.manifolds[0].x)
     / (flow_model.manifolds[0].length - flow_model.manifolds[0].dx[0])
 # x = flow_model.manifolds[0].x / flow_model.manifolds[0].length
 
-flow_model.update(inlet_mass_flow=8e-4)
+flow_model.update(inlet_mass_flow=1e-4)
 q = flow_model.channel_vol_flow / np.average(flow_model.channel_vol_flow)
 reynolds = flow_model.manifolds[0].reynolds[0]
 plt.plot(x, q, label='Re={0:.2f}'.format(reynolds))
@@ -106,18 +106,18 @@ plt.plot(x, q, label='Re={0:.2f}'.format(reynolds))
 # plt.plot(x, q, label='Re='+str(reynolds))
 fluid = flow_model.channels[0].fluid
 print(fluid.gas.print_data)
-#fluid.gas._mole_fraction.resize((7, fluid.gas.n_species), refcheck=False)
-#fluid.gas.add_print_data(fluid.gas.mole_fraction, 'Mole Fraction',
-#                         sub_names=fluid.gas.species.names)
+# fluid.gas._mole_fraction.resize((7, fluid.gas.n_species), refcheck=False)
+# fluid.gas.add_print_data(fluid.gas.mole_fraction, 'Mole Fraction',
+#                          sub_names=fluid.gas.species.names)
 # fluid.gas._mole_fraction[0, 0] = 1.0
 fluid.rescale(10)
 print(fluid.temperature)
 print(fluid.gas.mole_fraction)
 print(fluid.print_data)
 plt.legend()
-plt.ylim([0.4, 2.2])
-plt.xlim([0.0, 1.0])
+# plt.ylim([0.4, 2.2])
+# plt.xlim([0.0, 1.0])
 
-plt.yticks([0.4, 1.0, 1.6, 2.2])
+# plt.yticks([0.4, 1.0, 1.6, 2.2])
 plt.show()
 
