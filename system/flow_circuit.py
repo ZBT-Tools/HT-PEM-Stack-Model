@@ -108,6 +108,7 @@ class ParallelFlowCircuit(ABC, OutputObject):
                 print(self.name + ' Iteration # ', str(i+1))
                 if i == 0:
                     self.single_loop(update_channels=True)
+                    self.initialize = False
                 else:
                     self.single_loop(update_channels=False)
                 error = \
@@ -129,8 +130,6 @@ class ParallelFlowCircuit(ABC, OutputObject):
             self.update_channels()
         self.normalized_flow_distribution[:] = \
             self.channel_mass_flow / np.average(self.channel_mass_flow)
-        print('normalized flow distribution')
-        print(self.normalized_flow_distribution)
 
     @abstractmethod
     def single_loop(self, inlet_mass_flow=None, update_channels=True):
@@ -164,12 +163,12 @@ class ParallelFlowCircuit(ABC, OutputObject):
                                  update_heat=False,
                                  enthalpy_source=channel_enthalpy_out)
 
-        # dask channel update
-        def update(channel, manifold_in, manifold_out,
-                   mass_flow, idx):
-            channel.p_out = ip.interpolate_1d(manifold_out.p)[idx]
-            channel.temp[channel.id_in] = manifold_in.temp_ele[idx]
-            channel.update(mass_flow_in=mass_flow, update_heat=False)
+        # # dask channel update
+        # def update(channel, manifold_in, manifold_out,
+        #            mass_flow, idx):
+        #     channel.p_out = ip.interpolate_1d(manifold_out.p)[idx]
+        #     channel.temp[channel.id_in] = manifold_in.temp_ele[idx]
+        #     channel.update(mass_flow_in=mass_flow, update_heat=False)
 
         # start_time = timeit.default_timer()
         # mass_flow_in = []
@@ -233,9 +232,8 @@ class KohFlowCircuit(ParallelFlowCircuit):
 
     def update_channels(self):
         super().update_channels()
-        self.initialize = False
 
-    def single_loop(self, inlet_mass_flow=None, update_channels=False):
+    def single_loop(self, inlet_mass_flow=None, update_channels=True):
         """
         Update the flow circuit
         """
@@ -253,14 +251,14 @@ class KohFlowCircuit(ParallelFlowCircuit):
             self.visc_channel[:] = \
                 np.array([np.average(channel.fluid.viscosity)
                           for channel in self.channels])
-        velocity = np.array([np.average(channel.velocity)
-                             for channel in self.channels])
+        # velocity = np.array([np.average(channel.velocity)
+        #                      for channel in self.channels])
         p_in = ip.interpolate_1d(self.manifolds[0].p)
         p_out = ip.interpolate_1d(self.manifolds[1].p)
         if self.initialize:
             self.k_perm[:] = self.channel_vol_flow / self.dp_channel \
                 * self.visc_channel * self.l_by_a
-        self.dp_ref = np.minimum(self.dp_channel[-1], 1e-3)
+        self.dp_ref = np.maximum(self.dp_channel[-1], 1e-3)
         self.alpha[:] = (p_in - p_out) / self.dp_ref
         self.dp_ref = self.vol_flow_in / np.sum(self.alpha) * self.l_by_a \
             * self.visc_channel[-1] / self.k_perm[-1] / self.n_subchannels
