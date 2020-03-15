@@ -350,7 +350,7 @@ class Output:
         coolant_circuits = [fc_stack.coolant_circuit]
         xvalues = [i + 1 for i in range(coolant_circuits[0].n_channels)]
         xlabel = 'Channel'
-        save_oo_collection(fuel_circuits, xvalues, xlabel)
+        save_oo_collection(coolant_circuits, xvalues, xlabel)
 
     def plot_polarization_curve(self, voltage_loss,
                                 cell_voltages, target_current_density):
