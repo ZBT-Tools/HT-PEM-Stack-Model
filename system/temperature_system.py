@@ -290,13 +290,13 @@ class TemperatureSystem:
         while error > tolerance:
             temp_new_list = []
             for i, cell in enumerate(self.cells):
-                # if cell.first_cell:
-                #     self.connect_to_next_cell(i)
-                # elif cell.last_cell:
-                #     self.connect_to_previous_cell(i)
-                # else:
-                #     self.connect_to_previous_cell(i)
-                #     self.connect_to_next_cell(i)
+                if cell.first_cell:
+                    self.connect_to_next_cell(i)
+                elif cell.last_cell:
+                    self.connect_to_previous_cell(i)
+                else:
+                    self.connect_to_previous_cell(i)
+                    self.connect_to_next_cell(i)
                 cell.heat_mtx[:] = cell.heat_mtx_const + cell.heat_mtx_dyn
                 cell.heat_rhs[:] = cell.heat_rhs_const + cell.heat_rhs_const
                 temp_layer_vec = \
@@ -305,7 +305,7 @@ class TemperatureSystem:
                 for j in range(cell.n_layer):
                     index_vector = cell.index_array[j]
                     cell.temp_layer[j] = temp_layer_vec[index_vector]
-            temp_new[:] = np.asarray(temp_new_list).flatten()
+            temp_new[:] = np.concatenate(temp_new_list, axis=0)
             error = np.abs(np.sum(((temp_old - temp_new) / temp_new) ** 2.0))
         self.temp_layer_vec[:] = temp_new
 
