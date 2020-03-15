@@ -8,6 +8,7 @@ import shutil
 import data.global_parameters as g_par
 import system.global_functions as g_func
 import system.stack as stack
+import system.output_object as oo
 from itertools import cycle, islice
 
 
@@ -28,12 +29,6 @@ class Output:
         if not os.path.exists(self.output_dir):
             os.makedirs(self.output_dir)
             # shutil.rmtree(self.output_dir, ignore_errors=True)
-
-    def save(self, folder_name, fc_stack):
-        if self.save_plot:
-            self.output_plots(folder_name, fc_stack)
-        if self.save_csv:
-            self.output(folder_name, fc_stack)
 
     @staticmethod
     def clean_directory(directory):
@@ -70,7 +65,7 @@ class Output:
             ax.set_title(kwargs['title'], fontsize=fontsize)
         return ax
 
-    def plot_lines(self, ax, x, y, colormap='', **kwargs):
+    def plot_lines(self, ax, x, y, colormap=None, **kwargs):
         x = np.asarray(x)
         y = np.asarray(y)
         ny = len(y)
@@ -89,7 +84,7 @@ class Output:
                     linestyle=kwargs.get('linestyle', '-'),
                     color=kwargs.get('color', 'k'))
         else:
-            if colormap:
+            if colormap is not None:
                 cmap = plt.get_cmap(colormap)
                 colors = cmap(np.linspace(0.0, 1.0, ny))
             else:
@@ -120,14 +115,13 @@ class Output:
 
     def create_figure(self, filepath, x_array, y_array, xlabels, ylabels,
                       xlims=None, ylims=None, xticks=None, yticks=None,
-                      titles=None, legend=None, rows=1, cols=1,
-                      **kwargs):
+                      titles=None, rows=1, cols=1, **kwargs):
         nplots = rows*cols
 
         def check_dims(variable, correct_single_dim=False):
             if isinstance(variable, str):
                 variable = [variable]
-            if not (isinstance(variable, (list, tuple, np.ndarray))):
+            if not isinstance(variable, (list, tuple, np.ndarray)):
                 raise TypeError('variable must be provided '
                                 'as tuple, list or numpy array')
             if len(variable) != nplots:
@@ -168,8 +162,8 @@ class Output:
             if titles is not None:
                 titles = check_dims(titles)
                 ax.set_title(titles[i], fontsize=fontsize)
-            if legend is not None:
-                legend = check_dims(legend, correct_single_dim=True)
+            if 'legend' in kwargs:
+                legend = check_dims(kwargs['legend'], correct_single_dim=True)
                 ax.legend(legend[i])
             if xlims is not None:
                 xlims = check_dims(xlims, correct_single_dim=True)
@@ -191,7 +185,7 @@ class Output:
     @staticmethod
     def plot(y_values, y_label, x_label, y_scale, colors,
              title, xlim_low, xlim_up, labels, path):
-        if labels:
+        if labels is not None:
             for i in range(len(y_values)):
                 plt.plot(y_values[i], color=colors[i],
                          marker='.', label=labels[i])
@@ -206,7 +200,7 @@ class Output:
         plt.xlim(xlim_low, xlim_up)
         plt.tight_layout()
         plt.grid()
-        if labels:
+        if labels is not None:
             plt.legend()
         plt.savefig(os.path.join(path, title + '.png'))
         plt.close()
@@ -214,7 +208,7 @@ class Output:
     @staticmethod
     def x_plot(path, x, y, x_label, y_label, x_scale='linear',
                y_scale='linear', xlim=None, ylim=None, title=None, labels=None):
-        if labels:
+        if labels is not None:
             for i in range(len(y)):
                 plt.plot(x, y[i],
                          color=plt.cm.coolwarm(i / len(y)),
@@ -226,26 +220,27 @@ class Output:
 
         plt.xlabel(x_label, fontsize=16)
         plt.ylabel(y_label, fontsize=16)
+        plt.xscale(x_scale)
         plt.yscale(y_scale)
         plt.tick_params(labelsize=14)
         plt.autoscale(tight=True, axis='both', enable=True)
-        if xlim:
+        if xlim is not None:
             plt.xlim(xlim[0], xlim[1])
-        if ylim:
+        if ylim is not None:
             plt.ylim(ylim[0], ylim[1])
         plt.tight_layout()
         plt.grid()
-        if labels:
+        if labels is not None:
             plt.legend()
         plt.savefig(os.path.join(path, title + '.png'))
         plt.close()
 
     def write_array_to_csv(self, file_path, array,
-                           header='', separator_lines=None):
-        with open(file_path, 'w') as file:
-            if header:
+                           header=None, separator_lines=None):
+        with open(file_path, 'a') as file:
+            if header is not None:
                 file.write('# ' + header + '\n')
-            if separator_lines:
+            if separator_lines is not None:
                 for i in range(len(separator_lines)):
                     a = array[i]
                     if a.ndim == 1:
@@ -258,110 +253,7 @@ class Output:
                            delimiter=self.delimiter, fmt=self.csv_format)
         return file
 
-    def write_stack_array_to_csv(self, file_path, stack_array,
-                                 header='', separator_lines=None):
-        if not separator_lines:
-            n = len(stack_array)
-            separator_lines = ['# Cell ' + str(i) + '\n' for i in range(n)]
-        return self.write_array_to_csv(file_path, stack_array,
-                                       header, separator_lines)
-
-    def output_plots(self, folder_name, fc_stack):
-        """
-        Coordinates the plot sequence
-        """
-        path = os.path.join(self.output_dir, folder_name, 'plots')
-
-        if not os.path.exists(path):
-            os.makedirs(path)
-        else:
-            self.clean_directory(path)
-        length = fc_stack.cells[0].cathode.channel.length
-        x_lims = [0.0, length]
-        x_node = fc_stack.cells[0].cathode.channel.x
-        x_ele = ip.interpolate_1d(x_node)
-        # self.plot([self.mdf_criteria_process, self.i_ca_criteria_process,
-        #            self.temp_criteria_process], 'ERR', 'Iteration', 'log',
-        #           ['k', 'r', 'b'], 'Convergence', 0.,
-        #           len(self.temp_criteria_process),
-        #           ['Flow Distribution', 'Current Density', 'Temperature'], path)
-        # self.x_plot(fc_stack.i_cd, x_ele, 'Current Density $[A/m²]$',
-        #             'Channel Location $[m]$', 'linear', 'Current Density',
-        #             False, x_lims, path)
-        # self.create_figure(x_ele, fc_stack.i_cd,
-        #                    'Channel Location $[m]$',
-        #                    'Current Density $[A/m²]$', colormap='coolwarm',
-        #                    filepath=os.path.join(path, 'current_density.png'))
-        n_cells = fc_stack.n_cells
-        cell_range = np.asarray(range(n_cells))
-        # if n_cells > 1:
-        #     self.plot([fc_stack.manifold[0].cell_stoi,
-        #                fc_stack.manifold[1].cell_stoi],
-        #               'Stoichiometry', 'Cell Number', 'linear', ['k', 'r'],
-        #               'Stoichimetry Distribution', 0., n_cells - 1,
-        #               ['Cathode', 'Anode'], path)
-        #     file_path = os.path.join(path, 'stoichimetry_distribution.png')
-        #     self.create_figure(file_path, cell_range,
-        #                        [fc_stack.manifold[0].cell_stoi,
-        #                         fc_stack.manifold[1].cell_stoi],
-        #                        'Cell Number', 'Stoichiometry',
-        #                        legend=['Cathode', 'Anode'], xticks=cell_range)
-        #     self.plot([fc_stack.manifold[0].cell_stoi / 2.5],
-        #               'Flow Distribution', 'Cell Number', 'linear', ['k'],
-        #               'Distribution', 0., n_cells - 1, ['Cathode'], path)
-
-        # x_vec_z = np.array([0.,
-        #                    geom.bipolar_plate_thickness,
-        #                    geom.gas_diffusion_layer_thickness,
-        #                    geom.membrane_thickness,
-        #                    geom.gas_diffusion_layer_thickness])
-        # x_vec_e = np.array([geom.bipolar_plate_thickness,
-        #                     geom.bipolar_plate_thickness,
-        #                     geom.gas_diffusion_layer_thickness,
-        #                     geom.membrane_thickness,
-        #                     geom.gas_diffusion_layer_thickness])
-        # x_vec_l = np.array([geom.bipolar_plate_thickness,
-        #                     geom.bipolar_plate_thickness,
-        #                     geom.gas_diffusion_layer_thickness,
-        #                     geom.membrane_thickness,
-        #                     geom.gas_diffusion_layer_thickness,
-        #                     geom.bipolar_plate_thickness])
-        # x = []
-        # n_cells = fc_stack.n_cells
-        # n_ele = g_par.dict_case['elements']
-        # for j in range(n_cells):
-        #     if j is 0:
-        #         x.append(x_vec_z)
-        #     elif 0 < j < n_cells - 1:
-        #         x.append(x_vec_e)
-        #     else:
-        #         x.append(x_vec_l)
-        # x = np.cumsum(np.block(x))
-        # t = fc_stack.temp_sys.temp_layer
-        # for i in range(n_ele):
-        #     t_vec = []
-        #     for j in range(n_cells):
-        #         if j is not n_cells - 1:
-        #             t_vec.append(np.array([t[j][0, i], t[j][1, i],
-        #                                    t[j][2, i], t[j][3, i], t[j][4, i]]))
-        #         else:
-        #             t_vec.append(np.array([t[j][0, i], t[j][1, i], t[j][2, i],
-        #                                    t[j][3, i], t[j][4, i], t[j][5, i]]))
-        #     plt.plot(x, np.block(t_vec),
-        #              color=plt.cm.coolwarm((i + 1.e-20) / float(n_ele)))
-        # plt.xlim(0, x[-1])
-        # plt.xlabel('Stack Location $[m]$', fontsize=16)
-        # plt.ylabel('Temperature $[K]$', fontsize=16)
-        # plt.tick_params(labelsize=14)
-        # plt.autoscale(tight=True, axis='both', enable=True)
-        # plt.tight_layout()
-        # plt.savefig(os.path.join(path, 'z-Cut-Temperature.png'), format='png')
-        # plt.close()
-
-        # for j in range(n_cells):
-        #     print(np.average(fc_stack.i_cd[j, :]))
-
-    def output(self, folder_name, fc_stack):
+    def save(self, folder_name, fc_stack):
         assert isinstance(fc_stack, stack.Stack)
 
         csv_path = os.path.join(self.output_dir, folder_name, 'csv_data')
@@ -375,98 +267,84 @@ class Output:
         # else:
         #    self.clean_directory(plot_path)
 
-        cells = fc_stack.cells
-        x_node = cells[0].cathode.channel.x
-        x_label = 'Channel Location $[m]$'
-        x_ele = ip.interpolate_1d(x_node)
-
-        def write_data(name, array, colormap='coolwarm'):
-            if self.save_csv:
-                file_name = name.replace(' ', '_') + '.csv'
-                file_path = os.path.join(csv_path, file_name)
-                header = name + ', ' + 'Units: ' + content['units'].strip('$')
-                self.write_stack_array_to_csv(file_path, array,
-                                              header=header)
+        def write_data(x_values, data_array, x_label, data_name,
+                       units='-', colormap='coolwarm', **kwargs):
+            file_name = data_name.replace(' ', '_')
             if self.save_plot:
-                file_name = name.replace(' ', '_') + '.png'
-                file_path = os.path.join(plot_path, file_name)
-                if array.shape[-1] == len(x_node):
-                    x = x_node
-                else:
-                    x = x_ele
-                y_label = name + ' ' + '$[' + content['units'] + ']$'
-                self.create_figure(file_path, x, array, x_label, y_label,
-                                   colormap=colormap)
+                y_label = data_name + ' $[' + units + ']$'
+                file_path = os.path.join(plot_path, file_name + '.png')
+                self.create_figure(file_path, x_values, data_array, x_label,
+                                   y_label, colormap=colormap, **kwargs)
+            if self.save_csv:
+                file_path = os.path.join(csv_path, file_name + '.csv')
+                header = data_name + ' [' + units + ']'
+                self.write_array_to_csv(file_path, data_array,
+                                        header=header)
 
-        # Write cell values
-        for name, content in cells[0].print_data[0].items():
-            value = content['value']
-            var_array = \
-                g_func.construct_empty_stack_array(value, fc_stack.n_cells)
-            for i, cell in enumerate(cells):
-                var_array[i] = cell.print_data[0][name]['value']
-            write_data(name, var_array)
-
-        for base_name, sub_dict in cells[0].print_data[1].items():
-            for sub_name, content in sub_dict.items():
+        def save_oo_collection(oo_collection, x_values, x_label, **kwargs):
+            if not isinstance(oo_collection[0], oo.OutputObject):
+                raise TypeError
+            n_items = len(oo_collection)
+            for name, content in oo_collection[0].print_data[0].items():
                 value = content['value']
-                var_array = \
-                    g_func.construct_empty_stack_array(value, fc_stack.n_cells)
-                for i, cell in enumerate(cells):
-                    var_array[i] = \
-                        cell.print_data[1][base_name][sub_name]['value']
-                write_data(sub_name + ' ' + base_name, var_array)
+                var_array = g_func.construct_empty_stack_array(value, n_items)
+                for i, item in enumerate(oo_collection):
+                    var_array[i] = item.print_data[0][name]['value']
+                if var_array.shape[-1] == (len(x_values) - 1):
+                    x_values = ip.interpolate_1d(x_values)
+                write_data(x_values, var_array, x_label, name,
+                           content['units'], **kwargs)
 
-        # # Write flow circuit values
-        # n_fuel_circuits = len(fc_stack.fuel_circuits)
-        # for name, content in fc_stack.fuel_circuits[0].print_data[0].items():
-        #     value = content['value']
-        #     var_array = \
-        #         g_func.construct_empty_stack_array(value, n_fuel_circuits)
-        #     for i in range(n_fuel_circuits):
-        #         var_array[i] = \
-        #             fc_stack.fuel_circuits[i].print_data[0][name]['value']
-        #     write_data(name, var_array)
-        #
-        #     var_array = \
-        #         fc_stack.coolant_circuit.print_data[0][name]['value']
-        #     write_data(name, var_array)
-
-        # Write half cell values
-        for i in range(len(cells[0].half_cells)):
-            electrode_name = cells[0].half_cells[i].name
-            half_cell_0 = cells[0].half_cells[i]
-            for name, content in half_cell_0.channel.print_data[0].items():
-                value = content['value']
-                var_array = \
-                    g_func.construct_empty_stack_array(value, fc_stack.n_cells)
-                for j, cell in enumerate(cells):
-                    half_cell = cell.half_cells[i]
-                    var_array[j] = \
-                        half_cell.channel.print_data[0][name]['value']
-                write_data(electrode_name + ' ' + name, var_array)
-
-            for base_name, sub_dict \
-                    in half_cell_0.channel.print_data[1].items():
+            for base_name, sub_dict in oo_collection[0].print_data[1].items():
                 for sub_name, content in sub_dict.items():
                     value = content['value']
                     var_array = \
-                        g_func.construct_empty_stack_array(value,
-                                                           fc_stack.n_cells)
-                    for j, cell in enumerate(cells):
-                        half_cell = cell.half_cells[i]
-                        var_array[j] = \
-                            half_cell.channel.print_data[1][base_name][
-                                sub_name]['value']
-                    write_data(electrode_name + ' ' + sub_name + ' ' + base_name,
-                               var_array)
-                # file_name = electrode_name + '_' \
-                #     + sub_name.replace(' ', '_') + '.csv'
-                # file_path = os.path.join(csv_path, file_name)
-                # header = electrode_name + ' ' + sub_name + ', ' + 'Units: ' \
-                #     + content['units'].strip('$')
-                # self.write_stack_array_to_csv(file_path, var_array,
-                #                               header=header)
+                        g_func.construct_empty_stack_array(value, n_items)
+                    for i, cell in enumerate(cells):
+                        var_array[i] = \
+                            cell.print_data[1][base_name][sub_name]['value']
+                    if var_array.shape[-1] == (len(x_values) - 1):
+                        x_values = ip.interpolate_1d(x_values)
+                    name = sub_name + ' ' + base_name
+                    write_data(x_values, var_array, x_label,
+                               name, content['units'], **kwargs)
+
+        # Save cell values
+        cells = fc_stack.cells
+        xvalues = cells[0].cathode.channel.x
+        xlabel = 'Channel Location [m]'
+        save_oo_collection(cells, xvalues, xlabel)
+
+        # Save half cell values
+        cathodes = [cell.cathode for cell in fc_stack.cells]
+        save_oo_collection(cathodes, xvalues, xlabel)
+        anodes = [cell.anode for cell in fc_stack.cells]
+        save_oo_collection(cathodes, xvalues, xlabel)
+
+        # Save channel values
+        cathode_channels = [cell.cathode.channel for cell in fc_stack.cells]
+        save_oo_collection(cathode_channels, xvalues, xlabel)
+        anode_channels = [cell.anode.channel for cell in fc_stack.cells]
+        save_oo_collection(anode_channels, xvalues, xlabel)
+
+        # Save fluid values
+        cathode_fluids = [cell.cathode.channel.fluid for cell in fc_stack.cells]
+        save_oo_collection(cathode_fluids, xvalues, xlabel)
+        anode_fluids = [cell.anode.channel.fluids for cell in fc_stack.cells]
+        save_oo_collection(anode_fluids, xvalues, xlabel)
+
+        # Save fuel circuit values
+        fuel_circuits = fc_stack.fuel_circuits
+        xvalues = [i + 1 for i in range(len(cells))]
+        xlabel = 'Cell'
+        save_oo_collection(fuel_circuits, xvalues, xlabel,
+                           legend=['Cathode', 'Anode'])
+
+        # Save coolant circuit values
+        coolant_circuits = [fc_stack.coolant_circuit]
+        xvalues = [i + 1 for i in range(coolant_circuits[0].n_channels)]
+        xlabel = 'Channel'
+        save_oo_collection(fuel_circuits, xvalues, xlabel)
 
     def plot_polarization_curve(self, voltage_loss,
                                 cell_voltages, target_current_density):

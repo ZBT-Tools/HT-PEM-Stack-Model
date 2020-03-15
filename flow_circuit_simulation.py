@@ -65,16 +65,16 @@ in_manifold_dict = {
     'p_out': channel_dict['p_out'],
     'temp_in': 300.0,
     'flow_direction': 1,
-    'width': 0.012,
-    'height': 0.012,
+    'width': 0.01,
+    'height': 0.01,
     'bend_number': 0,
     'bend_friction_factor': 0.0,
-    'additional_friction_fractor': -0.0
+    'additional_friction_fractor': -0.03
     }
 
 out_manifold_dict = copy.deepcopy(in_manifold_dict)
 out_manifold_dict['name'] = 'Outlet Manifold'
-out_manifold_dict['additional_friction_fractor'] = 0.00
+out_manifold_dict['additional_friction_fractor'] = 0.02
 
 flow_circuit_dict = {
     'name': 'Flow Circuit',

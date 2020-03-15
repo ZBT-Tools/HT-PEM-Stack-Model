@@ -230,9 +230,6 @@ class KohFlowCircuit(ParallelFlowCircuit):
         self.visc_channel = np.zeros(self.n_channels)
         self.dp_channel = np.zeros(self.n_channels)
 
-    def update_channels(self):
-        super().update_channels()
-
     def single_loop(self, inlet_mass_flow=None, update_channels=True):
         """
         Update the flow circuit
@@ -314,7 +311,7 @@ class WangFlowCircuit(ParallelFlowCircuit):
         # self.zeta[:] = 10.0
         self.initialize = False
 
-    def single_loop(self, inlet_mass_flow=None):
+    def single_loop(self, inlet_mass_flow=None, update_channels=True):
         if inlet_mass_flow is not None:
             self.mass_flow_in = inlet_mass_flow
             id_in = self.manifolds[0].id_in

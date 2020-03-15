@@ -14,6 +14,7 @@ class OutputObject:
     def __init__(self, name):
         assert isinstance(name, str)
         self._name = name
+        self.active = True
 
         self.print_data_1d = {}
         self.print_data_2d = {}
