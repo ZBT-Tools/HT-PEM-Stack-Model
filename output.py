@@ -254,7 +254,11 @@ class Output:
         return file
 
     def save(self, folder_name, fc_stack):
-        assert isinstance(fc_stack, stack.Stack)
+        if not self.save_csv and not self.save_plot:
+            return None
+
+        if not isinstance(fc_stack, stack.Stack):
+            raise TypeError
 
         csv_path = os.path.join(self.output_dir, folder_name, 'csv_data')
         plot_path = os.path.join(self.output_dir, folder_name, 'plots')
@@ -282,7 +286,7 @@ class Output:
                                         header=header)
 
         def save_oo_collection(oo_collection, x_values, x_label, **kwargs):
-            if not isinstance(oo_collection[0], oo.OutputObject):
+            if not hasattr(oo_collection[0], 'print_data'):
                 raise TypeError
             n_items = len(oo_collection)
             for name, content in oo_collection[0].print_data[0].items():
@@ -290,9 +294,10 @@ class Output:
                 var_array = g_func.construct_empty_stack_array(value, n_items)
                 for i, item in enumerate(oo_collection):
                     var_array[i] = item.print_data[0][name]['value']
+                x = x_values
                 if var_array.shape[-1] == (len(x_values) - 1):
-                    x_values = ip.interpolate_1d(x_values)
-                write_data(x_values, var_array, x_label, name,
+                    x = ip.interpolate_1d(x_values)
+                write_data(x, var_array, x_label, name,
                            content['units'], **kwargs)
 
             for base_name, sub_dict in oo_collection[0].print_data[1].items():
@@ -300,13 +305,14 @@ class Output:
                     value = content['value']
                     var_array = \
                         g_func.construct_empty_stack_array(value, n_items)
-                    for i, cell in enumerate(cells):
+                    for i, item in enumerate(oo_collection):
                         var_array[i] = \
-                            cell.print_data[1][base_name][sub_name]['value']
+                            item.print_data[1][base_name][sub_name]['value']
+                    x = x_values
                     if var_array.shape[-1] == (len(x_values) - 1):
-                        x_values = ip.interpolate_1d(x_values)
+                        x = ip.interpolate_1d(x_values)
                     name = sub_name + ' ' + base_name
-                    write_data(x_values, var_array, x_label,
+                    write_data(x, var_array, x_label,
                                name, content['units'], **kwargs)
 
         # Save cell values
@@ -315,11 +321,11 @@ class Output:
         xlabel = 'Channel Location [m]'
         save_oo_collection(cells, xvalues, xlabel)
 
-        # Save half cell values
-        cathodes = [cell.cathode for cell in fc_stack.cells]
-        save_oo_collection(cathodes, xvalues, xlabel)
-        anodes = [cell.anode for cell in fc_stack.cells]
-        save_oo_collection(cathodes, xvalues, xlabel)
+        # # Save half cell values
+        # cathodes = [cell.cathode for cell in fc_stack.cells]
+        # save_oo_collection(cathodes, xvalues, xlabel)
+        # anodes = [cell.anode for cell in fc_stack.cells]
+        # save_oo_collection(cathodes, xvalues, xlabel)
 
         # Save channel values
         cathode_channels = [cell.cathode.channel for cell in fc_stack.cells]
@@ -330,7 +336,7 @@ class Output:
         # Save fluid values
         cathode_fluids = [cell.cathode.channel.fluid for cell in fc_stack.cells]
         save_oo_collection(cathode_fluids, xvalues, xlabel)
-        anode_fluids = [cell.anode.channel.fluids for cell in fc_stack.cells]
+        anode_fluids = [cell.anode.channel.fluid for cell in fc_stack.cells]
         save_oo_collection(anode_fluids, xvalues, xlabel)
 
         # Save fuel circuit values

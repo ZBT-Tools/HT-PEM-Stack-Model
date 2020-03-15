@@ -24,8 +24,8 @@ class TemperatureSystem:
         # cell number
         self.n_cool = len(self.cool_channels)
 
-        self.sparse_solve = False
-        self.solve_individual_cells = True
+        self.sparse_solve = True
+        self.solve_individual_cells = False
 
         if self.n_cool == (self.n_cells + 1):
             self.cool_ch_bc = True
