@@ -13,7 +13,7 @@ class Stack:
 
     def __init__(self):
 
-        # Read input dictionaries
+        # Read settings dictionaries
         stack_dict = in_dicts.dict_stack
 
         # Handover
@@ -134,11 +134,14 @@ class Stack:
             cool_channels[i].fluid.name = \
                 cool_channels[i].name + ': ' + cool_channels[i].fluid.TYPE_NAME
 
-        self.coolant_circuit = \
-            flow_circuit.factory2(in_dicts.dict_coolant_flow_circuit,
-                                  in_dicts.dict_coolant_in_manifold,
-                                  in_dicts.dict_coolant_out_manifold,
-                                  cool_channels, n_cool_cell)
+        if n_cool > 0:
+            self.coolant_circuit = \
+                flow_circuit.factory2(in_dicts.dict_coolant_flow_circuit,
+                                      in_dicts.dict_coolant_in_manifold,
+                                      in_dicts.dict_coolant_out_manifold,
+                                      cool_channels, n_cool_cell)
+        else:
+            self.coolant_circuit = None
 
         self.flow_circuits = \
             [self.fuel_circuits[0], self.fuel_circuits[1], self.coolant_circuit]
@@ -185,7 +188,7 @@ class Stack:
             if cell.break_program:
                 self.break_program = True
                 break
-        self.i_cd_old[:] = self.i_cd
+        self.i_cd_old[:] = self.elec_sys.i_cd
         self.temp_old[:] = self.temp_sys.temp_layer_vec
         if not self.break_program:
             if self.calc_temp:
@@ -203,26 +206,31 @@ class Stack:
         for i in range(len(self.fuel_circuits)):
             self.fuel_circuits[i].update(mass_flows_in[i], calc_flow_dist)
         dtemp_target = 10.0
-        if update_inflows:
-            n_cool_cell = self.coolant_circuit.n_subchannels
-            over_potential = 0.5
-            heat = self.i_target * over_potential  \
-                * self.cells[0].active_area * self.n_cells * n_cool_cell
-            cp_cool = np.average([np.average(channel.fluid.specific_heat)
-                                  for channel in self.coolant_circuit.channels])
-            cool_mass_flow = heat / (cp_cool * dtemp_target)
-        else:
-            # id_in = self.coolant_circuit.manifolds[0].id_in
-            # temp_in = self.coolant_circuit.manifolds[0].temp[id_in]
-            # temp_out = np.sum([channel.temp[channel.id_out]
-            #                    * channel.g_fluid[channel.id_out]
-            #                    for channel in self.coolant_circuit.channels])
-            # temp_out /= np.sum([channel.g_fluid[channel.id_out]
-            #                     for channel in self.coolant_circuit.channels])
-            # temp_ratio = abs(temp_out - temp_in) / dtemp_target
-            # cool_mass_flow = self.coolant_circuit.mass_flow_in * temp_ratio
-            cool_mass_flow = None
-        self.coolant_circuit.update(cool_mass_flow, calc_flow_dist)
+        if self.coolant_circuit is not None:
+            if update_inflows:
+                n_cool_cell = self.coolant_circuit.n_subchannels
+                over_potential = 0.5
+                heat = self.i_target * over_potential  \
+                    * self.cells[0].active_area * self.n_cells * n_cool_cell
+                cp_cool = \
+                    np.average([np.average(channel.fluid.specific_heat)
+                                for channel in self.coolant_circuit.channels])
+                cool_mass_flow = heat / (cp_cool * dtemp_target)
+            else:
+                # id_in = self.coolant_circuit.manifolds[0].id_in
+                # temp_in = self.coolant_circuit.manifolds[0].temp[id_in]
+                # temp_out = \
+                #   np.sum([channel.temp[channel.id_out]
+                #           * channel.g_fluid[channel.id_out]
+                #           for channel in self.coolant_circuit.channels])
+                # temp_out /= \
+                #   np.sum([channel.g_fluid[channel.id_out]
+                #           for channel in self.coolant_circuit.channels])
+                # temp_ratio = abs(temp_out - temp_in) / dtemp_target
+                # cool_mass_flow = \
+                #   self.coolant_circuit.mass_flow_in * temp_ratio
+                cool_mass_flow = None
+            self.coolant_circuit.update(cool_mass_flow, calc_flow_dist)
 
     def update_electrical_coupling(self):
         """

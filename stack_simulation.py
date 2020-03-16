@@ -1,4 +1,4 @@
-import input.operating_conditions as op_con
+import settings.operating_conditions as op_con
 import system.stack as stack
 import numpy as np
 import data.global_parameters as g_par
@@ -51,7 +51,7 @@ class Simulation:
         output_dict = input_dicts.dict_output
         self.output = output.Output(output_dict)
 
-    # @do_c_profile
+    @do_c_profile
     def update(self):
         """
         This function coordinates the program sequence
@@ -187,20 +187,6 @@ print('Output time: ', simulation.timing['output'])
 stop_time = timeit.default_timer()
 print('Total time:', stop_time - start_time)
 
+# print(out_obj.OutputObject.make_name_list())
 # for obj in out_obj.OutputObject.getinstances():
-#     print(obj)
-#     print(obj.name)
-
-#print(simulation.stack.cells[0].cathode.channel.fluid.name)
-# for obj in out_obj.OutputObject.getinstances():
-    # print(obj)
-
-
-print(out_obj.OutputObject.make_name_list())
-for obj in out_obj.OutputObject.getinstances():
-    print(obj.name_list)
-
-# for name in out_obj.OutputObject.get_names():
-#     print(name)
-
-# print(out_obj.OutputObject._names)
+#     print(obj.name_list)

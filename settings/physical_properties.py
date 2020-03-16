@@ -30,7 +30,7 @@ vapour_mass_transport_coefficient = 0.62e-5
 
 """Electric Settings"""
 # membrane type ('Constant', 'Springer', or 'Kvesic')
-membrane_type = 'Springer'
+membrane_type = 'Constant'
 # membrane basic resistance [Ohm/m^2]
 membrane_basic_resistance = 0.19
 # membrane basic conductivity [S/m]

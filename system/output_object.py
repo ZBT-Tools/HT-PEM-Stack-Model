@@ -7,8 +7,8 @@ import collections
 
 class OutputObject:
 
-    PRINT_HIERARCHY = 3
-    CLUSTER_NAMES = [['Cell', 'Flow Circuit']]
+    # PRINT_HIERARCHY = 3
+    # CLUSTER_NAMES = [['Cell', 'Flow Circuit']]
     _instances = set()
 
     def __init__(self, name):
@@ -49,8 +49,6 @@ class OutputObject:
     def copy(self):
         copy = deepcopy(self)
         self._instances.add(weakref.ref(copy))
-        # self._names.append(self.name)
-        # self._instances_strong_ref.add(self)
         return copy
 
     def add_print_data(self, data_array, name, units='-', sub_names=None):
@@ -59,11 +57,11 @@ class OutputObject:
                 sub_names = [str(i+1) for i in range(len(data_array))]
             self.print_data_2d[name] = \
                 {sub_names[i]:
-                 {'value': data_array[i], 'units': str(units)}
+                 {'value': data_array[i], 'units': str(units), 'save': True}
                  for i in range(len(sub_names))}
         elif data_array.ndim == 1:
             self.print_data_1d[name] = \
-                {'value': data_array, 'units': str(units)}
+                {'value': data_array, 'units': str(units), 'save': True}
         else:
             raise ValueError('argument data_array must be 1- or 2-dimensional')
 
@@ -72,9 +70,11 @@ class OutputObject:
             attr = eval('self.' + name)
             description = string.capwords(name.replace('_', ' '))
             units = print_variables['units'][i]
-            sub_names = eval(print_variables['sub_names'][i])
-            self.add_print_data(attr, description,
-                                units=units, sub_names=sub_names)
+            sub_names = print_variables.get('sub_names', None)
+            if sub_names is not None:
+                sub_names = eval(sub_names[i])
+            self.add_print_data(attr, description, units=units,
+                                sub_names=sub_names)
 
     @staticmethod
     def combine_print_variables(dict_a, dict_b):
@@ -91,8 +91,8 @@ class OutputObject:
             name_list.append(obj.name_list)
         return name_list
 
-    @classmethod
-    def cluster_objects(cls):
-        cluster = []
+    # @classmethod
+    # def cluster_objects(cls):
+    #     cluster = []
 
 

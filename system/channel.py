@@ -91,9 +91,9 @@ class Channel(ABC, OutputObject):
         self.heat = np.zeros(self.n_ele)
         self.wall_temp = np.zeros(self.n_ele)
 
-        self.add_print_data(self.temp, 'Fluid Temperature', 'K')
+        # self.add_print_data(self.temp, 'Fluid Temperature', 'K')
         self.add_print_data(self.wall_temp, 'Wall Temperature', 'K')
-        self.add_print_data(self.p, 'Fluid Pressure', 'Pa')
+        # self.add_print_data(self.p, 'Fluid Pressure', 'Pa')
 
     def update(self, mass_flow_in=None, mass_source=None,
                wall_temp=None, heat_flux=None, update_flow=True,

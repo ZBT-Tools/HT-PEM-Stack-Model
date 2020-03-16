@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import os
 import errno
 import system.interpolation as ip
-import input.geometry as geom
+import settings.geometry as geom
 import shutil
 import data.global_parameters as g_par
 import system.global_functions as g_func
@@ -340,17 +340,19 @@ class Output:
         save_oo_collection(anode_fluids, xvalues, xlabel)
 
         # Save fuel circuit values
-        fuel_circuits = fc_stack.fuel_circuits
-        xvalues = [i + 1 for i in range(len(cells))]
-        xlabel = 'Cell'
-        save_oo_collection(fuel_circuits, xvalues, xlabel,
-                           legend=['Cathode', 'Anode'])
+        if fc_stack.n_cells > 1:
+            fuel_circuits = fc_stack.fuel_circuits
+            xvalues = [i + 1 for i in range(len(cells))]
+            xlabel = 'Cell'
+            save_oo_collection(fuel_circuits, xvalues, xlabel,
+                               legend=['Cathode', 'Anode'])
 
         # Save coolant circuit values
-        coolant_circuits = [fc_stack.coolant_circuit]
-        xvalues = [i + 1 for i in range(coolant_circuits[0].n_channels)]
-        xlabel = 'Channel'
-        save_oo_collection(coolant_circuits, xvalues, xlabel)
+        if fc_stack.coolant_circuit is not None:
+            coolant_circuits = [fc_stack.coolant_circuit]
+            xvalues = [i + 1 for i in range(coolant_circuits[0].n_channels)]
+            xlabel = 'Channel'
+            save_oo_collection(coolant_circuits, xvalues, xlabel)
 
     def plot_polarization_curve(self, voltage_loss,
                                 cell_voltages, target_current_density):

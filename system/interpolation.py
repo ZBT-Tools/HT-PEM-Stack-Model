@@ -4,8 +4,8 @@ import numpy as np
 def interpolate_1d(array, add_edge_points=False):
     """
     Linear interpolation in between the given array data. If
-    add_edge_points is True, the neighbouring value from the input array is
-    used at the edges and the returned array will larger than the input array.
+    add_edge_points is True, the neighbouring value from the settings array is
+    used at the edges and the returned array will larger than the settings array.
     """
 
     interpolated = np.asarray(array[:-1] + array[1:]) * .5
@@ -21,8 +21,8 @@ def interpolate_along_axis(array, axis, add_edge_points=False):
     """
     Linear interpolation in between the given array data along the given
     axis.
-    If add_edge_points is True, the neighbouring value from the input array is
-    used at the edges and the returned array will be larger than the input
+    If add_edge_points is True, the neighbouring value from the settings array is
+    used at the edges and the returned array will be larger than the settings
     array.
     """
     if axis == 0:

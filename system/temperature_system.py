@@ -16,21 +16,26 @@ class TemperatureSystem:
 
     def __init__(self, stack, temp_dict):
         self.cells = stack.cells
-        self.cool_channels = stack.coolant_circuit.channels
-        assert isinstance(stack.cells, (list, tuple))
-        assert isinstance(self.cells[0], fcell.Cell)
-        assert isinstance(self.cool_channels[0], chl.Channel)
+        if not isinstance(stack.cells, (list, tuple)):
+            raise TypeError
+        if not isinstance(self.cells[0], fcell.Cell):
+            raise TypeError
         self.n_cells = stack.n_cells
-        # cell number
-        self.n_cool = len(self.cool_channels)
 
         self.sparse_solve = True
         self.solve_individual_cells = False
 
-        if self.n_cool == (self.n_cells + 1):
-            self.cool_ch_bc = True
-        else:
-            self.cool_ch_bc = False
+        self.cool_flow = False
+        if stack.coolant_circuit is not None:
+            self.cool_flow = True
+            self.cool_channels = stack.coolant_circuit.channels
+            self.n_cool = len(self.cool_channels)
+            if not isinstance(self.cool_channels[0], chl.Channel):
+                raise TypeError
+            if self.n_cool == (self.n_cells + 1):
+                self.cool_ch_bc = True
+            else:
+                self.cool_ch_bc = False
 
         self.e_tn = g_par.dict_case['v_tn']
         # thermodynamic neutral cell potential
@@ -98,7 +103,8 @@ class TemperatureSystem:
         This function coordinates the program sequence
         """
         self.update_gas_channel()
-        self.update_coolant_channel()
+        if self.cool_flow:
+            self.update_coolant_channel()
         self.update_temp_layer()
 
     def update_temp_layer(self):
@@ -178,22 +184,23 @@ class TemperatureSystem:
             cell.add_explicit_layer_source(cell.heat_rhs_dyn, source, 4)
 
             # Cooling channels
-            if self.cool_ch_bc:
-                cool_chl = self.cool_channels[i]
-                source = cool_chl.k_coeff * cool_chl.temp_ele
-                cell.add_explicit_layer_source(cell.heat_rhs_dyn,
-                                               source, layer_id=0)
-                if cell.last_cell:
-                    cool_chl = self.cool_channels[i + 1]
-                    source = cool_chl.k_coeff * cool_chl.temp_ele
-                    cell.add_explicit_layer_source(cell.heat_rhs_dyn,
-                                                   source, layer_id=-1)
-            else:
-                if not cell.first_cell:
-                    cool_chl = self.cool_channels[i - 1]
+            if self.cool_flow:
+                if self.cool_ch_bc:
+                    cool_chl = self.cool_channels[i]
                     source = cool_chl.k_coeff * cool_chl.temp_ele
                     cell.add_explicit_layer_source(cell.heat_rhs_dyn,
                                                    source, layer_id=0)
+                    if cell.last_cell:
+                        cool_chl = self.cool_channels[i + 1]
+                        source = cool_chl.k_coeff * cool_chl.temp_ele
+                        cell.add_explicit_layer_source(cell.heat_rhs_dyn,
+                                                       source, layer_id=-1)
+                else:
+                    if not cell.first_cell:
+                        cool_chl = self.cool_channels[i - 1]
+                        source = cool_chl.k_coeff * cool_chl.temp_ele
+                        cell.add_explicit_layer_source(cell.heat_rhs_dyn,
+                                                       source, layer_id=0)
 
         if not self.solve_individual_cells:
             rhs_dyn = np.hstack([cell.heat_rhs_dyn for cell in self.cells])
@@ -219,25 +226,26 @@ class TemperatureSystem:
 
             # add thermal conductance for heat transfer to coolant
             source_vec_3 = np.zeros(source_vec_1.shape)
-            if self.cool_ch_bc:
-                source = - self.cool_channels[i].k_coeff
-                matrix, source_vec = \
-                    cell.add_implicit_layer_source(cell.heat_mtx_dyn,
-                                                   source, layer_id=0)
-                source_vec_3[:] = source_vec
-                if cell.last_cell:
-                    source = - self.cool_channels[i + 1].k_coeff
-                    matrix, source_vec = \
-                        cell.add_implicit_layer_source(cell.heat_mtx_dyn,
-                                                       source, layer_id=-1)
-                    source_vec_3[:] += source_vec
-            else:
-                if not cell.first_cell:
-                    source = - self.cool_channels[i - 1].k_coeff
+            if self.cool_flow:
+                if self.cool_ch_bc:
+                    source = - self.cool_channels[i].k_coeff
                     matrix, source_vec = \
                         cell.add_implicit_layer_source(cell.heat_mtx_dyn,
                                                        source, layer_id=0)
                     source_vec_3[:] = source_vec
+                    if cell.last_cell:
+                        source = - self.cool_channels[i + 1].k_coeff
+                        matrix, source_vec = \
+                            cell.add_implicit_layer_source(cell.heat_mtx_dyn,
+                                                           source, layer_id=-1)
+                        source_vec_3[:] += source_vec
+                else:
+                    if not cell.first_cell:
+                        source = - self.cool_channels[i - 1].k_coeff
+                        matrix, source_vec = \
+                            cell.add_implicit_layer_source(cell.heat_mtx_dyn,
+                                                           source, layer_id=0)
+                        source_vec_3[:] = source_vec
 
             source_vectors[i][:] = source_vec_1 + source_vec_2 + source_vec_3
 

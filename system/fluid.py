@@ -14,7 +14,7 @@ class OneDimensionalFluid(ABC, OutputObject):
 
     def __init__(self, nx, name, temperature=298.15, pressure=101325.0,
                  **kwargs):
-        print("__init__ for Fluid")
+        # print("__init__ for Fluid")
         super().__init__(name)
         self.nodes = nx
         self.print_variables = \
@@ -68,14 +68,9 @@ class OneDimensionalFluid(ABC, OutputObject):
             else:
                 composition = g_func.fill_zero_sum(composition, axis=0)
             recursion_count += 1
+            if recursion_count > 1:
+                raise ValueError('something wrong')
             return self.calc_fraction(composition, axis, recursion_count)
-            # if recursion_count > self.nodes:
-            #     raise ValueError('maximum recursion depth reached. '
-            #                      'check input composition')
-            # composition = g_func.fill_surrounding_average_1d(composition, axis)
-            # recursion_count += 1
-            # return self.calc_fraction(composition, axis,
-            #                           recursion_count=recursion_count)
 
     @property
     def temperature(self):
@@ -195,7 +190,7 @@ class ConstantFluid(OneDimensionalFluid):
 
     def __init__(self, nx, name, fluid_props, temperature=298.15,
                  pressure=101325.0, **kwargs):
-        print("__init__ for IncompressibleFluid")
+        # print("__init__ for IncompressibleFluid")
         super().__init__(nx, name, temperature, pressure, **kwargs)
         self.name = name
         if not isinstance(fluid_props, species.ConstantProperties):
@@ -221,7 +216,7 @@ class IncompressibleFluid(OneDimensionalFluid):
 
     def __init__(self, nx, name, fluid_props, temperature=298.15,
                  pressure=101325.0, **kwargs):
-        print("__init__ for IncompressibleFluid")
+        # print("__init__ for IncompressibleFluid")
         if isinstance(fluid_props, species.IncompressibleProperties):
             self.properties = fluid_props
         else:
@@ -260,7 +255,7 @@ class GasMixture(OneDimensionalFluid):
 
     def __init__(self, nx, name, species_dict, mole_fractions,
                  temperature=298.15, pressure=101325.0, **kwargs):
-        print("__init__ for Gas Mixture")
+        # print("__init__ for Gas Mixture")
         print_variables = \
             {
                 'names': ['mole_fraction'],
@@ -476,7 +471,7 @@ class TwoPhaseMixture(OneDimensionalFluid):
     def __init__(self, nx, name, species_dict, mole_fractions,
                  liquid_props=None, temperature=298.15, pressure=101325.0,
                  **kwargs):
-        print("__init__ for TwoPhaseMixture")
+        # print("__init__ for TwoPhaseMixture")
         print_variables = \
             {
                 'names': ['humidity'],

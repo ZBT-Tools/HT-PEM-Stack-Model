@@ -63,11 +63,15 @@ class ElectricalCoupling:
             np.asarray([cell.conductance_z for cell in self.cells]).flatten()
         # conductance = (self.c_width * self.dx / resistance).flatten()
         # conductance = 1.0 / self.resistance
+        active_area = \
+            np.array([cell.active_area_dx for cell in self.cells]).flatten()
         if self.n_cells > 1:
             self.update_mat(conductance_z)
-            self.rhs[:self.n_ele] = \
-                self.calc_boundary_condition(conductance_z)
-            self.calc_i(conductance_z)
+            self.rhs[:self.n_ele] = self.calc_boundary_condition()
+            self.i_cd[:] = self.calc_i(conductance_z, active_area)
+        else:
+            i_bc = self.calc_boundary_condition()
+            self.i_cd[:] = - i_bc / active_area
 
     def update_mat(self, conductance):
         """
@@ -83,7 +87,7 @@ class ElectricalCoupling:
             mat_dyn = sparse.csr_matrix(mat_dyn)
         self.mat = self.mat_const + mat_dyn
 
-    def calc_boundary_condition(self, conductance):
+    def calc_boundary_condition(self):
         """
         Updates the right hand side of the linear system.
         """
@@ -102,28 +106,19 @@ class ElectricalCoupling:
         v_loss_total *= - 1.0 * i_correction_factor
         return v_loss_total * cell_0.conductance_z
 
-    def calc_i(self, conductance):
+    def calc_i(self, conductance, active_area):
         """
         Calculates the current density
         of the elements in z-direction.
         """
+        self.v_end_plate[:] = - self.rhs[:self.n_ele] / conductance[:self.n_ele]
         if self.solve_sparse:
             v_new = spsolve(self.mat, self.rhs)
             # mat_const = self.mat_const.toarray()
             # mat = self.mat.toarray()
         else:
             v_new = np.linalg.tensorsolve(self.mat, self.rhs)
-
-        # results = np.matmul(mat, v_new)
-        self.v_end_plate[:] = - self.rhs[:self.n_ele] / conductance[:self.n_ele]
         v_new = np.hstack((self.v_end_plate, v_new, np.zeros(self.n_ele)))
         v_diff = v_new[:-self.n_ele] - v_new[self.n_ele:]
-        active_area = \
-            np.array([cell.active_area_dx for cell in self.cells]).flatten()
-        try:
-            i_ca_vec = v_diff * conductance / active_area
-        except ValueError:
-            print('test')
-        i_cd = np.reshape(i_ca_vec.flatten(order='C'),
-                          (self.n_cells, self.n_ele))
-        self.i_cd[:] = i_cd  # / np.average(i_cd) * self.i_cd_tar
+        i_ca_vec = v_diff * conductance / active_area
+        return np.reshape(i_ca_vec.flatten(), (self.n_cells, self.n_ele))

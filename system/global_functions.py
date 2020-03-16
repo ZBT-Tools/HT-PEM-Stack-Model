@@ -99,7 +99,10 @@ def fill_zero_sum(array, axis=-1, axis_sum=None):
         return fill_zero_sum(array_t, axis=-1).transpose()
     elif axis in (-1, 1):
         if axis_sum is None:
-            axis_sum = np.abs(np.sum(array, axis=0))
+            try:
+                axis_sum = np.abs(np.sum(array, axis=0))
+            except RecursionError:
+                print('test')
         else:
             axis_sum = np.abs(axis_sum)
     else:
@@ -247,7 +250,7 @@ def calc_pressure_drop(velocity, density, f, zeta, length, diameter,
     """
     if np.shape(velocity)[0] != (np.shape(length)[0] + 1):
         raise ValueError('velocity array must be provided as a 1D'
-                         'nodal array (n+1), while the other input arrays '
+                         'nodal array (n+1), while the other settings arrays '
                          'must be element-wise (n)')
     v1 = velocity[:-1]
     v2 = velocity[1:]

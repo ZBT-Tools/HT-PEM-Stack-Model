@@ -1,6 +1,6 @@
-import input.physical_properties as phy_prop
-import input.operating_conditions as op_con
-import input.simulation as sim
+import settings.physical_properties as phy_prop
+import settings.operating_conditions as op_con
+import settings.simulation as sim
 import numpy as np
 
 SMALL = 1e-10

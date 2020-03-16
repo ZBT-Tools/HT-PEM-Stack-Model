@@ -1,10 +1,10 @@
-import input.physical_properties as phy_prop
-import input.geometry as geom
-import input.simulation as sim
-import input.operating_conditions as op_con
+import settings.physical_properties as phy_prop
+import settings.geometry as geom
+import settings.simulation as sim
+import settings.operating_conditions as op_con
+import settings.output as out
 import data.global_parameters as g_par
 import system.species as species
-import numpy as np
 import copy
 
 
@@ -254,58 +254,6 @@ dict_coolant_flow_circuit = {
     'shape': geom.coolant_manifold_configuration
     }
 
-# dict_cathode_manifold = {
-#     'name': 'Cathode Manifold',
-#     'configuration': geom.cathode_manifold_configuration,
-#     'p_out': op_con.p_manifold_cathode_out,
-#     'temp_in': op_con.temp_air_in,
-#     # 'hum_in': op_con.inlet_humidity_anode,
-#     'channel_width': geom.manifold_width,
-#     'channel_height': geom.manifold_height,
-#     'additional_friction_factor': geom.manifold_pressure_loss_coefficient
-#     }
-#
-# dict_anode_manifold = {
-#     'name': 'Anode Manifold',
-#     'configuration': geom.anode_manifold_configuration,
-#     'p_out': op_con.p_manifold_anode_out,
-#     'temp_in': op_con.temp_anode_gas_in,
-#     'channel_width': geom.manifold_width,
-#     'channel_height': geom.manifold_height,
-#     'additional_friction_factor': geom.manifold_pressure_loss_coefficient
-#     }
-#
-# dict_mfold_cat = {
-#     'name': 'Cathode Manifold',
-#     'cell_number': geom.cell_number,
-#     'header_width': geom.manifold_width,
-#     'header_height': geom.manifold_height,
-#     'kf': geom.manifold_pressure_loss_coefficient,
-#     'cell_height': np.full(geom.cell_number,
-#                            2. * (geom.bipolar_plate_thickness
-#                                  + geom.gas_diffusion_layer_thickness
-#                                  + geom.catalyst_layer_thickness)
-#                            + geom.membrane_thickness),
-#     # 'cell_channel_length': np.full(geom.cell_number, geom.channel_length),
-#     # 'cell_channel_cross_area': np.full(geom.cell_number,
-#     #                                    geom.channel_width
-#     #                                    * geom.channel_height),
-#     'p_out': op_con.p_manifold_cathode_out
-#     }
-#
-#
-# dict_mfold_ano = copy.deepcopy(dict_mfold_cat)
-# dict_mfold_ano['name'] = 'Anode Manifold'
-# dict_mfold_ano['p_out'] = op_con.p_manifold_anode_out
-
-# dict_electrical_coupling =\
-#     {
-#         'cell_number': geom.cell_number,
-#         'dx': geom.channel_length / float(sim.elements),
-#         # 'th_bpp': geom.bipolar_plate_thickness
-#         #'conducting_width': geom.rib_width * (geom.gas_channel_number + 1)
-#     }
-
 dict_temp_sys = {
     'temp_amb': op_con.temp_environment,
     'alpha_amb': op_con.convection_coefficient_stack_environment,
@@ -315,7 +263,7 @@ dict_temp_sys = {
     }
 
 dict_output = {
-    'save_csv': sim.save_csv_data,
-    'save_plot': sim.save_plot_data,
-    'show_loss': sim.show_voltage_loss
+    'save_csv': out.save_csv_data,
+    'save_plot': out.save_plot_data,
+    'show_loss': out.show_voltage_loss
     }

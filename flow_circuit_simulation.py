@@ -1,4 +1,4 @@
-import input.operating_conditions as op_con
+import settings.operating_conditions as op_con
 import system.stack as stack
 import numpy as np
 import data.global_parameters as g_par

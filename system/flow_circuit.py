@@ -105,7 +105,7 @@ class ParallelFlowCircuit(ABC, OutputObject):
         channel_vol_flow_old[:] = 1e8
         if calc_distribution:
             for i in range(self.max_iter):
-                print(self.name + ' Iteration # ', str(i+1))
+                # print(self.name + ' Iteration # ', str(i+1))
                 if i == 0:
                     self.single_loop(update_channels=True)
                     self.initialize = False
