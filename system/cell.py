@@ -75,12 +75,7 @@ class Cell(OutputObject):
         # will be initialized correctly through stack class
         self.coords = [0.0, 0.0]
 
-        self.mem_base_r = cell_dict['mem_base_r']
-        # basic electrical resistance of the membrane
-        self.mem_acl_r = cell_dict['mem_acl_r']
-        # thermal related electrical resistance gain of the membrane
-
-        self.is_ht_pem = self.cell_dict['is_ht_pem']
+        # self.is_ht_pem = self.cell_dict['is_ht_pem']
 
         """heat conductivity along and through the cell layers"""
         self.width_straight_channels = self.cathode.width_straight_channels

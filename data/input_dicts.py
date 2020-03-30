@@ -11,10 +11,8 @@ import copy
 dict_stack = {
     'cell_number': geom.cell_number,
     'heat_power': op_con.endplates_heat_power,
-    'header_height': geom.manifold_height,
-    'header_width': geom.manifold_width,
-    'dis_dis_fac': geom.manifold_pressure_loss_coefficient,
-    'cool_ch_bc': geom.cooling_bc,
+    'cool_flow': geom.coolant_circuit,
+    # 'cool_ch_bc': geom.cooling_bc,
     'calc_temperature': sim.calc_temperature,
     'calc_current_density': sim.calc_current_density,
     'calc_flow_distribution': sim.calc_flow_distribution
@@ -27,7 +25,7 @@ simulation_dict = {
     }
 
 dict_cell = {
-    'is_ht_pem': op_con.is_ht_pem,
+    # 'is_ht_pem': op_con.is_ht_pem,
     'th_mem': geom.membrane_thickness,
     'width': geom.cell_width,
     'length': geom.cell_length,

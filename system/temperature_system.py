@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 from scipy import linalg as sp_la
 from scipy import sparse
 from scipy.sparse.linalg import spsolve
@@ -22,9 +23,15 @@ class TemperatureSystem:
             raise TypeError
         self.n_cells = stack.n_cells
 
-        self.sparse_solve = True
-        self.solve_individual_cells = False
+        # use SciPy sparse solver, efficient for larger sparse matrices
+        self.sparse_solve = False
 
+        # instead of solving the complete temperature system at once
+        # solve the cell-wise temperature systems and iterate
+        # however not working yet!!!
+        self.solve_individual_cells = True
+
+        # coolant flow settings
         self.cool_flow = False
         if stack.coolant_circuit is not None:
             self.cool_flow = True
@@ -214,6 +221,7 @@ class TemperatureSystem:
         for i, cell in enumerate(self.cells):
             cell.heat_mtx_dyn[:, :] = 0.0
             source_vectors.append(np.zeros(cell.heat_rhs_dyn.shape))
+
             # add thermal conductance for heat transfer to cathode gas
             source = -cell.cathode.channel.k_coeff
             matrix, source_vec_1 = \
@@ -276,45 +284,57 @@ class TemperatureSystem:
         conductance = cell.thermal_conductance_z[-1]
         source = conductance * self.cells[i + 1].temp_layer[0]
         cell.add_explicit_layer_source(cell.heat_rhs_dyn, source, -1)
-        source = - conductance
-        cell.add_implicit_layer_source(cell.heat_mtx_dyn, source, -1)
+        coeff = - conductance
+        cell.add_implicit_layer_source(cell.heat_mtx_dyn, coeff, -1)
 
     def connect_to_previous_cell(self, i):
         cell = self.cells[i]
         conductance = self.cells[i - 1].thermal_conductance_z[-1]
-        source = - conductance * self.cells[i - 1].temp_layer[-1]
+        # source = - conductance * self.cells[i - 1].temp_layer[-1]
+        source = conductance * (self.cells[i - 1].temp_layer[-1] -
+                                self.cells[i].temp_layer[0])
         cell.add_explicit_layer_source(cell.heat_rhs_dyn, source, 0)
-        source = conductance
-        cell.add_implicit_layer_source(cell.heat_mtx_dyn, source, 0)
+        # source = conductance
+        # cell.add_implicit_layer_source(cell.heat_mtx_dyn, source, 0)
 
     def solve_cells(self):
         """
         Solves the layer temperatures.
         """
-        tolerance = 1e-8
+        tolerance = 1e-10
         error = 1e8
+        under_relaxation = 0.0
         temp_old = g_func.full(self.temp_layer_vec.shape, 1e8)
         temp_new = np.zeros(self.temp_layer_vec.shape)
-        while error > tolerance:
+        counter = 0
+        while (error > tolerance) or (counter < 3):
             temp_new_list = []
             for i, cell in enumerate(self.cells):
-                if cell.first_cell:
-                    self.connect_to_next_cell(i)
-                elif cell.last_cell:
-                    self.connect_to_previous_cell(i)
-                else:
-                    self.connect_to_previous_cell(i)
-                    self.connect_to_next_cell(i)
+                if counter > 0:
+                    if self.n_cells > 1:
+                        if cell.first_cell:
+                            self.connect_to_next_cell(i)
+                        elif cell.last_cell:
+                            self.connect_to_previous_cell(i)
+                        else:
+                            self.connect_to_previous_cell(i)
+                            self.connect_to_next_cell(i)
                 cell.heat_mtx[:] = cell.heat_mtx_const + cell.heat_mtx_dyn
-                cell.heat_rhs[:] = cell.heat_rhs_const + cell.heat_rhs_const
+                cell.heat_rhs[:] = cell.heat_rhs_const + cell.heat_rhs_dyn
                 temp_layer_vec = \
                     np.linalg.tensorsolve(cell.heat_mtx, cell.heat_rhs)
+                if counter > 0:
+                    temp_layer_vec = (1.0 - under_relaxation) * temp_layer_vec \
+                        + under_relaxation * temp_old_array[i]
                 temp_new_list.append(temp_layer_vec)
                 for j in range(cell.n_layer):
                     index_vector = cell.index_array[j]
                     cell.temp_layer[j] = temp_layer_vec[index_vector]
+            temp_old_array = copy.deepcopy(temp_new_list)
             temp_new[:] = np.concatenate(temp_new_list, axis=0)
             error = np.abs(np.sum(((temp_old - temp_new) / temp_new) ** 2.0))
+            temp_old[:] = temp_new
+            counter += 1
         self.temp_layer_vec[:] = temp_new
 
     def update_cell_layer_temperatures(self):

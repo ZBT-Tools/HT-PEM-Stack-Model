@@ -2,7 +2,7 @@
 
 """Simulation Settings"""
 # discretization of the flow channel along the x-axis
-elements = 20
+elements = 1
 # convergence criteria of the simulation
 convergence_criteria = 1.e-6
 # maximum number of iterations
@@ -14,7 +14,7 @@ calc_temperature = True
 # calculate the current density distribution
 calc_current_density = True
 # calculate the flow distribution
-calc_flow_distribution = True
+calc_flow_distribution = False
 # calculate the activation voltage losses
 calc_activation_loss = True
 # calculate the membrane voltage losses

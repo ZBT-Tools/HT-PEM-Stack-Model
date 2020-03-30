@@ -114,32 +114,36 @@ class Stack:
                                       manifold_out_dicts[i],
                                       channels[i], sub_channel_number))
 
-        coolant_dict = in_dicts.dict_coolant_fluid
-        in_dicts.dict_coolant_in_manifold['length'] = manifold_length
-        in_dicts.dict_coolant_out_manifold['length'] = manifold_length
-        coolant_dict['temp_in'] = in_dicts.dict_coolant_in_manifold['temp_in']
-        coolant_dict['p_out'] = in_dicts.dict_coolant_out_manifold['p_out']
+        cool_flow = stack_dict['cool_flow']
+        if cool_flow:
+            coolant_dict = in_dicts.dict_coolant_fluid
+            in_dicts.dict_coolant_in_manifold['length'] = manifold_length
+            in_dicts.dict_coolant_out_manifold['length'] = manifold_length
+            coolant_dict['temp_in'] = in_dicts.dict_coolant_in_manifold['temp_in']
+            coolant_dict['p_out'] = in_dicts.dict_coolant_out_manifold['p_out']
 
-        if temperature_dict['cool_ch_bc']:
-            n_cool = self.n_cells + 1
-        else:
-            n_cool = self.n_cells - 1
+            if temperature_dict['cool_ch_bc']:
+                n_cool = self.n_cells + 1
+            else:
+                n_cool = self.n_cells - 1
 
-        n_cool_cell = temperature_dict['cool_ch_numb']
-        cool_channels = []
-        for i in range(n_cool):
-            cool_channels.append(chl.Channel(in_dicts.dict_coolant_channel,
-                                             fluid.dict_factory(coolant_dict)))
-            cool_channels[i].name += ' ' + str(i)
-            cool_channels[i].fluid.name = \
-                cool_channels[i].name + ': ' + cool_channels[i].fluid.TYPE_NAME
+            n_cool_cell = temperature_dict['cool_ch_numb']
+            cool_channels = []
+            for i in range(n_cool):
+                cool_channels.append(chl.Channel(in_dicts.dict_coolant_channel,
+                                                 fluid.dict_factory(coolant_dict)))
+                cool_channels[i].name += ' ' + str(i)
+                cool_channels[i].fluid.name = \
+                    cool_channels[i].name + ': ' + cool_channels[i].fluid.TYPE_NAME
 
-        if n_cool > 0:
-            self.coolant_circuit = \
-                flow_circuit.factory2(in_dicts.dict_coolant_flow_circuit,
-                                      in_dicts.dict_coolant_in_manifold,
-                                      in_dicts.dict_coolant_out_manifold,
-                                      cool_channels, n_cool_cell)
+            if n_cool > 0:
+                self.coolant_circuit = \
+                    flow_circuit.factory2(in_dicts.dict_coolant_flow_circuit,
+                                          in_dicts.dict_coolant_in_manifold,
+                                          in_dicts.dict_coolant_out_manifold,
+                                          cool_channels, n_cool_cell)
+            else:
+                self.coolant_circuit = None
         else:
             self.coolant_circuit = None
 
