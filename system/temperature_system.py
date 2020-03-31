@@ -1,5 +1,7 @@
 import numpy as np
-import scipy.linalg as sp_l
+from scipy import linalg as sp_la
+from scipy import sparse
+from scipy.sparse.linalg import spsolve
 import data.global_parameters as g_par
 import system.global_functions as g_func
 import data.water_properties as w_prop
@@ -9,49 +11,48 @@ np.set_printoptions(linewidth=10000, threshold=None, precision=2)
 
 class TemperatureSystem:
 
-    def __init__(self, temp_sys_const_dict):
+    def __init__(self, temp_sys_dict):
         # Handover
-        self.n_cells = temp_sys_const_dict['cell_numb']
+        self.n_cells = temp_sys_dict['cell_numb']
         # cell number
-        self.nodes = temp_sys_const_dict['nodes']
+        self.n_nodes = temp_sys_dict['nodes']
         # node number
-        self.n_ele = self.nodes - 1
+        self.n_ele = self.n_nodes - 1
         # element number
-        self.ch_length = temp_sys_const_dict['channel_length']
+        ch_length = temp_sys_dict['channel_length']
         # channel length
-        self.ch_width = temp_sys_const_dict['channel_width']
+        ch_width = temp_sys_dict['channel_width']
         # channel width
-        self.cool_ch_bc = temp_sys_const_dict['cool_ch_bc']
+        self.cool_ch_bc = temp_sys_dict['cool_ch_bc']
         # coolant geometry condition
-        self.temp_gas_in = temp_sys_const_dict['temp_gas_in']
+        self.temp_gas_in = temp_sys_dict['temp_gas_in']
         # gas inlet temperature
-        self.temp_cool_in = temp_sys_const_dict['cool_temp_in']
+        temp_cool_in = temp_sys_dict['cool_temp_in']
         # coolant inlet temperature
-        self.temp_layer_init = temp_sys_const_dict['temp_layer_init']
+        temp_layer_init = temp_sys_dict['temp_layer_init']
         # initial temperature
-        self.cp_cool = temp_sys_const_dict['cool_cp']
+        cp_cool = temp_sys_dict['cool_cp']
         # coolant heat capacity
-        self.m_flow_cool = temp_sys_const_dict['cool_m_flow']
+        m_flow_cool = temp_sys_dict['cool_m_flow']
         # mass flow of the coolant
-        self.rho_cool = temp_sys_const_dict['cool_density']
+        rho_cool = temp_sys_dict['cool_density']
         # density of the coolant
-        self.visc_cool = temp_sys_const_dict['cool_visc']
-        # density of the coolant
-        self.height_cool = temp_sys_const_dict['channel_height']
+        visc_cool = temp_sys_dict['cool_visc']
+        # viscosity of the coolant
+        height_cool = temp_sys_dict['channel_height']
         # height of the coolant channel
-        self.width_cool = temp_sys_const_dict['channel_width']
+        width_cool = temp_sys_dict['channel_width']
         # width of the coolant channel
-        self.cool_numb = temp_sys_const_dict['cool_ch_numb']
+        n_cool = temp_sys_dict['cool_ch_numb']
         # number of coolant channels
-        self.ch_numb = temp_sys_const_dict['gas_ch_numb']
         # number of gas channels
-        self.heat_pow = temp_sys_const_dict['heat_pow']
+        self.heat_pow = temp_sys_dict['heat_pow']
         # end plate heat power
-        self.lambda_cool = temp_sys_const_dict['cool_lambda']
+        self.lambda_cool = temp_sys_dict['cool_lambda']
         # heat conductance from the channel to the coolant
-        self.k_layer = temp_sys_const_dict['k_layer']
+        self.k_layer = temp_sys_dict['k_layer']
         # heat conductance array through and along the control volume
-        self.k_alpha_env = temp_sys_const_dict['k_alpha_env']
+        self.k_alpha_env = temp_sys_dict['k_alpha_env']
         # heat conductance from control volume to the environment
         self.temp_env = g_par.dict_case['temp_env']
         # environment temperature
@@ -72,13 +73,13 @@ class TemperatureSystem:
         self.rhs = np.full(self.n_ele * (5 * (self.n_cells - 1) + 6), 0.)
         # right side of the matrix system: mat T = rhs,
         # contains the power sources and explicit coupled terms
-        self.temp_fluid = np.full((2, self.n_cells, self.nodes),
+        self.temp_fluid = np.full((2, self.n_cells, self.n_nodes),
                                   self.temp_gas_in[0])
         self.temp_fluid_ele = np.full((2, self.n_cells, self.n_ele), 0.)
         # temperature of the fluid 0: cathode fluids, 1: anode fluids
         self.g_fluid = np.full((2, self.n_cells, self.n_ele), 0.)
         # heat capacity flow of the fluid 0: cathode fluids, 1: anode fluids
-        self.cond_rate = np.full((2, self.n_cells, self.nodes), 0.)
+        self.cond_rate = np.full((2, self.n_cells, self.n_nodes), 0.)
         # condensation rate of the water in the channels
         # 0: cathode fluids, 1: anode fluids
         self.i = np.full((self.n_cells, self.n_ele), 0.)
@@ -91,27 +92,27 @@ class TemperatureSystem:
         # coordinates of the cathode channel heat conductance
         self.pos_ano_ch = None
         # coordinates of the anode channel heat conductance
-        self.g_cool = self.cp_cool * self.m_flow_cool * self.cool_numb
+        self.g_cool = cp_cool * m_flow_cool * n_cool
         # coolant heat capacity flow
         self.k_cool = None
         # heat conductance between the coolant and the channel wall
 
         """Calculating the coolant to channel thermal conductance"""
-        pr_ch = self.visc_cool * self.cp_cool / self.lambda_cool
+        pr_ch = visc_cool * cp_cool / self.lambda_cool
         # prandtl number
-        d_h_cool = 2. * self.width_cool * self.height_cool \
-            / (self.width_cool + self.height_cool)
+        d_h_cool = 2. * width_cool * height_cool \
+            / (width_cool + height_cool)
         # hydraulic diameter of the coolant channel
-        u_ch = self.m_flow_cool / (self.width_cool
-                                   * self.height_cool * self.rho_cool)
+        u_ch = m_flow_cool / (width_cool
+                                   * height_cool * rho_cool)
         # velocity of the coolant flow
-        re_ch = self.rho_cool * u_ch * d_h_cool / self.visc_cool
+        re_ch = rho_cool * u_ch * d_h_cool / visc_cool
         # reynolds number in the coolant channel
 
         nu_1 = 3.66
-        nu_2 = 1.66 * np.sqrt(re_ch * pr_ch * d_h_cool / self.ch_length)
+        nu_2 = 1.66 * np.sqrt(re_ch * pr_ch * d_h_cool / ch_length)
         nu_3 = (2. / (1. + 22. * pr_ch)) ** (1. / 6.) \
-            * np.sqrt(re_ch * pr_ch * d_h_cool / self.ch_length)
+            * np.sqrt(re_ch * pr_ch * d_h_cool / ch_length)
         nu_lam = (nu_1 ** 3. + 0.7 ** 3. + (nu_2 - 0.7) ** 3.
                   + nu_3 ** 3.) ** (1. / 3.)
         # laminar nusselt number
@@ -119,7 +120,7 @@ class TemperatureSystem:
         nu_turb = zeta / 8. * re_ch * pr_ch \
             / (1. + 12.7 * np.sqrt(zeta / 8.)
                 * (pr_ch ** 2. / 3.) - 1.) \
-            * (1. + (d_h_cool / self.ch_length) ** 2. / 3.)
+            * (1. + (d_h_cool / ch_length) ** 2. / 3.)
         if re_ch <= 2300.:
             nu_ch = nu_lam
         elif 2300. < re_ch < 1.e4:
@@ -133,28 +134,28 @@ class TemperatureSystem:
         # convection coefficient between the coolant and the channel wall
         #print('Coolant channel convection coefficient:',
            #   conv_coeff_ch, 'W/(m²K)')
-        conv_area = d_h_cool * np.pi * self.ch_length / self.n_ele
+        conv_area = d_h_cool * np.pi * ch_length / self.n_ele
         # convection area of the channel wall
-        self.k_cool = conv_coeff_ch * conv_area * self.cool_numb
+        self.k_cool = conv_coeff_ch * conv_area * n_cool
         # thermal conductance between the element channel area and the coolant
 
         """Building up the result temperature list and arrays"""
-        temp_layer = np.full((5, self.n_ele), self.temp_layer_init)
-        temp_layer_n = np.full((6, self.n_ele), self.temp_layer_init)
+        temp_layer = np.full((5, self.n_ele), temp_layer_init)
+        temp_layer_n = np.full((6, self.n_ele), temp_layer_init)
         self.temp_layer = []
         for q in range(self.n_cells - 1):
             self.temp_layer.append(temp_layer)
         self.temp_layer.append(temp_layer_n)
         # layer temperature list cell, layer, element
-        #temp_cool_out = self.temp_cool_in + op_con.tar
+        #temp_cool_out = temp_cool_in + op_con.tar
         if self.cool_ch_bc is True:
-            self.temp_cool = np.full((self.n_cells + 1, self.nodes),
-                                     self.temp_cool_in)
+            self.temp_cool = np.full((self.n_cells + 1, self.n_nodes),
+                                     temp_cool_in)
             self.temp_cool_ele = np.full((self.n_cells + 1,
                                           self.n_ele), 0.)
         else:
-            self.temp_cool = np.full((self.n_cells, self.nodes),
-                                     self.temp_cool_in)
+            self.temp_cool = np.full((self.n_cells, self.n_nodes),
+                                     temp_cool_in)
             self.temp_cool_ele = np.full((self.n_cells, self.n_ele), 0.)
         # coolant temperature array cell, element
 
@@ -191,7 +192,7 @@ class TemperatureSystem:
                     list_mat.append(mat_base)
         # list of all the heat conductance matrix in z-direction
         # for all cells and all elements
-        self.mat_const = sp_l.block_diag(*list_mat)
+        self.mat_const = sp_la.block_diag(*list_mat)
         # uncoupled heat conductance matrix in z-direction
 
         """Setting the coolant channel heat conductance"""
@@ -318,6 +319,7 @@ class TemperatureSystem:
                        np.tile(env_con_n, self.n_ele)))
         # vector of the main diagonal of the heat conductance matrix
         self.mat_const = self.mat_const + np.diag(env_con_vec)
+        self.mat_const_sp = sparse.csr_matrix(self.mat_const)
         self.mat_dyn = self.mat_const
 
         """Calculating the coordinates of the gas channel heat conductance"""
@@ -412,7 +414,7 @@ class TemperatureSystem:
             -self.temp_fluid
         """
         for q in range(self.n_cells):
-            for w in range(1, self.nodes):
+            for w in range(1, self.n_nodes):
                 self.temp_fluid[0, q, w] =\
                     g_func.calc_fluid_temp_out(self.temp_fluid[0, q, w - 1],
                                                self.temp_layer[q][1, w - 1],
@@ -449,14 +451,14 @@ class TemperatureSystem:
                     -self.temp_cool_ele
                 """
         for q in range(self.n_cells):
-            for w in range(1, self.nodes):
+            for w in range(1, self.n_nodes):
                 self.temp_cool[q, w] =\
                     g_func.calc_fluid_temp_out(self.temp_cool[q, w - 1],
                                                self.temp_layer[q][0, w - 1],
                                                self.g_cool, self.k_cool)
                 self.temp_cool_ele[q] = g_func.calc_elements_1_d(self.temp_cool[q])
         if self.cool_ch_bc is True:
-            for w in range(1, self.nodes):
+            for w in range(1, self.n_nodes):
                 self.temp_cool[-1, w] =\
                     g_func.calc_fluid_temp_out(self.temp_cool[-1, w - 1],
                                                self.temp_layer[-1][-1, w - 1],
@@ -549,7 +551,8 @@ class TemperatureSystem:
             Manipulate:
             -self.mat_dyn
         """
-        dyn_vec = np.full(self.n_ele * (5 * (self.n_cells - 1) + 6), 0.)
+        #dyn_vec = np.full(self.n_ele * (5 * (self.n_cells - 1) + 6), 0.)
+        dyn_vec = np.zeros_like(self.temp_layer_vec)
         ct = 0
         for q in range(self.n_cells):
             if q is not self.n_cells - 1:
@@ -560,7 +563,9 @@ class TemperatureSystem:
                 dyn_vec[ct + 1] = -self.k_gas_ch[0, q, w]
                 dyn_vec[ct + 4] = -self.k_gas_ch[1, q, w]
                 ct += cr
-        self.mat_dyn = self.mat_const + np.diag(dyn_vec)
+        #self.mat_dyn = self.mat_const + np.diag(dyn_vec)
+        self.mat_dyn = \
+            self.mat_const_sp + sparse.diags([dyn_vec], [0], format='csr')
 
     def solve_system(self):
         """
@@ -573,8 +578,9 @@ class TemperatureSystem:
             Manipulate:
             -self.temp_layer_vec
         """
+        #self.temp_layer_vec = np.linalg.tensorsolve(self.mat_dyn, self.rhs)
+        self.temp_layer_vec = spsolve(self.mat_dyn, self.rhs)
 
-        self.temp_layer_vec = np.linalg.tensorsolve(self.mat_dyn, self.rhs)
 
     def sort_results(self):
         """
@@ -589,7 +595,6 @@ class TemperatureSystem:
             Manipulate:
             -self.temp_layer
         """
-
         ct = 0
         for q in range(self.n_cells):
             if q is not self.n_cells - 1:

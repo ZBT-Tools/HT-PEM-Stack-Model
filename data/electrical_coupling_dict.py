@@ -9,7 +9,7 @@ dict_electrical_coupling =\
         'dx': geom.channel_length / float(sim.elements),
         'th_bpp': geom.bipolar_plate_thickness,
         'width_channels': geom.channel_width * geom.gas_channel_number
-                          + geom.rack_width * (geom.gas_channel_number + 1)
+                          + geom.rib_width * (geom.gas_channel_number + 1)
     }
 
 

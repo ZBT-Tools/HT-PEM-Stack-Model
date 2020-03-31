@@ -25,10 +25,10 @@ dict_temp_sys = {
     }
 
 
-def temp_sys(k_alpha_ch, gamma, omega, v_loss,
-             g_gas, i):
-    dict_temp = {
-        'k_gas_ch': k_alpha_ch, 'cond_rate': gamma, 'omega': omega,
-        'v_loss': v_loss, 'g_gas': g_gas, 'i': i
-        }
-    return dict_temp
+# def temp_sys(k_alpha_ch, gamma, omega, v_loss,
+#              g_gas, i):
+#     dict_temp = {
+#         'k_gas_ch': k_alpha_ch, 'cond_rate': gamma, 'omega': omega,
+#         'v_loss': v_loss, 'g_gas': g_gas, 'i': i
+#         }
+#     return dict_temp

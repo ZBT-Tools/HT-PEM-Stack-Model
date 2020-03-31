@@ -13,7 +13,7 @@ dict_cathode_channel = {
     'channel_height': geom.channel_height,
     'bend_numb': phy_prop.channel_bends,
     'bend_fri_fac': phy_prop.bend_pressure_loss_coefficient,
-    'rack_width': geom.rack_width
+    'rib_width': geom.rib_width
     }
 
 dict_anode_channel = {
@@ -26,5 +26,5 @@ dict_anode_channel = {
     'channel_height': geom.channel_height,
     'bend_numb': phy_prop.channel_bends,
     'bend_fri_fac': phy_prop.bend_pressure_loss_coefficient,
-    'rack_width': geom.rack_width
+    'rib_width': geom.rib_width
     }

@@ -5,8 +5,9 @@ import numpy as np
 
 """Electrochemistry"""
 # target current density [A/m^2]
-#target_current_density = np.linspace(1.e-3, 10000., 20)
-target_current_density = np.array([4000., 8000.])
+target_current_density = 6000.0
+    #np.array([100.0, 500.0, 1000.0, 2000.0, 3000.0, 4000.,
+    #                               6000.0, 8000.0, 10000.0])
 # open circuit voltage [V]
 open_circuit_voltage = 0.95
 # cathode stoichiometry
@@ -39,7 +40,6 @@ p_manifold_anode_out = 1.e5
 mass_flow_coolant = 1.e-4
 
 """Cell Settings"""
-
 
 """Stack Settings"""
 # number of the pemfc

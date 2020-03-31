@@ -145,7 +145,7 @@ class ElectricalCoupling:
         v_dif = v_new[:-self.elements] - v_new[self.elements:]
         i_ca_vec = v_dif / self.cell_r
         i_cd = g_func.to_array(i_ca_vec, self.cell_numb, self.elements)
-        print(i_cd)
+        #print(i_cd)
         self.i_cd = i_cd / np.average(i_cd) * g_par.dict_case['tar_cd']
-        print(self.i_cd)
-        print(g_par.dict_case['tar_cd'])
+        #print(self.i_cd)
+        #print(g_par.dict_case['tar_cd'])

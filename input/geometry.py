@@ -8,7 +8,7 @@ channel_width = 1.e-3
 # channel height [m]
 channel_height = 1.e-3
 # rack width [m]
-rack_width = 1.e-3
+rib_width = 1.e-3
 # number of gas channels
 gas_channel_number = 10
 # number of coolant channels
