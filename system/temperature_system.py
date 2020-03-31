@@ -290,12 +290,12 @@ class TemperatureSystem:
     def connect_to_previous_cell(self, i):
         cell = self.cells[i]
         conductance = self.cells[i - 1].thermal_conductance_z[-1]
-        # source = - conductance * self.cells[i - 1].temp_layer[-1]
-        source = conductance * (self.cells[i - 1].temp_layer[-1] -
-                                self.cells[i].temp_layer[0])
+        source = - conductance * self.cells[i - 1].temp_layer[-1]
+        # source = conductance * (self.cells[i - 1].temp_layer[-1] -
+        #                        self.cells[i].temp_layer[0])
         cell.add_explicit_layer_source(cell.heat_rhs_dyn, source, 0)
-        # source = conductance
-        # cell.add_implicit_layer_source(cell.heat_mtx_dyn, source, 0)
+        source = conductance
+        cell.add_implicit_layer_source(cell.heat_mtx_dyn, source, 0)
 
     def solve_cells(self):
         """
