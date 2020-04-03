@@ -70,7 +70,8 @@ lambda_param_water = ((-7.69988150e-22, 3.81045861e-18, -7.88736102e-15,
 
 class Gas:
 
-    def __init__(self, cp_param, viscosity_param, lambda_param):
+    def __init__(self, name, cp_param, viscosity_param, lambda_param):
+        self.name = name
         self.cp_param = cp_param
         self.viscosity_param = viscosity_param
         self.lambda_param = lambda_param
@@ -87,11 +88,11 @@ class Gas:
         return lambda_1_bar + (p - 1.e5) / 9.e5 * (lambda_10_bar-lambda_1_bar)
 
 
-hydrogen = Gas(cp_param_hydrogen,
-               viscosity_param_hydrogen,
+hydrogen = Gas('H2', cp_param_hydrogen, viscosity_param_hydrogen,
                lambda_param_hydrogen)
-oxygen = Gas(cp_param_oxygen, viscosity_param_oxygen, lambda_param_oxygen)
-nitrogen = Gas(cp_param_nitrogen,
-               viscosity_param_nitrogen,
+oxygen = Gas('O2', cp_param_oxygen, viscosity_param_oxygen, lambda_param_oxygen)
+nitrogen = Gas('N2', cp_param_nitrogen, viscosity_param_nitrogen,
                lambda_param_nitrogen)
-water = Gas(cp_param_water, viscosity_param_water, lambda_param_water)
+water = Gas('H2O', cp_param_water, viscosity_param_water, lambda_param_water)
+
+species = [hydrogen, oxygen, nitrogen, water]

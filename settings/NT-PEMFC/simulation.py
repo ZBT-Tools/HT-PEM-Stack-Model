@@ -4,19 +4,19 @@
 # partition of the flow channel in elements along the x-axis
 elements = 10
 # convergence criteria of the simulation
-convergence_criteria = 1.e-6
+convergence_criteria = 1.e-9
 # maximal number of iterations
-maximal_number_iteration = 50
+maximal_number_iteration = 100
 # output csv data
-save_csv_data = True
+save_csv_data = False
 # output plots
-save_plot_data = True
+save_plot_data = False
 # calculate the PEMFC stack temperatures
 calc_temperature = True
 # calculate the current density distribution
 calc_current_density = True
 # calculate the flow distribution
-calc_flow_distribution = True
+calc_flow_distribution = False
 # calculate the activation voltage losses
 calc_activation_loss = True
 # calculate the membrane voltage losses

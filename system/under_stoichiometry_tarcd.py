@@ -12,7 +12,7 @@ i_star = prot_con * tafel_slope / th_cat
 
 
 def calc_support_param(i_ca, gas_con_ele, gas_con, diff_coef_gdl, th_gdl):
-    i_lim = 4. * g_par.dict_uni['F'] * gas_con * diff_coef_gdl / th_gdl
+    i_lim = 4. * g_par.constants['F'] * gas_con * diff_coef_gdl / th_gdl
     i_hat = i_ca / i_star
     short_save = np.sqrt(2. * i_hat)
     beta = short_save / (1. + np.sqrt(1.12 * i_hat) * np.exp(short_save))\
@@ -34,8 +34,8 @@ def calc_transport_losses_catalyst_layer(i_ca, tafel_slope, prot_con,
                                          diff_coef_cat, gas_con_ele,
                                          i_star, beta, var):
     cat_diff_los = ((prot_con * tafel_slope ** 2.)
-                    / (4. * g_par.dict_uni['F'] * diff_coef_cat
-                    * gas_con_ele) * (i_ca / i_star
+                    / (4. * g_par.constants['F'] * diff_coef_cat
+                       * gas_con_ele) * (i_ca / i_star
                                       - np.log10(1. + i_ca**2.
                                                  / (i_star ** 2.
                                                     * beta ** 2.)))) / var
