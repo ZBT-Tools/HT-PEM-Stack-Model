@@ -6,4 +6,3 @@ venv/
 output/
 *.pyc
 *.png
-*.xml
