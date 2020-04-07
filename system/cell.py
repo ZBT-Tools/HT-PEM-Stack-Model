@@ -13,10 +13,10 @@ class Cell(OutputObject):
 
     def __init__(self, number, cell_dict, membrane_dict, half_cell_dicts,
                  channels):
-        name = 'Cell ' + str(number)
+        name = 'Cell'  # + str(number)
         super().__init__(name)
         self.cell_dict = cell_dict
-        print('Initializing: ', self.name)
+        # print('Initializing: ', self.name)
         self.n_layer = 5
         self.n_electrodes = 2
 
@@ -39,7 +39,8 @@ class Cell(OutputObject):
         half_cell_dicts = copy.deepcopy(half_cell_dicts)
         # Create half cell objects
         for i in range(len(half_cell_dicts)):
-            name = self.name + ': ' + half_cell_dicts[i]['name']
+            # name = self.name + ': ' + half_cell_dicts[i]['name']
+            name = half_cell_dicts[i]['name']
             half_cell_dicts[i]['name'] = name
 
         self.half_cells = [h_c.HalfCell(half_cell_dicts[i], cell_dict,
@@ -47,6 +48,11 @@ class Cell(OutputObject):
                            for i in range(2)]
         self.cathode = self.half_cells[0]
         self.anode = self.half_cells[1]
+
+        # Append half cell names to output data
+        for half_cell in self.half_cells:
+            half_cell.channel.extend_data_names(half_cell.channel.name)
+            half_cell.channel.fluid.extend_data_names(half_cell.channel.fluid.name)
 
         self.dx = self.cathode.channel.dx
         # cathode - object of the class HalfCell

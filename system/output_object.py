@@ -35,6 +35,18 @@ class OutputObject:
     def name(self, name):
         self._set_name(name)
 
+    def extend_data_names(self, name, prepend=True):
+        for i, print_data in enumerate(self.print_data):
+            print_data_new_keys = {}
+            for key, value in print_data.items():
+                if prepend:
+                    new_key = name + ' ' + key
+                else:
+                    new_key = key + ' ' + name
+                print_data_new_keys[new_key] = value
+                #print_data.pop(key)
+            self.print_data[i] = print_data_new_keys
+
     @classmethod
     def getinstances(cls):
         dead = set()
