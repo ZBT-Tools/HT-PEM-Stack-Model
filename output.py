@@ -273,7 +273,7 @@ class Output:
 
         def write_data(x_values, data_array, x_label, data_name,
                        units='-', colormap='coolwarm', **kwargs):
-            file_name = data_name.replace(' ', '_')
+            file_name = kwargs.get('file_name', data_name.replace(' ', '_'))
             if self.save_plot:
                 y_label = data_name + ' $[' + units + ']$'
                 file_path = os.path.join(plot_path, file_name + '.png')
@@ -345,14 +345,16 @@ class Output:
             xvalues = [i + 1 for i in range(len(cells))]
             xlabel = 'Cell'
             save_oo_collection(fuel_circuits, xvalues, xlabel,
-                               legend=['Cathode', 'Anode'])
+                               legend=['Cathode', 'Anode'],
+                               file_name='Normalized_Fuel_Distribution.png')
 
         # Save coolant circuit values
         if fc_stack.coolant_circuit is not None:
             coolant_circuits = [fc_stack.coolant_circuit]
             xvalues = [i + 1 for i in range(coolant_circuits[0].n_channels)]
             xlabel = 'Channel'
-            save_oo_collection(coolant_circuits, xvalues, xlabel)
+            save_oo_collection(coolant_circuits, xvalues, xlabel,
+                               file_name='Coolant_Distribution.png')
 
     def plot_polarization_curve(self, voltage_loss,
                                 cell_voltages, target_current_density):

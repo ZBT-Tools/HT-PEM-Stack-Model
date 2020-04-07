@@ -24,12 +24,12 @@ class TemperatureSystem:
         self.n_cells = stack.n_cells
 
         # use SciPy sparse solver, efficient for larger sparse matrices
-        self.sparse_solve = False
+        self.sparse_solve = True
 
         # instead of solving the complete temperature system at once
         # solve the cell-wise temperature systems and iterate
         # however not working yet!!!
-        self.solve_individual_cells = True
+        self.solve_individual_cells = False
 
         # coolant flow settings
         self.cool_flow = False
