@@ -71,7 +71,7 @@ class Output:
         ny = len(y)
 
         if x.ndim != y.ndim:
-            if x.ndim == 1:
+            if x.ndim in (0, 1):
                 x = np.tile(x, (ny, 1))
             else:
                 raise ValueError('Outer dimension of x is not one and not '
