@@ -27,7 +27,7 @@ Features:
 - Matplotlib 2.2.2
 
 # Usage
-Download the repository and execute the simulation.py file with your python interpreter. Input parameters can be adapted in the corresponding files in the input folder. At the end of a simulation run, a folder called output will be created, which contains the results in various data files and plots
+Download the repository and execute the stack_simulation.py file with your python interpreter. Input parameters can be adapted in the corresponding files in the input folder. At the end of a simulation run, a folder called output will be created, which contains the results in various data files and plots
 
 # References:
 Stack discretization, temperature coupling, reactant transport and membrane properties according to:  
