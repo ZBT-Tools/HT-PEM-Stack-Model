@@ -113,6 +113,10 @@ class TemperatureSystem:
         if self.cool_flow:
             self.update_coolant_channel()
         self.update_temp_layer()
+        if np.any(self.temp_layer_vec) < 200.0:
+            raise ValueError('temperature too low, check boundary conditions')
+        if np.any(self.temp_layer_vec) > 1000.0:
+            raise ValueError('temperature too high, check boundary conditions')
 
     def update_temp_layer(self):
         """

@@ -301,6 +301,7 @@ class Cell(OutputObject):
             self.membrane.v_loss + self.cathode.v_loss + self.anode.v_loss
         if np.any(self.v_loss) >= self.e_0:
             self.v_alarm = True
+            raise ValueError('voltage losses greater than open circuit voltage')
         self.v_loss[:] = np.minimum(self.v_loss, self.e_0)
         self.v[:] = self.e_0 - self.v_loss
 
