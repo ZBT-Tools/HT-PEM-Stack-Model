@@ -16,16 +16,11 @@ class Stack:
         # Read settings dictionaries
         stack_dict = in_dicts.dict_stack
 
-        # Handover
         self.n_cells = stack_dict['cell_number']
         # number of cells of the stack
-
-        # global stoichiometry for cathode and anode
-        # self.stoi = [stack_dict['stoi_cat'], stack_dict['stoi_ano']]
-        # # inlet stoichiometry of the cathode header
-        # # inlet stoichiometry of the anode header
         n_nodes = g_par.dict_case['nodes']
-        # node points along the x-axis
+        n_ele = n_nodes - 1
+        # node points/elements along the x-axis
         self.calc_temp = stack_dict['calc_temperature']
         # switch to calculate the temperature distribution
         self.calc_cd = stack_dict['calc_current_density']
@@ -87,8 +82,8 @@ class Stack:
 
             cell_channels = [channels[0][i], channels[1][i]]
             # Cell constructor
-            cell = cl.Cell(i, cell_dict, membrane_dict, half_cell_dicts,
-                           cell_channels)
+            cell = cl.Cell(cell_dict, membrane_dict, half_cell_dicts,
+                           cell_channels, number=i)
             if i == 0:
                 cell.coords[0] = 0.0
                 cell.coords[1] = cell.thickness
@@ -96,9 +91,6 @@ class Stack:
                 cell.coords[0] = self.cells[i - 1].coords[1]
                 cell.coords[1] = cell.coords[0] + cell.thickness
             self.cells.append(cell)
-
-        # self.set_stoichiometry(np.full(self.n_cells, self.stoi_cat),
-        #                        np.full(self.n_cells, self.stoi_ano))
 
         # Initialize flow circuits
         manifold_length = \
@@ -149,10 +141,9 @@ class Stack:
 
         self.flow_circuits = \
             [self.fuel_circuits[0], self.fuel_circuits[1], self.coolant_circuit]
-        # Initialize the electrical coupling
-        # if self.n_cells > 1:
-        self.elec_sys = el_cpl.ElectricalCoupling(self)
 
+        # Initialize the electrical coupling
+        self.elec_sys = el_cpl.ElectricalCoupling(self)
         # Initialize temperature system
         self.temp_sys = therm_cpl.TemperatureSystem(self, temperature_dict)
 
@@ -162,19 +153,19 @@ class Stack:
         self.break_program = False
         # True if the program aborts because of some critical impact
 
-        """General data"""
-        n_ele = n_nodes - 1
-
         # target current density
         self.i_target = g_par.dict_case['target_current_density']
 
         # current density array
         self.i_cd = np.zeros((self.n_cells, n_ele))
         self.i_cd[:] = self.i_target
-
         # current density array of previous iteration step
         self.i_cd_old = np.copy(self.i_cd)
+        # voltage array
+        self.v = np.zeros(self.n_cells)
+        self.v_stack = 0.0
 
+        # old temperature for convergence calculation
         self.temp_old = np.zeros(self.temp_sys.temp_layer_vec.shape)
         self.temp_old[:] = self.temp_sys.temp_layer_vec
 
@@ -199,6 +190,11 @@ class Stack:
                 self.update_temperature_coupling()
             if self.calc_cd:
                 self.update_electrical_coupling()
+
+            self.v[:] = \
+                np.asarray([np.average(cell.v, weights=cell.active_area_dx)
+                            for cell in self.cells])
+            self.v_stack = np.sum(self.v)
 
     def update_flows(self, update_inflows=False, calc_flow_dist=False):
         """

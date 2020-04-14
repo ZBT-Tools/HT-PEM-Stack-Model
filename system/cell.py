@@ -11,9 +11,10 @@ import copy
 
 class Cell(OutputObject):
 
-    def __init__(self, number, cell_dict, membrane_dict, half_cell_dicts,
-                 channels):
+    def __init__(self, cell_dict, membrane_dict, half_cell_dicts,
+                 channels, number=None):
         name = 'Cell'  # + str(number)
+        self.number = number
         super().__init__(name)
         self.cell_dict = cell_dict
         # print('Initializing: ', self.name)
@@ -44,7 +45,7 @@ class Cell(OutputObject):
             half_cell_dicts[i]['name'] = name
 
         self.half_cells = [h_c.HalfCell(half_cell_dicts[i], cell_dict,
-                                        channels[i])
+                                        channels[i], number=self.number)
                            for i in range(2)]
         self.cathode = self.half_cells[0]
         self.anode = self.half_cells[1]
@@ -208,6 +209,7 @@ class Cell(OutputObject):
         self.add_print_data(self.i_cd, 'Current Density', 'A/m²')
         self.add_print_data(self.temp_layer, 'Temperature', 'K',
                             self.temp_names[:self.n_layer-1])
+        self.add_print_data(self.v, 'Cell Voltage', 'V')
 
     def calc_ambient_conductance(self, alpha_amb):
         """
@@ -291,6 +293,10 @@ class Cell(OutputObject):
             self.membrane.update(self.i_cd, humidity_ele)
             self.calc_voltage_loss()
             self.calc_conductance()
+            if np.any(self.v_alarm):
+                self.correct_voltage_loss()
+                # raise ValueError('voltage losses greater than '
+                #                  'open circuit voltage')
 
     def calc_voltage_loss(self):
         """
@@ -299,11 +305,56 @@ class Cell(OutputObject):
         """
         self.v_loss[:] = \
             self.membrane.v_loss + self.cathode.v_loss + self.anode.v_loss
-        if np.any(self.v_loss) >= self.e_0:
-            self.v_alarm = True
-            raise ValueError('voltage losses greater than open circuit voltage')
-        self.v_loss[:] = np.minimum(self.v_loss, self.e_0)
-        self.v[:] = self.e_0 - self.v_loss
+        self.v_alarm = self.v_loss >= self.e_0
+        # self.v_loss[:] = np.minimum(self.v_loss, self.e_0)
+
+    def correct_voltage_loss(self):
+        id = np.argwhere(np.invert(self.v_alarm))[-1, -1]
+        np.seterr(divide='ignore')
+        # gdl_loss_ratio = \
+        #     self.cathode.gdl_diff_loss[id] / self.anode.gdl_diff_loss[id]
+        cl_loss_ratio = \
+            np.where(self.anode.cl_diff_loss[id] == 0.0, 0.0,
+                     self.cathode.cl_diff_loss[id]
+                     / self.anode.cl_diff_loss[id])
+        cat_loss_ratio = \
+            np.where(self.cathode.cl_diff_loss[id] == 0.0, 0.0,
+                     self.cathode.gdl_diff_loss[id]
+                     / self.cathode.cl_diff_loss[id])
+        ano_loss_ratio = \
+            np.where(self.anode.cl_diff_loss[id] == 0.0, 0.0,
+                     self.anode.gdl_diff_loss[id]
+                     / self.anode.cl_diff_loss[id])
+        v_loss_max = self.e_0 - 0.05
+        v_loss_diff_max = v_loss_max - self.membrane.v_loss[id] \
+            - self.cathode.bpp_loss[id] - self.cathode.act_loss[id] \
+            - self.anode.bpp_loss[id] - self.anode.act_loss[id]
+        v_loss_cat_cl = v_loss_diff_max * cl_loss_ratio \
+            / (1.0 + ano_loss_ratio
+               + cat_loss_ratio * cl_loss_ratio + cl_loss_ratio)
+        v_loss_ano_cl = \
+            np.where(cl_loss_ratio == 0.0, 0.0,
+                     v_loss_cat_cl / cl_loss_ratio)
+        v_loss_cat_gdl = v_loss_cat_cl * cat_loss_ratio
+        v_loss_ano_gdl = v_loss_ano_cl * ano_loss_ratio
+        np.seterr(divide='raise')
+        self.cathode.gdl_diff_loss[:] = \
+            np.where(self.v_alarm, v_loss_cat_gdl, self.cathode.gdl_diff_loss)
+        self.cathode.cl_diff_loss[:] = \
+            np.where(self.v_alarm, v_loss_cat_cl, self.cathode.cl_diff_loss)
+        self.anode.gdl_diff_loss[:] = \
+            np.where(self.v_alarm, v_loss_ano_gdl, self.anode.gdl_diff_loss)
+        self.anode.cl_diff_loss[:] = \
+            np.where(self.v_alarm, v_loss_ano_cl, self.anode.cl_diff_loss)
+
+        self.cathode.v_loss[:] = \
+            self.cathode.act_loss + self.cathode.cl_diff_loss \
+            + self.cathode.gdl_diff_loss + self.cathode.bpp_loss
+        self.anode.v_loss[:] = \
+            self.anode.act_loss + self.anode.cl_diff_loss \
+            + self.anode.gdl_diff_loss + self.anode.bpp_loss
+        self.calc_voltage_loss()
+        # raise ValueError
 
     def calc_conductance(self):
         """

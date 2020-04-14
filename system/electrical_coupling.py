@@ -69,9 +69,14 @@ class ElectricalCoupling:
             self.update_mat(conductance_z)
             self.rhs[:self.n_ele] = self.calc_boundary_condition()
             self.i_cd[:] = self.calc_i(conductance_z, active_area)
+
         else:
             i_bc = self.calc_boundary_condition()
             self.i_cd[:] = - i_bc / active_area
+            v_diff = - i_bc / np.array([cell.conductance_z
+                                        for cell in self.cells]).flatten()
+            v_diff = v_diff.reshape((self.n_cells, self.n_ele))
+            self.update_cell_voltage(v_diff)
 
     def update_mat(self, conductance):
         """
@@ -87,22 +92,23 @@ class ElectricalCoupling:
             mat_dyn = sparse.csr_matrix(mat_dyn)
         self.mat = self.mat_const + mat_dyn
 
-    def calc_boundary_condition(self):
-        """
-        Updates the right hand side of the linear system.
-        """
+    def calc_voltage_loss(self):
         v_loss = \
             np.asarray([np.average(cell.v_loss, weights=cell.active_area_dx)
                         for cell in self.cells])
         v_loss_total = np.sum(v_loss)
+        return v_loss, v_loss_total
+
+    def calc_boundary_condition(self):
+        """
+        Updates the right hand side of the linear system.
+        """
+        v_loss, v_loss_total = self.calc_voltage_loss()
         cell_0 = self.cells[0]
-        v_loss_0 = np.average(cell_0.v_loss, weights=cell_0.active_area_dx)
-        i_bc = v_loss_0 * cell_0.conductance_z
+        i_bc = v_loss[0] * cell_0.conductance_z
         i_target = self.i_cd_tar * cell_0.active_area_dx
         i_correction_factor = i_target \
             / np.average(i_bc, weights=cell_0.active_area_dx)
-        # i_correction_factor = self.i_cd_tar \
-        #     / np.average(i_bc, weights=cell_0.active_area_dx)
         v_loss_total *= - 1.0 * i_correction_factor
         return v_loss_total * cell_0.conductance_z
 
@@ -121,4 +127,11 @@ class ElectricalCoupling:
         v_new = np.hstack((self.v_end_plate, v_new, np.zeros(self.n_ele)))
         v_diff = v_new[:-self.n_ele] - v_new[self.n_ele:]
         i_ca_vec = v_diff * conductance / active_area
+        v_diff = v_diff.reshape((self.n_cells, self.n_ele))
+        self.update_cell_voltage(v_diff)
         return np.reshape(i_ca_vec.flatten(), (self.n_cells, self.n_ele))
+
+    def update_cell_voltage(self, v_diff):
+        for i, cell in enumerate(self.cells):
+            cell.v[:] = cell.e_0 - v_diff[i]
+            cell.v_loss[:] = v_diff[i]

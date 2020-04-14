@@ -95,11 +95,18 @@ class Simulation:
 
                 case_name = 'Case'+str(i)
                 self.output.save(case_name, self.stack)
-                path = os.path.join(self.output.output_dir, case_name, 'plots')
-                self.output.plot([current_errors, temp_errors],
-                                 'ERR', 'Iteration', 'log', ['k', 'r', 'b'],
-                                 'Convergence', 0., len(current_errors),
-                                 ['Current Density', 'Temperature'], path)
+                path = os.path.join(self.output.output_dir, case_name,
+                                    'plots', 'Convergence.png')
+                self.output.create_figure(path, list(range(counter)),
+                                          [current_errors, temp_errors],
+                                          xlabels='Iteration', ylabels='Error',
+                                          yscale='log',
+                                          legend=['Current Density',
+                                                  'Temperature'])
+                # self.output.plot([current_errors, temp_errors],
+                #                  'ERR', 'Iteration', 'log', ['k', 'r', 'b'],
+                #                  'Convergence', 0., len(current_errors),
+                #                  ['Current Density', 'Temperature'], path)
             else:
                 target_current_density = target_current_density[0:-i]
                 break
@@ -186,7 +193,17 @@ print('Simulation time: ', simulation.timing['simulation'])
 print('Output time: ', simulation.timing['output'])
 stop_time = timeit.default_timer()
 print('Total time:', stop_time - start_time)
-
+print('Stack Voltage [V]: ', simulation.stack.v_stack)
+print('Average Cell Voltage [V]: ',
+      simulation.stack.v_stack/simulation.stack.n_cells)
+print('Minimum Cell Voltage [V]: ', np.min(simulation.stack.v))
+print('Average cell current density [A/m²]: ',
+      [np.average(cell.i_cd, weights=cell.active_area_dx)
+       for cell in simulation.stack.cells])
+print('Cathode stoichiometry [-]: ', [cell.cathode.inlet_stoi
+                                      for cell in simulation.stack.cells])
+print('Anode stoichiometry [-]: ', [cell.anode.inlet_stoi
+                                    for cell in simulation.stack.cells])
 # print(out_obj.OutputObject.make_name_list())
 # for obj in out_obj.OutputObject.getinstances():
 #     print(obj.name_list)

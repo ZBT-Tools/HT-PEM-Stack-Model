@@ -6,7 +6,7 @@ elements = 20
 # convergence criteria of the simulation
 convergence_criteria = 1.e-6
 # maximum number of iterations
-maximum_iteration_number = 100
+maximum_iteration_number = 98
 # minimum number of iterations
 minimum_iteration_number = 3
 # calculate the PEMFC stack temperatures

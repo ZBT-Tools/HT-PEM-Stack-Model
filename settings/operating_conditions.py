@@ -2,11 +2,12 @@
 
 """Electrochemistry"""
 # target current density [A/m^2]
-target_current_density = 6000.
+target_current_density = 3500.
+average_cell_voltage = 0.4
 # open circuit voltage [V]
 open_circuit_voltage = 1.00
 # cathode stoichiometry
-stoichiometry_cathode = 2.
+stoichiometry_cathode = 1.1
 # anode stoichiometry
 stoichiometry_anode = 2.
 # reaction stoichiometry
@@ -29,7 +30,7 @@ temp_coolant_in = 340.
 # environment temperature [K]
 temp_environment = 298.15
 # heat power of the endplates [W]
-endplates_heat_power = -5.
+endplates_heat_power = -0.
 # convection coefficient between the stack walls and the environment [W/(m^2K)]
 convection_coefficient_stack_environment = 10.0
 # initial temperature [K]

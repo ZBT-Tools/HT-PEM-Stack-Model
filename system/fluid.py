@@ -47,6 +47,10 @@ class OneDimensionalFluid(ABC, OutputObject):
 
     @abstractmethod
     def update(self, temperature, pressure, *args, **kwargs):
+        if np.any(temperature < 200.0):
+            raise ValueError('temperature too low, check boundary conditions')
+        if np.any(temperature > 1000.0):
+            raise ValueError('temperature too high, check boundary conditions')
         self.temperature = temperature
         self.pressure = pressure
 

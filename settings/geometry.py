@@ -1,11 +1,10 @@
 """ This file contains the geometry settings"""
 """Stack Settings"""
 # number of the pemfc
-cell_number = 40
+cell_number = 1
 # coolant channel configuration (no cooling channel at the endplates = False)
 coolant_circuit = True
-cooling_bc = False
-
+cooling_bc = True
 
 """Gas Channel Geometry"""
 # channel length [m]
@@ -73,10 +72,10 @@ cathode_manifold_configuration = 'U'
 coolant_manifold_configuration = 'U'
 # manifold height [m]
 manifold_height = 15e-3
-coolant_manifold_height = 12e-3
+coolant_manifold_height = 15e-3
 # manifold width [m]
 manifold_width = 15e-3
-coolant_manifold_width = 12e-3
+coolant_manifold_width = 15e-3
 # geometrical pressure loss coefficient of the manifold header
-manifold_pressure_loss_coefficient = 0.4
-coolant_manifold_pressure_loss_coefficient = 0.4
+manifold_pressure_loss_coefficient = 1.0
+coolant_manifold_pressure_loss_coefficient = 0.0

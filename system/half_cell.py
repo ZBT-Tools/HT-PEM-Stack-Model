@@ -14,7 +14,8 @@ class HalfCell:
     # Class variables constant across all instances of the class
     # (under construction)
 
-    def __init__(self, halfcell_dict, cell_dict, channel):
+    def __init__(self, halfcell_dict, cell_dict, channel, number=None):
+        self.number = number
         self.name = halfcell_dict['name']
         self.n_nodes = g_par.dict_case['nodes']
         n_ele = self.n_nodes - 1
@@ -143,6 +144,8 @@ class HalfCell:
         # diffusion voltage loss at the gas diffusion layer
         self.cl_diff_loss = np.zeros(n_ele)
         # diffusion voltage loss at the catalyst layer
+        self.bpp_loss = np.zeros(n_ele)
+        # voltage loss across bipolar plate
         self.v_loss = np.zeros(n_ele)
         # sum of the activation and diffusion voltage loss
         self.beta = np.zeros(n_ele)
@@ -151,7 +154,8 @@ class HalfCell:
         self.break_program = False
         # boolean to hint if the cell voltage runs below zero
         # if HT-PEMFC True; if NT-PEMFC False
-        self.stoi = halfcell_dict['stoichiometry']
+        self.target_stoi = halfcell_dict['stoichiometry']
+        self.inlet_stoi = 0.0
         # # stoichiometry of the reactant at the channel inlet
         # self.p_drop_bends = 0.
         # pressure drop in the channel through bends
@@ -173,6 +177,17 @@ class HalfCell:
             if channel_update:
                 self.channel.update()
             self.update_voltage_loss(current_density)
+
+            # calculate stoichiometry
+            current = np.sum(current_density * self._active_area_dx)
+            self.inlet_stoi = \
+                self.channel.mole_flow[self.id_fuel, self.channel.id_in] \
+                * self.faraday * self.n_charge \
+                / (current * abs(self.n_stoi[self.id_fuel]))
+            if self.inlet_stoi < 1.0:
+                raise ValueError('stoichiometry of cell {0} '
+                                 'becomes smaller than one: {1:0.3f}'
+                                 .format(self.number, self.inlet_stoi))
 
     # def calc_mass_balance(self, current_density, stoi=None):
     #     n_species = self.channel.fluid.n_species
@@ -199,10 +214,10 @@ class HalfCell:
 
     def calc_inlet_flow(self, stoi=None):
         if stoi is None:
-            stoi = self.stoi
+            stoi = self.target_stoi
         mole_flow_in = np.zeros(self.channel.fluid.n_species)
         mole_flow_in[self.id_fuel] = self.target_cd * self._active_area * stoi \
-                                     * abs(self.n_stoi[self.id_fuel]) / (self.n_charge * self.faraday)
+            * abs(self.n_stoi[self.id_fuel]) / (self.n_charge * self.faraday)
 
         inlet_composition = \
             self.channel.fluid.mole_fraction[:, self.channel.id_in]
@@ -232,9 +247,9 @@ class HalfCell:
         Calculates the reactant molar flow [mol/s]
         """
         if stoi is None:
-            stoi = self.stoi
+            stoi = self.target_stoi
         mol_flow_in = self.target_cd * self._active_area * stoi \
-                      * abs(self.n_stoi[self.id_fuel]) / (self.n_charge * self.faraday)
+            * abs(self.n_stoi[self.id_fuel]) / (self.n_charge * self.faraday)
         dmol = current_density * self._active_area_dx \
             * self.n_stoi[self.id_fuel] / (self.n_charge * self.faraday)
         # g_func.add_source(self.mol_flow[self.id_fuel], dmol,
@@ -264,26 +279,32 @@ class HalfCell:
     def update_voltage_loss(self, current_density):
         self.calc_electrode_loss(current_density)
         current = current_density * self._active_area_dx
-        self.v_loss[:] += current / self.bpp.electrical_conductance[0]
+        self.bpp_loss = current / self.bpp.electrical_conductance[0]
+        self.v_loss[:] = self.act_loss + self.cl_diff_loss \
+            + self.gdl_diff_loss + self.bpp_loss
 
-    def calc_activation_loss(self, current_density, reac_conc_ele,
-                             reac_conc_in):
+    def calc_activation_loss(self, current_density, conc):
         """
         Calculates the activation voltage loss,
         according to (Kulikovsky, 2013).
         """
+        test = np.logical_and(current_density > g_par.SMALL, conc > g_par.SMALL)
+        np.seterr(divide='ignore')
         try:
-            self.act_loss[:] = self.tafel_slope \
-                * np.arcsinh((current_density / self.i_sigma) ** 2.
-                             / (2. * (reac_conc_ele / reac_conc_in)
-                                * (1. - np.exp(-current_density /
-                                               (2. * self.i_cd_char)))))
+            self.act_loss[:] = \
+                np.where(np.logical_and(current_density > g_par.SMALL,
+                                        conc > g_par.SMALL),
+                         self.tafel_slope
+                         * np.arcsinh((current_density / self.i_sigma) ** 2.
+                                      / (2. * conc
+                                         * (1. - np.exp(-current_density /
+                                                        (2. * self.i_cd_char))))),
+                         0.0)
+            np.seterr(divide='raise')
         except FloatingPointError:
-            print(current_density)
             raise
 
-    def calc_transport_loss_catalyst_layer(self, current_density, var,
-                                           reac_conc_ele):
+    def calc_transport_loss_catalyst_layer(self, current_density, var, conc):
         """
         Calculates the diffusion voltage loss in the catalyst layer
         according to (Kulikovsky, 2013).
@@ -291,14 +312,14 @@ class HalfCell:
         try:
             i_hat = current_density / self.i_cd_char
             short_save = np.sqrt(2. * i_hat)
-            beta = short_save / (1. + np.sqrt(1.12 * i_hat) * np.exp(short_save))\
+            beta = \
+                short_save / (1. + np.sqrt(1.12 * i_hat) * np.exp(short_save)) \
                 + np.pi * i_hat / (2. + i_hat)
         except FloatingPointError:
             raise
         self.cl_diff_loss[:] = \
             ((self.prot_con_cl * self.tafel_slope ** 2.)
-             / (4. * self.faraday
-                * self.diff_coeff_cl * reac_conc_ele)
+             / (4. * self.faraday * self.diff_coeff_cl * conc)
              * (current_density / self.i_cd_char
                 - np.log10(1. + np.square(current_density) /
                            (self.i_cd_char ** 2. * beta ** 2.)))) / var
@@ -308,7 +329,10 @@ class HalfCell:
         Calculates the diffusion voltage loss in the gas diffusion layer
         according to (Kulikovsky, 2013).
         """
-        self.gdl_diff_loss[:] = -self.tafel_slope * np.log10(var)
+        try:
+            self.gdl_diff_loss[:] = -self.tafel_slope * np.log10(var)
+        except FloatingPointError:
+            raise
         nan_list = np.isnan(self.gdl_diff_loss)
         if nan_list.any():
             self.gdl_diff_loss[np.argwhere(nan_list)[0, 0]:] = 1.e50
@@ -317,25 +341,24 @@ class HalfCell:
         """
         Calculates the full voltage losses of the electrode
         """
-        reac_conc = self.channel.fluid.gas.concentration[self.id_fuel]
-        reac_conc_ele = ip.interpolate_1d(reac_conc)
+        conc = self.channel.fluid.gas.concentration[self.id_fuel]
+        conc_ele = ip.interpolate_1d(conc)
+        conc_ref = conc[self.channel.id_in]
+        conc_star = conc_ele / conc_ref
         if self.channel.flow_direction == 1:
-            reac_conc_in = reac_conc[:-1]
+            conc_in = conc[:-1]
         else:
-            reac_conc_in = reac_conc[1:]
+            conc_in = conc[1:]
 
-        i_lim = 4. * self.faraday * reac_conc_in \
+        i_lim = self.n_charge * self.faraday * conc_in \
             * self.diff_coeff_gdl / self.th_gdl
-        var = 1. - current_density / i_lim * reac_conc_in / reac_conc_ele
+        var0 = 1. - current_density / (i_lim * conc_star)
+        var = np.where(var0 < 0.01, 0.01, var0)
 
-        self.calc_activation_loss(current_density, reac_conc_ele, reac_conc_in)
-        self.calc_transport_loss_catalyst_layer(current_density, var,
-                                                reac_conc_ele)
-        self.calc_transport_loss_diffusion_layer(var)
-        if not self.calc_gdl_diff_loss:
-            self.gdl_diff_loss[:] = 0.
-        if not self.calc_cl_diff_loss:
-            self.cl_diff_loss[:] = 0.
-        if not self.calc_act_loss:
-            self.act_loss[:] = 0.
-        self.v_loss[:] = self.act_loss + self.cl_diff_loss + self.gdl_diff_loss
+        if self.calc_act_loss:
+            self.calc_activation_loss(current_density, conc_star)
+        if self.calc_gdl_diff_loss:
+            self.calc_transport_loss_diffusion_layer(var)
+        if self.calc_cl_diff_loss:
+            self.calc_transport_loss_catalyst_layer(current_density, var,
+                                                    conc_ele)

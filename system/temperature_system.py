@@ -113,9 +113,9 @@ class TemperatureSystem:
         if self.cool_flow:
             self.update_coolant_channel()
         self.update_temp_layer()
-        if np.any(self.temp_layer_vec) < 200.0:
+        if np.any(self.temp_layer_vec < 200.0):
             raise ValueError('temperature too low, check boundary conditions')
-        if np.any(self.temp_layer_vec) > 1000.0:
+        if np.any(self.temp_layer_vec > 1000.0):
             raise ValueError('temperature too high, check boundary conditions')
 
     def update_temp_layer(self):
@@ -174,17 +174,17 @@ class TemperatureSystem:
 
             # Cathode gde-mem source
             source[:] = 0.0
-            reaction_heat = \
-                (self.e_tn - self.e_0 + cell.cathode.v_loss) * current
             source += half_ohmic_heat_membrane
-            source += reaction_heat
+            # reaction_heat = \
+            #    (self.e_tn - self.e_0 + cell.cathode.v_loss) * current
+            # source += reaction_heat
             cell.add_explicit_layer_source(cell.heat_rhs_dyn, source, 2)
 
             # Anode gde-mem source
             source[:] = 0.0
             source += half_ohmic_heat_membrane
-            reaction_heat = cell.anode.v_loss * current
-            source += reaction_heat
+            # reaction_heat = cell.anode.v_loss * current
+            # source += reaction_heat
             cell.add_explicit_layer_source(cell.heat_rhs_dyn, source, 3)
 
             # Anode bpp-gde source

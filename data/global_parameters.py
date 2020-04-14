@@ -15,6 +15,7 @@ constants = {
 
 dict_case = {
     'target_current_density': op_con.target_current_density,
+    'average_cell_voltage': op_con.average_cell_voltage,
     'nodes': sim.elements + 1,
     'elements': sim.elements,
     'mol_con_m': phy_prop.molar_membrane_acid_group_concentration,

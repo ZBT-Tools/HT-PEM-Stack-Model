@@ -346,7 +346,7 @@ class Output:
             xlabel = 'Cell'
             save_oo_collection(fuel_circuits, xvalues, xlabel,
                                legend=['Cathode', 'Anode'],
-                               file_name='Normalized_Fuel_Distribution.png')
+                               file_name='Fuel_Distribution.png')
 
         # Save coolant circuit values
         if fc_stack.coolant_circuit is not None:
