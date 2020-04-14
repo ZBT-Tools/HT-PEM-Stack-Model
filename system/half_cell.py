@@ -184,10 +184,10 @@ class HalfCell:
                 self.channel.mole_flow[self.id_fuel, self.channel.id_in] \
                 * self.faraday * self.n_charge \
                 / (current * abs(self.n_stoi[self.id_fuel]))
-            if self.inlet_stoi < 1.0:
-                raise ValueError('stoichiometry of cell {0} '
-                                 'becomes smaller than one: {1:0.3f}'
-                                 .format(self.number, self.inlet_stoi))
+            # if self.inlet_stoi < 1.0:
+            #     raise ValueError('stoichiometry of cell {0} '
+            #                      'becomes smaller than one: {1:0.3f}'
+            #                      .format(self.number, self.inlet_stoi))
 
     # def calc_mass_balance(self, current_density, stoi=None):
     #     n_species = self.channel.fluid.n_species
@@ -212,13 +212,17 @@ class HalfCell:
         mass_source, mole_source = self.calc_mass_source(current_density)
         return mass_flow_in, mole_flow_in, mass_source, mole_source
 
-    def calc_inlet_flow(self, stoi=None):
+    def calc_inlet_flow(self, stoi=None, current_density=None):
         if stoi is None:
             stoi = self.target_stoi
+        if current_density is None:
+            current_density = self.target_cd
+        elif np.ndim(current_density) > 0:
+            raise ValueError('current_density must be scalar')
         mole_flow_in = np.zeros(self.channel.fluid.n_species)
-        mole_flow_in[self.id_fuel] = self.target_cd * self._active_area * stoi \
-            * abs(self.n_stoi[self.id_fuel]) / (self.n_charge * self.faraday)
-
+        mole_flow_in[self.id_fuel] = current_density * self._active_area \
+            * stoi * abs(self.n_stoi[self.id_fuel]) \
+            / (self.n_charge * self.faraday)
         inlet_composition = \
             self.channel.fluid.mole_fraction[:, self.channel.id_in]
         for i in range(len(mole_flow_in)):
@@ -248,7 +252,9 @@ class HalfCell:
         """
         if stoi is None:
             stoi = self.target_stoi
-        mol_flow_in = self.target_cd * self._active_area * stoi \
+        curr_den = np.average(current_density, weights=self._active_area_dx)
+        # curr_den = self.target_cd
+        mol_flow_in = curr_den * self._active_area * stoi \
             * abs(self.n_stoi[self.id_fuel]) / (self.n_charge * self.faraday)
         dmol = current_density * self._active_area_dx \
             * self.n_stoi[self.id_fuel] / (self.n_charge * self.faraday)

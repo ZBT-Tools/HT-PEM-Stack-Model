@@ -29,7 +29,6 @@ class Cell(OutputObject):
         n_nodes = g_par.dict_case['nodes']
         # number of nodes along the channel
         self.n_ele = n_nodes - 1
-        n_ele = self.n_ele
 
         self.e_0 = g_par.dict_case['e_0']
 
@@ -125,18 +124,18 @@ class Cell(OutputObject):
             heat_cond_mtx = \
                 mtx.build_cell_conductance_matrix(self.thermal_conductance_x,
                                                   self.thermal_conductance_z,
-                                                  n_ele)
+                                                  self.n_ele)
         else:
             heat_cond_mtx = \
                 mtx.build_cell_conductance_matrix(self.thermal_conductance_x[:-1],
                                                   self.thermal_conductance_z[:-1],
-                                                  n_ele)
+                                                  self.n_ele)
         self.heat_mtx_const = heat_cond_mtx
         # self.heat_mtx_const = np.zeros(self.heat_cond_mtx.shape)
         self.heat_mtx_dyn = np.zeros(self.heat_mtx_const.shape)
         self.heat_mtx = np.zeros(self.heat_mtx_dyn.shape)
 
-        self.heat_rhs_const = np.zeros(self.n_layer * n_ele)
+        self.heat_rhs_const = np.zeros(self.n_layer * self.n_ele)
         self.heat_rhs_dyn = np.zeros(self.heat_rhs_const.shape)
         self.heat_rhs = np.zeros(self.heat_rhs_dyn.shape)
 
@@ -145,7 +144,8 @@ class Cell(OutputObject):
         # right hand side vector
         index_list = []
         for i in range(self.n_layer):
-            index_list.append([(j * self.n_layer) + i for j in range(n_ele)])
+            index_list.append([(j * self.n_layer) + i
+                               for j in range(self.n_ele)])
         self.index_array = np.asarray(index_list)
 
         # Set constant thermal boundary conditions
@@ -183,10 +183,10 @@ class Cell(OutputObject):
             + self.anode.th_bpp \
             + self.anode.th_gde
 
-        self.v_loss = np.zeros(n_ele)
+        self.v_loss = np.zeros(self.n_ele)
         # voltage loss
         self.temp_layer = \
-            g_func.full((self.n_layer, n_ele), cell_dict['temp_init'])
+            g_func.full((self.n_layer, self.n_ele), cell_dict['temp_init'])
         # layer temperature
         # coolant inlet temperature
         self.temp_names = ['Cathode BPP-BPP',
@@ -196,14 +196,14 @@ class Cell(OutputObject):
                            'Anode GDE-BPP',
                            'Anode BPP-BPP']
         # interface names according to temperature array
-        self.temp_mem = np.zeros(n_ele)
+        self.temp_mem = np.zeros(self.n_ele)
         # membrane temperature
-        self.i_cd = np.zeros(n_ele)
+        self.i_cd = np.zeros(self.n_ele)
         # current density
-        self.v = np.zeros(n_ele)
+        self.v = np.zeros(self.n_ele)
         # cell voltage
         # self.resistance_z = np.zeros(n_ele)
-        self.conductance_z = np.zeros(n_ele)
+        self.conductance_z = np.zeros(self.n_ele)
         # cell resistance
 
         self.add_print_data(self.i_cd, 'Current Density', 'A/m²')
