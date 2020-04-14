@@ -288,7 +288,6 @@ class HalfCell:
         Calculates the activation voltage loss,
         according to (Kulikovsky, 2013).
         """
-        test = np.logical_and(current_density > g_par.SMALL, conc > g_par.SMALL)
         np.seterr(divide='ignore')
         try:
             self.act_loss[:] = \
