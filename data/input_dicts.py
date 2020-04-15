@@ -14,7 +14,7 @@ dict_stack = {
     'cool_flow': geom.coolant_circuit,
     # 'cool_ch_bc': geom.cooling_bc,
     'calc_temperature': sim.calc_temperature,
-    'calc_current_density': sim.calc_current_density,
+    'calc_current_density': sim.calc_electricity,
     'calc_flow_distribution': sim.calc_flow_distribution
     }
 

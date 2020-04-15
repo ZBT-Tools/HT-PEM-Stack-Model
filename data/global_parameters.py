@@ -14,7 +14,8 @@ constants = {
     }
 
 dict_case = {
-    'target_current_density': op_con.target_current_density,
+    'current_control': op_con.current_control,
+    'target_current_density': op_con.current_density,
     'average_cell_voltage': op_con.average_cell_voltage,
     'nodes': sim.elements + 1,
     'elements': sim.elements,

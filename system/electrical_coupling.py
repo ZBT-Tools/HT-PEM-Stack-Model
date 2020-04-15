@@ -20,10 +20,15 @@ class ElectricalCoupling:
         # thickness of the bipolar plate
 
         # Variables
-        self.i_cd_tar = g_par.dict_case['target_current_density']
-        self.nodes = g_par.dict_case['nodes']
+        self.current_control = stack.current_control
+        if self.current_control:
+            self.i_cd_tar = stack.i_target
+        else:
+            self.v_tar = stack.v_target
+            self.e_0_stack = np.sum([cell.e_0 for cell in self.cells])
+            self.v_loss_tar = self.e_0_stack - self.v_tar
         # number of the nodes along the channel
-        self.n_ele = self.nodes - 1
+        self.n_ele = self.cells[0].n_ele
         # number of the elements along the channel
         self.i_cd = np.zeros((self.n_cells, self.n_ele))
         # current density of the elements in z-direction
@@ -36,14 +41,15 @@ class ElectricalCoupling:
             # electrical conductance matrix
             self.rhs = np.zeros((self.n_cells - 1) * self.n_ele)
             # right hand side terms, here the current
-            self.c_width = \
-                self.cells[0].cathode.rib_width \
-                * (self.cells[0].cathode.n_channel + 1)
+            # self.c_width = \
+            #     self.cells[0].cathode.rib_width \
+            #     * (self.cells[0].cathode.n_channel + 1)
             # self.cells[0].width_straight_channels
             # width of the channel
 
             self.solve_sparse = True
             cell_mat_x_list = [cell.elec_x_mat_const for cell in self.cells]
+
             self.mat_const = mtx.block_diag_overlap(cell_mat_x_list,
                                                     (self.n_ele, self.n_ele))
             self.mat_const = \
@@ -51,14 +57,18 @@ class ElectricalCoupling:
             if self.solve_sparse:
                 self.mat_const = sparse.csr_matrix(self.mat_const)
 
-    def update(self):
+    def update(self, current_density=None, voltage=None):
         """
         Coordinates the program sequence
         """
         # resistance = \
         #     np.asarray([cell.resistance for cell in self.cells])
         # self.resistance[:] = resistance.flatten()
-
+        if current_density is not None:
+            self.i_cd_tar = current_density
+        if voltage is not None:
+            self.v_tar = voltage
+            self.v_loss_tar = self.e_0_stack - self.v_tar
         conductance_z = \
             np.asarray([cell.conductance_z for cell in self.cells]).flatten()
         # conductance = (self.c_width * self.dx / resistance).flatten()
@@ -103,14 +113,17 @@ class ElectricalCoupling:
         """
         Updates the right hand side of the linear system.
         """
-        v_loss, v_loss_total = self.calc_voltage_loss()
         cell_0 = self.cells[0]
-        i_bc = v_loss[0] * cell_0.conductance_z
-        i_target = self.i_cd_tar * cell_0.active_area_dx
-        i_correction_factor = i_target \
-            / np.average(i_bc, weights=cell_0.active_area_dx)
-        v_loss_total *= - 1.0 * i_correction_factor
-        return v_loss_total * cell_0.conductance_z
+        if self.current_control:
+            v_loss, v_loss_total = self.calc_voltage_loss()
+            i_bc = v_loss[0] * cell_0.conductance_z
+            i_target = self.i_cd_tar * cell_0.active_area_dx
+            i_correction_factor = i_target \
+                / np.average(i_bc, weights=cell_0.active_area_dx)
+            v_loss_total *= - 1.0 * i_correction_factor
+            return v_loss_total * cell_0.conductance_z
+        else:
+            return - self.v_loss_tar * cell_0.conductance_z
 
     def calc_i(self, conductance, active_area):
         """

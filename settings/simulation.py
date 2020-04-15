@@ -12,7 +12,7 @@ minimum_iteration_number = 3
 # calculate the PEMFC stack temperatures
 calc_temperature = True
 # calculate the current density distribution
-calc_current_density = True
+calc_electricity = True
 # calculate the flow distribution
 calc_flow_distribution = True
 # calculate the activation voltage losses

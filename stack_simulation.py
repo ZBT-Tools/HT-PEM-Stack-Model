@@ -45,7 +45,8 @@ class Simulation:
 
         """General variables"""
         # initialize stack object
-        self.stack = stack.Stack()
+        self.current_control = g_par.dict_case['current_control']
+        self.stack = stack.Stack(current_control=self.current_control)
 
         # initialize output object
         output_dict = input_dicts.dict_output
@@ -56,20 +57,25 @@ class Simulation:
         """
         This function coordinates the program sequence
         """
-        target_current_density = op_con.target_current_density
-        if not isinstance(target_current_density, (list, tuple, np.ndarray)):
-            target_current_density = [target_current_density]
-
+        if self.current_control:
+            target_value = op_con.current_density
+        else:
+            target_value = op_con.average_cell_voltage * self.stack.n_cells
+        if not isinstance(target_value, (list, tuple, np.ndarray)):
+            target_value = [target_value]
         cell_voltages = []
         current_errors = []
         temp_errors = []
-        for i, tar_cd in enumerate(target_current_density):
+        for i, tar_value in enumerate(target_value):
             # g_par.dict_case['tar_cd'] = tar_cd
             simulation_start_time = timeit.default_timer()
             counter = 0
             while True:
                 if counter == 0:
-                    self.stack.update(tar_cd)
+                    if self.current_control:
+                        self.stack.update(current_density=tar_value)
+                    else:
+                        self.stack.update(voltage=tar_value)
                 else:
                     self.stack.update()
                 if self.stack.break_program:
@@ -77,7 +83,7 @@ class Simulation:
                 current_error, temp_error = self.calc_convergence_criteria()
                 current_errors.append(current_error)
                 temp_errors.append(temp_error)
-                if len(target_current_density) < 1:
+                if len(target_value) < 1:
                     print(counter)
                 counter += 1
                 if ((current_error < self.it_crit and temp_error < self.it_crit)
@@ -108,14 +114,14 @@ class Simulation:
                 #                  'Convergence', 0., len(current_errors),
                 #                  ['Current Density', 'Temperature'], path)
             else:
-                target_current_density = target_current_density[0:-i]
+                target_value = target_value[0:-i]
                 break
             output_stop_time = timeit.default_timer()
             self.timing['output'] += output_stop_time - output_start_time
         output_start_time = timeit.default_timer()
-        if len(target_current_density) > 1:
+        if len(target_value) > 1:
             self.output.plot_polarization_curve(voltage_loss, cell_voltages,
-                                                target_current_density)
+                                                target_value)
         output_stop_time = timeit.default_timer()
         self.timing['output'] += output_stop_time - output_start_time
 

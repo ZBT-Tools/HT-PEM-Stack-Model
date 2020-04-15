@@ -11,7 +11,7 @@ import data.input_dicts as in_dicts
 
 class Stack:
 
-    def __init__(self):
+    def __init__(self, current_control=False):
 
         # Read settings dictionaries
         stack_dict = in_dicts.dict_stack
@@ -23,7 +23,7 @@ class Stack:
         # node points/elements along the x-axis
         self.calc_temp = stack_dict['calc_temperature']
         # switch to calculate the temperature distribution
-        self.calc_cd = stack_dict['calc_current_density']
+        self.calc_electric = stack_dict['calc_current_density']
         # switch to calculate the current density distribution
         self.calc_flow_dis = stack_dict['calc_flow_distribution']
         # switch to calculate the flow distribution
@@ -111,7 +111,8 @@ class Stack:
             coolant_dict = in_dicts.dict_coolant_fluid
             in_dicts.dict_coolant_in_manifold['length'] = manifold_length
             in_dicts.dict_coolant_out_manifold['length'] = manifold_length
-            coolant_dict['temp_in'] = in_dicts.dict_coolant_in_manifold['temp_in']
+            coolant_dict['temp_in'] = \
+                in_dicts.dict_coolant_in_manifold['temp_in']
             coolant_dict['p_out'] = in_dicts.dict_coolant_out_manifold['p_out']
 
             if temperature_dict['cool_ch_bc']:
@@ -122,11 +123,13 @@ class Stack:
             n_cool_cell = temperature_dict['cool_ch_numb']
             cool_channels = []
             for i in range(n_cool):
-                cool_channels.append(chl.Channel(in_dicts.dict_coolant_channel,
-                                                 fluid.dict_factory(coolant_dict)))
+                cool_channels.append(
+                    chl.Channel(in_dicts.dict_coolant_channel,
+                                fluid.dict_factory(coolant_dict)))
                 cool_channels[i].name += ' ' + str(i)
                 cool_channels[i].fluid.name = \
-                    cool_channels[i].name + ': ' + cool_channels[i].fluid.TYPE_NAME
+                    cool_channels[i].name + ': ' \
+                    + cool_channels[i].fluid.TYPE_NAME
 
             if n_cool > 0:
                 self.coolant_circuit = \
@@ -142,6 +145,11 @@ class Stack:
         self.flow_circuits = \
             [self.fuel_circuits[0], self.fuel_circuits[1], self.coolant_circuit]
 
+        self.current_control = current_control
+        self.i_target = g_par.dict_case['target_current_density']
+        self.target_cell_voltage = g_par.dict_case['average_cell_voltage']
+        self.v_target = self.n_cells * self.target_cell_voltage
+
         # Initialize the electrical coupling
         self.elec_sys = el_cpl.ElectricalCoupling(self)
         # Initialize temperature system
@@ -154,7 +162,6 @@ class Stack:
         # True if the program aborts because of some critical impact
 
         # target current density
-        self.i_target = g_par.dict_case['target_current_density']
 
         # current density array
         self.i_cd = np.zeros((self.n_cells, n_ele))
@@ -169,13 +176,16 @@ class Stack:
         self.temp_old = np.zeros(self.temp_sys.temp_layer_vec.shape)
         self.temp_old[:] = self.temp_sys.temp_layer_vec
 
-    def update(self, current_density=None):
+    def update(self, current_density=None, voltage=None):
         """
         This function coordinates the program sequence
         """
         update_inflows = False
         if current_density is not None:
             self.i_cd[:] = current_density
+            update_inflows = True
+        elif voltage is not None:
+            self.v_stack = voltage
             update_inflows = True
         self.update_flows(update_inflows, self.calc_flow_dis)
         for i, cell in enumerate(self.cells):
@@ -187,14 +197,16 @@ class Stack:
         self.temp_old[:] = self.temp_sys.temp_layer_vec
         if not self.break_program:
             if self.calc_temp:
-                self.update_temperature_coupling()
-            if self.calc_cd:
-                self.update_electrical_coupling()
-
+                self.temp_sys.update()
+            if self.calc_electric:
+                self.elec_sys.update(current_density=current_density,
+                                     voltage=voltage)
+                self.i_cd[:] = self.elec_sys.i_cd
             self.v[:] = \
                 np.asarray([np.average(cell.v, weights=cell.active_area_dx)
                             for cell in self.cells])
-            self.v_stack = np.sum(self.v)
+            if self.current_control:
+                self.v_stack = np.sum(self.v)
 
     def update_flows(self, update_inflows=False, calc_flow_dist=False):
         """
@@ -231,23 +243,6 @@ class Stack:
                 #   self.coolant_circuit.mass_flow_in * temp_ratio
                 cool_mass_flow = None
             self.coolant_circuit.update(cool_mass_flow, calc_flow_dist)
-
-    def update_electrical_coupling(self):
-        """
-        This function updates current distribution over the stack cells
-        """
-        # self.el_cpl_stack.update_values(self.stack_cell_r, self.v_loss)
-        # if self.n_cells > 1:
-        self.elec_sys.update()
-        self.i_cd[:] = self.elec_sys.i_cd[:]
-        # else:
-        #     self.i_cd[0] = self.cells[0].i_cd
-
-    def update_temperature_coupling(self):
-        """
-        This function updates the layer and fluid temperatures of the stack
-        """
-        self.temp_sys.update()
 
     def calc_mass_flows(self):
         mass_flows_in = []
