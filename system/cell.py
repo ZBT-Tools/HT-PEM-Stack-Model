@@ -309,7 +309,10 @@ class Cell(OutputObject):
         # self.v_loss[:] = np.minimum(self.v_loss, self.e_0)
 
     def correct_voltage_loss(self):
-        id = np.argwhere(np.invert(self.v_alarm))[-1, -1]
+        try:
+            id = np.argwhere(np.invert(self.v_alarm))[-1, -1]
+        except IndexError:
+            id = 0
         np.seterr(divide='ignore')
         # gdl_loss_ratio = \
         #     self.cathode.gdl_diff_loss[id] / self.anode.gdl_diff_loss[id]

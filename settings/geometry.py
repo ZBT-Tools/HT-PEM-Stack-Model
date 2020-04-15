@@ -1,7 +1,7 @@
 """ This file contains the geometry settings"""
 """Stack Settings"""
 # number of the pemfc
-cell_number = 40
+cell_number = 1
 # coolant channel configuration (no cooling channel at the endplates = False)
 coolant_circuit = True
 cooling_bc = True
