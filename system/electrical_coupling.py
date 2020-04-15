@@ -1,151 +1,137 @@
 import numpy as np
 import data.global_parameters as g_par
 import system.global_functions as g_func
+from scipy import sparse
+from scipy.sparse.linalg import spsolve
+import system.matrix_functions as mtx
 
 
 class ElectricalCoupling:
 
-    def __init__(self, dict_electrical_coupling_const):
+    def __init__(self, stack):
+        self.stack = stack
+        self.cells = stack.cells
         # Handover
-        self.cell_numb = dict_electrical_coupling_const['cell_numb']
+        self.n_cells = self.stack.n_cells
         # number of the stack cells
-        self.dx = dict_electrical_coupling_const['dx']
+        self.dx = self.cells[0].dx
         # length of an element
-        self.th_plate = dict_electrical_coupling_const['th_bpp']
+        self.th_plate = self.cells[0].cathode.bpp.thickness
         # thickness of the bipolar plate
-        self.width_channels = dict_electrical_coupling_const['width_channels']
-        # width of the channel
+
         # Variables
+        self.i_cd_tar = g_par.dict_case['target_current_density']
         self.nodes = g_par.dict_case['nodes']
         # number of the nodes along the channel
-        self.elements = self.nodes - 1
+        self.n_ele = self.nodes - 1
         # number of the elements along the channel
-        self.v_end_plate = 0.
-        # accumulated voltage loss over the stack at the lower end plate
-        c_x = self.width_channels * self.th_plate \
-            / (self.dx * g_par.dict_case['bpp_resistivity'])
-        # electrical conductance of the bipolar plate in x-direction
-        self.v_loss = []
-        # 2-d-array of of the voltage loss over the stack in z-direction
-        self.cell_c = []
-        # 1-d-array of the  combined cell & bipolar plate
-        # conductance in z-direction
-        self.cell_c_mid = []
-        # cell_c array for the main diagonal of the matrix self.mat_const
-        self.cell_r = np.full((self.cell_numb, self.elements), 0.)
-        # 2-d-array of the combined cell & bipolar plate
-        # resistance in z-direction
-        self.mat = np.full((self.elements, self.cell_numb + 1), 0.)
-        # electrical conductance matrix
-        self.rhs = np.full((self.cell_numb + 1) * self.elements, 0.)
-        # right hand side terms, here the current
-        self.i_cd = np.full((self.cell_numb, self.elements), 0.)
+        self.i_cd = np.zeros((self.n_cells, self.n_ele))
         # current density of the elements in z-direction
-        c_x_cell = np.hstack(([c_x],
-                              np.full(self.elements - 2, 2. * c_x), [c_x]))
-        # bipolar conductance 1-d-array in x-direction over one cell
-        c_x_stack = np.tile(c_x_cell * 2, self.cell_numb - 1)
-        # bipolar conductance 1-d-array  in x-direction over the stack
-        c_x_cell_sr = np.hstack((np.full(self.elements - 1, c_x), 0.))
-        # bipolar conductance side 1-d-array of the over one cell
-        c_x_stack_sr = np.tile(2. * c_x_cell_sr, self.cell_numb - 1)
-        # bipolar conductance side 1-d-array of the over the stack
-        self.mat_const = - np.diag(c_x_stack)\
-            + np.diag(c_x_stack_sr[:-1], 1)\
-            + np.diag(c_x_stack_sr[:-1], -1)
+        # self.resistance = np.zeros((self.n_cells, self.n_ele)).flatten()
+        # combined cell & bipolar plate resistance vector in z-direction
+        self.v_end_plate = np.zeros(self.n_ele)
+        # accumulated voltage loss over the stack at the lower end plate
+        if self.n_cells > 1:
+            self.mat = None
+            # electrical conductance matrix
+            self.rhs = np.zeros((self.n_cells - 1) * self.n_ele)
+            # right hand side terms, here the current
+            self.c_width = \
+                self.cells[0].cathode.rib_width \
+                * (self.cells[0].cathode.n_channel + 1)
+            # self.cells[0].width_straight_channels
+            # width of the channel
 
-    def update_values(self, dict_electrical_coupling_dyn):
-        """
-        Updates the dynamic parameters
-
-            Access to:
-            -dict_electrical_coupling_dyn
-
-            Manipulate:
-            -self.cell_r
-            -self.v_loss
-            -self.cell_c
-            -self.cell_c_mid
-        """
-        self.cell_r = dict_electrical_coupling_dyn['r_cell']
-        self.v_loss = dict_electrical_coupling_dyn['v_loss']
-        self.cell_c = self.width_channels * self.th_plate / self.cell_r
-        self.cell_c_mid = np.hstack((self.cell_c[:-self.elements]
-                                     + self.cell_c[self.elements:]))
+            self.solve_sparse = True
+            cell_mat_x_list = [cell.elec_x_mat_const for cell in self.cells]
+            self.mat_const = mtx.block_diag_overlap(cell_mat_x_list,
+                                                    (self.n_ele, self.n_ele))
+            self.mat_const = \
+                self.mat_const[self.n_ele:-self.n_ele, self.n_ele:-self.n_ele]
+            if self.solve_sparse:
+                self.mat_const = sparse.csr_matrix(self.mat_const)
 
     def update(self):
         """
-        This function coordinates the program sequence
+        Coordinates the program sequence
         """
-        self.update_mat()
-        self.update_right_side()
-        self.calc_i()
+        # resistance = \
+        #     np.asarray([cell.resistance for cell in self.cells])
+        # self.resistance[:] = resistance.flatten()
 
-    def update_mat(self):
+        conductance_z = \
+            np.asarray([cell.conductance_z for cell in self.cells]).flatten()
+        # conductance = (self.c_width * self.dx / resistance).flatten()
+        # conductance = 1.0 / self.resistance
+        active_area = \
+            np.array([cell.active_area_dx for cell in self.cells]).flatten()
+        if self.n_cells > 1:
+            self.update_mat(conductance_z)
+            self.rhs[:self.n_ele] = self.calc_boundary_condition()
+            self.i_cd[:] = self.calc_i(conductance_z, active_area)
+
+        else:
+            i_bc = self.calc_boundary_condition()
+            self.i_cd[:] = - i_bc / active_area
+            v_diff = - i_bc / np.array([cell.conductance_z
+                                        for cell in self.cells]).flatten()
+            v_diff = v_diff.reshape((self.n_cells, self.n_ele))
+            self.update_cell_voltage(v_diff)
+
+    def update_mat(self, conductance):
         """
-        This function updates the conductance matrix
-
-            Access to:
-            -self.mat_const
-            -self.cell_c_mid
-            -self.cell_c
-            -self.elements
-
-            Manipulate:
-            -self.mat
+        Updates the conductance matrix
         """
-        self.mat = self.mat_const\
-            - np.diag(self.cell_c_mid, 0)\
-            + np.diag(self.cell_c[:-self.elements][self.elements:],
-                      self.elements)\
-            + np.diag(self.cell_c[:-self.elements][self.elements:],
-                      -self.elements)
+        cell_c_mid = \
+            np.hstack((conductance[:-self.n_ele] + conductance[self.n_ele:]))
+        mat_dyn = \
+            - np.diag(cell_c_mid, 0) \
+            + np.diag(conductance[:-self.n_ele][self.n_ele:], self.n_ele) \
+            + np.diag(conductance[:-self.n_ele][self.n_ele:], -self.n_ele)
+        if self.solve_sparse:
+            mat_dyn = sparse.csr_matrix(mat_dyn)
+        self.mat = self.mat_const + mat_dyn
 
-    def update_right_side(self):
+    def calc_voltage_loss(self):
+        v_loss = \
+            np.asarray([np.average(cell.v_loss, weights=cell.active_area_dx)
+                        for cell in self.cells])
+        v_loss_total = np.sum(v_loss)
+        return v_loss, v_loss_total
+
+    def calc_boundary_condition(self):
         """
-        This function sets the right hand side.
-
-            Access to:
-            -self.v_loss
-            -self.elements
-            -self.cell_c
-            -self.cell_numb
-
-            Manipulate:
-            -self.v_end_plate
-            -self.rhs
+        Updates the right hand side of the linear system.
         """
+        v_loss, v_loss_total = self.calc_voltage_loss()
+        cell_0 = self.cells[0]
+        i_bc = v_loss[0] * cell_0.conductance_z
+        i_target = self.i_cd_tar * cell_0.active_area_dx
+        i_correction_factor = i_target \
+            / np.average(i_bc, weights=cell_0.active_area_dx)
+        v_loss_total *= - 1.0 * i_correction_factor
+        return v_loss_total * cell_0.conductance_z
 
-        self.v_end_plate = np.sum(self.v_loss) / self.elements
-        i_end = self.v_end_plate * self.cell_c[:self.elements]
-        self.rhs = np.hstack((-i_end,
-                              np.full((self.cell_numb - 2) * self.elements, 0.)))
-
-    def calc_i(self):
+    def calc_i(self, conductance, active_area):
         """
-        This function calculates the current density
+        Calculates the current density
         of the elements in z-direction.
-
-            Access to:
-            -self.mat
-            -self.rhs
-            -self.elements
-            -self.v_end_plate
-            -self.cell_r
-            -self.cell_numb
-            -self.nodes
-            -g_par.dict_case['tar_cd']
-
-            Manipulate:
-            -self.i_ca
         """
-        v_new = np.linalg.tensorsolve(self.mat, self.rhs)
-        v_new = np.hstack((np.full(self.elements, self.v_end_plate),
-                           v_new, np.full(self.elements, 0.)))
-        v_dif = v_new[:-self.elements] - v_new[self.elements:]
-        i_ca_vec = v_dif / self.cell_r
-        i_cd = g_func.to_array(i_ca_vec, self.cell_numb, self.elements)
-        #print(i_cd)
-        self.i_cd = i_cd / np.average(i_cd) * g_par.dict_case['tar_cd']
-        #print(self.i_cd)
-        #print(g_par.dict_case['tar_cd'])
+        self.v_end_plate[:] = - self.rhs[:self.n_ele] / conductance[:self.n_ele]
+        if self.solve_sparse:
+            v_new = spsolve(self.mat, self.rhs)
+            # mat_const = self.mat_const.toarray()
+            # mat = self.mat.toarray()
+        else:
+            v_new = np.linalg.tensorsolve(self.mat, self.rhs)
+        v_new = np.hstack((self.v_end_plate, v_new, np.zeros(self.n_ele)))
+        v_diff = v_new[:-self.n_ele] - v_new[self.n_ele:]
+        i_ca_vec = v_diff * conductance / active_area
+        v_diff = v_diff.reshape((self.n_cells, self.n_ele))
+        self.update_cell_voltage(v_diff)
+        return np.reshape(i_ca_vec.flatten(), (self.n_cells, self.n_ele))
+
+    def update_cell_voltage(self, v_diff):
+        for i, cell in enumerate(self.cells):
+            cell.v[:] = cell.e_0 - v_diff[i]
+            cell.v_loss[:] = v_diff[i]

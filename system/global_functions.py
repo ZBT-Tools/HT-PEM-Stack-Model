@@ -1,218 +1,312 @@
 import numpy as np
+from scipy import ndimage
+import data.global_parameters as g_par
 from matplotlib import pyplot as plt
 import os
+# from numba import jit
+
+SMALL = 1e-12
 
 
-def dw(t):
+def ensure_list(variable):
+    if isinstance(variable, (list, tuple)):
+        return variable
+    else:
+        return [variable]
+
+
+def full_like(array):
+    """faster than native numpy version"""
+    result = np.zeros(array.shape)
+    result[:] = array
+    return result
+
+
+def full(shape, value):
+    """faster than native numpy version"""
+    result = np.zeros(shape)
+    result[:] = value
+    return result
+
+
+def zeros_like(array):
+    """faster than native numpy version"""
+    return np.zeros(array.shape)
+
+
+def fill_transposed(in_array, shape):
+    transposed_array = np.zeros(shape).transpose()
+    transposed_array[:] = in_array
+    return transposed_array.transpose()
+
+
+def add_source(var, source, direction=1, tri_mtx=None):
     """
-    Calculates the free water content diffusion coefficient in the membrane.
+    Add discrete 1d source of length n-1 to var of length n
+    :param var: 1d array of quantity variable
+    :param source: 1d array of source to add to var
+    :param direction: flow direction (1: along array counter, -1: opposite to
+    array counter)
+    :param tri_mtx: if triangle matrix (2D array, nxn) is not provided,
+    it will be created temporarily
+    :return:
     """
-    return 2.1e-7 * np.exp(-2436. / t)
+    n = len(var) - 1
+    if len(source) != n:
+        raise ValueError('parameter source must be of length (var-1)')
+    if direction == 1:
+        if tri_mtx is None:
+            ones = np.zeros((n, n))
+            ones.fill(1.0)
+            fwd_mat = np.tril(ones)
+        else:
+            fwd_mat = tri_mtx
+        var[1:] += np.matmul(fwd_mat, source)
+    elif direction == -1:
+        if tri_mtx is None:
+            ones = np.zeros((n, n))
+            ones.fill(1.0)
+            bwd_mat = np.triu(ones)
+        else:
+            bwd_mat = tri_mtx
+        var[:-1] += np.matmul(bwd_mat, source)
+    else:
+        raise ValueError('parameter direction must be either 1 or -1')
+    return var
 
 
-def to_array(var, m, n):
+def fill_last_zeros(array, axis=-1, axis_sum=None):
+    if axis == 0:
+        array_t = array.transpose()
+        return fill_last_zeros(array_t, axis=-1).transpose()
+    if axis_sum is None:
+        axis_sum = np.abs(np.sum(array, axis=0))
+    shape = array.shape
+    prev = np.arange(shape[-1])
+    prev[axis_sum < SMALL] = 0
+    prev = np.maximum.accumulate(prev)
+    return array[:, prev]
+
+
+def fill_first_zeros(array, axis=-1, axis_sum=None):
+    array = np.flip(array, axis)
+    return np.flip(fill_last_zeros(array, axis), axis, axis_sum)
+
+
+def fill_zero_sum(array, axis=-1, axis_sum=None):
+    if axis == 0:
+        array_t = array.transpose()
+        return fill_zero_sum(array_t, axis=-1).transpose()
+    elif axis in (-1, 1):
+        if axis_sum is None:
+            try:
+                axis_sum = np.abs(np.sum(array, axis=0))
+            except RecursionError:
+                print('test')
+        else:
+            axis_sum = np.abs(axis_sum)
+    else:
+        raise ValueError('axis must be 0, 1 or -1. only 2D-arrays allowed.')
+    nonzero = np.nonzero(axis_sum)[0]
+    if nonzero[-1] != array.shape[axis] - 1:
+        array = fill_last_zeros(array, axis_sum=axis_sum)
+    if nonzero[0] != 0:
+        array = fill_first_zeros(array, axis_sum=axis_sum)
+    return array
+
+
+def fill_surrounding_average_1d(array, axis=0):
+    footprint = np.zeros((3, 3))
+    weights = np.array([1.0, 0.0, 1.0])
+    if axis == 0:
+        footprint[1, :] = weights
+    elif axis in (-1, 1):
+        footprint[:, 1] = weights
+    else:
+        raise ValueError('argument axis can only be 0, 1 or -1')
+
+    mask_array = np.sum(np.abs(array), axis) * np.ones(array.shape)
+    averaged = ndimage.generic_filter(array, np.nanmean, footprint=footprint,
+                                      mode='constant', cval=np.NaN)
+    return np.where(mask_array < SMALL, averaged, array)
+
+
+def construct_empty_stack_array(cell_array, n_cells):
     """
-    Changes a sorted 1-d-array to an sorted 2-d-array.
+    Construct zeroed stack array from one- or multidimensional cell variable
+    array and number of cells
+    :param cell_array: array of variable discretized for a unit cell
+    :param n_cells: number of cells in stack
+    :return:
     """
-    return np.reshape(var.flatten(order='C'), (m, n))
+    if isinstance(cell_array, np.ndarray):
+        cell_array_shape = cell_array.shape
+    else:
+        cell_array_shape = (len(cell_array))
+    stack_array_shape = (n_cells,) + cell_array_shape
+    return np.zeros(stack_array_shape)
 
 
-def calc_dif(vec):
+def calc_temp_heat_transfer(wall_temp, fluid_temp, capacity_rate, heat_coeff,
+                            flow_direction):
+    wall_temp = np.asarray(wall_temp)
+    fluid_temp = np.asarray(fluid_temp)
+    capacity_rate = np.asarray(capacity_rate)
+    heat_coeff = np.asarray(heat_coeff)
+    assert capacity_rate.shape == wall_temp.shape
+    assert heat_coeff.shape == wall_temp.shape
+    fluid_temp_avg = np.asarray(fluid_temp[:-1] + fluid_temp[1:]) * .5
+    id_range = range(len(wall_temp))
+    if flow_direction == -1:
+        id_range = reversed(id_range)
+    for i in id_range:
+        fluid_avg = fluid_temp_avg[i]
+        fluid_out_old = 5e5
+        error = 1e3
+        iter = 0
+        itermax = 10
+        while error > 1e-4 and iter <= itermax:
+            if flow_direction == -1:
+                fluid_in = fluid_temp[i + 1]
+            else:
+                fluid_in = fluid_temp[i]
+            delta_temp = wall_temp[i] - fluid_avg
+            q = heat_coeff[i] * delta_temp
+            fluid_out = fluid_in + q / capacity_rate[i]
+            if fluid_in < wall_temp[i]:
+                fluid_out = np.minimum(wall_temp[i] - 1e-3, fluid_out)
+            else:
+                fluid_out = np.maximum(wall_temp[i] + 1e-3, fluid_out)
+            fluid_avg = (fluid_in + fluid_out) * 0.5
+            error = np.abs(fluid_out_old - fluid_out) / fluid_out
+            fluid_out_old = np.copy(fluid_out)
+            iter += 1
+        if flow_direction == -1:
+            fluid_temp[i] = fluid_out
+        else:
+            fluid_temp[i + 1] = fluid_out
+    fluid_temp_avg = np.asarray(fluid_temp[:-1] + fluid_temp[1:]) * .5
+    heat = heat_coeff * (wall_temp - fluid_temp_avg)
+    return fluid_temp, heat
+
+
+def calc_diff(vec):
     """
     Calculates the difference between the i+1 and i position of an 1-d-array.
     """
     return vec[:-1] - vec[1:]
 
 
-def calc_rho(p, r, t):
+def calc_rho(pressure, gas_constant, temperature):
     """
     Calculates the density of an ideal gas.
     """
-    return p / (r * t)
+    return pressure / (gas_constant * temperature)
 
 
-def calc_reynolds_number(roh, v, d, visc):
+def calc_reynolds_number(rho, v, d, visc):
     """"
     Calculates the reynolds number of an given fluid.
     """
-    return roh * v * d / visc
+    return np.divide(rho * v * d, visc, where=visc != 0.0)
 
 
-def calc_fan_fri_fac(re):
+def calc_friction_factor(reynolds, method='Blasius', type='Darcy'):
     """
     Calculates the fanning friction factor between a wall
     and a fluid for the laminar and turbulent case.
     """
-    f = np.full(len(re), 0.)
-    for q, item in enumerate(re):
-        if 0. <= re[q] <= 2100.:
-            f[q] = 16./re[q]
-        else:
-            f[q] = 0.079 * re[q]**-0.25
-    return f
+    f = 1.0
+    if type == 'Darcy':
+        f = 4.0
+    elif type == 'Fanning':
+        f = 1.0
+    else:
+        ValueError('friction factor type can only be Darcy or Fanning')
+    lam = np.zeros(reynolds.shape)
+    turb = np.zeros(reynolds.shape)
+    if method == 'Blasius':
+        lam = np.divide(f * 16.0, reynolds, out=lam, where=reynolds > 0.0)
+        turb = f * 0.0791 * np.power(reynolds, -0.25, out=turb,
+                                     where=reynolds > 0.0)
+        return np.where(reynolds < 2200.0, lam, turb)
+    else:
+        raise NotImplementedError
 
 
-def calc_head_p_drop(rho, v1, v2, f, kf, le, dh):
+def calc_pressure_drop(velocity, density, f, zeta, length, diameter,
+                       pressure_recovery=False):
     """
-    Calculates the pressure drop at an defined t-junction,
+    Calculates the pressure drop at a defined t-junction,
     according to (Koh, 2003).
+    :param density: fluid density array (element-wise)
+    :param velocity: velocity array (node-wise)
+    :param f: darcy friction factor (element-wise)
+    :param zeta: additional loss factors
+    :param length: length of element (element-wise)
+    :param diameter: hydraulic diameter of pipe
+    :param pressure_recovery: for dividing manifolds with momentum effects
+    :return: pressure drop (element-wise)
     """
-    a = (np.square(v1) - np.square(v2)) * .5
-    b = np.square(v2) * (2. * f * le / dh + kf * .5)
-    return rho * (a + b)
+    if np.shape(velocity)[0] != (np.shape(length)[0] + 1):
+        raise ValueError('velocity array must be provided as a 1D'
+                         'nodal array (n+1), while the other settings arrays '
+                         'must be element-wise (n)')
+    v1 = velocity[:-1]
+    v2 = velocity[1:]
+    a = density * v2 ** 2.0 * (f * length / diameter + zeta) * 0.5
+    # b = 0.0
+    b = (density * v2 ** 2.0 - density * v1 ** 2.0) * .5
+    return a + b
 
 
-def calc_visc_mix(visc, mol_f, mol_m):
+def calc_visc_mix(species_viscosity, mol_fraction, mol_mass):
     """
     Calculates the mixture viscosity of a gas acording to Herning ad Zipperer.
     """
-    visc = np.array(visc).transpose()
-    mol_f = np.array(mol_f).transpose()
-    visc_mix = []
-    for q, item in enumerate(visc):
-        denominator = sum(item * mol_f[q] * np.sqrt(mol_m))
-        divisor = sum(mol_f[q] * np.sqrt(mol_m))
-        visc_mix.append(denominator / divisor)
-    return visc_mix
+    #species_viscosity_t = np.asarray(species_viscosity).transpose()
+    # mol_fraction_t = np.array(mol_fraction).transpose()
+    #mw_mix = np.sum(mol_fraction * mol_mass, axis=-1)
+    # visc_mix = []
+    # for q, item in enumerate(visc):
+    #     denominator = sum(item * mol_fraction_t[q] * np.sqrt(mw))
+    #     divisor = sum(mol_fraction[q] * np.sqrt(mw))
+    #     visc_mix.append(denominator / divisor)
+    # return visc_mix
+    spec_visc = np.asarray(species_viscosity).transpose()
+    x_sqrt_mw = (mol_fraction.transpose() * np.sqrt(mol_mass))
+    return np.sum(spec_visc * x_sqrt_mw, axis=-1)/np.sum(x_sqrt_mw, axis=-1)
 
 
-def calc_psi(visc, mol_w):
+def calc_wilke_coefficients(species_viscosity, mol_mass):
     """
     Calculates the wilke coefficients for each species combination of a gas.
     """
     psi = []
-    for q in range(len(visc)):
-        for w in range(len(visc)):
-            a = (1. + (visc[q] / visc[w])**0.5
-                 * (mol_w[w] / mol_w[q])**0.25)**2.
-            b = np.sqrt(8.) * (1. + mol_w[q] / mol_w[w])**0.5
+    n = len(mol_mass)
+    for i in range(n):
+        for j in range(n):
+            a = (1. + np.power(species_viscosity[i] / species_viscosity[j],
+                               0.5)
+                 * np.power(np.power((mol_mass[j] / mol_mass[i]), 0.25), 2.))
+            b = np.sqrt(8.) * np.power((1. + mol_mass[i] / mol_mass[j]), 0.5)
             psi.append(a / b)
-    return psi
+    return np.asarray(psi)
 
 
-def calc_lambda_mix(lambdax, mol_f, visc, mol_w):
+def calc_lambda_mix(species_lambda, mol_fraction, species_viscosity, mol_mass):
     """
     Calculates the heat conductivity of a gas mixture,
     according to Wilkes equation.
     """
-    mol_f[1:] = np.minimum(1.e-20, mol_f[1:])
-    psi = calc_psi(visc, mol_w)
-    counter = 0
-    outcome = 0.
-    for q in range(len(visc)):
-        a = mol_f[q] * lambdax[q]
+    # mol_f[1:] = np.minimum(1.e-20, mol_f[1:])
+    psi = calc_wilke_coefficients(species_viscosity, mol_mass)
+    n = len(mol_mass)
+    lambda_mix = np.zeros_like(mol_fraction[0])
+    for i in range(n):
+        a = mol_fraction[i] * species_lambda[i]
         b = 1.e-20
-        for w in range(len(visc)):
-            b = b + mol_f[q] * psi[counter]
-            counter = counter + 1
-        outcome = outcome + a / b
-    return outcome
-
-
-def calc_elements_1_d(node_vec):
-    """
-    Calculates an element 1-d-array from a node 1-d-array.
-    """
-    return np.array((node_vec[:-1] + node_vec[1:])) * .5
-
-
-def calc_elements_2d(node_mat):
-    """
-    Calculates an element 2-d-array from a node 2-d-array.
-    """
-    return np.array((node_mat[:, :-1] + node_mat[:, 1:])) * .5
-
-
-def calc_nodes_2_d(ele_mat):
-    """
-    Calculates an node 2-d-array from an element 2-d-array,
-    uses the [:, 1], [:, -2] entries of the calculated node 2-d-array
-    to fill the first als last row of the node 2-d-array.
-    """
-    mat = np.array((ele_mat[:, :-1] + ele_mat[:, 1:])) * .5
-    return np.hstack([mat[:, [0]], mat, mat[:, [-1]]])
-
-
-# def i_e_polate_nodes_2_d(ele_vec):
-#     """
-#     Calculates an node 2-d-array from an element 2-d-array,
-#     and interpolates the first and last row of the node 2-d-array.
-#     """
-#     re_array = np.array((ele_vec[:, :-1] + ele_vec[:, 1:])) * 0.5
-#     first_node = np.array([2. * re_array[:, 0] - re_array[:, 1]])
-#     last_node = np.array([2. * re_array[:, -1] - re_array[:, -2]])
-#     return np.concatenate((first_node.T, re_array, last_node.T), axis=1)
-
-
-def calc_nodes_1_d(ele_vec):
-    """
-    Calculates an node 1-d-array from an element 1-d-array,
-    uses the [:, 1], [:, -2] entries of the calculated node 1-d-array
-    to fill the first als last row of the node 1-d-array.
-    """
-    vec = np.array((ele_vec[:-1] + ele_vec[1:])) * .5
-    return np.hstack([vec[0], vec, vec[-1]])
-
-
-# def calc_fluid_water_enthalpy(t):
-#     """
-#     Calculates the enthalpy of fluid water by a given temperature.
-#     """
-#     return (t-273.15) * 4182.
-
-
-def output(y_values, y_label, x_label, y_scale, color,
-           title, xlim_low, xlim_up, val_label, path):
-    if val_label is not False:
-        for l in range(len(y_values)):
-            plt.plot(y_values[l], color=color[l],
-                     marker='.', label=val_label[l])
-    else:
-        for l in range(len(y_values)):
-            plt.plot(y_values[l], color=color[l], marker='.')
-
-    plt.xlabel(x_label)
-    plt.ylabel(y_label)
-    plt.yscale(y_scale)
-    plt.xlim(xlim_low, xlim_up)
-    plt.tight_layout()
-    plt.grid()
-    if val_label is not False:
-        plt.legend()
-    plt.savefig(os.path.join(path + title + '.png'))
-    plt.close()
-
-
-def output_x(y_values, x_values, y_label, x_label,
-             y_scale, title, val_label, lim, path):
-    if val_label is not False:
-        for l in range(len(y_values)):
-            plt.plot(x_values, y_values[l],
-                     color=plt.cm.coolwarm(l/len(y_values)),
-                     marker='.', label=val_label[l])
-    else:
-        for l in range(len(y_values)):
-            plt.plot(x_values, y_values[l],
-                     color=plt.cm.coolwarm(l/len(y_values)), marker='.')
-
-    plt.xlabel(x_label, fontsize=16)
-    plt.ylabel(y_label, fontsize=16)
-    plt.yscale(y_scale)
-    plt.tick_params(labelsize=14)
-    plt.autoscale(tight=True, axis='both', enable=True)
-    plt.xlim(lim[0], lim[1])
-    plt.tight_layout()
-    plt.grid()
-    if val_label is not False:
-        plt.legend()
-    plt.savefig(os.path.join(path + title + '.png'))
-    plt.close()
-
-
-def calc_fluid_temp_out(temp_in, temp_wall, g, k):
-    """
-    Calculates the linearised fluid outlet temperature
-    of an element by the wall temperature and the fluid inlet temperature.
-    The function is limited to cases with g > 0.5 * k.
-    """
-    return (temp_in * (g - .5 * k) + temp_wall * k) / (g + k * .5)
+        for j in range(n):
+            b += mol_fraction[i] * psi[j + n * i]
+        lambda_mix += a / b
+    return lambda_mix

@@ -1,64 +1,174 @@
 import numpy as np
-import system.global_functions as g_func
 import data.global_parameters as g_par
+import system.global_functions as g_func
 import system.half_cell as h_c
-import data.half_cell_dict as hc_dict
+import system.matrix_functions as mtx
+import system.membrane as membrane
+import system.interpolation as ip
+from system.output_object import OutputObject
+import copy
 
 
-class Cell:
+class Cell(OutputObject):
 
-    def __init__(self, dict_cell):
-        # Handover
-        self.anode = h_c.HalfCell(hc_dict.dict_anode)
-        # anode - object of the class HalfCell
-        self.cathode = h_c.HalfCell(hc_dict.dict_cathode)
+    def __init__(self, cell_dict, membrane_dict, half_cell_dicts,
+                 channels, number=None):
+        name = 'Cell'  # + str(number)
+        self.number = number
+        super().__init__(name)
+        self.cell_dict = cell_dict
+        # print('Initializing: ', self.name)
+        self.n_layer = 5
+        self.n_electrodes = 2
+
+        self.first_cell = cell_dict['first_cell']
+        self.last_cell = cell_dict['last_cell']
+
+        if self.last_cell:
+            self.n_layer += 1
+        n_nodes = g_par.dict_case['nodes']
+        # number of nodes along the channel
+        self.n_ele = n_nodes - 1
+        n_ele = self.n_ele
+
+        self.e_0 = g_par.dict_case['e_0']
+
+        self.width = self.cell_dict['width']
+        self.length = self.cell_dict['length']
+        self.active_area = self.width * self.length
+
+        half_cell_dicts = copy.deepcopy(half_cell_dicts)
+        # Create half cell objects
+        for i in range(len(half_cell_dicts)):
+            # name = self.name + ': ' + half_cell_dicts[i]['name']
+            name = half_cell_dicts[i]['name']
+            half_cell_dicts[i]['name'] = name
+
+        self.half_cells = [h_c.HalfCell(half_cell_dicts[i], cell_dict,
+                                        channels[i], number=self.number)
+                           for i in range(2)]
+        self.cathode = self.half_cells[0]
+        self.anode = self.half_cells[1]
+
+        # Append half cell names to output data
+        for half_cell in self.half_cells:
+            half_cell.channel.extend_data_names(half_cell.channel.name)
+            half_cell.channel.fluid.extend_data_names(half_cell.channel.fluid.name)
+
+        self.dx = self.cathode.channel.dx
         # cathode - object of the class HalfCell
-        self.th_mem = dict_cell['th_mem']
+        # self.th_mem = cell_dict['th_mem']
         # thickness membrane
-        self.lambda_bpp = [dict_cell['lambda_z_bpp'], dict_cell['lambda_x_bpp']]
-        # heat conductivity of the bipolar plate
-        self.lambda_gde = [dict_cell['lambda_z_gde'], dict_cell['lambda_x_gde']]
-        # heat conductivity of the gas diffusion layer
-        self.lambda_mem = [dict_cell['lambda_z_mem'], dict_cell['lambda_x_mem']]
+        # self.lambda_bpp = [cell_dict['thermal conductivity bpp'][0],
+        #                    cell_dict['thermal conductivity bpp'][1]]
+        # # heat conductivity of the bipolar plate
+        # self.lambda_gde = [cell_dict['thermal conductivity gde'][0],
+        #                    cell_dict['thermal conductivity gde'][1]]
+        # # heat conductivity of the gas diffusion layer
+        # self.lambda_mem = [membrane_dict['thermal conductivity'][0],
+        #                    membrane_dict['thermal conductivity'][1]]
         # heat conductivity of the membrane
-        self.temp_cool_in = dict_cell['temp_cool_in']
-        # coolant inlet temperature
-        self.mem_base_r = dict_cell['mem_base_r']
-        # basic electrical resistance of the membrane
-        self.mem_acl_r = dict_cell['mem_acl_r']
-        # thermal related electrical resistance gain of the membrane
-        self.calc_mem_loss = dict_cell['calc_mem_loss']
+
+        # Setup membrane
+        membrane_dict['width'] = self.cathode.width_straight_channels
+        membrane_dict['length'] = self.cathode.length_straight_channels
+
+        self.membrane = membrane.Membrane(membrane_dict, self.dx)
+
+        self.thickness = self.cathode.thickness + self.membrane.thickness \
+            + self.anode.thickness
+
+        # Cell coordinates in z-direction (stacking/current direction)
+        # will be initialized correctly through stack class
+        self.coords = [0.0, 0.0]
+
+        # self.is_ht_pem = self.cell_dict['is_ht_pem']
 
         """heat conductivity along and through the cell layers"""
-        self.width_channels = self.cathode.channel.width\
-            * self.cathode.channel_numb\
-            + self.cathode.channel.rib_width\
-            * (self.cathode.channel_numb + 1)
-        self.active_area_dx = self.width_channels * self.cathode.channel.dx
-        self.k_bpp_z = self.lambda_bpp[0] * self.active_area_dx \
-            / self.cathode.th_bpp
-        # heat conductivity through the bipolar plate
-        self.k_gde_z = self.lambda_gde[0]\
-            * self.active_area_dx \
-            / self.cathode.th_gde
-        # heat conductivity through the gas diffusion electrode
-        self.k_mem_z = self.lambda_mem[0]\
-            * self.active_area_dx \
-            / self.th_mem
-        # heat conductivity through the membrane
-        self.k_bpp_x = self.width_channels * self.lambda_bpp[1] \
-            * self.cathode.th_bpp / self.cathode.channel.dx
-        # heat conductivity along the bipolar plate
-        self.k_gp = (self.width_channels
-                     * (self.lambda_bpp[1] * self.cathode.th_bpp
-                        + self.lambda_gde[1] * self.cathode.th_gde))\
-            / (2. * self.cathode.channel.dx)
-        # heat conductivity alon the bipolar plate and gas diffusion electrode
-        self.k_gm = (self.width_channels
-                     * (self.lambda_mem[1] * self.th_mem
-                        + self.lambda_gde[1] * self.cathode.th_gde))\
-            / (2. * self.cathode.channel.dx)
-        # heat conductivity alon the gas diffusion electrode and membrane
+        self.width_straight_channels = self.cathode.width_straight_channels
+        self.active_area_dx = self.width_straight_channels * self.dx
+
+        # heat conductivity along the gas diffusion electrode and membrane
+        self.th_layer = \
+            np.asarray([self.cathode.th_bpp,
+                        self.cathode.th_gde,
+                        self.membrane.thickness,
+                        self.anode.th_gde,
+                        self.anode.th_bpp])
+
+        self.thermal_conductance_z = \
+            np.asarray([self.cathode.bpp.thermal_conductance[0],
+                        self.cathode.gde.thermal_conductance[0],
+                        self.membrane.thermal_conductance[0],
+                        self.anode.gde.thermal_conductance[0],
+                        self.anode.bpp.thermal_conductance[0]])
+
+        self.thermal_conductance_x = \
+            np.asarray([self.cathode.bpp.thermal_conductance[1],
+                        self.cathode.gde.thermal_conductance[1],
+                        self.membrane.thermal_conductance[1],
+                        self.anode.gde.thermal_conductance[1],
+                        self.anode.bpp.thermal_conductance[1]])
+
+        self.thermal_conductance_x = \
+            (self.thermal_conductance_x
+             + np.roll(self.thermal_conductance_x, 1, axis=0)) * 0.5
+        self.thermal_conductance_x = \
+            np.vstack((self.thermal_conductance_x,
+                       self.thermal_conductance_x[0]))
+        if self.first_cell:
+            self.thermal_conductance_x[0] *= 0.5
+        if self.last_cell:
+            self.thermal_conductance_x[-1] *= 0.5
+
+        if self.last_cell:
+            heat_cond_mtx = \
+                mtx.build_cell_conductance_matrix(self.thermal_conductance_x,
+                                                  self.thermal_conductance_z,
+                                                  n_ele)
+        else:
+            heat_cond_mtx = \
+                mtx.build_cell_conductance_matrix(self.thermal_conductance_x[:-1],
+                                                  self.thermal_conductance_z[:-1],
+                                                  n_ele)
+        self.heat_mtx_const = heat_cond_mtx
+        # self.heat_mtx_const = np.zeros(self.heat_cond_mtx.shape)
+        self.heat_mtx_dyn = np.zeros(self.heat_mtx_const.shape)
+        self.heat_mtx = np.zeros(self.heat_mtx_dyn.shape)
+
+        self.heat_rhs_const = np.zeros(self.n_layer * n_ele)
+        self.heat_rhs_dyn = np.zeros(self.heat_rhs_const.shape)
+        self.heat_rhs = np.zeros(self.heat_rhs_dyn.shape)
+
+        # Create array for each thermal layer with indices according to
+        # corresponding position in center diagonal of conductance matrix and
+        # right hand side vector
+        index_list = []
+        for i in range(self.n_layer):
+            index_list.append([(j * self.n_layer) + i for j in range(n_ele)])
+        self.index_array = np.asarray(index_list)
+
+        # Set constant thermal boundary conditions
+        if self.first_cell:
+            end_plate_heat = cell_dict['heat_pow']
+            heat_dx = end_plate_heat / self.active_area * self.active_area_dx
+            self.add_explicit_layer_source(self.heat_rhs_const, heat_dx, 0)
+        if self.last_cell:
+            end_plate_heat = cell_dict['heat_pow']
+            heat_dx = end_plate_heat / self.active_area * self.active_area_dx
+            self.add_explicit_layer_source(self.heat_rhs_const, heat_dx, -1)
+
+        # Create electric conductance matrix
+        self.elec_cond = \
+            np.asarray([self.cathode.bpp.electrical_conductance[1],
+                        self.anode.bpp.electrical_conductance[1]])
+        self.elec_cond = \
+            (self.elec_cond + np.roll(self.elec_cond, 1, axis=1)) * 0.5
+        self.elec_cond = self.elec_cond[:, :-1]
+        self.elec_x_mat_const = \
+            mtx.build_z_cell_conductance_matrix(self.elec_cond.transpose(),
+                                                len(self.elec_cond))
+        # print(self.elec_x_mat_const)
 
         """boolean alarms"""
         self.v_alarm = False
@@ -67,218 +177,190 @@ class Cell:
         # True if the program aborts because of some critical impact
 
         """general parameter"""
-        self.height = self.th_mem\
-            + 2. * self.cathode.th_bpp\
-            + 2. * self.cathode.th_gde
-        # height of the cell
-        nodes = g_par.dict_case['nodes']
-        # number of nodes along the channel
-        self.w_cross_flow = np.zeros(nodes-1)
-        # water cross flux through the membrane
-        self.omega_ca = np.zeros(nodes)
-        # area specific membrane resistance
-        self.v_loss = np.full(nodes - 1, 0.)
+        self.height = self.membrane.thickness \
+            + self.cathode.th_bpp \
+            + self.cathode.th_gde \
+            + self.anode.th_bpp \
+            + self.anode.th_gde
+
+        self.v_loss = np.zeros(n_ele)
         # voltage loss
-        self.temp = np.full((5, nodes - 1), dict_cell['temp_init'])
+        self.temp_layer = \
+            g_func.full((self.n_layer, n_ele), cell_dict['temp_init'])
         # layer temperature
-        self.temp_mem = np.zeros(nodes)
+        # coolant inlet temperature
+        self.temp_names = ['Cathode BPP-BPP',
+                           'Cathode BPP-GDE',
+                           'Cathode GDE-MEM',
+                           'Anode MEM-GDE',
+                           'Anode GDE-BPP',
+                           'Anode BPP-BPP']
+        # interface names according to temperature array
+        self.temp_mem = np.zeros(n_ele)
         # membrane temperature
-        self.i_cd = np.full((nodes - 1), 0.)
+        self.i_cd = np.zeros(n_ele)
         # current density
-        self.omega = np.full(nodes-1, 0.)
-        # membrane resistance
-        self.mem_loss = np.full((nodes - 1), 0.)#
-        # voltage loss at the membrane
-        self.v = np.full((nodes - 1), 0.)
+        self.v = np.zeros(n_ele)
         # cell voltage
-        self.resistance = np.full((nodes - 1), 0.)
+        # self.resistance_z = np.zeros(n_ele)
+        self.conductance_z = np.zeros(n_ele)
         # cell resistance
 
-    def update(self):
+        self.add_print_data(self.i_cd, 'Current Density', 'A/m²')
+        self.add_print_data(self.temp_layer, 'Temperature', 'K',
+                            self.temp_names[:self.n_layer-1])
+        self.add_print_data(self.v, 'Cell Voltage', 'V')
+
+    def calc_ambient_conductance(self, alpha_amb):
+        """
+        :param alpha_amb: heat transfer coefficient for free or forced
+        convection to the ambient
+        :return: discretized conductance for each layer of cell based on
+        external surface
+        """
+        # geometry model
+        ext_surface_factor = (self.width + self.length) \
+            / (self.cathode.channel.length * self.width_straight_channels)
+        # k_amb = np.full((self.n_layer, self.n_ele), 0.)
+        # convection conductance to the environment
+        th_layer_amb = (self.th_layer + np.roll(self.th_layer, 1)) * 0.5
+        # if self.last_cell:
+        th_layer_amb = np.hstack((th_layer_amb, th_layer_amb[0]))
+        k_amb = np.outer(th_layer_amb, self.dx) * alpha_amb / ext_surface_factor
+        if self.first_cell:
+            k_amb[0] *= 0.5
+        if self.last_cell:
+            k_amb[-1] *= 0.5
+        return k_amb
+
+    def add_explicit_layer_source(self, rhs_vector, source_term,
+                                  layer_id=None):
+        if layer_id is None:
+            if np.isscalar(source_term):
+                source_vector = np.full_like(rhs_vector, -source_term)
+            else:
+                source_vector = np.asarray(-source_term)
+        else:
+            source_vector = np.zeros(rhs_vector.shape)
+            np.put(source_vector, self.index_array[layer_id], -source_term)
+        rhs_vector += source_vector
+        return rhs_vector, source_vector
+
+    def add_implicit_layer_source(self, matrix, coefficient, layer_id=None):
+        matrix_size = matrix.shape[0]
+        if layer_id is None:
+            if np.isscalar(coefficient):
+                source_vector = g_func.full(matrix_size, coefficient)
+            else:
+                source_vector = np.asarray(coefficient)
+        else:
+            source_vector = np.zeros(matrix_size)
+            np.put(source_vector, self.index_array[layer_id], coefficient)
+        matrix += np.diag(source_vector)
+        return matrix, source_vector
+
+    def update(self, current_density, channel_update=False):
         """
         This function coordinates the program sequence
         """
-        self.temp_mem = .5 * (self.temp[2] + self.temp[3])
-        if g_par.dict_case['pem_type'] is False:
-            self.cathode.set_pem_type(False)
-            self.anode.set_pem_type(False)
-            self.cathode.set_water_cross_flux(self.w_cross_flow)
-            self.anode.set_water_cross_flux(self.w_cross_flow)
-        self.cathode.set_current_density(self.i_cd)
-        self.anode.set_current_density(self.i_cd)
-        self.cathode.set_layer_temperature([self.temp[2],
-                                            self.temp[3],
-                                            self.temp[4]])
-        self.anode.set_layer_temperature([self.temp[0], self.temp[1]])
-        self.cathode.update()
-        self.anode.update()
-        if self.anode.break_program is True\
-                or self.cathode.break_program is True:
+        self.i_cd[:] = current_density
+        # self.temp_mem[:] = .5 * (self.temp_layer[2] + self.temp_layer[3])
+        self.membrane.temp = .5 * (self.temp_layer[2] + self.temp_layer[3])
+        if isinstance(self.membrane, membrane.WaterTransportMembrane):
+            self.cathode.w_cross_flow[:] = self.membrane.w_cross_flow
+            self.anode.w_cross_flow[:] = self.membrane.w_cross_flow
+        # self.cathode.set_layer_temperature([self.temp[2], self.temp[3],
+        #                                     self.temp[4]])
+        # self.anode.set_layer_temperature([self.temp[0], self.temp[1]])
+        self.cathode.update(self.i_cd, channel_update)
+        self.anode.update(self.i_cd, channel_update)
+        if self.anode.break_program or self.cathode.break_program:
             self.break_program = True
         else:
-            if g_par.dict_case['pem_type'] is False:
-                self.calc_cross_water_flux()
-                self.calc_mem_resistivity_springer()
-            else:
-                self.calc_mem_resistivity_kvesic()
-            self.calc_membrane_loss()
-            self.calc_voltage()
-            self.calc_resistance()
+            # if not self.is_ht_pem:
+            #     self.membrane.update()
+            #     self.calc_mem_resistivity_springer()
+            #     # self.calc_mem_resistivity_gossling()
+            # else:
+            #     self.calc_mem_resistivity_kvesic()
+            # self.membrane.update()
+            # self.calc_membrane_loss()
+            humidity = np.asarray([self.cathode.channel.fluid.humidity,
+                                   self.anode.channel.fluid.humidity])
+            humidity_ele = \
+                np.array([ip.interpolate_1d(humidity[0]),
+                          ip.interpolate_1d(humidity[1])])
+            self.membrane.update(self.i_cd, humidity_ele)
+            self.calc_voltage_loss()
+            self.calc_conductance()
+            if np.any(self.v_alarm):
+                self.correct_voltage_loss()
+                # raise ValueError('voltage losses greater than '
+                #                  'open circuit voltage')
 
-    # def set_current_density(self, i_cd):
-    #     """
-    #     This function sets the current density.
-    #     The current density can be obtained
-    #     from the electrical coupling.
-    #
-    #         Manipulate:
-    #         - self.i_ca, scalar
-    #     """
-    #     self.i_cd = i_cd
-
-    def calc_cross_water_flux(self):
+    def calc_voltage_loss(self):
         """
-        Calculates the water cross flux through the membrane
-        according to (Springer, 1991).
-
-            Access to:
-            -g_par.dict_case['vap_m_t_coef']
-            -self.cathode.free_w
-            -self.anode.free_w
-            -g_par.dict_case['mol_con_m']
-            -g_par.dict_uni['F']
-            -self.i_ca
-            -self.temp_mem
-            -self.th_mem
-
-            Manipulate:
-            -self.w_cross_flow
+        Calculates the cell voltage loss. If the cell voltage loss is larger
+        than the open circuit cell voltage, the cell voltage is set to zero.
         """
-        vap_coeff = g_par.dict_case['vap_m_temp_coeff']
-        humidity = [self.cathode.humidity, self.anode.humidity]
-        humidity_ele = np.array([g_func.calc_elements_1_d(humidity[0]),
-                                 g_func.calc_elements_1_d(humidity[1])])
-        a = 0.043 + 17.81 * humidity_ele
-        b = -39.85 * humidity_ele ** 2. + 36. * humidity_ele ** 3.
-        free_w_content = a + b
-        zeta_plus = free_w_content[0] + free_w_content[1] \
-                    + self.i_cd / (2. * vap_coeff
-                                   * g_par.dict_case['mol_con_m']
-                                   * g_par.dict_uni['F'])
-        zeta_negative =\
-            (free_w_content[0]
-             - free_w_content[1]
-             + 5. * self.i_cd / (2. * vap_coeff * g_par.dict_case['mol_con_m']
-                                 * g_par.dict_uni['F'])) \
-            / (1. + g_func.dw(self.temp_mem) * zeta_plus
-               / (self.th_mem * vap_coeff))
-        m_c = 0.5 * (zeta_plus + zeta_negative)
-        m_a = 0.5 * (zeta_plus - zeta_negative)
-        self.w_cross_flow = \
-            self.i_cd / g_par.dict_uni['F'] + g_par.dict_case['mol_con_m'] \
-            * g_func.dw(self.temp_mem) * (m_a ** 2. - m_c ** 2.) \
-            / (2. * self.th_mem)
+        self.v_loss[:] = \
+            self.membrane.v_loss + self.cathode.v_loss + self.anode.v_loss
+        self.v_alarm = self.v_loss >= self.e_0
+        # self.v_loss[:] = np.minimum(self.v_loss, self.e_0)
 
-    def calc_mem_resistivity_kvesic(self):
+    def correct_voltage_loss(self):
+        id = np.argwhere(np.invert(self.v_alarm))[-1, -1]
+        np.seterr(divide='ignore')
+        # gdl_loss_ratio = \
+        #     self.cathode.gdl_diff_loss[id] / self.anode.gdl_diff_loss[id]
+        cl_loss_ratio = \
+            np.where(self.anode.cl_diff_loss[id] == 0.0, 0.0,
+                     self.cathode.cl_diff_loss[id]
+                     / self.anode.cl_diff_loss[id])
+        cat_loss_ratio = \
+            np.where(self.cathode.cl_diff_loss[id] == 0.0, 0.0,
+                     self.cathode.gdl_diff_loss[id]
+                     / self.cathode.cl_diff_loss[id])
+        ano_loss_ratio = \
+            np.where(self.anode.cl_diff_loss[id] == 0.0, 0.0,
+                     self.anode.gdl_diff_loss[id]
+                     / self.anode.cl_diff_loss[id])
+        v_loss_max = self.e_0 - 0.05
+        v_loss_diff_max = v_loss_max - self.membrane.v_loss[id] \
+            - self.cathode.bpp_loss[id] - self.cathode.act_loss[id] \
+            - self.anode.bpp_loss[id] - self.anode.act_loss[id]
+        v_loss_cat_cl = v_loss_diff_max * cl_loss_ratio \
+            / (1.0 + ano_loss_ratio
+               + cat_loss_ratio * cl_loss_ratio + cl_loss_ratio)
+        v_loss_ano_cl = \
+            np.where(cl_loss_ratio == 0.0, 0.0,
+                     v_loss_cat_cl / cl_loss_ratio)
+        v_loss_cat_gdl = v_loss_cat_cl * cat_loss_ratio
+        v_loss_ano_gdl = v_loss_ano_cl * ano_loss_ratio
+        np.seterr(divide='raise')
+        self.cathode.gdl_diff_loss[:] = \
+            np.where(self.v_alarm, v_loss_cat_gdl, self.cathode.gdl_diff_loss)
+        self.cathode.cl_diff_loss[:] = \
+            np.where(self.v_alarm, v_loss_cat_cl, self.cathode.cl_diff_loss)
+        self.anode.gdl_diff_loss[:] = \
+            np.where(self.v_alarm, v_loss_ano_gdl, self.anode.gdl_diff_loss)
+        self.anode.cl_diff_loss[:] = \
+            np.where(self.v_alarm, v_loss_ano_cl, self.anode.cl_diff_loss)
+
+        self.cathode.v_loss[:] = \
+            self.cathode.act_loss + self.cathode.cl_diff_loss \
+            + self.cathode.gdl_diff_loss + self.cathode.bpp_loss
+        self.anode.v_loss[:] = \
+            self.anode.act_loss + self.anode.cl_diff_loss \
+            + self.anode.gdl_diff_loss + self.anode.bpp_loss
+        self.calc_voltage_loss()
+        # raise ValueError
+
+    def calc_conductance(self):
         """
-        Calculates the membrane resistivity and resistance
-        according to (Kvesic, 2013).
-
-            Access to:
-            -self.mem_base_r
-            -self.mem_acl_r
-            -self.temp_mem
-            -self.omega_ca
-            -self.cathode.cathode.active_area_dx_ch
-
-            Manipulate:
-            -self.omega_ca
-            -self.omega
+        Calculates the area-specific electrical resistance of the element in
+        z-direction
         """
-        self.omega_ca = (self.mem_base_r
-                         - self.mem_acl_r * self.temp_mem) * 1.e-4
-        self.omega = self.omega_ca / self.active_area_dx
-
-    def calc_mem_resistivity_springer(self):
-        """
-        Calculates the membrane resistivity
-        for NT-PEMFC according to (Springer, 1991).
-
-            Access to:
-            -self.cathode.humidity
-            -self.anode.humidity
-            -self.temp_mem
-            -self.th_mem
-            -self.cathode.cathode.active_area_dx_ch
-
-            Manipulate:
-            -self.omega_ca
-            -self.omega
-        """
-        humidity = (self.cathode.humidity + self.anode.humidity) * 0.5
-        humidity_ele = g_func.calc_elements_1_d(humidity)
-        a = 0.043 + 17.81 * humidity_ele
-        b = -39.85 * humidity_ele ** 2. + 36. * humidity_ele ** 3.
-        free_water_content = a + b
-        mem_el_con = 0.005139 * free_water_content - 0.00326
-        mem_el_con_temp =\
-            np.exp(1268 * (0.0033 - 1. / self.temp_mem)) * mem_el_con
-        self.omega_ca = self.th_mem / mem_el_con_temp * 1.e-4
-
-    def calc_membrane_loss(self):
-        """
-        Calculates the voltage loss at the membrane.
-
-            Access to:
-            -self.omega_ca
-            -self.i_ca
-
-            Manipulate:
-            -self.mem_los
-        """
-        #self.mem_loss = self.omega_ca * self.i_cd
-        if self.calc_mem_loss is False:
-            self.mem_loss = 0.
-        else:
-            self.mem_loss = self.omega_ca * self.i_cd
-
-    def calc_voltage(self):
-        """
-            Calculates the cell voltage loss.
-            Calculates the cell voltage
-            If the cell voltage loss is larger than the
-            open circuit cell voltage, the cell voltage is set to zero.
-
-            Access to:
-            -self.mem_loss
-            -self.cathode.v_loss
-            -self.anode.v_loss
-            -g_par.dict_case['e_0']
-
-            Manipulate:
-            -self.v_loss
-            -self.v
-            -self.v_alarm
-        """
-        self.v_loss = self.mem_loss + self.cathode.v_loss + self.anode.v_loss
-        if any(self.v_loss) >= g_par.dict_case['e_0']:
-            self.v_alarm = True
-        self.v_loss = np.minimum(self.v_loss, g_par.dict_case['e_0'])
-        self.v = g_par.dict_case['e_0'] - self.v_loss
-
-    def calc_resistance(self):
-        """
-            Calculates the electrical resistance of the element in z-direction
-
-            Access to:
-            -self.v_loss
-            -self.i_ca
-            -self.cathode.th_bpp
-            -g_par.dict_case['plate_resistivity']
-
-            Manipulate:
-            -self.resistance
-        """
-        self.resistance = self.v_loss / self.i_cd + 2. \
-                          * g_par.dict_case['bpp_resistivity'] \
-                          * self.cathode.th_bpp
+        current = self.i_cd * self.active_area_dx
+        resistance_z = self.v_loss / current
+        self.conductance_z[:] = 1.0 / resistance_z
