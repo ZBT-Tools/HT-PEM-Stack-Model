@@ -162,7 +162,7 @@ class HalfCell:
         self.w_cross_flow = np.zeros(n_ele)
         # cross water flux through the membrane
 
-    def update(self, current_density, channel_update=False):
+    def update(self, current_density, channel_update=False, check_stoi=True):
         """
         This function coordinates the program sequence
         """
@@ -184,7 +184,7 @@ class HalfCell:
                 self.channel.mole_flow[self.id_fuel, self.channel.id_in] \
                 * self.faraday * self.n_charge \
                 / (current * abs(self.n_stoi[self.id_fuel]))
-            if self.inlet_stoi < 1.0:
+            if check_stoi and self.inlet_stoi < 1.0:
                 raise ValueError('stoichiometry of cell {0} '
                                  'becomes smaller than one: {1:0.3f}'
                                  .format(self.number, self.inlet_stoi))

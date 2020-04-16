@@ -3,12 +3,12 @@
 """Electrochemistry"""
 # target current density [A/m^2]
 current_control = True
-current_density = 3000.
-average_cell_voltage = 0.6
+current_density = 4000.
+average_cell_voltage = 0.4
 # open circuit voltage [V]
 open_circuit_voltage = 1.00
 # cathode stoichiometry
-stoichiometry_cathode = 1.01
+stoichiometry_cathode = 1.1
 # anode stoichiometry
 stoichiometry_anode = 2.
 # reaction stoichiometry

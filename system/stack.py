@@ -7,6 +7,7 @@ import system.flow_circuit as flow_circuit
 import system.channel as chl
 import system.fluid as fluid
 import data.input_dicts as in_dicts
+import system.global_functions as g_func
 
 
 class Stack:
@@ -165,7 +166,11 @@ class Stack:
 
         # current density array
         self.i_cd = np.zeros((self.n_cells, n_ele))
-        self.i_cd[:] = self.i_target
+        # self.i_cd[:] = self.i_target
+        for i in range(self.n_cells):
+            self.i_cd[i, :] = \
+                g_func.exponential_distribution(self.i_target, n_ele,
+                                                a=2.0, b=0.0)
         # current density array of previous iteration step
         self.i_cd_old = np.copy(self.i_cd)
         # voltage array
@@ -189,7 +194,7 @@ class Stack:
             update_inflows = True
         self.update_flows(update_inflows, self.calc_flow_dis)
         for i, cell in enumerate(self.cells):
-            cell.update(self.i_cd[i, :])
+            cell.update(self.i_cd[i, :], check_stoi=self.current_control)
             if cell.break_program:
                 self.break_program = True
                 break

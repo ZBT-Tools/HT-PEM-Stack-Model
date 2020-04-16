@@ -75,6 +75,14 @@ def add_source(var, source, direction=1, tri_mtx=None):
     return var
 
 
+def exponential_distribution(y_avg, nx, a=1.0, b=0.0):
+    n_nodes = nx + 1
+    x = np.linspace(0, 1, n_nodes)
+    dx = np.diff(x)
+    m = a * (y_avg - b) / (1.0 - np.exp(-a))
+    return m / (a * dx) * (np.exp(-a * x[:-1]) - np.exp(-a * x[1:])) + b
+
+
 def fill_last_zeros(array, axis=-1, axis_sum=None):
     if axis == 0:
         array_t = array.transpose()

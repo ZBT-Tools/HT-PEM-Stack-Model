@@ -259,11 +259,12 @@ class Cell(OutputObject):
         matrix += np.diag(source_vector)
         return matrix, source_vector
 
-    def update(self, current_density, channel_update=False):
+    def update(self, current_density, channel_update=False, check_stoi=True):
         """
         This function coordinates the program sequence
         """
-        self.i_cd[:] = current_density
+        urf = 0.5
+        self.i_cd[:] = (1 - urf) * current_density + urf * self.i_cd
         # self.temp_mem[:] = .5 * (self.temp_layer[2] + self.temp_layer[3])
         self.membrane.temp = .5 * (self.temp_layer[2] + self.temp_layer[3])
         if isinstance(self.membrane, membrane.WaterTransportMembrane):
@@ -272,8 +273,8 @@ class Cell(OutputObject):
         # self.cathode.set_layer_temperature([self.temp[2], self.temp[3],
         #                                     self.temp[4]])
         # self.anode.set_layer_temperature([self.temp[0], self.temp[1]])
-        self.cathode.update(self.i_cd, channel_update)
-        self.anode.update(self.i_cd, channel_update)
+        self.cathode.update(self.i_cd, channel_update, check_stoi=check_stoi)
+        self.anode.update(self.i_cd, channel_update, check_stoi=check_stoi)
         if self.anode.break_program or self.cathode.break_program:
             self.break_program = True
         else:
