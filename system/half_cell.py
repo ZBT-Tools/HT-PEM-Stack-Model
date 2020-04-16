@@ -184,10 +184,10 @@ class HalfCell:
                 self.channel.mole_flow[self.id_fuel, self.channel.id_in] \
                 * self.faraday * self.n_charge \
                 / (current * abs(self.n_stoi[self.id_fuel]))
-            # if self.inlet_stoi < 1.0:
-            #     raise ValueError('stoichiometry of cell {0} '
-            #                      'becomes smaller than one: {1:0.3f}'
-            #                      .format(self.number, self.inlet_stoi))
+            if self.inlet_stoi < 1.0:
+                raise ValueError('stoichiometry of cell {0} '
+                                 'becomes smaller than one: {1:0.3f}'
+                                 .format(self.number, self.inlet_stoi))
 
     # def calc_mass_balance(self, current_density, stoi=None):
     #     n_species = self.channel.fluid.n_species
