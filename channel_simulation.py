@@ -12,7 +12,7 @@ np.set_printoptions(threshold=sys.maxsize, linewidth=10000,
 np.seterr(all='raise')
 
 
-nodes = 100
+nodes = 20
 mass_flow_hydrogen = 0.0001    # kg/s
 mass_flow_air = 0.001
 mass_flow_water = 0.002
