@@ -259,12 +259,12 @@ class Cell(OutputObject):
         matrix += np.diag(source_vector)
         return matrix, source_vector
 
-    def update(self, current_density, channel_update=False, check_stoi=True):
+    def update(self, current_density, channel_update=False,
+               current_control=True, urf=0.0):
         """
         This function coordinates the program sequence
         """
-        urf = 0.5
-        self.i_cd[:] = (1 - urf) * current_density + urf * self.i_cd
+        current_density = (1.0 - urf) * current_density + urf * self.i_cd
         # self.temp_mem[:] = .5 * (self.temp_layer[2] + self.temp_layer[3])
         self.membrane.temp = .5 * (self.temp_layer[2] + self.temp_layer[3])
         if isinstance(self.membrane, membrane.WaterTransportMembrane):
@@ -273,8 +273,12 @@ class Cell(OutputObject):
         # self.cathode.set_layer_temperature([self.temp[2], self.temp[3],
         #                                     self.temp[4]])
         # self.anode.set_layer_temperature([self.temp[0], self.temp[1]])
-        self.cathode.update(self.i_cd, channel_update, check_stoi=check_stoi)
-        self.anode.update(self.i_cd, channel_update, check_stoi=check_stoi)
+        self.cathode.update(current_density, channel_update,
+                            current_control=current_control)
+        self.anode.update(current_density, channel_update,
+                          current_control=current_control)
+        if self.cathode.corrected_current_density is not None:
+            current_density = self.cathode.corrected_current_density
         if self.anode.break_program or self.cathode.break_program:
             self.break_program = True
         else:
@@ -291,11 +295,12 @@ class Cell(OutputObject):
             humidity_ele = \
                 np.array([ip.interpolate_1d(humidity[0]),
                           ip.interpolate_1d(humidity[1])])
-            self.membrane.update(self.i_cd, humidity_ele)
+
+            self.membrane.update(current_density, humidity_ele)
             self.calc_voltage_loss()
-            self.calc_conductance()
-            if np.any(self.v_alarm):
-                self.correct_voltage_loss()
+            self.calc_conductance(current_density)
+            # if np.any(self.v_alarm):
+            #     self.correct_voltage_loss()
                 # raise ValueError('voltage losses greater than '
                 #                  'open circuit voltage')
 
@@ -318,21 +323,21 @@ class Cell(OutputObject):
         # gdl_loss_ratio = \
         #     self.cathode.gdl_diff_loss[id] / self.anode.gdl_diff_loss[id]
         cl_loss_ratio = \
-            np.where(self.anode.cl_diff_loss[id] == 0.0, 0.0,
-                     self.cathode.cl_diff_loss[id]
-                     / self.anode.cl_diff_loss[id])
+            np.where(self.anode.v_loss_cl_diff[id] == 0.0, 0.0,
+                     self.cathode.v_loss_cl_diff[id]
+                     / self.anode.v_loss_cl_diff[id])
         cat_loss_ratio = \
-            np.where(self.cathode.cl_diff_loss[id] == 0.0, 0.0,
-                     self.cathode.gdl_diff_loss[id]
-                     / self.cathode.cl_diff_loss[id])
+            np.where(self.cathode.v_loss_cl_diff[id] == 0.0, 0.0,
+                     self.cathode.v_loss_gdl_diff[id]
+                     / self.cathode.v_loss_cl_diff[id])
         ano_loss_ratio = \
-            np.where(self.anode.cl_diff_loss[id] == 0.0, 0.0,
-                     self.anode.gdl_diff_loss[id]
-                     / self.anode.cl_diff_loss[id])
+            np.where(self.anode.v_loss_cl_diff[id] == 0.0, 0.0,
+                     self.anode.v_loss_gdl_diff[id]
+                     / self.anode.v_loss_cl_diff[id])
         v_loss_max = self.e_0 - 0.05
         v_loss_diff_max = v_loss_max - self.membrane.v_loss[id] \
-            - self.cathode.bpp_loss[id] - self.cathode.act_loss[id] \
-            - self.anode.bpp_loss[id] - self.anode.act_loss[id]
+                          - self.cathode.v_loss_bpp[id] - self.cathode.v_loss_act[id] \
+                          - self.anode.v_loss_bpp[id] - self.anode.v_loss_act[id]
         v_loss_cat_cl = v_loss_diff_max * cl_loss_ratio \
             / (1.0 + ano_loss_ratio
                + cat_loss_ratio * cl_loss_ratio + cl_loss_ratio)
@@ -342,29 +347,29 @@ class Cell(OutputObject):
         v_loss_cat_gdl = v_loss_cat_cl * cat_loss_ratio
         v_loss_ano_gdl = v_loss_ano_cl * ano_loss_ratio
         np.seterr(divide='raise')
-        self.cathode.gdl_diff_loss[:] = \
-            np.where(self.v_alarm, v_loss_cat_gdl, self.cathode.gdl_diff_loss)
-        self.cathode.cl_diff_loss[:] = \
-            np.where(self.v_alarm, v_loss_cat_cl, self.cathode.cl_diff_loss)
-        self.anode.gdl_diff_loss[:] = \
-            np.where(self.v_alarm, v_loss_ano_gdl, self.anode.gdl_diff_loss)
-        self.anode.cl_diff_loss[:] = \
-            np.where(self.v_alarm, v_loss_ano_cl, self.anode.cl_diff_loss)
+        self.cathode.v_loss_gdl_diff[:] = \
+            np.where(self.v_alarm, v_loss_cat_gdl, self.cathode.v_loss_gdl_diff)
+        self.cathode.v_loss_cl_diff[:] = \
+            np.where(self.v_alarm, v_loss_cat_cl, self.cathode.v_loss_cl_diff)
+        self.anode.v_loss_gdl_diff[:] = \
+            np.where(self.v_alarm, v_loss_ano_gdl, self.anode.v_loss_gdl_diff)
+        self.anode.v_loss_cl_diff[:] = \
+            np.where(self.v_alarm, v_loss_ano_cl, self.anode.v_loss_cl_diff)
 
         self.cathode.v_loss[:] = \
-            self.cathode.act_loss + self.cathode.cl_diff_loss \
-            + self.cathode.gdl_diff_loss + self.cathode.bpp_loss
+            self.cathode.v_loss_act + self.cathode.v_loss_cl_diff \
+            + self.cathode.v_loss_gdl_diff + self.cathode.v_loss_bpp
         self.anode.v_loss[:] = \
-            self.anode.act_loss + self.anode.cl_diff_loss \
-            + self.anode.gdl_diff_loss + self.anode.bpp_loss
+            self.anode.v_loss_act + self.anode.v_loss_cl_diff \
+            + self.anode.v_loss_gdl_diff + self.anode.v_loss_bpp
         self.calc_voltage_loss()
         # raise ValueError
 
-    def calc_conductance(self):
+    def calc_conductance(self, current_density):
         """
         Calculates the area-specific electrical resistance of the element in
         z-direction
         """
-        current = self.i_cd * self.active_area_dx
+        current = current_density * self.active_area_dx
         resistance_z = self.v_loss / current
         self.conductance_z[:] = 1.0 / resistance_z

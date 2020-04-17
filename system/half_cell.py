@@ -1,10 +1,12 @@
 import warnings
 import numpy as np
+from scipy import optimize
 import data.global_parameters as g_par
 import system.global_functions as g_func
 import system.fluid as fluids
 import system.layers as layers
 import system.interpolation as ip
+
 
 warnings.filterwarnings("ignore")
 
@@ -74,7 +76,7 @@ class HalfCell:
             / self.inlet_composition[self.id_fuel]
 
         self.faraday = g_par.constants['F']
-        self.target_cd = g_par.dict_case['target_current_density']
+        # self.target_cd = g_par.dict_case['target_current_density']
 
         self.is_cathode = halfcell_dict['is_cathode']
         # anode is false; Cathode is true
@@ -135,20 +137,21 @@ class HalfCell:
         # exchange current densisty
         self.index_cat = self.n_nodes - 1
         # index of the first element with negative cell voltage
-        self.i_cd_char = self.prot_con_cl * self.tafel_slope / self.th_cl
+        self.i_star = self.prot_con_cl * self.tafel_slope / self.th_cl
         # not sure if the name is ok, i_ca_char is the characteristic current
         # densisty, see (Kulikovsky, 2013)
-        self.act_loss = np.zeros(n_ele)
+        self.v_loss_act = np.zeros(n_ele)
         # activation voltage loss
-        self.gdl_diff_loss = np.zeros(n_ele)
+        self.v_loss_gdl_diff = np.zeros(n_ele)
         # diffusion voltage loss at the gas diffusion layer
-        self.cl_diff_loss = np.zeros(n_ele)
+        self.v_loss_cl_diff = np.zeros(n_ele)
         # diffusion voltage loss at the catalyst layer
-        self.bpp_loss = np.zeros(n_ele)
+        self.v_loss_bpp = np.zeros(n_ele)
         # voltage loss across bipolar plate
         self.v_loss = np.zeros(n_ele)
-        # sum of the activation and diffusion voltage loss
-        self.beta = np.zeros(n_ele)
+        # sum of the activation and diffusion voltage losses
+        self.updated_v_loss = False
+        # self.beta = np.zeros(n_ele)
         # dimensionless parameter
 
         self.break_program = False
@@ -161,14 +164,19 @@ class HalfCell:
         # pressure drop in the channel through bends
         self.w_cross_flow = np.zeros(n_ele)
         # cross water flux through the membrane
+        self.corrected_current_density = None
 
-    def update(self, current_density, channel_update=False, check_stoi=True):
+    def update(self, current_density, channel_update=False,
+               current_control=True):
         """
         This function coordinates the program sequence
         """
         # self.calc_temp_fluid_ele()
         # mole_flow_in, mole_source = self.calc_mass_balance(current_density)
-
+        if not current_control and self.updated_v_loss:
+            current_density = \
+                self.calc_current_density(current_density, self.v_loss)
+            self.corrected_current_density = current_density
         if not self.break_program:
             # self.channel.update(mole_flow_in, mole_source)
             # self.channel.mole_flow[:] = mole_flow_in
@@ -184,7 +192,7 @@ class HalfCell:
                 self.channel.mole_flow[self.id_fuel, self.channel.id_in] \
                 * self.faraday * self.n_charge \
                 / (current * abs(self.n_stoi[self.id_fuel]))
-            if check_stoi and self.inlet_stoi < 1.0:
+            if current_control and self.inlet_stoi < 1.0:
                 raise ValueError('stoichiometry of cell {0} '
                                  'becomes smaller than one: {1:0.3f}'
                                  .format(self.number, self.inlet_stoi))
@@ -204,7 +212,10 @@ class HalfCell:
     #     return mole_flow_in, mole_source
 
     def calc_mass_balance(self, current_density, stoi=None):
-        mass_flow_in, mole_flow_in = self.calc_inlet_flow(stoi)
+        avg_current_density = \
+            np.average(current_density, weights=self._active_area_dx)
+        mass_flow_in, mole_flow_in = \
+            self.calc_inlet_flow(avg_current_density, stoi)
         mass_flow_in = g_func.fill_transposed(mass_flow_in,
                                               self.channel.mass_flow.shape)
         mole_flow_in = g_func.fill_transposed(mole_flow_in,
@@ -212,12 +223,10 @@ class HalfCell:
         mass_source, mole_source = self.calc_mass_source(current_density)
         return mass_flow_in, mole_flow_in, mass_source, mole_source
 
-    def calc_inlet_flow(self, stoi=None, current_density=None):
+    def calc_inlet_flow(self, current_density, stoi=None):
         if stoi is None:
             stoi = self.target_stoi
-        if current_density is None:
-            current_density = self.target_cd
-        elif np.ndim(current_density) > 0:
+        if np.ndim(current_density) > 0:
             raise ValueError('current_density must be scalar')
         mole_flow_in = np.zeros(self.channel.fluid.n_species)
         mole_flow_in[self.id_fuel] = current_density * self._active_area \
@@ -283,11 +292,14 @@ class HalfCell:
         return mol_flow_in, dmol
 
     def update_voltage_loss(self, current_density):
-        self.calc_electrode_loss(current_density)
+        self.v_loss[:] = self.calc_electrode_loss(current_density) \
+            + self.calc_plate_loss(current_density)
+        self.updated_v_loss = True
+
+    def calc_plate_loss(self, current_density):
         current = current_density * self._active_area_dx
-        self.bpp_loss = current / self.bpp.electrical_conductance[0]
-        self.v_loss[:] = self.act_loss + self.cl_diff_loss \
-            + self.gdl_diff_loss + self.bpp_loss
+        self.v_loss_bpp[:] = current / self.bpp.electrical_conductance[0]
+        return self.v_loss_bpp
 
     def calc_activation_loss(self, current_density, conc):
         """
@@ -296,18 +308,19 @@ class HalfCell:
         """
         np.seterr(divide='ignore')
         try:
-            self.act_loss[:] = \
+            v_loss_act = \
                 np.where(np.logical_and(current_density > g_par.SMALL,
                                         conc > g_par.SMALL),
                          self.tafel_slope
                          * np.arcsinh((current_density / self.i_sigma) ** 2.
                                       / (2. * conc
                                          * (1. - np.exp(-current_density /
-                                                        (2. * self.i_cd_char))))),
+                                                        (2. * self.i_star))))),
                          0.0)
             np.seterr(divide='raise')
         except FloatingPointError:
             raise
+        return v_loss_act
 
     def calc_transport_loss_catalyst_layer(self, current_density, var, conc):
         """
@@ -315,19 +328,20 @@ class HalfCell:
         according to (Kulikovsky, 2013).
         """
         try:
-            i_hat = current_density / self.i_cd_char
+            i_hat = current_density / self.i_star
             short_save = np.sqrt(2. * i_hat)
             beta = \
                 short_save / (1. + np.sqrt(1.12 * i_hat) * np.exp(short_save)) \
                 + np.pi * i_hat / (2. + i_hat)
         except FloatingPointError:
             raise
-        self.cl_diff_loss[:] = \
+        v_loss_cl_diff = \
             ((self.prot_con_cl * self.tafel_slope ** 2.)
              / (4. * self.faraday * self.diff_coeff_cl * conc)
-             * (current_density / self.i_cd_char
+             * (current_density / self.i_star
                 - np.log10(1. + np.square(current_density) /
-                           (self.i_cd_char ** 2. * beta ** 2.)))) / var
+                           (self.i_star ** 2. * beta ** 2.)))) / var
+        return v_loss_cl_diff
 
     def calc_transport_loss_diffusion_layer(self, var):
         """
@@ -335,12 +349,13 @@ class HalfCell:
         according to (Kulikovsky, 2013).
         """
         try:
-            self.gdl_diff_loss[:] = -self.tafel_slope * np.log10(var)
+            v_loss_gdl_diff = -self.tafel_slope * np.log10(var)
         except FloatingPointError:
             raise
-        nan_list = np.isnan(self.gdl_diff_loss)
+        nan_list = np.isnan(self.v_loss_gdl_diff)
         if nan_list.any():
-            self.gdl_diff_loss[np.argwhere(nan_list)[0, 0]:] = 1.e50
+            v_loss_gdl_diff[np.argwhere(nan_list)[0, 0]:] = 1.e50
+        return v_loss_gdl_diff
 
     def calc_electrode_loss(self, current_density):
         """
@@ -358,12 +373,22 @@ class HalfCell:
         i_lim = self.n_charge * self.faraday * conc_in \
             * self.diff_coeff_gdl / self.th_gdl
         var0 = 1. - current_density / (i_lim * conc_star)
-        var = np.where(var0 < 0.01, 0.01, var0)
+        var = np.where(var0 < 1e-4, 1e-4, var0)
 
         if self.calc_act_loss:
-            self.calc_activation_loss(current_density, conc_star)
+            v_loss_act = self.calc_activation_loss(current_density, conc_star)
+            self.v_loss_act[:] = v_loss_act
         if self.calc_gdl_diff_loss:
-            self.calc_transport_loss_diffusion_layer(var)
+            v_loss_gdl_diff = self.calc_transport_loss_diffusion_layer(var)
+            self.v_loss_gdl_diff[:] = v_loss_gdl_diff
         if self.calc_cl_diff_loss:
-            self.calc_transport_loss_catalyst_layer(current_density, var,
-                                                    conc_ele)
+            v_loss_cl_diff = \
+                self.calc_transport_loss_catalyst_layer(current_density,
+                                                        var, conc_ele)
+            self.v_loss_cl_diff[:] = v_loss_cl_diff
+        return self.v_loss_act + self.v_loss_gdl_diff + self.v_loss_cl_diff
+
+    def calc_current_density(self, current_density, v_loss):
+        def func(curr_den, over_pot):
+            return self.calc_electrode_loss(curr_den) - over_pot
+        return optimize.newton(func, current_density, args=(v_loss, ))

@@ -137,17 +137,17 @@ class Simulation:
              'membrane': {}}
 
         voltage_loss['activation']['anode']['cells'] = \
-            np.asarray([cell.cathode.act_loss for cell in fc_stack.cells])
+            np.asarray([cell.cathode.v_loss_act for cell in fc_stack.cells])
         voltage_loss['activation']['cathode']['cells'] = \
-            np.asarray([cell.anode.act_loss for cell in fc_stack.cells])
+            np.asarray([cell.anode.v_loss_act for cell in fc_stack.cells])
         voltage_loss['diffusion']['CL']['anode']['cells'] = \
-            np.asarray([cell.anode.cl_diff_loss for cell in fc_stack.cells])
+            np.asarray([cell.anode.v_loss_cl_diff for cell in fc_stack.cells])
         voltage_loss['diffusion']['CL']['cathode']['cells'] = \
-            np.asarray([cell.cathode.cl_diff_loss for cell in fc_stack.cells])
+            np.asarray([cell.cathode.v_loss_cl_diff for cell in fc_stack.cells])
         voltage_loss['diffusion']['GDL']['anode']['cells'] = \
-            np.asarray([cell.anode.gdl_diff_loss for cell in fc_stack.cells])
+            np.asarray([cell.anode.v_loss_gdl_diff for cell in fc_stack.cells])
         voltage_loss['diffusion']['GDL']['cathode']['cells'] = \
-            np.asarray([cell.cathode.gdl_diff_loss for cell in fc_stack.cells])
+            np.asarray([cell.cathode.v_loss_gdl_diff for cell in fc_stack.cells])
         voltage_loss['membrane']['cells'] = \
             np.asarray([cell.membrane.v_loss for cell in fc_stack.cells])
 

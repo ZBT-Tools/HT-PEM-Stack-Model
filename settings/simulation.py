@@ -2,11 +2,11 @@
 
 """Simulation Settings"""
 # discretization of the flow channel along the x-axis
-elements = 20
+elements = 5
 # convergence criteria of the simulation
-convergence_criteria = 1.e-6
+convergence_criteria = 1.e-8
 # maximum number of iterations
-maximum_iteration_number = 98
+maximum_iteration_number = 100
 # minimum number of iterations
 minimum_iteration_number = 3
 # calculate the PEMFC stack temperatures
