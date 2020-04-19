@@ -260,7 +260,7 @@ class Cell(OutputObject):
         return matrix, source_vector
 
     def update(self, current_density, channel_update=False,
-               current_control=True, urf=0.0):
+               current_control=True, urf=0.8):
         """
         This function coordinates the program sequence
         """
@@ -278,27 +278,22 @@ class Cell(OutputObject):
         self.anode.update(current_density, channel_update,
                           current_control=current_control)
         if self.cathode.corrected_current_density is not None:
-            current_density = self.cathode.corrected_current_density
+            corrected_current_density = self.cathode.corrected_current_density
+        else:
+            corrected_current_density = current_density
         if self.anode.break_program or self.cathode.break_program:
             self.break_program = True
         else:
-            # if not self.is_ht_pem:
-            #     self.membrane.update()
-            #     self.calc_mem_resistivity_springer()
-            #     # self.calc_mem_resistivity_gossling()
-            # else:
-            #     self.calc_mem_resistivity_kvesic()
-            # self.membrane.update()
-            # self.calc_membrane_loss()
             humidity = np.asarray([self.cathode.channel.fluid.humidity,
                                    self.anode.channel.fluid.humidity])
             humidity_ele = \
                 np.array([ip.interpolate_1d(humidity[0]),
                           ip.interpolate_1d(humidity[1])])
-
-            self.membrane.update(current_density, humidity_ele)
+            self.membrane.update(corrected_current_density, humidity_ele)
             self.calc_voltage_loss()
-            self.calc_conductance(current_density)
+            self.calc_conductance(corrected_current_density)
+            self.i_cd[:] = current_density
+
             # if np.any(self.v_alarm):
             #     self.correct_voltage_loss()
                 # raise ValueError('voltage losses greater than '
@@ -313,6 +308,13 @@ class Cell(OutputObject):
             self.membrane.v_loss + self.cathode.v_loss + self.anode.v_loss
         self.v_alarm = self.v_loss >= self.e_0
         # self.v_loss[:] = np.minimum(self.v_loss, self.e_0)
+
+    def update_voltage_loss(self, v_loss):
+        v_loss_factor = v_loss / self.v_loss
+        self.v_loss[:] *= v_loss_factor
+        for electrode in self.half_cells:
+            electrode.v_loss[:] *= v_loss_factor
+        self.membrane.v_loss[:] *= v_loss_factor
 
     def correct_voltage_loss(self):
         try:

@@ -147,7 +147,7 @@ class Stack:
             [self.fuel_circuits[0], self.fuel_circuits[1], self.coolant_circuit]
 
         self.current_control = current_control
-        self.i_cd_init = in_dicts.dict_stack['init_current_density']
+        self.i_cd_target = in_dicts.dict_stack['init_current_density']
         self.target_cell_voltage = g_par.dict_case['average_cell_voltage']
         self.v_target = self.n_cells * self.target_cell_voltage
 
@@ -166,14 +166,14 @@ class Stack:
 
         # current density array
         self.i_cd = np.zeros((self.n_cells, n_ele))
-        self.i_cd[:] = self.i_cd_init
+        self.i_cd[:] = self.i_cd_target
         # for i in range(self.n_cells):
         #     self.i_cd[i, :] = \
         #         g_func.exponential_distribution(self.i_target, n_ele,
         #                                         a=0.5, b=0.0)
         # current density array of previous iteration step
         self.i_cd_old = np.copy(self.i_cd)
-        self.i_cd_avg = self.i_cd_init
+        self.i_cd_avg = self.i_cd_target
         # voltage array
         self.v = np.zeros(self.n_cells)
         self.v_stack = 0.0
@@ -232,7 +232,7 @@ class Stack:
             if update_inflows:
                 n_cool_cell = self.coolant_circuit.n_subchannels
                 over_potential = 0.5
-                heat = self.i_cd_init * over_potential \
+                heat = self.i_cd_target * over_potential \
                        * self.cells[0].active_area * self.n_cells * n_cool_cell
                 cp_cool = \
                     np.average([np.average(channel.fluid.specific_heat)

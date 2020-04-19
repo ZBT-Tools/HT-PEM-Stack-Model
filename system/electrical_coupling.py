@@ -22,7 +22,7 @@ class ElectricalCoupling:
         # Variables
         self.current_control = stack.current_control
         if self.current_control:
-            self.i_cd_tar = stack.i_target
+            self.i_cd_tar = stack.i_cd_target
         else:
             self.v_tar = stack.v_target
             self.e_0_stack = np.sum([cell.e_0 for cell in self.cells])
@@ -147,4 +147,5 @@ class ElectricalCoupling:
     def update_cell_voltage(self, v_diff):
         for i, cell in enumerate(self.cells):
             cell.v[:] = cell.e_0 - v_diff[i]
-            cell.v_loss[:] = v_diff[i]
+            # cell.v_loss[:] = v_diff[i]
+            cell.update_voltage_loss(v_diff[i])

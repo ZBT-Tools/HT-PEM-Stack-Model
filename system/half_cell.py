@@ -174,9 +174,12 @@ class HalfCell:
         # self.calc_temp_fluid_ele()
         # mole_flow_in, mole_source = self.calc_mass_balance(current_density)
         if not current_control and self.updated_v_loss:
-            current_density = \
+            self.corrected_current_density = \
                 self.calc_current_density(current_density, self.v_loss)
-            self.corrected_current_density = current_density
+        if current_control or self.corrected_current_density is None:
+            corrected_current_density = current_density
+        else:
+            corrected_current_density = self.corrected_current_density
         if not self.break_program:
             # self.channel.update(mole_flow_in, mole_source)
             # self.channel.mole_flow[:] = mole_flow_in
@@ -184,7 +187,7 @@ class HalfCell:
                 self.calc_mass_source(current_density)
             if channel_update:
                 self.channel.update()
-            self.update_voltage_loss(current_density)
+            self.update_voltage_loss(corrected_current_density)
 
             # calculate stoichiometry
             current = np.sum(current_density * self._active_area_dx)
@@ -390,5 +393,6 @@ class HalfCell:
 
     def calc_current_density(self, current_density, v_loss):
         def func(curr_den, over_pot):
-            return self.calc_electrode_loss(curr_den) - over_pot
+            return self.calc_electrode_loss(curr_den) \
+                   + self.calc_plate_loss(curr_den) - over_pot
         return optimize.newton(func, current_density, args=(v_loss, ))
