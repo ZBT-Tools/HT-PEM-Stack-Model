@@ -206,10 +206,5 @@ print('Minimum Cell Voltage [V]: ', np.min(simulation.stack.v))
 print('Average cell current density [A/m²]: ',
       [np.average(cell.i_cd, weights=cell.active_area_dx)
        for cell in simulation.stack.cells])
-print('Cathode stoichiometry [-]: ', [cell.cathode.inlet_stoi
-                                      for cell in simulation.stack.cells])
-print('Anode stoichiometry [-]: ', [cell.anode.inlet_stoi
-                                    for cell in simulation.stack.cells])
-# print(out_obj.OutputObject.make_name_list())
-# for obj in out_obj.OutputObject.getinstances():
-#     print(obj.name_list)
+print('Cathode Overpotential [V]: ',
+      [cell.cathode.v_loss for cell in simulation.stack.cells])

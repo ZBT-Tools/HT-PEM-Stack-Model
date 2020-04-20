@@ -38,7 +38,7 @@ membrane_basic_conductivity = 5.0
 # membrane temperature slope [Ohm/(m^2K)]
 membrane_temperature_coefficient = 7.e-4
 # bipolar plate conductivity [S/m]
-electrical_conductivity_bipolar_plate = 15000.0
+electrical_conductivity_bipolar_plate = 15000000.0
 # gas diffusion electrode material conductivity [S/m]
 electrical_conductivity_gde = 5000.0
 

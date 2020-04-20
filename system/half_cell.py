@@ -32,7 +32,7 @@ class HalfCell:
         self.channel = channel
         self.channel.name = self.name + ' Channel'
         self.channel.fluid.name = \
-            self.name + ' ' + self.channel.fluid.TYPE_NAME
+            self.name + ' Fluid'  # + self.channel.fluid.TYPE_NAME
 
         # number of channels of each half cell
         self.n_channel = halfcell_dict['channel_number']

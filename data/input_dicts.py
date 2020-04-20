@@ -258,7 +258,9 @@ dict_temp_sys = {
     'alpha_amb': op_con.convection_coefficient_stack_environment,
     'heat_pow': op_con.endplates_heat_power,
     'cool_ch_bc': geom.cooling_bc,
-    'cool_ch_numb': geom.coolant_channel_number
+    'cool_ch_numb': geom.coolant_channel_number,
+    'cool_temp_diff': getattr(op_con, 'coolant_temperature_difference', None),
+    'cool_mass_flow': getattr(op_con, 'coolant_mass_flow', None)
     }
 
 dict_output = {

@@ -55,18 +55,6 @@ class Cell(OutputObject):
             half_cell.channel.fluid.extend_data_names(half_cell.channel.fluid.name)
 
         self.dx = self.cathode.channel.dx
-        # cathode - object of the class HalfCell
-        # self.th_mem = cell_dict['th_mem']
-        # thickness membrane
-        # self.lambda_bpp = [cell_dict['thermal conductivity bpp'][0],
-        #                    cell_dict['thermal conductivity bpp'][1]]
-        # # heat conductivity of the bipolar plate
-        # self.lambda_gde = [cell_dict['thermal conductivity gde'][0],
-        #                    cell_dict['thermal conductivity gde'][1]]
-        # # heat conductivity of the gas diffusion layer
-        # self.lambda_mem = [membrane_dict['thermal conductivity'][0],
-        #                    membrane_dict['thermal conductivity'][1]]
-        # heat conductivity of the membrane
 
         # Setup membrane
         membrane_dict['width'] = self.cathode.width_straight_channels
@@ -208,7 +196,7 @@ class Cell(OutputObject):
 
         self.add_print_data(self.i_cd, 'Current Density', 'A/m²')
         self.add_print_data(self.temp_layer, 'Temperature', 'K',
-                            self.temp_names[:self.n_layer-1])
+                            self.temp_names[:self.n_layer])
         self.add_print_data(self.v, 'Cell Voltage', 'V')
 
     def calc_ambient_conductance(self, alpha_amb):
@@ -260,7 +248,7 @@ class Cell(OutputObject):
         return matrix, source_vector
 
     def update(self, current_density, channel_update=False,
-               current_control=True, urf=0.8):
+               current_control=True, urf=0.7):
         """
         This function coordinates the program sequence
         """
@@ -276,7 +264,7 @@ class Cell(OutputObject):
         self.cathode.update(current_density, channel_update,
                             current_control=current_control)
         self.anode.update(current_density, channel_update,
-                          current_control=current_control)
+                          current_control=True)
         if self.cathode.corrected_current_density is not None:
             corrected_current_density = self.cathode.corrected_current_density
         else:
@@ -292,12 +280,11 @@ class Cell(OutputObject):
             self.membrane.update(corrected_current_density, humidity_ele)
             self.calc_voltage_loss()
             self.calc_conductance(corrected_current_density)
-            self.i_cd[:] = current_density
-
-            # if np.any(self.v_alarm):
-            #     self.correct_voltage_loss()
+            if np.any(self.v_alarm) and current_control:
+                self.correct_voltage_loss()
                 # raise ValueError('voltage losses greater than '
                 #                  'open circuit voltage')
+            self.i_cd[:] = current_density
 
     def calc_voltage_loss(self):
         """

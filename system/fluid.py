@@ -21,7 +21,7 @@ class OneDimensionalFluid(ABC, OutputObject):
             {
                 'names': ['temperature', 'pressure'],
                 'units': ['K', 'Pa'],
-                'sub_names': ['None', 'None']
+                # 'sub_names': ['None', 'None']
             }
         self.combine_print_variables(self.print_variables,
                                      kwargs.get('print_variables', None))
@@ -206,6 +206,7 @@ class ConstantFluid(OneDimensionalFluid):
             self.property['Viscosity'][:] = fluid_props.viscosity
             self.property['Thermal Conductivity'][:] = \
                 fluid_props.thermal_conductivity
+        self.add_print_variables(self.print_variables)
 
     def update(self, temperature, pressure, *args, **kwargs):
         super().update(temperature, pressure)
@@ -227,6 +228,7 @@ class IncompressibleFluid(OneDimensionalFluid):
             raise TypeError('Argument fluid_props must be of type '
                             'IncompressibleProperties')
         super().__init__(nx, name, temperature, pressure, **kwargs)
+        self.add_print_variables(self.print_variables)
 
     def update(self, temperature, pressure=101325.0, *args, **kwargs):
         super().update(temperature, pressure)

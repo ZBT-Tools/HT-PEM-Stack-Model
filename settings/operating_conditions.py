@@ -3,14 +3,14 @@
 """Electrochemistry"""
 # target current density [A/m^2]
 current_control = True
-current_density = 15000.
+current_density = 5000.
 average_cell_voltage = 0.5
 # open circuit voltage [V]
 open_circuit_voltage = 1.00
 # cathode stoichiometry
 stoichiometry_cathode = 1.5
 # anode stoichiometry
-stoichiometry_anode = 2.
+stoichiometry_anode = 1.5
 # reaction stoichiometry
 cathode_reaction_stoich = [-1.0, 0.0, 2.0]
 anode_reaction_stoich = [-2.0, 0.0, 0.0]
@@ -21,7 +21,8 @@ anode_charge_number = 4.0
 
 """"Thermal Settings"""
 # total mass flow of the coolant per channel [kg/s]
-# mass_flow_coolant = 1.e-2
+# coolant_mass_flow = 1.e-2
+coolant_temperature_difference = 10.0
 # air inlet temperature [K]
 temp_air_in = 340.
 # anode gas inlet temperature [K]
@@ -31,9 +32,9 @@ temp_coolant_in = 340.
 # environment temperature [K]
 temp_environment = 298.15
 # heat power of the endplates [W]
-endplates_heat_power = -0.
+endplates_heat_power = 0.
 # convection coefficient between the stack walls and the environment [W/(m^2K)]
-convection_coefficient_stack_environment = 10.0
+convection_coefficient_stack_environment = 0.0
 # initial temperature [K]
 temp_initial = 340.
 

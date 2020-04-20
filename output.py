@@ -11,6 +11,14 @@ import system.stack as stack
 import system.output_object as oo
 from itertools import cycle, islice
 
+# globals
+FONT_SIZE = 14
+NUMBER_SIZE = 14
+MARKER_SIZE = 5.0
+LINE_WIDTH = 1.0
+FIG_DPI = 150
+FIG_SIZE = (6.4, 4.8)
+
 
 class Output:
 
@@ -44,7 +52,7 @@ class Output:
 
     @staticmethod
     def set_ax_properties(ax, **kwargs):
-        fontsize = kwargs.get('fontsize', 16)
+        fontsize = kwargs.get('fontsize', FONT_SIZE)
         if 'xlabel' in kwargs:
             ax.set_xlabel(kwargs['xlabel'], fontsize=fontsize)
         if 'ylabel' in kwargs:
@@ -78,9 +86,9 @@ class Output:
                                  'equal to outer dimension of y')
         if y.ndim == 1:
             ax.plot(x, y, marker=kwargs.get('marker', '.'),
-                    markersize=kwargs.get('markersize', 5.0),
+                    markersize=kwargs.get('markersize', MARKER_SIZE),
                     fillstyle=kwargs.get('fillstyle', 'full'),
-                    linewidth=kwargs.get('linewidth', 1.0),
+                    linewidth=kwargs.get('linewidth', LINE_WIDTH),
                     linestyle=kwargs.get('linestyle', '-'),
                     color=kwargs.get('color', 'k'))
         else:
@@ -100,9 +108,9 @@ class Output:
                 list(islice(cycle(kwargs.get('fillstyle', ['full'])), ny))
             for i in range(ny):
                 ax.plot(x[i], y[i], marker=markers[i],
-                        markersize=kwargs.get('markersize', 5.0),
+                        markersize=kwargs.get('markersize', MARKER_SIZE),
                         fillstyle=fillstyles[i],
-                        linewidth=kwargs.get('linewidth', 1.0),
+                        linewidth=kwargs.get('linewidth', LINE_WIDTH),
                         linestyle=linestyles[i],
                         color=colors[i])
         ax.grid(True)
@@ -137,10 +145,11 @@ class Output:
             return variable
 
         if rows > 2:
-            figsize = kwargs.get('figsize', (6.4, 4.8*float(rows)/2.0))
+            figsize = kwargs.get('figsize', (FIG_SIZE[0],
+                                             FIG_SIZE[1] * float(rows) / 2.0))
         else:
-            figsize = kwargs.get('figsize', (6.4, 4.8))
-        fig = plt.figure(dpi=kwargs.get('dpi', 150), figsize=figsize)
+            figsize = kwargs.get('figsize', FIG_SIZE)
+        fig = plt.figure(dpi=kwargs.get('dpi', FIG_DPI), figsize=figsize)
 
         x_array = np.asarray(x_array)
         y_array = check_dims(np.asarray(y_array), correct_single_dim=True)
@@ -151,7 +160,7 @@ class Output:
             else:
                 raise ValueError('Dimension of x-array is not one and does not '
                                  'match number of plot')
-        fontsize = kwargs.get('fontsize', 16)
+        fontsize = kwargs.get('fontsize', FONT_SIZE)
         xlabels = check_dims(xlabels)
         ylabels = check_dims(ylabels)
 
@@ -193,10 +202,10 @@ class Output:
             for i in range(len(y_values)):
                 plt.plot(y_values[i], color=colors[i], marker='.')
 
-        plt.xlabel(x_label, fontsize=16)
-        plt.ylabel(y_label, fontsize=16)
+        plt.xlabel(x_label, fontsize=FONT_SIZE)
+        plt.ylabel(y_label, fontsize=FONT_SIZE)
         plt.yscale(y_scale)
-        plt.tick_params(labelsize=14)
+        plt.tick_params(labelsize=NUMBER_SIZE)
         plt.xlim(xlim_low, xlim_up)
         plt.tight_layout()
         plt.grid()
@@ -218,11 +227,11 @@ class Output:
                 plt.plot(x, y[i],
                          color=plt.cm.coolwarm(i / len(y)), marker='.')
 
-        plt.xlabel(x_label, fontsize=16)
-        plt.ylabel(y_label, fontsize=16)
+        plt.xlabel(x_label, fontsize=FONT_SIZE)
+        plt.ylabel(y_label, fontsize=FONT_SIZE)
         plt.xscale(x_scale)
         plt.yscale(y_scale)
-        plt.tick_params(labelsize=14)
+        plt.tick_params(labelsize=NUMBER_SIZE)
         plt.autoscale(tight=True, axis='both', enable=True)
         if xlim is not None:
             plt.xlim(xlim[0], xlim[1])
@@ -356,6 +365,15 @@ class Output:
             save_oo_collection(coolant_circuits, xvalues, xlabel,
                                file_name='Coolant_Distribution.png')
 
+            cool_channels = \
+                [channel for channel in coolant_circuits[0].channels]
+            xvalues = cool_channels[0].x
+            xlabel = 'Channel Location [m]'
+            save_oo_collection(cool_channels, xvalues, xlabel)
+            # Save fluid values
+            cool_fluids = [channel.fluid for channel in cool_channels]
+            save_oo_collection(cool_fluids, xvalues, xlabel)
+
     def plot_polarization_curve(self, voltage_loss,
                                 cell_voltages, target_current_density):
         """
@@ -385,9 +403,9 @@ class Output:
             plt.plot(cd_array,
                      voltage_loss['diffusion']['GDL']['cathode']['average'],
                      color='m', marker='+', label='Cathode GDL Diff Loss')
-        plt.ylabel('Voltage $[V]$', fontsize=16)
-        plt.xlabel('Current Density $[A/cm²]$', fontsize=16)
-        plt.tick_params(labelsize=14)
+        plt.ylabel('Voltage $[V]$', fontsize=FONT_SIZE)
+        plt.xlabel('Current Density $[A/cm²]$', fontsize=FONT_SIZE)
+        plt.tick_params(labelsize=NUMBER_SIZE)
         plt.grid()
         plt.legend()
         plt.autoscale(tight=True, axis='both', enable=True)

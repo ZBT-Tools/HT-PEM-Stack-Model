@@ -252,6 +252,9 @@ class KohFlowCircuit(ParallelFlowCircuit):
         #                      for channel in self.channels])
         p_in = ip.interpolate_1d(self.manifolds[0].p)
         p_out = ip.interpolate_1d(self.manifolds[1].p)
+        if np.any(self.channel_vol_flow == 0.0):
+            raise ValueError('zero flow rates detected, '
+                             'check boundary conditions')
         if self.initialize:
             self.k_perm[:] = self.channel_vol_flow / self.dp_channel \
                 * self.visc_channel * self.l_by_a
@@ -268,6 +271,9 @@ class KohFlowCircuit(ParallelFlowCircuit):
         density = np.array([channel.fluid.density[channel.id_in]
                             for channel in self.channels])
         self.channel_mass_flow[:] = self.channel_vol_flow * density
+        mass_flow_correction = \
+            self.mass_flow_in / np.sum(self.channel_mass_flow)
+        self.channel_mass_flow[:] *= mass_flow_correction
 
 
 class WangFlowCircuit(ParallelFlowCircuit):

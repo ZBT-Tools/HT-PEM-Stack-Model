@@ -126,11 +126,14 @@ class Stack:
             for i in range(n_cool):
                 cool_channels.append(
                     chl.Channel(in_dicts.dict_coolant_channel,
-                                fluid.dict_factory(coolant_dict)))
-                cool_channels[i].name += ' ' + str(i)
+                                fluid.dict_factory(coolant_dict),
+                                number=str(i)))
+                cool_channels[i].extend_data_names(cool_channels[i].name)
                 cool_channels[i].fluid.name = \
-                    cool_channels[i].name + ': ' \
-                    + cool_channels[i].fluid.TYPE_NAME
+                    cool_channels[i].name + ' Fluid'
+                # + cool_channels[i].fluid.TYPE_NAME
+                cool_channels[i].fluid.extend_data_names(
+                    cool_channels[i].fluid.name)
 
             if n_cool > 0:
                 self.coolant_circuit = \
@@ -142,6 +145,10 @@ class Stack:
                 self.coolant_circuit = None
         else:
             self.coolant_circuit = None
+        self.coolant_temp_diff = \
+            temperature_dict.get('cool_temp_diff', None)
+        self.coolant_mass_flow = \
+            temperature_dict.get('cool_mass_flow', None)
 
         self.flow_circuits = \
             [self.fuel_circuits[0], self.fuel_circuits[1], self.coolant_circuit]
@@ -176,7 +183,9 @@ class Stack:
         self.i_cd_avg = self.i_cd_target
         # voltage array
         self.v = np.zeros(self.n_cells)
-        self.v_stack = 0.0
+        self.v_stack = None
+        self.v_loss = None
+        self.e_0 = self.n_cells * self.cells[0].e_0
 
         # old temperature for convergence calculation
         self.temp_old = np.zeros(self.temp_sys.temp_layer_vec.shape)
@@ -195,7 +204,9 @@ class Stack:
             update_inflows = True
         if self.current_control is False:
             update_inflows = True
-        self.update_flows(update_inflows, self.calc_flow_dis)
+        self.update_flows(update_inflows, self.calc_flow_dis,
+                          coolant_temp_diff=self.coolant_temp_diff,
+                          coolant_mass_flow=self.coolant_mass_flow)
         for i, cell in enumerate(self.cells):
             cell.update(self.i_cd[i, :], current_control=self.current_control)
             if cell.break_program:
@@ -215,10 +226,12 @@ class Stack:
                             for cell in self.cells])
             if self.current_control:
                 self.v_stack = np.sum(self.v)
+                self.v_loss = self.e_0 - self.v_stack
             self.i_cd_avg = np.average(self.i_cd[0],
                                        weights=self.cells[0].active_area_dx)
 
-    def update_flows(self, update_inflows=False, calc_flow_dist=False):
+    def update_flows(self, update_inflows=False, calc_flow_dist=False,
+                     coolant_temp_diff=None, coolant_mass_flow=None):
         """
         This function updates the flow distribution of gas over the stack cells
         """
@@ -227,32 +240,26 @@ class Stack:
             mass_flows_in[:] = self.calc_mass_flows()
         for i in range(len(self.fuel_circuits)):
             self.fuel_circuits[i].update(mass_flows_in[i], calc_flow_dist)
-        dtemp_target = 10.0
         if self.coolant_circuit is not None:
-            if update_inflows:
-                n_cool_cell = self.coolant_circuit.n_subchannels
-                over_potential = 0.5
-                heat = self.i_cd_target * over_potential \
-                       * self.cells[0].active_area * self.n_cells * n_cool_cell
-                cp_cool = \
-                    np.average([np.average(channel.fluid.specific_heat)
-                                for channel in self.coolant_circuit.channels])
-                cool_mass_flow = heat / (cp_cool * dtemp_target)
-            else:
-                # id_in = self.coolant_circuit.manifolds[0].id_in
-                # temp_in = self.coolant_circuit.manifolds[0].temp[id_in]
-                # temp_out = \
-                #   np.sum([channel.temp[channel.id_out]
-                #           * channel.g_fluid[channel.id_out]
-                #           for channel in self.coolant_circuit.channels])
-                # temp_out /= \
-                #   np.sum([channel.g_fluid[channel.id_out]
-                #           for channel in self.coolant_circuit.channels])
-                # temp_ratio = abs(temp_out - temp_in) / dtemp_target
-                # cool_mass_flow = \
-                #   self.coolant_circuit.mass_flow_in * temp_ratio
-                cool_mass_flow = None
+            cool_mass_flow = None
+            if self.current_control or update_inflows:
+                if coolant_mass_flow is not None:
+                    cool_mass_flow = coolant_mass_flow
+                elif coolant_temp_diff is not None:
+                    cool_mass_flow = self.calc_cool_mass_flow(coolant_temp_diff)
             self.coolant_circuit.update(cool_mass_flow, calc_flow_dist)
+
+    def calc_cool_mass_flow(self, coolant_temp_diff):
+        n_cool_cell = self.coolant_circuit.n_subchannels
+        if self.v_loss is None:
+            v_loss = 0.5 * self.n_cells
+        else:
+            v_loss = self.v_loss
+        heat = self.i_cd_avg * self.cells[0].active_area * v_loss
+        cp_cool = \
+            np.average([np.average(channel.fluid.specific_heat)
+                        for channel in self.coolant_circuit.channels])
+        return heat / (cp_cool * coolant_temp_diff) * n_cool_cell
 
     def calc_mass_flows(self):
         mass_flows_in = []

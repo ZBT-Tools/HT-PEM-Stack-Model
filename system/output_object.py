@@ -44,8 +44,25 @@ class OutputObject:
                 else:
                     new_key = key + ' ' + name
                 print_data_new_keys[new_key] = value
-                #print_data.pop(key)
+                # print_data.pop(key)
             self.print_data[i] = print_data_new_keys
+        # print_data_new_keys = {}
+        # for key, value in self.print_data_1d.items():
+        #     if prepend:
+        #         new_key = name + ' ' + key
+        #     else:
+        #         new_key = key + ' ' + name
+        #     print_data_new_keys[new_key] = value
+        # self.print_data_1d = print_data_new_keys
+        # print_data_new_keys = {}
+        # for key, value in self.print_data_2d.items():
+        #     if prepend:
+        #         new_key = name + ' ' + key
+        #     else:
+        #         new_key = key + ' ' + name
+        #     print_data_new_keys[new_key] = value
+        # self.print_data_2d = print_data_new_keys
+        # self.print_data = [self.print_data_1d, self.print_data_2d]
 
     @classmethod
     def getinstances(cls):

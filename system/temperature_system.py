@@ -8,6 +8,7 @@ import system.global_functions as g_func
 import system.matrix_functions as mtx
 import system.channel as chl
 import system.cell as fcell
+import pandas as pd
 # from numba import jit
 
 np.set_printoptions(linewidth=10000, threshold=None, precision=2)
@@ -161,11 +162,12 @@ class TemperatureSystem:
         for i, cell in enumerate(self.cells):
             cell.heat_rhs_dyn[:] = 0.0
 
+            source = np.zeros(cell.temp_layer[0].shape)
             # Cathode bpp-gde source
             # h_vap = w_prop.water.calc_h_vap(cell.cathode.channel.temp[:-1])
             channel = cell.cathode.channel
-            source = channel.k_coeff * channel.temp_ele
-            source += getattr(channel, 'condensation_heat', 0.0)
+            source += channel.k_coeff * channel.temp_ele  # * 0.0
+            source += getattr(channel, 'condensation_heat', 0.0)  # * 0.0
             cell.add_explicit_layer_source(cell.heat_rhs_dyn, source, 1)
 
             current = cell.i_cd * cell.active_area_dx
@@ -175,23 +177,24 @@ class TemperatureSystem:
             # Cathode gde-mem source
             source[:] = 0.0
             source += half_ohmic_heat_membrane
-            # reaction_heat = \
-            #    (self.e_tn - self.e_0 + cell.cathode.v_loss) * current
-            # source += reaction_heat
+            reaction_heat = \
+                (self.e_tn - self.e_0 + cell.cathode.v_loss) * current
+            source += reaction_heat
             cell.add_explicit_layer_source(cell.heat_rhs_dyn, source, 2)
 
             # Anode gde-mem source
             source[:] = 0.0
             source += half_ohmic_heat_membrane
-            # reaction_heat = cell.anode.v_loss * current
-            # source += reaction_heat
+            reaction_heat = cell.anode.v_loss * current
+            source += reaction_heat
             cell.add_explicit_layer_source(cell.heat_rhs_dyn, source, 3)
 
             # Anode bpp-gde source
+            source[:] = 0.0
             # h_vap = w_prop.water.calc_h_vap(cell.anode.temp_fluid[:-1])
             channel = cell.anode.channel
-            source = channel.k_coeff * channel.temp_ele
-            source += getattr(channel, 'condensation_heat', 0.0)
+            source = channel.k_coeff * channel.temp_ele  # * 0.0
+            source += getattr(channel, 'condensation_heat', 0.0)  # * 0.0
             cell.add_explicit_layer_source(cell.heat_rhs_dyn, source, 4)
 
             # Cooling channels
@@ -227,12 +230,12 @@ class TemperatureSystem:
             source_vectors.append(np.zeros(cell.heat_rhs_dyn.shape))
 
             # add thermal conductance for heat transfer to cathode gas
-            source = -cell.cathode.channel.k_coeff
+            source = -cell.cathode.channel.k_coeff  # * 0.0
             matrix, source_vec_1 = \
                 cell.add_implicit_layer_source(cell.heat_mtx_dyn, source, 1)
 
             # add thermal conductance for heat transfer to anode gas
-            source = -cell.anode.channel.k_coeff
+            source = -cell.anode.channel.k_coeff  # * 0.0
             matrix, source_vec_2 = \
                 cell.add_implicit_layer_source(cell.heat_mtx_dyn, source, 4)
 
@@ -278,6 +281,10 @@ class TemperatureSystem:
         """
         Solves the layer temperatures.
         """
+        # tx_df = pd.DataFrame(self.mtx)
+        # mtx_df.to_clipboard(index=False, header=False, sep=' ')
+        rhs_df = pd.DataFrame(self.rhs)
+        rhs_df.to_clipboard(index=False, header=False, sep=' ')
         if self.sparse_solve:
             self.temp_layer_vec[:] = spsolve(self.mtx, self.rhs)
         else:

@@ -13,7 +13,7 @@ except ModuleNotFoundError:
 
 
 class Channel(ABC, OutputObject):
-    def __new__(cls, channel_dict, fluid):
+    def __new__(cls, channel_dict, fluid, number=None):
 
         if type(fluid) is fluids.IncompressibleFluid \
                 or type(fluid) is fluids.ConstantFluid:
@@ -29,8 +29,9 @@ class Channel(ABC, OutputObject):
                                       'TwoPhaseMixtureChannel are '
                                       'implemented')
 
-    def __init__(self, channel_dict, fluid):
+    def __init__(self, channel_dict, fluid, number=None):
         name = channel_dict['name']
+        self.number = number
         super().__init__(name)
         self.fluid = fluid
         self.length = channel_dict['length']
@@ -294,8 +295,8 @@ class Channel(ABC, OutputObject):
 
 
 class IncompressibleFluidChannel(Channel):
-    def __init__(self, channel_dict, fluid):
-        super().__init__(channel_dict, fluid)
+    def __init__(self, channel_dict, fluid, number=None):
+        super().__init__(channel_dict, fluid, number)
         self.mass_source = np.zeros(self.n_ele)
 
     # def update(self, mass_flow_in=None, mass_source=None,
@@ -344,8 +345,8 @@ class IncompressibleFluidChannel(Channel):
 
 
 class GasMixtureChannel(Channel):
-    def __init__(self, channel_dict, fluid):
-        super().__init__(channel_dict, fluid)
+    def __init__(self, channel_dict, fluid, number=None):
+        super().__init__(channel_dict, fluid, number)
         self.mole_flow_total = np.zeros(self.n_nodes)
         arr_shape = (self.fluid.n_species, self.n_nodes)
         self.mole_flow = np.zeros(arr_shape)
@@ -448,8 +449,8 @@ class GasMixtureChannel(Channel):
 
 
 class TwoPhaseMixtureChannel(GasMixtureChannel):
-    def __init__(self, channel_dict, fluid):
-        super().__init__(channel_dict, fluid)
+    def __init__(self, channel_dict, fluid, number=None):
+        super().__init__(channel_dict, fluid, number)
         self.mole_flow_gas_total = np.zeros(self.n_nodes)
         self.mass_flow_gas_total = np.zeros(self.n_nodes)
         self.vol_flow_gas = np.zeros(self.n_nodes)
