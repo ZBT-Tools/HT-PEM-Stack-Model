@@ -30,6 +30,9 @@ class Cell(OutputObject):
         # number of nodes along the channel
         self.n_ele = n_nodes - 1
 
+        # underrelaxation factor
+        self.urf = g_par.dict_case['underrelaxation_factor']
+
         self.e_0 = g_par.dict_case['e_0']
 
         self.width = self.cell_dict['width']
@@ -248,11 +251,16 @@ class Cell(OutputObject):
         return matrix, source_vector
 
     def update(self, current_density, channel_update=False,
-               current_control=True, urf=0.7):
+               current_control=True, urf=None):
         """
         This function coordinates the program sequence
         """
+        if urf is None:
+            urf = self.urf
         current_density = (1.0 - urf) * current_density + urf * self.i_cd
+        if g_par.iteration > 50:
+            self.urf *= 0.99
+        self.urf = max(self.urf, 0.8)
         # self.temp_mem[:] = .5 * (self.temp_layer[2] + self.temp_layer[3])
         self.membrane.temp = .5 * (self.temp_layer[2] + self.temp_layer[3])
         if isinstance(self.membrane, membrane.WaterTransportMembrane):

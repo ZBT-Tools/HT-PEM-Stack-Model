@@ -1,14 +1,14 @@
 """ This file contains the geometry settings"""
 """Stack Settings"""
 # number of the pemfc
-cell_number = 1
+cell_number = 40
 # coolant channel configuration (no cooling channel at the endplates = False)
 coolant_circuit = True
 cooling_bc = True
 
 """Gas Channel Geometry"""
 # channel length [m]
-channel_length = 0.651
+channel_length = 0.24
 # channel width [m]
 channel_width = 1.e-3
 # channel height [m]
@@ -28,15 +28,15 @@ anode_flow_direction = -1
 
 """Coolant Channel Geometry"""
 # channel length [m]
-coolant_channel_length = 0.651
+coolant_channel_length = 0.14
 # height of the coolant channel [m]
 coolant_channel_height = 1.e-3
 # width of the coolant channel [m]
-coolant_channel_width = 1.e-3
+coolant_channel_width = 2.e-3
 # number of coolant channels per cell
-coolant_channel_number = 10.
+coolant_channel_number = 5.
 # channel bends [n]
-coolant_channel_bends = 48.
+coolant_channel_bends = 2.
 # bend pressure loss coefficient of the channel bends
 coolant_bend_pressure_loss_coefficient = 0.1
 
@@ -48,16 +48,16 @@ catalyst_layer_thickness = 10.e-6
 # catalyst layer porosity (ionomer considered as porous volume) [-]
 catalyst_layer_porosity = 0.5
 # thickness of the gas diffusion layer [m]
-gas_diffusion_layer_thickness = 250.e-6
+gas_diffusion_layer_thickness = 200.e-6
 # gas diffusion layer porosity [-]
 gas_diffusion_layer_porosity = 0.8
 # thickness of the bipolar plate [m]
 cathode_bipolar_plate_thickness = 2.0e-3
 anode_bipolar_plate_thickness = 2.0e-3
 # length of the cell, a side of the active area [m]
-cell_length = 100.e-3
+cell_length = 67.e-3
 # height of the cell, b side of the active area [m]
-cell_width = 100.e-3
+cell_width = 67.e-3
 
 
 """Manifold Geometry"""
@@ -71,11 +71,12 @@ anode_manifold_configuration = 'U'
 cathode_manifold_configuration = 'U'
 coolant_manifold_configuration = 'U'
 # manifold height [m]
-manifold_height = 15e-3
+manifold_height = 7.5e-3
+manifold_width = 12.5e-3
+
 coolant_manifold_height = 15e-3
-# manifold width [m]
-manifold_width = 15e-3
 coolant_manifold_width = 15e-3
+
 # geometrical pressure loss coefficient of the manifold header
-manifold_pressure_loss_coefficient = 0.4
-coolant_manifold_pressure_loss_coefficient = 0.0
+manifold_pressure_loss_coefficient = 0.16
+coolant_manifold_pressure_loss_coefficient = 0.16

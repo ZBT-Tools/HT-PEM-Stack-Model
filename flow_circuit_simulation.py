@@ -30,20 +30,18 @@ def do_c_profile(func):
     return profiled_func
 
 
-n_chl = 50
+n_chl = 40
 n_subchl = 1
 
 channel_dict = {
     'name': 'Channel',
-    'length': 0.4,
-    'cross_sectional_shape': 'circular',
-    'diameter': 0.00298,
+    'length': 0.65,
+    'cross_sectional_shape': 'rectangular',
+    'width': 4e-3,
+    'height': 1e-3,
     'p_out': 101325.0,
-    'temp_in': 300.0,
-    'hum_in': 0.1,
+    'temp_in': 293.15,
     'flow_direction': 1,
-    'width': 0.001,
-    'height': 0.001,
     'bend_number': 0,
     'bend_friction_factor': 0.1,
     'additional_friction_fractor': 0.0
@@ -52,29 +50,29 @@ channel_dict = {
 
 fluid_dict = {
     'fluid_name': 'Cathode Gas',
-    'fluid_components': op_con.cathode_species,
-    'inlet_composition': op_con.cathode_inlet_composition,
-    'temp_init': op_con.temp_air_in,
-    'press_init': op_con.p_manifold_cathode_out,
-    'nodes': g_par.dict_case['nodes']
+    'fluid_components': {'O2': 'gas', 'N2': 'gas', 'H2O': 'gas-liquid'},
+    'inlet_composition': [0.21, 0.79, 0.0],
+    'temp_init': 293.15,
+    'press_init': 101325.0,
+    'nodes': 10
 }
 
 in_manifold_dict = {
     'name': 'Inlet Manifold',
-    'length': 0.1,
+    'length': 0.27,
     'p_out': channel_dict['p_out'],
-    'temp_in': 300.0,
+    'temp_in': 293.15,
     'flow_direction': 1,
-    'width': 0.01,
-    'height': 0.01,
+    'width': 12.5e-3,
+    'height': 7.5e-3,
     'bend_number': 0,
     'bend_friction_factor': 0.0,
-    'additional_friction_fractor': -0.03
+    'additional_friction_fractor': 0.2
     }
 
 out_manifold_dict = copy.deepcopy(in_manifold_dict)
 out_manifold_dict['name'] = 'Outlet Manifold'
-out_manifold_dict['additional_friction_fractor'] = 0.02
+out_manifold_dict['additional_friction_fractor'] = 0.2
 
 flow_circuit_dict = {
     'name': 'Flow Circuit',
@@ -93,31 +91,11 @@ x = (ip.interpolate_1d(flow_model.manifolds[0].x)
     / (flow_model.manifolds[0].length - flow_model.manifolds[0].dx[0])
 # x = flow_model.manifolds[0].x / flow_model.manifolds[0].length
 
-flow_model.update(inlet_mass_flow=1e-4)
+flow_model.update(inlet_mass_flow=8.91E-04)
 q = flow_model.channel_vol_flow / np.average(flow_model.channel_vol_flow)
 reynolds = flow_model.manifolds[0].reynolds[0]
 plt.plot(x, q, label='Re={0:.2f}'.format(reynolds))
-
-# print(dir(flow_model.channels[0].fluid))
-# print(flow_model.channels[0].fluid.__dir__())
-# flow_model.update(inlet_mass_flow=0.01485)
-# q = flow_model.channel_vol_flow / np.average(flow_model.channel_vol_flow)
-# reynolds = flow_model.manifolds[0].reynolds[0]
-# plt.plot(x, q, label='Re='+str(reynolds))
-fluid = flow_model.channels[0].fluid
-print(fluid.gas.print_data)
-# fluid.gas._mole_fraction.resize((7, fluid.gas.n_species), refcheck=False)
-# fluid.gas.add_print_data(fluid.gas.mole_fraction, 'Mole Fraction',
-#                          sub_names=fluid.gas.species.names)
-# fluid.gas._mole_fraction[0, 0] = 1.0
-fluid.rescale(10)
-print(fluid.temperature)
-print(fluid.gas.mole_fraction)
-print(fluid.print_data)
-plt.legend()
-# plt.ylim([0.4, 2.2])
-# plt.xlim([0.0, 1.0])
-
-# plt.yticks([0.4, 1.0, 1.6, 2.2])
-plt.show()
-
+print('Normalized Flow Distribution: ',
+      flow_model.normalized_flow_distribution)
+np.savetxt('output/flow_distribution.txt',
+           (flow_model.normalized_flow_distribution - 1.0) * 100.0)

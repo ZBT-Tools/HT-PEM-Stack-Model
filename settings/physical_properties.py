@@ -2,25 +2,25 @@
 
 """Electrochemistry Settings"""
 # volumetric exchange current density of the cathode[A/m^3]
-exchange_current_density_cathode = 0.75e6
+exchange_current_density_cathode = 8.0e4
 # volumetric exchange current density of the anode [A/m^3]
-exchange_current_density_anode = 0.817e9
+exchange_current_density_anode = 5.0e8
 # oxygen catalyst layer diffusion coefficient [m^2/s]
-oxygen_catalyst_layer_diffusion_coefficient = 0.20e-7
+oxygen_catalyst_layer_diffusion_coefficient = 5e-8
 # hydrogen catalyst layer diffusion coefficient [m^2/s]
-hydrogen_catalyst_layer_diffusion_coefficient = 5.e-8
+hydrogen_catalyst_layer_diffusion_coefficient = 1e-7
 # oxygen gas diffusion layer diffusion coefficient [[m^2/s]
-oxygen_gas_diffusion_layer_diffusion_coefficient = 6.75e-6
+oxygen_gas_diffusion_layer_diffusion_coefficient = 6e-6  # 2.95e-6
 # hydrogen gas diffusion layer diffusion coefficient [m^2/s]
-hydrogen_diffusion_layer_diffusion_coefficient = 9.52e-6
+hydrogen_diffusion_layer_diffusion_coefficient = 10.0e-6
 # catalyst layer proton conductivity of the cathode [Ohm^-1/m]
-catalyst_layer_proton_conductivity_cathode = 3.e0
+catalyst_layer_proton_conductivity_cathode = 1.2
 # catalyst layer proton conductivity of the anode [Ohm^-1/m]
-catalyst_layer_proton_conductivity_anode = 3.e0
+catalyst_layer_proton_conductivity_anode = 1.2
 # tafel slope of the cathode [V]
-tafel_slope_cathode = 0.03
+tafel_slope_cathode = 0.035
 # tafel slope of the anode [V]
-tafel_slope_anode = 0.03
+tafel_slope_anode = 0.035
 # thermo neutral open circuit voltage [V]
 v_thermo_neutral = 1.25
 # molar concentration of membrane acid groups [mol/m^3]
@@ -30,17 +30,17 @@ vapour_mass_transport_coefficient = 0.62e-5
 
 """Electric Settings"""
 # membrane type ('Constant', 'Springer', or 'Kvesic')
-membrane_type = 'Constant'
-# membrane basic resistance [Ohm/m^2]
-membrane_basic_resistance = 0.19
+membrane_type = 'Kvesic'
+# membrane basic resistance [Ohm-m2]
+membrane_basic_resistance = 4.3e-5
+# membrane temperature slope [Ohm-m2/K)]
+membrane_temperature_coefficient = 7e-8
 # membrane basic conductivity [S/m]
 membrane_basic_conductivity = 5.0
-# membrane temperature slope [Ohm/(m^2K)]
-membrane_temperature_coefficient = 7.e-4
 # bipolar plate conductivity [S/m]
-electrical_conductivity_bipolar_plate = 15000000.0
+electrical_conductivity_bipolar_plate = 15000.0
 # gas diffusion electrode material conductivity [S/m]
-electrical_conductivity_gde = 5000.0
+electrical_conductivity_gde = 500.0
 
 """Thermal Settings"""
 # thermal conductivity of the bipolar plate through plane  [W/(mK)]

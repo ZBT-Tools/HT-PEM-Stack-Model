@@ -64,13 +64,15 @@ class Simulation:
         if not isinstance(target_value, (list, tuple, np.ndarray)):
             target_value = [target_value]
         cell_voltages = []
-        current_errors = []
-        temp_errors = []
+        current_densities = []
         for i, tar_value in enumerate(target_value):
+            current_errors = []
+            temp_errors = []
             # g_par.dict_case['tar_cd'] = tar_cd
             simulation_start_time = timeit.default_timer()
             counter = 0
             while True:
+                g_par.iteration = counter
                 if counter == 0:
                     if self.current_control:
                         self.stack.update(current_density=tar_value)
@@ -95,24 +97,23 @@ class Simulation:
             output_start_time = timeit.default_timer()
 
             if not self.stack.break_program:
-                voltage_loss = self.get_voltage_losses(self.stack)
+                # voltage_loss = self.get_voltage_losses(self.stack)
                 cell_voltages.append(np.average([cell.v for cell in
                                                  self.stack.cells]))
+                current_densities.append(self.stack.i_cd_avg)
 
                 case_name = 'Case'+str(i)
                 self.output.save(case_name, self.stack)
-                path = os.path.join(self.output.output_dir, case_name,
-                                    'plots', 'Convergence.png')
-                self.output.create_figure(path, list(range(counter)),
-                                          [current_errors, temp_errors],
-                                          xlabels='Iteration', ylabels='Error',
-                                          yscale='log',
-                                          legend=['Current Density',
-                                                  'Temperature'])
-                # self.output.plot([current_errors, temp_errors],
-                #                  'ERR', 'Iteration', 'log', ['k', 'r', 'b'],
-                #                  'Convergence', 0., len(current_errors),
-                #                  ['Current Density', 'Temperature'], path)
+                if self.output.save_plot:
+                    path = os.path.join(self.output.output_dir, case_name,
+                                        'plots', 'Convergence.png')
+                    self.output.create_figure(path, list(range(counter)),
+                                              [current_errors, temp_errors],
+                                              xlabels='Iteration',
+                                              ylabels='Error',
+                                              yscale='log',
+                                              legend=['Current Density',
+                                                      'Temperature'])
             else:
                 target_value = target_value[0:-i]
                 break
@@ -120,8 +121,13 @@ class Simulation:
             self.timing['output'] += output_stop_time - output_start_time
         output_start_time = timeit.default_timer()
         if len(target_value) > 1:
-            self.output.plot_polarization_curve(voltage_loss, cell_voltages,
-                                                target_value)
+            self.output.write_data(current_densities, cell_voltages,
+                                   'Current Density [A/m²]', 'Cell Voltage',
+                                   units='V', directory=self.output.output_dir,
+                                   save_csv=True, save_plot=True,
+                                   write_mode='w')
+            # self.output.plot_polarization_curve(voltage_loss, cell_voltages,
+            #                                     target_value)
         output_stop_time = timeit.default_timer()
         self.timing['output'] += output_stop_time - output_start_time
 
@@ -203,8 +209,12 @@ print('Stack Voltage [V]: ', simulation.stack.v_stack)
 print('Average Cell Voltage [V]: ',
       simulation.stack.v_stack/simulation.stack.n_cells)
 print('Minimum Cell Voltage [V]: ', np.min(simulation.stack.v))
-print('Average cell current density [A/m²]: ',
-      [np.average(cell.i_cd, weights=cell.active_area_dx)
-       for cell in simulation.stack.cells])
-print('Cathode Overpotential [V]: ',
-      [cell.cathode.v_loss for cell in simulation.stack.cells])
+print('Maximum Cell Voltage [V]: ', np.max(simulation.stack.v))
+average_current_density = \
+    np.average([np.average(cell.i_cd, weights=cell.active_area_dx)
+                for cell in simulation.stack.cells])
+print('Stack current density [A/m²]: ', average_current_density)
+average_current = \
+    average_current_density * simulation.stack.cells[0].active_area
+print('Stack power [W]: ', simulation.stack.v_stack * average_current)
+

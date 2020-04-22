@@ -154,7 +154,12 @@ class Stack:
             [self.fuel_circuits[0], self.fuel_circuits[1], self.coolant_circuit]
 
         self.current_control = current_control
-        self.i_cd_target = in_dicts.dict_stack['init_current_density']
+
+        i_cd_target = np.asarray(in_dicts.dict_stack['init_current_density'])
+        if i_cd_target.ndim > 0:
+            self.i_cd_target = i_cd_target[0]
+        else:
+            self.i_cd_target = i_cd_target
         self.target_cell_voltage = g_par.dict_case['average_cell_voltage']
         self.v_target = self.n_cells * self.target_cell_voltage
 
@@ -198,6 +203,7 @@ class Stack:
         update_inflows = False
         if current_density is not None:
             self.i_cd[:] = current_density
+            self.i_cd_avg = current_density
             update_inflows = True
         elif voltage is not None:
             self.v_stack = voltage

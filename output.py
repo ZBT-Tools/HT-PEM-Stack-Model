@@ -244,9 +244,9 @@ class Output:
         plt.savefig(os.path.join(path, title + '.png'))
         plt.close()
 
-    def write_array_to_csv(self, file_path, array,
-                           header=None, separator_lines=None):
-        with open(file_path, 'a') as file:
+    def write_array_to_csv(self, file_path, array, header=None,
+                           separator_lines=None, mode='a'):
+        with open(file_path, mode) as file:
             if header is not None:
                 file.write('# ' + header + '\n')
             if separator_lines is not None:
@@ -261,6 +261,35 @@ class Output:
                 np.savetxt(file, array,
                            delimiter=self.delimiter, fmt=self.csv_format)
         return file
+
+    def write_data(self, x_values, data_array, x_label, data_name,
+                   units='-', colormap='coolwarm', **kwargs):
+        file_name = kwargs.get('file_name', data_name.replace(' ', '_'))
+        if kwargs.get('save_plot', self.save_plot):
+            y_label = data_name + ' $[' + units + ']$'
+            if 'directory' in kwargs:
+                directory = kwargs['directory']
+            elif 'plot_dir' in kwargs:
+                directory = kwargs['plot_dir']
+            else:
+                raise KeyError('either keyword argument directory '
+                               'or plot_dir must be provided')
+            file_path = os.path.join(directory, file_name + '.png')
+            self.create_figure(file_path, x_values, data_array, x_label,
+                               y_label, colormap=colormap, **kwargs)
+        if kwargs.get('save_csv', self.save_csv):
+            if 'directory' in kwargs:
+                directory = kwargs['directory']
+            elif 'csv_dir' in kwargs:
+                directory = kwargs['csv_dir']
+            else:
+                raise KeyError('either keyword argument directory '
+                               'or csv_dir must be provided')
+            file_path = os.path.join(directory, file_name + '.csv')
+            header = data_name + ' [' + units + ']'
+            mode = kwargs.get('write_mode', 'a')
+            self.write_array_to_csv(file_path, data_array,
+                                    header=header, mode=mode)
 
     def save(self, folder_name, fc_stack):
         if not self.save_csv and not self.save_plot:
@@ -280,20 +309,6 @@ class Output:
         # else:
         #    self.clean_directory(plot_path)
 
-        def write_data(x_values, data_array, x_label, data_name,
-                       units='-', colormap='coolwarm', **kwargs):
-            file_name = kwargs.get('file_name', data_name.replace(' ', '_'))
-            if self.save_plot:
-                y_label = data_name + ' $[' + units + ']$'
-                file_path = os.path.join(plot_path, file_name + '.png')
-                self.create_figure(file_path, x_values, data_array, x_label,
-                                   y_label, colormap=colormap, **kwargs)
-            if self.save_csv:
-                file_path = os.path.join(csv_path, file_name + '.csv')
-                header = data_name + ' [' + units + ']'
-                self.write_array_to_csv(file_path, data_array,
-                                        header=header)
-
         def save_oo_collection(oo_collection, x_values, x_label, **kwargs):
             if not hasattr(oo_collection[0], 'print_data'):
                 raise TypeError
@@ -306,8 +321,8 @@ class Output:
                 x = x_values
                 if var_array.shape[-1] == (len(x_values) - 1):
                     x = ip.interpolate_1d(x_values)
-                write_data(x, var_array, x_label, name,
-                           content['units'], **kwargs)
+                self.write_data(x, var_array, x_label, name, content['units'],
+                                plot_dir=plot_path, csv_dir=csv_path, **kwargs)
 
             for base_name, sub_dict in oo_collection[0].print_data[1].items():
                 for sub_name, content in sub_dict.items():
@@ -321,8 +336,9 @@ class Output:
                     if var_array.shape[-1] == (len(x_values) - 1):
                         x = ip.interpolate_1d(x_values)
                     name = sub_name + ' ' + base_name
-                    write_data(x, var_array, x_label,
-                               name, content['units'], **kwargs)
+                    self.write_data(x, var_array, x_label, name,
+                                    content['units'], plot_dir=plot_path,
+                                    csv_dir=csv_path, **kwargs)
 
         # Save cell values
         cells = fc_stack.cells
@@ -375,12 +391,12 @@ class Output:
             save_oo_collection(cool_fluids, xvalues, xlabel)
 
     def plot_polarization_curve(self, voltage_loss,
-                                cell_voltages, target_current_density):
+                                cell_voltages, current_density):
         """
         Plots the polarization curve of the given
         current densities and average stack voltages.
         """
-        cd_array = np.asarray(target_current_density) * 1.e-4
+        cd_array = np.asarray(current_density) * 1.e-4
         plt.plot(cd_array, cell_voltages, marker='.', color='k',
                  label='Simulation')
         if self.show_loss is True:
