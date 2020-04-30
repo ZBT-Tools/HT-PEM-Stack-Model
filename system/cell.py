@@ -258,11 +258,11 @@ class Cell(OutputObject):
         if urf is None:
             urf = self.urf
         current_density = (1.0 - urf) * current_density + urf * self.i_cd
-        if g_par.iteration > 50:
-            self.urf *= 0.99
-        self.urf = max(self.urf, 0.8)
+        # if g_par.iteration > 50:
+        #     self.urf *= 0.99
+        # self.urf = max(self.urf, 0.8)
         # self.temp_mem[:] = .5 * (self.temp_layer[2] + self.temp_layer[3])
-        self.membrane.temp = .5 * (self.temp_layer[2] + self.temp_layer[3])
+        self.membrane.temp = 0.5 * (self.temp_layer[2] + self.temp_layer[3])
         if isinstance(self.membrane, membrane.WaterTransportMembrane):
             self.cathode.w_cross_flow[:] = self.membrane.w_cross_flow
             self.anode.w_cross_flow[:] = self.membrane.w_cross_flow

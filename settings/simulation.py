@@ -1,4 +1,4 @@
-""" This file contains the simulation settings"""
+""" Simulation Settings"""
 
 """Simulation Settings"""
 # discretization of the flow channel along the x-axis
@@ -8,15 +8,15 @@ convergence_criteria = 1.e-6
 # maximum number of iterations
 maximum_iteration_number = 200
 # underrelaxation factor for current density updates
-underrelaxation_factor = 0.9
+underrelaxation_factor = 0.8
 # minimum number of iterations
 minimum_iteration_number = 3
 # calculate the PEMFC stack temperatures
 calc_temperature = True
 # calculate the current density distribution
 calc_electricity = True
-# calculate the flow distribution
-calc_flow_distribution = True
+# calculate the flow distribution (setting moved to individual flow circuits)
+# calc_flow_distribution = True
 # calculate the activation voltage losses
 calc_activation_loss = True
 # calculate the membrane voltage losses

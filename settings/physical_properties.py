@@ -1,4 +1,5 @@
-""" This file contains the physical settings"""
+""" Physical properties
+(i.e. material properties, electrochemical settings, etc.)"""
 
 """Electrochemistry Settings"""
 # volumetric exchange current density of the cathode[A/m^3]
@@ -23,37 +24,40 @@ tafel_slope_cathode = 0.035
 tafel_slope_anode = 0.035
 # thermo neutral open circuit voltage [V]
 v_thermo_neutral = 1.25
-# molar concentration of membrane acid groups [mol/m^3]
-molar_membrane_acid_group_concentration = 1.2e3
-# fitted vapour mass transport coefficient [m/s]
-vapour_mass_transport_coefficient = 0.62e-5
 
-"""Electric Settings"""
-# membrane type ('Constant', 'Springer', or 'Kvesic')
+"""Membrane Resistance"""
+# membrane type ('Constant', 'Springer', or 'Kvesic') (Springer-Model
+# implementation must still be checked properly)
 membrane_type = 'Kvesic'
 # membrane basic resistance [Ohm-m2]
 membrane_basic_resistance = 4.3e-5
 # membrane temperature slope [Ohm-m2/K)]
 membrane_temperature_coefficient = 7e-8
-# membrane basic conductivity [S/m]
+# membrane basic conductivity [S/m] (for 'Constant'-Model)
 membrane_basic_conductivity = 5.0
 # bipolar plate conductivity [S/m]
 electrical_conductivity_bipolar_plate = 15000.0
 # gas diffusion electrode material conductivity [S/m]
 electrical_conductivity_gde = 500.0
 
+"""Membrane Water Transport Properties"""
+# molar concentration of membrane acid groups [mol/m^3]
+molar_membrane_acid_group_concentration = 1.2e3
+# fitted vapour mass transport coefficient [m/s]
+vapour_mass_transport_coefficient = 0.62e-5
+
 """Thermal Settings"""
-# thermal conductivity of the bipolar plate through plane  [W/(mK)]
+# thermal conductivity of the bipolar plate through-plane  [W/(mK)]
 thermal_conductivity_bipolar_plate_z = 1.e2
-# thermal conductivity of the bipolar plate in plane  [W/(mK)]
+# thermal conductivity of the bipolar plate in-plane  [W/(mK)]
 thermal_conductivity_bipolar_plate_x = 1.e2
-# thermal conductivity of the gde through plane  [W/(mK)]
+# thermal conductivity of the gde through-plane  [W/(mK)]
 thermal_conductivity_gas_diffusion_electrode_z = 1.e0
-# thermal conductivity of the gde in plane  [W/(mK)]
+# thermal conductivity of the gde in-plane  [W/(mK)]
 thermal_conductivity_gas_diffusion_electrode_x = 1.e0
-# thermal conductivity of the membrane through plane  [W/(mK)]
+# thermal conductivity of the membrane through-plane  [W/(mK)]
 thermal_conductivity_membrane_z = .26e0
-# thermal conductivity of the membrane in plane  [W/(mK)]
+# thermal conductivity of the membrane in-plane  [W/(mK)]
 thermal_conductivity_membrane_x = .26e0
 
 # constant coolant properties

@@ -58,16 +58,17 @@ class Channel(ABC, OutputObject):
         self.pressure_recovery = False
 
         # Geometry
-        self.width = channel_dict['width']
         self.cross_shape = channel_dict.get('cross_sectional_shape',
                                             'rectangular')
         if self.cross_shape == 'rectangular':
+            self.width = channel_dict['width']
             self.height = channel_dict['height']
             self.cross_area = self.width * self.height
             self.d_h = 4. * self.cross_area / (2. * (self.width + self.height))
             self.surface_area = 2.0 * (self.width + self.height) * self.dx
         elif self.cross_shape == 'circular':
             self.d_h = channel_dict['diameter']
+            self.width = self.d_h
             self.cross_area = self.d_h ** 2.0 / 4.0 * np.pi
             self.surface_area = self.d_h * np.pi * self.dx
         else:

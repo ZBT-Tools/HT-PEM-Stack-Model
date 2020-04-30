@@ -26,7 +26,7 @@ class Stack:
         # switch to calculate the temperature distribution
         self.calc_electric = stack_dict['calc_current_density']
         # switch to calculate the current density distribution
-        self.calc_flow_dis = stack_dict['calc_flow_distribution']
+        # self.calc_flow_dis = stack_dict['calc_flow_distribution']
         # switch to calculate the flow distribution
 
         cell_dict = in_dicts.dict_cell
@@ -160,8 +160,8 @@ class Stack:
             self.i_cd_target = i_cd_target[0]
         else:
             self.i_cd_target = i_cd_target
-        self.target_cell_voltage = g_par.dict_case['average_cell_voltage']
-        self.v_target = self.n_cells * self.target_cell_voltage
+        # self.target_cell_voltage = g_par.dict_case['average_cell_voltage']
+        # self.v_target = self.n_cells * self.target_cell_voltage
 
         # Initialize the electrical coupling
         self.elec_sys = el_cpl.ElectricalCoupling(self)
@@ -210,7 +210,7 @@ class Stack:
             update_inflows = True
         if self.current_control is False:
             update_inflows = True
-        self.update_flows(update_inflows, self.calc_flow_dis,
+        self.update_flows(update_inflows,
                           coolant_temp_diff=self.coolant_temp_diff,
                           coolant_mass_flow=self.coolant_mass_flow)
         for i, cell in enumerate(self.cells):
@@ -236,7 +236,7 @@ class Stack:
             self.i_cd_avg = np.average(self.i_cd[0],
                                        weights=self.cells[0].active_area_dx)
 
-    def update_flows(self, update_inflows=False, calc_flow_dist=False,
+    def update_flows(self, update_inflows=False,
                      coolant_temp_diff=None, coolant_mass_flow=None):
         """
         This function updates the flow distribution of gas over the stack cells
@@ -245,7 +245,7 @@ class Stack:
         if update_inflows:
             mass_flows_in[:] = self.calc_mass_flows()
         for i in range(len(self.fuel_circuits)):
-            self.fuel_circuits[i].update(mass_flows_in[i], calc_flow_dist)
+            self.fuel_circuits[i].update(mass_flows_in[i])
         if self.coolant_circuit is not None:
             cool_mass_flow = None
             if self.current_control or update_inflows:
@@ -253,7 +253,7 @@ class Stack:
                     cool_mass_flow = coolant_mass_flow
                 elif coolant_temp_diff is not None:
                     cool_mass_flow = self.calc_cool_mass_flow(coolant_temp_diff)
-            self.coolant_circuit.update(cool_mass_flow, calc_flow_dist)
+            self.coolant_circuit.update(cool_mass_flow)
 
     def calc_cool_mass_flow(self, coolant_temp_diff):
         n_cool_cell = self.coolant_circuit.n_subchannels

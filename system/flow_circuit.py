@@ -71,7 +71,8 @@ class ParallelFlowCircuit(ABC, OutputObject):
         self.n_subchannels = n_subchannels
         self.tolerance = 1e-6
         self.max_iter = 50
-
+        self.calc_distribution = \
+            dict_flow_circuit.get('calc_distribution', True)
         self.mass_flow_in = \
             self.manifolds[0].mass_flow_total[self.manifolds[0].id_in]
         self.vol_flow_in = 0.0
@@ -89,7 +90,7 @@ class ParallelFlowCircuit(ABC, OutputObject):
             np.zeros(self.channel_vol_flow.shape)
         self.add_print_variables(self.print_variables)
 
-    def update(self, inlet_mass_flow=None, calc_distribution=True):
+    def update(self, inlet_mass_flow=None, calc_distribution=None):
         """
         Update the flow circuit
         """
@@ -103,6 +104,8 @@ class ParallelFlowCircuit(ABC, OutputObject):
 
         channel_vol_flow_old = np.zeros(self.channel_vol_flow.shape)
         channel_vol_flow_old[:] = 1e8
+        if calc_distribution is None:
+            calc_distribution = self.calc_distribution
         if calc_distribution:
             for i in range(self.max_iter):
                 # print(self.name + ' Iteration # ', str(i+1))

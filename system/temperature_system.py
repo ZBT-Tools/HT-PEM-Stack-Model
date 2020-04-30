@@ -8,7 +8,7 @@ import system.global_functions as g_func
 import system.matrix_functions as mtx
 import system.channel as chl
 import system.cell as fcell
-import pandas as pd
+# import pandas as pd
 # from numba import jit
 
 np.set_printoptions(linewidth=10000, threshold=None, precision=2)
@@ -283,8 +283,8 @@ class TemperatureSystem:
         """
         # tx_df = pd.DataFrame(self.mtx)
         # mtx_df.to_clipboard(index=False, header=False, sep=' ')
-        rhs_df = pd.DataFrame(self.rhs)
-        rhs_df.to_clipboard(index=False, header=False, sep=' ')
+        # rhs_df = pd.DataFrame(self.rhs)
+        # rhs_df.to_clipboard(index=False, header=False, sep=' ')
         if self.sparse_solve:
             self.temp_layer_vec[:] = spsolve(self.mtx, self.rhs)
         else:
