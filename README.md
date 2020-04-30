@@ -28,7 +28,7 @@ Features:
 
 # Usage
 Download the repository and execute the stack_simulation.py file with your
- python interpreter. Input parameters can be adapted in the corresponding
+ Python interpreter. Input parameters can be adapted in the corresponding
   files in the "settings" folder. At the end of a simulation run, a folder
    called "output" will be created, which contains the results in various data files and plots
 
