@@ -12,7 +12,7 @@ Features:
 - local current distribution along the flow- and current-direction due to:
     - reactant transport within the channels and the porous media
     - temperature distribution
-    - reaction kinetics and voltage losses according to:
+    - reaction kinetics and voltage losses according to Kulikovsky (2013)
      
 - temperature distribution along the flow- and current-direction with a discretization in the current-direction (through plane) in five nodes at the interfaces of:
     - anodic and cathodic bipolar plates (BPP-BPP)
@@ -21,13 +21,16 @@ Features:
     - cathodic gas diffusion electrode and membrane (GDE-Mem, Cat)        
     - cathodic bipolar plate and gas diffusion electrode (BPP-GDE, Cat)
 
-# Required python libraries:
+# Required Python libraries:
 - NumPy 1.14.3
 - SciPy 1.1.0
 - Matplotlib 2.2.2
 
 # Usage
-Download the repository and execute the stack_simulation.py file with your python interpreter. Input parameters can be adapted in the corresponding files in the input folder. At the end of a simulation run, a folder called output will be created, which contains the results in various data files and plots
+Download the repository and execute the stack_simulation.py file with your
+ python interpreter. Input parameters can be adapted in the corresponding
+  files in the "settings" folder. At the end of a simulation run, a folder
+   called "output" will be created, which contains the results in various data files and plots
 
 # References:
 Stack discretization, temperature coupling, reactant transport and membrane properties according to:  
