@@ -1,8 +1,10 @@
 """ This file contains the geometry data"""
 
 """Electrochemistry"""
-# target current density [A/m^2]
+# current_control should
 current_control = True
+
+# target current density [A/m^2]
 # current_density = 10000.0
 # current_density = (2.23E+02, 1.11E+03, 2.23E+03,
 #                    3.34E+03, 4.46E+03, 5.57E+03, 6.68E+03)
@@ -16,7 +18,7 @@ current_density = 12000.0
 #      4455.3, 4900.9, 5346.4, 5569.2, 6683.0, 7128.5, 7574.1, 8019.6, 8465.1,
 #      8910.7, 9356.2, 9801.7, 10247.3, 10692.8, 11138.3)
 
-average_cell_voltage = 0.5
+# average_cell_voltage = 0.5
 # open circuit voltage [V]
 open_circuit_voltage = 0.96
 # cathode stoichiometry
