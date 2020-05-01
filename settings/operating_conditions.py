@@ -27,13 +27,13 @@ stoichiometry_cathode = 2.0
 # anode stoichiometry
 stoichiometry_anode = 1.5
 
-# reaction stoichiometry
+# reaction educt stoichiometry
 cathode_reaction_stoich = [-1.0, 0.0, 2.0]
 anode_reaction_stoich = [-2.0, 0.0, 0.0]
 
-# reaction charge number
-cathode_charge_number = 4.0
-anode_charge_number = 4.0
+# reaction electron stoichiometry
+cathode_electron_number = 4.0
+anode_electron_number = 4.0
 
 """Fluid settings"""
 # components
