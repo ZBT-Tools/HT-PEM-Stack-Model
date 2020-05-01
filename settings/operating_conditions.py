@@ -32,7 +32,7 @@ cathode_reaction_stoich = [-1.0, 0.0, 2.0]
 anode_reaction_stoich = [-2.0, 0.0, 0.0]
 
 # reaction charge number
-cathode_charge_number = 2.0
+cathode_charge_number = 4.0
 anode_charge_number = 4.0
 
 """Fluid settings"""
