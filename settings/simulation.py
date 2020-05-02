@@ -1,16 +1,23 @@
 """ Simulation Settings"""
 
-"""Simulation Settings"""
+"""Numerical Settings"""
 # discretization of the flow channel along the x-axis
-elements = 20
+elements = 10
 # convergence criteria of the simulation
 convergence_criteria = 1.e-6
 # maximum number of iterations
 maximum_iteration_number = 200
-# underrelaxation factor for current density updates
-underrelaxation_factor = 0.8
+# underrelaxation factor for current density updates (0.0 - 1.0)
+# lower: faster convergence, higher: better stability
+underrelaxation_factor = 0.2
 # minimum number of iterations
 minimum_iteration_number = 3
+# numerical concentration value for determining critical current density for
+# linearization/regularization of Kulikovsky model at limiting current densities
+c_eps = 0.5
+# difference of current densities used for linear gradient determination
+# for linearization/regularization at limiting current densities
+delta_i = 5.0
 # calculate the PEMFC stack temperatures
 calc_temperature = True
 # calculate the current density distribution

@@ -134,20 +134,33 @@ class HalfCell:
         self.i_sigma = np.sqrt(2. * vol_ex_cd * self.prot_con_cl
                                * self.tafel_slope)
         # could use a better name see (Kulikovsky, 2013) not sure if 2-D
-        # exchange current densisty
+        # exchange current density
         self.index_cat = self.n_nodes - 1
         # index of the first element with negative cell voltage
         self.i_star = self.prot_con_cl * self.tafel_slope / self.th_cl
-        # not sure if the name is ok, i_ca_char is the characteristic current
-        # densisty, see (Kulikovsky, 2013)
-        self.v_loss_act = np.zeros(n_ele)
-        # activation voltage loss
-        self.v_loss_gdl_diff = np.zeros(n_ele)
-        # diffusion voltage loss at the gas diffusion layer
-        self.v_loss_cl_diff = np.zeros(n_ele)
-        # diffusion voltage loss at the catalyst layer
-        self.v_loss_bpp = np.zeros(n_ele)
-        # voltage loss across bipolar plate
+        # characteristic current density, see (Kulikovsky, 2013)
+
+        # concentration at channel inlet
+        self.conc_in = None
+
+        # limiting current density due to diffusion through the gdl
+        # at channel inlet (calculated when inlet concentration is known)
+        self.i_lim_star = None
+        # numerical parameter for tangent line extension at limiting current
+        self.conc_eps = g_par.dict_case['c_eps']
+        self.delta_i = g_par.dict_case['delta_i']
+        # critical local current density where Kulikovsky model transitions
+        # into linear tangent line near limiting current
+        self.i_crit = np.zeros(n_ele)
+
+        # self.v_loss_act = np.zeros(n_ele)
+        # # activation voltage loss
+        # self.v_loss_gdl_diff = np.zeros(n_ele)
+        # # diffusion voltage loss at the gas diffusion layer
+        # self.v_loss_cl_diff = np.zeros(n_ele)
+        # # diffusion voltage loss at the catalyst layer
+        # self.v_loss_bpp = np.zeros(n_ele)
+        # # voltage loss across bipolar plate
         self.v_loss = np.zeros(n_ele)
         # sum of the activation and diffusion voltage losses
         self.updated_v_loss = False
@@ -253,7 +266,7 @@ class HalfCell:
 
         # water cross flow
         mole_source[self.id_h2o] += self._active_area_dx * self.w_cross_flow \
-                                    * self.channel.flow_direction
+            * self.channel.flow_direction
         mass_source = (mole_source.transpose()
                        * self.channel.fluid.species.mw).transpose()
         return mass_source, mole_source
@@ -295,14 +308,16 @@ class HalfCell:
         return mol_flow_in, dmol
 
     def update_voltage_loss(self, current_density):
-        self.v_loss[:] = self.calc_electrode_loss(current_density) \
+        eta = self.calc_electrode_loss(current_density)
+        self.v_loss[:] = eta \
             + self.calc_plate_loss(current_density)
         self.updated_v_loss = True
 
     def calc_plate_loss(self, current_density):
         current = current_density * self._active_area_dx
-        self.v_loss_bpp[:] = current / self.bpp.electrical_conductance[0]
-        return self.v_loss_bpp
+        v_loss_bpp = current / self.bpp.electrical_conductance[0]
+        # self.v_loss_bpp[:] = current / self.bpp.electrical_conductance[0]
+        return v_loss_bpp
 
     def calc_activation_loss(self, current_density, conc):
         """
@@ -355,41 +370,83 @@ class HalfCell:
             v_loss_gdl_diff = -self.tafel_slope * np.log10(var)
         except FloatingPointError:
             raise
-        nan_list = np.isnan(self.v_loss_gdl_diff)
-        if nan_list.any():
-            v_loss_gdl_diff[np.argwhere(nan_list)[0, 0]:] = 1.e50
+        # nan_list = np.isnan(self.v_loss_gdl_diff)
+        # if nan_list.any():
+        #     v_loss_gdl_diff[np.argwhere(nan_list)[0, 0]:] = 1.e50
         return v_loss_gdl_diff
 
     def calc_electrode_loss(self, current_density):
-        """
-        Calculates the full voltage losses of the electrode
-        """
         conc = self.channel.fluid.gas.concentration[self.id_fuel]
         conc_ele = ip.interpolate_1d(conc)
         conc_ref = conc[self.channel.id_in]
         conc_star = conc_ele / conc_ref
-        if self.channel.flow_direction == 1:
-            conc_in = conc[:-1]
+        # if self.channel.flow_direction == 1:
+        #     conc_in = conc[:-1]
+        # else:
+        #     conc_in = conc[1:]
+        conc_in = conc[self.channel.id_in]
+        if conc_in != self.conc_in:
+            self.i_lim_star = self.n_charge * self.faraday * conc_in \
+                              * self.diff_coeff_gdl / self.th_gdl
+            self.conc_in = conc_in
+        self.i_crit[:] = self.i_lim_star * (conc_ele - self.conc_eps) / conc_ref
+        id_lin = np.argwhere(current_density >= self.i_crit)
+        id_reg = np.argwhere(current_density < self.i_crit)
+        if len(id_lin) > 0:
+            i_crit = self.i_crit[id_lin][0]
+            conc_crit = conc_ele[id_lin][0]
+            conc_crit = \
+                np.vstack((conc_crit, conc_crit, conc_crit))
+            i_crit = np.vstack(
+                (i_crit - self.delta_i, i_crit, i_crit + self.delta_i))
+            conc_crit = conc_crit.transpose()
+            i_crit = i_crit.transpose()
+            eta_crit = \
+                self.calc_electrode_loss_kulikovsky(i_crit, conc_crit, conc_ref,
+                                                    update_members=False)
+            grad_eta = np.gradient(eta_crit, self.delta_i, axis=-1)[:, 1]
+            b = eta_crit[:, 1] - grad_eta * i_crit[:, 1]
+            eta_lin = grad_eta * current_density[id_lin] + b
+            eta_reg = \
+                self.calc_electrode_loss_kulikovsky(current_density[id_reg],
+                                                    conc_ele[id_reg], conc_ref,
+                                                    update_members=False)
+            eta = np.zeros(self.n_ele)
+            eta[id_lin] = eta_lin
+            eta[id_reg] = eta_reg
+            return eta
         else:
-            conc_in = conc[1:]
+            return self.calc_electrode_loss_kulikovsky(current_density,
+                                                       conc_ele,
+                                                       conc_ref)
 
-        i_lim = self.n_charge * self.faraday * conc_in \
-            * self.diff_coeff_gdl / self.th_gdl
-        var0 = 1. - current_density / (i_lim * conc_star)
-        var = np.where(var0 < 1e-4, 1e-4, var0)
-
+    def calc_electrode_loss_kulikovsky(self, current_density, conc, conc_ref,
+                                       update_members=True):
+        """
+        Calculates the full voltage losses of the electrode
+        """
+        conc_star = conc / conc_ref
+        var = 1. - current_density / (self.i_lim_star * conc_star)
+        # var = np.where(var0 < 1e-4, 1e-4, var0)
+        v_loss = np.zeros(current_density.shape)
         if self.calc_act_loss:
             v_loss_act = self.calc_activation_loss(current_density, conc_star)
-            self.v_loss_act[:] = v_loss_act
+            v_loss += v_loss_act
+            # if update_members:
+            #     self.v_loss_act[:] = v_loss_act
         if self.calc_gdl_diff_loss:
             v_loss_gdl_diff = self.calc_transport_loss_diffusion_layer(var)
-            self.v_loss_gdl_diff[:] = v_loss_gdl_diff
+            v_loss += v_loss_gdl_diff
+            # if update_members:
+            #     self.v_loss_gdl_diff[:] = v_loss_gdl_diff
         if self.calc_cl_diff_loss:
             v_loss_cl_diff = \
                 self.calc_transport_loss_catalyst_layer(current_density,
-                                                        var, conc_ele)
-            self.v_loss_cl_diff[:] = v_loss_cl_diff
-        return self.v_loss_act + self.v_loss_gdl_diff + self.v_loss_cl_diff
+                                                        var, conc)
+            v_loss += v_loss_cl_diff
+            # if update_members:
+            #     self.v_loss_cl_diff[:] = v_loss_cl_diff
+        return v_loss
 
     def calc_current_density(self, current_density, v_loss):
         def func(curr_den, over_pot):

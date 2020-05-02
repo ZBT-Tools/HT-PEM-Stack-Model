@@ -28,5 +28,7 @@ dict_case = {
     'header_p_in_ano': op_con.p_manifold_anode_out,
     'cp_liq': phy_prop.heat_capacity_coolant,
     'vap_m_temp_coeff': phy_prop.vapour_mass_transport_coefficient,
-    'underrelaxation_factor': getattr(sim, 'underrelaxation_factor', 0.5)
+    'underrelaxation_factor': getattr(sim, 'underrelaxation_factor', 0.5),
+    'c_eps': getattr(sim, 'c_eps', 0.5),
+    'delta_i': getattr(sim, 'delta_i', 5.0)
     }

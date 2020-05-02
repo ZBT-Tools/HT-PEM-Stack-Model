@@ -84,10 +84,10 @@ anode_manifold_cross_shape = 'circular'
 coolant_manifold_cross_shape = 'circular'
 
 # manifold diameters [m] (for circular shape)
-cathode_in_manifold_diameter = 15e-3
-cathode_out_manifold_diameter = 15e-3
-anode_in_manifold_diameter = 15e-3
-anode_out_manifold_diameter = 15e-3
+cathode_in_manifold_diameter = 10e-3
+cathode_out_manifold_diameter = 10e-3
+anode_in_manifold_diameter = 10e-3
+anode_out_manifold_diameter = 10e-3
 coolant_in_manifold_diameter = 20e-3
 coolant_out_manifold_diameter = 20e-3
 
