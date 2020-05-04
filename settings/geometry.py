@@ -2,7 +2,7 @@
 
 """Stack Settings"""
 # number of cells in the stack
-cell_number = 10
+cell_number = 100
 
 """"Cell Geometry """
 # length of the cell, a side of the active area [m]
@@ -84,12 +84,12 @@ anode_manifold_cross_shape = 'circular'
 coolant_manifold_cross_shape = 'circular'
 
 # manifold diameters [m] (for circular shape)
-cathode_in_manifold_diameter = 10e-3
-cathode_out_manifold_diameter = 10e-3
-anode_in_manifold_diameter = 10e-3
-anode_out_manifold_diameter = 10e-3
-coolant_in_manifold_diameter = 10e-3
-coolant_out_manifold_diameter = 10e-3
+cathode_in_manifold_diameter = 20e-3
+cathode_out_manifold_diameter = 20e-3
+anode_in_manifold_diameter = 20e-3
+anode_out_manifold_diameter = 20e-3
+coolant_in_manifold_diameter = 20e-3
+coolant_out_manifold_diameter = 20e-3
 
 # manifold height [m] (for rectangular shape)
 cathode_in_manifold_height = 10e-3
@@ -112,10 +112,10 @@ cathode_in_manifold_pressure_loss_coefficient = 0.16
 cathode_out_manifold_pressure_loss_coefficient = 0.16
 anode_in_manifold_pressure_loss_coefficient = 0.16
 anode_out_manifold_pressure_loss_coefficient = 0.16
-coolant_in_manifold_pressure_loss_coefficient = 0.86
-coolant_out_manifold_pressure_loss_coefficient = 0.86
+coolant_in_manifold_pressure_loss_coefficient = 0.16
+coolant_out_manifold_pressure_loss_coefficient = 0.16
 
 # Model type
-anode_manifold_model = 'Koh'
-cathode_manifold_model = 'Koh'
+anode_manifold_model = 'ModifiedKoh'
+cathode_manifold_model = 'ModifiedKoh'
 coolant_manifold_model = 'ModifiedKoh'

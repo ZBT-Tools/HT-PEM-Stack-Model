@@ -189,7 +189,10 @@ dict_cathode_flow_circuit = {
     'name': 'Cathode Flow Circuit',
     'type': geom.cathode_manifold_model,
     'shape': geom.cathode_manifold_configuration,
-    'calc_distribution': geom.calc_cathode_distribution
+    'calc_distribution': geom.calc_cathode_distribution,
+    'tolerance': sim.convergence_criteria_flow,
+    'min_iter': sim.minimum_iteration_number_flow,
+    'max_iter': sim.maximum_iteration_number_flow
     }
 
 dict_anode_in_manifold = {
@@ -229,7 +232,10 @@ dict_anode_flow_circuit = {
     'name': 'Anode Flow Circuit',
     'type': geom.anode_manifold_model,
     'shape': geom.anode_manifold_configuration,
-    'calc_distribution': geom.calc_anode_distribution
+    'calc_distribution': geom.calc_anode_distribution,
+    'tolerance': sim.convergence_criteria_flow,
+    'min_iter': sim.minimum_iteration_number_flow,
+    'max_iter': sim.maximum_iteration_number_flow
     }
 
 dict_coolant_fluid = {
@@ -294,7 +300,10 @@ dict_coolant_flow_circuit = {
     'name': 'Coolant Flow Circuit',
     'type': geom.coolant_manifold_model,
     'shape': geom.coolant_manifold_configuration,
-    'calc_distribution': geom.calc_coolant_distribution
+    'calc_distribution': geom.calc_coolant_distribution,
+    'tolerance': sim.convergence_criteria_flow,
+    'min_iter': sim.minimum_iteration_number_flow,
+    'max_iter': sim.maximum_iteration_number_flow
     }
 
 dict_temp_sys = {

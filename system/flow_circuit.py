@@ -74,7 +74,7 @@ class ParallelFlowCircuit(ABC, OutputObject):
         self.n_subchannels = n_subchannels
         self.tolerance = dict_flow_circuit.get('tolerance', 1e-6)
         self.max_iter = dict_flow_circuit.get('max_iter', 10)
-        self.min_iter = dict_flow_circuit.get('max_iter', 2)
+        self.min_iter = dict_flow_circuit.get('min_iter', 2)
         self.calc_distribution = \
             dict_flow_circuit.get('calc_distribution', True)
         self.mass_flow_in = \
@@ -295,6 +295,7 @@ class ModifiedKohFlowCircuit(KohFlowCircuit):
                  n_subchannels=1.0):
         super().__init__(dict_flow_circuit, manifolds, channels,
                          n_subchannels)
+        self.urf = g_par.dict_case.get('underrelaxation_factor', 0.5)
 
     def single_loop(self, inlet_mass_flow=None, update_channels=True):
         """
@@ -325,8 +326,7 @@ class ModifiedKohFlowCircuit(KohFlowCircuit):
             self.k_perm[:] = self.channel_vol_flow / self.dp_channel \
                 * self.visc_channel * self.l_by_a
         self.alpha[:] = (p_in - p_out) / self.dp_channel
-        urf = 0.8
-        self.channel_vol_flow[:] *= (urf * self.alpha + (1.0 - urf))
+        self.channel_vol_flow[:] *= (self.urf + (1.0 - self.urf) * self.alpha)
         density = np.array([channel.fluid.density[channel.id_in]
                             for channel in self.channels])
         self.channel_mass_flow[:] = self.channel_vol_flow * density

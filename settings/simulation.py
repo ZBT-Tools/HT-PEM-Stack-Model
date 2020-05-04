@@ -5,13 +5,16 @@
 elements = 10
 # convergence criteria of the simulation
 convergence_criteria = 1.e-6
+convergence_criteria_flow = 1e-4
 # maximum number of iterations
+minimum_iteration_number = 3
+minimum_iteration_number_flow = 2
 maximum_iteration_number = 200
+maximum_iteration_number_flow = 10
 # underrelaxation factor for current density updates (0.0 - 1.0)
 # lower: faster convergence, higher: better stability
 underrelaxation_factor = 0.2
 # minimum number of iterations
-minimum_iteration_number = 3
 # numerical concentration value for determining critical current density for
 # linearization/regularization of Kulikovsky model at limiting current densities
 c_eps = 0.5
