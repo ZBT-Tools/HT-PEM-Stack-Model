@@ -51,17 +51,17 @@ anode_inlet_composition = [0.667, 0.333, 0.0]
 temperature = 433.15
 
 # set the total mass flow of the coolant for the stack [kg/s]
-# coolant_mass_flow = 1.e-2
+# coolant_mass_flow = 1.e-1
 # if coolant_mass_flow is not provided, set the desired coolant temperature
 # difference [K] (mass flow overrides the temperature difference, if provided)
-coolant_temperature_difference = 5.0
+coolant_temperature_difference = 10.0
 
 # coolant pinch point temperature difference [K]
 temp_pinch = 10.0
 
 # reactant inlet temperatures [K]
-temp_cathode_in = temperature  # 443.15
-temp_anode_in = temperature  # 443.15
+temp_cathode_in = temperature - coolant_temperature_difference - temp_pinch  # 443.15
+temp_anode_in = temperature - coolant_temperature_difference - temp_pinch  # 443.15
 
 # coolant inlet temperature [K]
 temp_coolant_in = temperature - coolant_temperature_difference - temp_pinch

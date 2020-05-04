@@ -110,7 +110,8 @@ class Channel(ABC, OutputObject):
         if update_heat:
             self.update_heat(wall_temp=wall_temp, heat_flux=heat_flux,
                              update_fluid=kwargs.get('update_fluid', False),
-                             enthalpy_source=enthalpy_source)
+                             enthalpy_source=enthalpy_source,
+                             channel_factor=kwargs.get('channel_factor', 1.0))
 
     @abstractmethod
     def update_mass(self, mass_flow_in=None, mass_source=None,
@@ -123,7 +124,7 @@ class Channel(ABC, OutputObject):
 
     @abstractmethod
     def update_heat(self, wall_temp=None, heat_flux=None, update_fluid=True,
-                    enthalpy_source=None):
+                    enthalpy_source=None, channel_factor=1.0):
         pass
 
     def calc_flow_velocity(self):
@@ -199,8 +200,9 @@ class Channel(ABC, OutputObject):
         # convection area of the channel wall
         self.k_coeff[:] = ip.interpolate_1d(ht_coeff) * self.surface_area
 
-    def calc_heat_capacitance(self):
-        self.g_fluid[:] = self.mass_flow_total * self.fluid.specific_heat
+    def calc_heat_capacitance(self, factor=1.0):
+        self.g_fluid[:] = \
+            factor * self.mass_flow_total * self.fluid.specific_heat
 
     def calc_pressure(self):
         """
@@ -326,9 +328,9 @@ class IncompressibleFluidChannel(Channel):
             self.fluid.update(self.temp, self.p)
 
     def update_heat(self, wall_temp=None, heat_flux=None, update_fluid=True,
-                    enthalpy_source=None):
+                    enthalpy_source=None, channel_factor=1.0):
         self.calc_heat_transfer_coeff()
-        self.calc_heat_capacitance()
+        self.calc_heat_capacitance(factor=channel_factor)
         self.calc_heat_transfer(wall_temp=wall_temp, heat_flux=heat_flux)
         if enthalpy_source is not None:
             self.calc_mix_temperature(enthalpy_source)
@@ -385,9 +387,9 @@ class GasMixtureChannel(Channel):
             self.fluid.update(self.temp, self.p, self.mole_flow)
 
     def update_heat(self, wall_temp=None, heat_flux=None, update_fluid=True,
-                    enthalpy_source=None):
+                    enthalpy_source=None, channel_factor=1.0):
         self.calc_heat_transfer_coeff()
-        self.calc_heat_capacitance()
+        self.calc_heat_capacitance(factor=channel_factor)
         self.calc_heat_transfer(wall_temp=wall_temp, heat_flux=heat_flux)
         if enthalpy_source is not None:
             self.calc_mix_temperature(enthalpy_source)
@@ -541,5 +543,6 @@ class TwoPhaseMixtureChannel(GasMixtureChannel):
             calc_vaporization_enthalpy(self.temp_ele)
         self.condensation_heat[:] = condensation_rate * vaporization_enthalpy
 
-    def calc_heat_capacitance(self):
-        self.g_fluid[:] = self.mass_flow_total * self.fluid.specific_heat
+    def calc_heat_capacitance(self, factor=1.0):
+        self.g_fluid[:] = \
+            factor * self.mass_flow_total * self.fluid.specific_heat

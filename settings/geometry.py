@@ -38,8 +38,8 @@ anode_channel_width = 1.e-3
 cathode_channel_height = 1.e-3
 anode_channel_height = 1.e-3
 # number of channels
-cathode_channel_number = 1
-anode_channel_number = 1
+cathode_channel_number = 10
+anode_channel_number = 10
 # channel bends [n]
 cathode_channel_bends = 48
 anode_channel_bends = 48
@@ -61,7 +61,7 @@ coolant_channel_height = 1.e-3
 # width of the coolant channel [m]
 coolant_channel_width = 2.e-3
 # number of coolant channels per cell
-coolant_channel_number = 1
+coolant_channel_number = 10
 # channel bends [n]
 coolant_channel_bends = 2.
 # bend pressure loss coefficient of the channel bends
@@ -84,12 +84,12 @@ anode_manifold_cross_shape = 'circular'
 coolant_manifold_cross_shape = 'circular'
 
 # manifold diameters [m] (for circular shape)
-cathode_in_manifold_diameter = 25e-3
-cathode_out_manifold_diameter = 30e-3
-anode_in_manifold_diameter = 25e-3
-anode_out_manifold_diameter = 25e-3
-coolant_in_manifold_diameter = 25e-3
-coolant_out_manifold_diameter = 25e-3
+cathode_in_manifold_diameter = 10e-3
+cathode_out_manifold_diameter = 10e-3
+anode_in_manifold_diameter = 10e-3
+anode_out_manifold_diameter = 10e-3
+coolant_in_manifold_diameter = 20e-3
+coolant_out_manifold_diameter = 20e-3
 
 # manifold height [m] (for rectangular shape)
 cathode_in_manifold_height = 10e-3
@@ -112,8 +112,8 @@ cathode_in_manifold_pressure_loss_coefficient = 0.16
 cathode_out_manifold_pressure_loss_coefficient = 0.16
 anode_in_manifold_pressure_loss_coefficient = 0.16
 anode_out_manifold_pressure_loss_coefficient = 0.16
-coolant_in_manifold_pressure_loss_coefficient = 0.16
-coolant_out_manifold_pressure_loss_coefficient = 0.16
+coolant_in_manifold_pressure_loss_coefficient = 0.06
+coolant_out_manifold_pressure_loss_coefficient = 0.06
 
 # Model type
 anode_manifold_model = 'Koh'

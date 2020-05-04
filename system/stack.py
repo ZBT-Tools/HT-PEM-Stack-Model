@@ -265,7 +265,7 @@ class Stack:
         cp_cool = \
             np.average([np.average(channel.fluid.specific_heat)
                         for channel in self.coolant_circuit.channels])
-        return heat / (cp_cool * coolant_temp_diff) * n_cool_cell
+        return heat / (cp_cool * coolant_temp_diff)  # * n_cool_cell
 
     def calc_mass_flows(self):
         mass_flows_in = []
