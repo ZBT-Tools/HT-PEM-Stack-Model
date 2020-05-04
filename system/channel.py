@@ -34,12 +34,12 @@ class Channel(ABC, OutputObject):
         self.number = number
         super().__init__(name)
         self.fluid = fluid
-        self.length = channel_dict['length']
+        self._length = channel_dict['length']
         # channel length
         self.n_nodes = len(self.fluid.density)
         self.n_ele = self.n_nodes - 1
 
-        self.x = np.linspace(0.0, self.length, self.n_nodes)
+        self.x = np.linspace(0.0, self._length, self.n_nodes)
         self.dx = np.diff(self.x)
         # element length
         self.p_out = channel_dict['p_out']
@@ -61,25 +61,23 @@ class Channel(ABC, OutputObject):
         self.cross_shape = channel_dict.get('cross_sectional_shape',
                                             'rectangular')
         if self.cross_shape == 'rectangular':
-            self.width = channel_dict['width']
-            self.height = channel_dict['height']
-            self.cross_area = self.width * self.height
-            self.d_h = 4. * self.cross_area / (2. * (self.width + self.height))
-            self.surface_area = 2.0 * (self.width + self.height) * self.dx
+            self._width = channel_dict['width']
+            self._height = channel_dict['height']
         elif self.cross_shape == 'circular':
-            self.d_h = channel_dict['diameter']
-            self.width = self.d_h
-            self.cross_area = self.d_h ** 2.0 / 4.0 * np.pi
-            self.surface_area = self.d_h * np.pi * self.dx
+            self._diameter = channel_dict['diameter']
         else:
             raise NotImplementedError
+        self.cross_area = None
+        self.surface_area = None
+        self.d_h = None
+        self.base_area = None
+        self.base_area_dx = None
+        self.calculate_geometry()
         self.n_bends = channel_dict.get('bend_number', 0)
         self.zeta_bends = channel_dict.get('bend_friction_factor', 0.0)
         self.zeta_other = \
             channel_dict.get('additional_friction_fractor', 0.0)
         self.friction_factor = np.zeros(self.n_ele)
-        self.base_area = self.width * self.length
-        self.base_area_dx = self.width * self.dx
 
         # Flow
         self.velocity = np.zeros(self.n_nodes)
@@ -96,6 +94,58 @@ class Channel(ABC, OutputObject):
         # self.add_print_data(self.temp, 'Fluid Temperature', 'K')
         self.add_print_data(self.wall_temp, 'Wall Temperature', 'K')
         # self.add_print_data(self.p, 'Fluid Pressure', 'Pa')
+
+    def calculate_geometry(self):
+        if self.cross_shape == 'rectangular':
+            self.cross_area = self._width * self._height
+            self.d_h = 4. * self.cross_area / (2. * (self._width + self._height))
+            self.surface_area = 2.0 * (self._width + self._height) * self.dx
+        elif self.cross_shape == 'circular':
+            self.d_h = self._diameter
+            self._width = self._diameter
+            self._height = self._diameter
+            self.cross_area = self._diameter ** 2.0 / 4.0 * np.pi
+            self.surface_area = self._diameter * np.pi * self.dx
+        else:
+            raise NotImplementedError
+        self.base_area = self._width * self._length
+        self.base_area_dx = self._width * self.dx
+
+    @property
+    def width(self):
+        return self._width
+
+    @property
+    def height(self):
+        return self._height
+
+    @property
+    def diameter(self):
+        return self._diameter
+
+    @property
+    def length(self):
+        return self._length
+
+    @width.setter
+    def width(self, value):
+        self._width = value
+        self.calculate_geometry()
+
+    @height.setter
+    def height(self, value):
+        self._height = value
+        self.calculate_geometry()
+
+    @diameter.setter
+    def diameter(self, value):
+        self._diameter = value
+        self.calculate_geometry()
+
+    @length.setter
+    def length(self, value):
+        self._length = value
+        self.calculate_geometry()
 
     def update(self, mass_flow_in=None, mass_source=None,
                wall_temp=None, heat_flux=None, update_flow=True,
@@ -171,7 +221,7 @@ class Channel(ABC, OutputObject):
         """
         prandtl = self.fluid.viscosity * self.fluid.specific_heat / \
             self.fluid.thermal_conductivity
-        d_by_l = self.d_h / self.length
+        d_by_l = self.d_h / self._length
         sqrt_re_pr_dbyl = np.sqrt(self.reynolds * prandtl * d_by_l)
         nu_1 = 3.66
         nu_2 = 1.66 * sqrt_re_pr_dbyl

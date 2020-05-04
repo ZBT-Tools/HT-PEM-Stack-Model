@@ -88,8 +88,8 @@ cathode_in_manifold_diameter = 10e-3
 cathode_out_manifold_diameter = 10e-3
 anode_in_manifold_diameter = 10e-3
 anode_out_manifold_diameter = 10e-3
-coolant_in_manifold_diameter = 20e-3
-coolant_out_manifold_diameter = 20e-3
+coolant_in_manifold_diameter = 10e-3
+coolant_out_manifold_diameter = 10e-3
 
 # manifold height [m] (for rectangular shape)
 cathode_in_manifold_height = 10e-3
@@ -112,10 +112,10 @@ cathode_in_manifold_pressure_loss_coefficient = 0.16
 cathode_out_manifold_pressure_loss_coefficient = 0.16
 anode_in_manifold_pressure_loss_coefficient = 0.16
 anode_out_manifold_pressure_loss_coefficient = 0.16
-coolant_in_manifold_pressure_loss_coefficient = 0.06
-coolant_out_manifold_pressure_loss_coefficient = 0.06
+coolant_in_manifold_pressure_loss_coefficient = 0.86
+coolant_out_manifold_pressure_loss_coefficient = 0.86
 
 # Model type
 anode_manifold_model = 'Koh'
 cathode_manifold_model = 'Koh'
-coolant_manifold_model = 'Koh'
+coolant_manifold_model = 'ModifiedKoh'

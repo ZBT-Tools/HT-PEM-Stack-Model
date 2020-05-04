@@ -116,7 +116,8 @@ class Stack:
                 in_dicts.dict_coolant_in_manifold['temp_in']
             coolant_dict['p_out'] = in_dicts.dict_coolant_out_manifold['p_out']
 
-            if temperature_dict['cool_ch_bc']:
+            cool_bc = temperature_dict['cool_ch_bc']
+            if cool_bc:
                 n_cool = self.n_cells + 1
             else:
                 n_cool = self.n_cells - 1
@@ -134,7 +135,9 @@ class Stack:
                 # + cool_channels[i].fluid.TYPE_NAME
                 cool_channels[i].fluid.extend_data_names(
                     cool_channels[i].fluid.name)
-
+            if cool_bc:
+                cool_channels[0].height *= 0.5
+                cool_channels[-1].height *= 0.5
             if n_cool > 0:
                 self.coolant_circuit = \
                     flow_circuit.factory2(in_dicts.dict_coolant_flow_circuit,
