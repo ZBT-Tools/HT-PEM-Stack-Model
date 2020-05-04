@@ -69,8 +69,9 @@ class ParallelFlowCircuit(ABC, OutputObject):
 
         self.n_channels = len(self.channels)
         self.n_subchannels = n_subchannels
-        self.tolerance = 1e-6
-        self.max_iter = 50
+        self.tolerance = dict_flow_circuit.get('tolerance', 1e-6)
+        self.max_iter = dict_flow_circuit.get('max_iter', 10)
+        self.min_iter = dict_flow_circuit.get('max_iter', 2)
         self.calc_distribution = \
             dict_flow_circuit.get('calc_distribution', True)
         self.mass_flow_in = \
@@ -95,12 +96,17 @@ class ParallelFlowCircuit(ABC, OutputObject):
         Update the flow circuit
         """
         if inlet_mass_flow is not None:
+            if self.initialize:
+                # homogeneous distribution
+                self.channel_mass_flow[:] = inlet_mass_flow / self.n_channels
+            else:
+                # use previous distribution scaled to new mass flow
+                self.channel_mass_flow[:] *= inlet_mass_flow / self.mass_flow_in
+            # set new mass and volume flows
             self.mass_flow_in = inlet_mass_flow
-            self.channel_mass_flow[:] = self.mass_flow_in / self.n_channels
             id_in = self.manifolds[0].id_in
             self.vol_flow_in = \
                 inlet_mass_flow / self.manifolds[0].fluid.density[id_in]
-            self.initialize = True
 
         channel_vol_flow_old = np.zeros(self.channel_vol_flow.shape)
         channel_vol_flow_old[:] = 1e8
@@ -123,10 +129,11 @@ class ParallelFlowCircuit(ABC, OutputObject):
                 # print(self.channel_vol_flow)
                 channel_vol_flow_old[:] = self.channel_vol_flow
                 # print(error)
-                if error < self.tolerance:
+                if error < self.tolerance and i >= self.min_iter:
+                    self.update_channels()
                     break
                 if i == (self.max_iter - 1):
-                    print('Maximum number of iterations n = {} '
+                    print('maximum number of iterations n = {} '
                           'with error = {} in update() of {} '
                           'reached'.format(self.max_iter, error, self))
         else:
@@ -140,8 +147,8 @@ class ParallelFlowCircuit(ABC, OutputObject):
 
     def update_channels(self):
         if self.initialize:
-            channel_mass_flow_in = np.zeros(self.n_channels) \
-                + self.mass_flow_in / self.n_channels
+            channel_mass_flow_in = np.ones(self.n_channels) \
+                * self.mass_flow_in / self.n_channels
             channel_mass_flow_out = channel_mass_flow_in
         else:
             channel_mass_flow_in = self.channel_mass_flow

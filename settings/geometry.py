@@ -2,7 +2,7 @@
 
 """Stack Settings"""
 # number of cells in the stack
-cell_number = 40
+cell_number = 10
 
 """"Cell Geometry """
 # length of the cell, a side of the active area [m]
@@ -61,7 +61,7 @@ coolant_channel_height = 1.e-3
 # width of the coolant channel [m]
 coolant_channel_width = 2.e-3
 # number of coolant channels per cell
-coolant_channel_number = 5.
+coolant_channel_number = 10
 # channel bends [n]
 coolant_channel_bends = 2.
 # bend pressure loss coefficient of the channel bends
@@ -112,8 +112,8 @@ cathode_in_manifold_pressure_loss_coefficient = 0.16
 cathode_out_manifold_pressure_loss_coefficient = 0.16
 anode_in_manifold_pressure_loss_coefficient = 0.16
 anode_out_manifold_pressure_loss_coefficient = 0.16
-coolant_in_manifold_pressure_loss_coefficient = 0.16
-coolant_out_manifold_pressure_loss_coefficient = 0.16
+coolant_in_manifold_pressure_loss_coefficient = 0.06
+coolant_out_manifold_pressure_loss_coefficient = 0.06
 
 # Model type
 anode_manifold_model = 'Koh'

@@ -27,10 +27,14 @@ class TemperatureSystem:
         # use SciPy sparse solver, efficient for larger sparse matrices
         self.sparse_solve = True
 
-        # instead of solving the complete temperature system at once
-        # solve the cell-wise temperature systems and iterate
+        # instead of solving the completely coupled temperature system at once
+        # solve the decoupled cell-wise temperature systems and iterate
         # however not working yet!!!
         self.solve_individual_cells = False
+
+        # sub channel ratios
+        self.n_cat_channels = stack.fuel_circuits[0].n_subchannels
+        self.n_ano_channels = stack.fuel_circuits[1].n_subchannels
 
         # coolant flow settings
         self.cool_flow = False
@@ -44,6 +48,7 @@ class TemperatureSystem:
                 self.cool_ch_bc = True
             else:
                 self.cool_ch_bc = False
+            self.n_cool_sub_channels = stack.coolant_circuit.n_subchannels
 
         self.e_tn = g_par.dict_case['v_tn']
         # thermodynamic neutral cell potential
@@ -166,7 +171,7 @@ class TemperatureSystem:
             # Cathode bpp-gde source
             # h_vap = w_prop.water.calc_h_vap(cell.cathode.channel.temp[:-1])
             channel = cell.cathode.channel
-            source += channel.k_coeff * channel.temp_ele  # * 0.0
+            source += channel.k_coeff * channel.temp_ele * self.n_cat_channels
             source += getattr(channel, 'condensation_heat', 0.0)  # * 0.0
             cell.add_explicit_layer_source(cell.heat_rhs_dyn, source, 1)
 
@@ -193,7 +198,7 @@ class TemperatureSystem:
             source[:] = 0.0
             # h_vap = w_prop.water.calc_h_vap(cell.anode.temp_fluid[:-1])
             channel = cell.anode.channel
-            source = channel.k_coeff * channel.temp_ele  # * 0.0
+            source = channel.k_coeff * channel.temp_ele * self.n_ano_channels
             source += getattr(channel, 'condensation_heat', 0.0)  # * 0.0
             cell.add_explicit_layer_source(cell.heat_rhs_dyn, source, 4)
 
@@ -202,17 +207,20 @@ class TemperatureSystem:
                 if self.cool_ch_bc:
                     cool_chl = self.cool_channels[i]
                     source = cool_chl.k_coeff * cool_chl.temp_ele
+                    source *= self.n_cool_sub_channels
                     cell.add_explicit_layer_source(cell.heat_rhs_dyn,
                                                    source, layer_id=0)
                     if cell.last_cell:
                         cool_chl = self.cool_channels[i + 1]
                         source = cool_chl.k_coeff * cool_chl.temp_ele
+                        source *= self.n_cool_sub_channels
                         cell.add_explicit_layer_source(cell.heat_rhs_dyn,
                                                        source, layer_id=-1)
                 else:
                     if not cell.first_cell:
                         cool_chl = self.cool_channels[i - 1]
                         source = cool_chl.k_coeff * cool_chl.temp_ele
+                        source *= self.n_cool_sub_channels
                         cell.add_explicit_layer_source(cell.heat_rhs_dyn,
                                                        source, layer_id=0)
 
@@ -230,12 +238,12 @@ class TemperatureSystem:
             source_vectors.append(np.zeros(cell.heat_rhs_dyn.shape))
 
             # add thermal conductance for heat transfer to cathode gas
-            source = -cell.cathode.channel.k_coeff  # * 0.0
+            source = -cell.cathode.channel.k_coeff * self.n_cat_channels
             matrix, source_vec_1 = \
                 cell.add_implicit_layer_source(cell.heat_mtx_dyn, source, 1)
 
             # add thermal conductance for heat transfer to anode gas
-            source = -cell.anode.channel.k_coeff  # * 0.0
+            source = -cell.anode.channel.k_coeff * self.n_ano_channels
             matrix, source_vec_2 = \
                 cell.add_implicit_layer_source(cell.heat_mtx_dyn, source, 4)
 
@@ -244,12 +252,14 @@ class TemperatureSystem:
             if self.cool_flow:
                 if self.cool_ch_bc:
                     source = - self.cool_channels[i].k_coeff
+                    source *= self.n_cool_sub_channels
                     matrix, source_vec = \
                         cell.add_implicit_layer_source(cell.heat_mtx_dyn,
                                                        source, layer_id=0)
                     source_vec_3[:] = source_vec
                     if cell.last_cell:
                         source = - self.cool_channels[i + 1].k_coeff
+                        source *= self.n_cool_sub_channels
                         matrix, source_vec = \
                             cell.add_implicit_layer_source(cell.heat_mtx_dyn,
                                                            source, layer_id=-1)
@@ -257,6 +267,7 @@ class TemperatureSystem:
                 else:
                     if not cell.first_cell:
                         source = - self.cool_channels[i - 1].k_coeff
+                        source *= self.n_cool_sub_channels
                         matrix, source_vec = \
                             cell.add_implicit_layer_source(cell.heat_mtx_dyn,
                                                            source, layer_id=0)
