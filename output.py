@@ -10,6 +10,9 @@ import system.global_functions as g_func
 import system.stack as stack
 import system.output_object as oo
 from itertools import cycle, islice
+import matplotlib
+# configure backend here
+matplotlib.use('Agg')
 
 # globals
 FONT_SIZE = 14

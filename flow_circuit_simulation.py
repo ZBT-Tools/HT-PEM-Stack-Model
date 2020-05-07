@@ -44,7 +44,7 @@ channel_dict = {
     'flow_direction': 1,
     'bend_number': 0,
     'bend_friction_factor': 0.1,
-    'additional_friction_fractor': 0.0
+    'constant_friction_factor': 0.0
     }
 
 
@@ -67,16 +67,18 @@ in_manifold_dict = {
     'height': 7.5e-3,
     'bend_number': 0,
     'bend_friction_factor': 0.0,
-    'additional_friction_fractor': 0.2
+    'constant_friction_factor': 0.25,
+    'flow_split_factor': 0.2
     }
 
 out_manifold_dict = copy.deepcopy(in_manifold_dict)
 out_manifold_dict['name'] = 'Outlet Manifold'
-out_manifold_dict['additional_friction_fractor'] = 0.2
+out_manifold_dict['constant_friction_factor'] = 0.25
+out_manifold_dict['flow_split_factor'] = 0.2
 
 flow_circuit_dict = {
     'name': 'Flow Circuit',
-    'type': 'Koh',
+    'type': 'ModifiedKoh',
     'shape': 'U'
     }
 
@@ -92,10 +94,22 @@ x = (ip.interpolate_1d(flow_model.manifolds[0].x)
 # x = flow_model.manifolds[0].x / flow_model.manifolds[0].length
 
 flow_model.update(inlet_mass_flow=8.91E-04)
-q = flow_model.channel_vol_flow / np.average(flow_model.channel_vol_flow)
+q = (flow_model.normalized_flow_distribution - 1.0) * 100.0
 reynolds = flow_model.manifolds[0].reynolds[0]
-plt.plot(x, q, label='Re={0:.2f}'.format(reynolds))
-print('Normalized Flow Distribution: ',
-      flow_model.normalized_flow_distribution)
-np.savetxt('output/flow_distribution.txt',
-           (flow_model.normalized_flow_distribution - 1.0) * 100.0)
+plt.plot(x, q, label='Re={0:.2f}'.format(reynolds), color='k')
+
+flow_model.update(inlet_mass_flow=0.00059425)
+q = (flow_model.normalized_flow_distribution - 1.0) * 100.0
+reynolds = flow_model.manifolds[0].reynolds[0]
+plt.plot(x, q, label='Re={0:.2f}'.format(reynolds), color='b')
+
+flow_model.update(inlet_mass_flow=0.000297125)
+q = (flow_model.normalized_flow_distribution - 1.0) * 100.0
+reynolds = flow_model.manifolds[0].reynolds[0]
+plt.plot(x, q, label='Re={0:.2f}'.format(reynolds), color='r')
+
+# print('Normalized Flow Distribution: ',
+#       flow_model.normalized_flow_distribution)
+# np.savetxt('output/flow_distribution.txt',
+#            (flow_model.normalized_flow_distribution - 1.0) * 100.0)
+plt.show()

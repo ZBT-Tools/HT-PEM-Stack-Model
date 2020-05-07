@@ -242,8 +242,7 @@ def calc_friction_factor(reynolds, method='Blasius', type='Darcy'):
         raise NotImplementedError
 
 
-def calc_pressure_drop(velocity, density, f, zeta, length, diameter,
-                       pressure_recovery=False):
+def calc_pressure_drop(velocity, density, zeta, pressure_recovery=False):
     """
     Calculates the pressure drop at a defined t-junction,
     according to (Koh, 2003).
@@ -256,13 +255,13 @@ def calc_pressure_drop(velocity, density, f, zeta, length, diameter,
     :param pressure_recovery: for dividing manifolds with momentum effects
     :return: pressure drop (element-wise)
     """
-    if np.shape(velocity)[0] != (np.shape(length)[0] + 1):
+    if np.shape(velocity)[0] != (np.shape(zeta)[0] + 1):
         raise ValueError('velocity array must be provided as a 1D'
                          'nodal array (n+1), while the other settings arrays '
                          'must be element-wise (n)')
     v1 = velocity[:-1]
     v2 = velocity[1:]
-    a = density * v2 ** 2.0 * (f * length / diameter + zeta) * 0.5
+    a = density * v2 ** 2.0 * zeta * 0.5
     # b = 0.0
     b = (density * v2 ** 2.0 - density * v1 ** 2.0) * .5
     return a + b

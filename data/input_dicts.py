@@ -164,7 +164,7 @@ dict_cathode_in_manifold = {
     'height': geom.cathode_in_manifold_height,
     'bend_number': 0,
     'bend_friction_factor': 0.0,
-    'additional_friction_fractor':
+    'constant_friction_factor':
         geom.cathode_in_manifold_pressure_loss_coefficient
     }
 
@@ -180,7 +180,7 @@ dict_cathode_out_manifold = {
     'height': geom.cathode_out_manifold_height,
     'bend_number': 0,
     'bend_friction_factor': 0.0,
-    'additional_friction_fractor':
+    'constant_friction_factor':
         geom.cathode_out_manifold_pressure_loss_coefficient
     }
 
@@ -207,7 +207,7 @@ dict_anode_in_manifold = {
     'height': geom.anode_in_manifold_height,
     'bend_number': 0,
     'bend_friction_factor': 0.0,
-    'additional_friction_fractor':
+    'constant_friction_factor':
         geom.anode_in_manifold_pressure_loss_coefficient
     }
 
@@ -223,7 +223,7 @@ dict_anode_out_manifold = {
     'height': geom.anode_out_manifold_height,
     'bend_number': 0,
     'bend_friction_factor': 0.0,
-    'additional_friction_fractor':
+    'constant_friction_factor':
         geom.anode_out_manifold_pressure_loss_coefficient
     }
 
@@ -277,7 +277,7 @@ dict_coolant_in_manifold = {
     'height': geom.coolant_in_manifold_height,
     'bend_number': 0,
     'bend_friction_factor': 0.0,
-    'additional_friction_fractor':
+    'constant_friction_factor':
         geom.coolant_in_manifold_pressure_loss_coefficient
     }
 
@@ -292,7 +292,7 @@ dict_coolant_out_manifold = {
     'height': geom.coolant_out_manifold_height,
     'bend_number': 0,
     'bend_friction_factor': 0.0,
-    'additional_friction_fractor':
+    'constant_friction_factor':
         geom.coolant_out_manifold_pressure_loss_coefficient
     }
 

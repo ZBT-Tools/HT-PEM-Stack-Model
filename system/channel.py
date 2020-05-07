@@ -5,6 +5,7 @@ import system.global_functions as g_func
 import system.interpolation as ip
 from abc import ABC, abstractmethod
 from system.output_object import OutputObject
+import system.flow_resistance as fr
 try:
     import system.channel_heat_transfer as cht
     CHT_FOUND = True
@@ -73,11 +74,27 @@ class Channel(ABC, OutputObject):
         self.base_area = None
         self.base_area_dx = None
         self.calculate_geometry()
-        self.n_bends = channel_dict.get('bend_number', 0)
-        self.zeta_bends = channel_dict.get('bend_friction_factor', 0.0)
-        self.zeta_other = \
-            channel_dict.get('additional_friction_fractor', 0.0)
-        self.friction_factor = np.zeros(self.n_ele)
+
+        # Flow resistances
+        # basic wall resistance
+        self.zetas = [fr.FlowResistance(self, {'type': 'FrictionFactor'})]
+        # resistance due to bends
+        n_bends = channel_dict.get('bend_number', 0)
+        zeta_bends = channel_dict.get('bend_friction_factor', 0.0)
+        if n_bends > 0 and zeta_bends > 0.0:
+            zeta_dict = \
+                {'type': 'Constant', 'value': n_bends * zeta_bends / self.n_ele}
+            self.zetas.append(fr.FlowResistance(self, zeta_dict))
+        # additional resistances (constant or flow splitting)
+        zeta_split = channel_dict.get('flow_split_factor', 0.0)
+        zeta_const = channel_dict.get('constant_friction_factor', 0.0)
+        if zeta_split > 0.0:
+            zeta_dict = \
+                {'type': 'Junction', 'value': zeta_const, 'factor': zeta_split}
+            self.zetas.append(fr.FlowResistance(self, zeta_dict))
+        elif zeta_const > 0.0:
+            self.zetas.append(fr.FlowResistance(self, {'type': 'Constant',
+                                                       'value': zeta_const}))
 
         # Flow
         self.velocity = np.zeros(self.n_nodes)
@@ -162,6 +179,14 @@ class Channel(ABC, OutputObject):
                              update_fluid=kwargs.get('update_fluid', False),
                              enthalpy_source=enthalpy_source,
                              channel_factor=kwargs.get('channel_factor', 1.0))
+
+    def flow_resistance(self):
+        """ Update and return the sum of flow resistances (zeta-values) """
+        zeta_sum = 0.0
+        for zeta in self.zetas:
+            zeta.update()
+            zeta_sum += zeta.value
+        return zeta_sum
 
     @abstractmethod
     def update_mass(self, mass_flow_in=None, mass_source=None,
@@ -259,17 +284,8 @@ class Channel(ABC, OutputObject):
         Calculates the static channel pressure
         """
         density_ele = ip.interpolate_1d(self.fluid.density)
-        # velocity_ele = ip.interpolate_1d(self.velocity)
-        reynolds_ele = ip.interpolate_1d(self.reynolds)
-        zeta_bends = self.zeta_bends * self.n_bends / self.n_ele
-        zeta = zeta_bends + self.zeta_other
-        self.friction_factor[:] = g_func.calc_friction_factor(reynolds_ele)
-        # friction_factor = 64.0 / reynolds_ele
-        dp = g_func.calc_pressure_drop(self.velocity, density_ele,
-                                       self.friction_factor, zeta, self.dx,
-                                       self.d_h, self.pressure_recovery)
-        # dp = (f_ele * self.dx / self.d_h + zeta_bends) \
-        #     * density_ele * 0.5 * velocity_ele ** 2.0
+        zeta = self.flow_resistance()
+        dp = g_func.calc_pressure_drop(self.velocity, density_ele, zeta)
         pressure_direction = -self._flow_direction
         self.p[:] = self.p_out
         g_func.add_source(self.p, dp, pressure_direction)
@@ -334,6 +350,7 @@ class Channel(ABC, OutputObject):
             raise ValueError
 
     def calc_mix_temperature(self, enthalpy_source):
+        # not working correctly yet
         assert enthalpy_source.shape == self.temp_ele.shape
         if np.sum(np.abs(enthalpy_source)) > 0.0:
             if self.flow_direction == -1:
