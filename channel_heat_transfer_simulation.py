@@ -12,19 +12,19 @@ np.set_printoptions(threshold=sys.maxsize, linewidth=10000,
 np.seterr(all='raise')
 
 
-nodes = 50
+nodes = 20
 mass_flow_hydrogen = 0.0001    # kg/s
-mass_flow_air = 0.0000124612
-mass_flow_water = 0.0000124612
+mass_flow_air = 0.0001
+mass_flow_water = 0.002
 wall_temp = None  # 380
 # wall_temp_1 = 380.0
 # wall_temp_2 = 420.0
-heat_flux = 0.0    # W/m²
-inlet_temperature = 293.15
-outlet_pressure = 101331.0
 
-length = 0.65501
-width = 0.004
+inlet_temperature = 293.15
+outlet_pressure = 101325.0
+
+length = 0.1
+width = 0.001
 height = 0.001
 
 hydrogen_dict = {
@@ -51,10 +51,10 @@ water_dict = {
     'inlet_composition': None,
     'liquid_props':
         species.ConstantProperties('Liquid',
-                                   specific_heat=1007.0,
-                                   density=1.20433,
-                                   viscosity=1.824e-05,
-                                   thermal_conductivity=0.0257),
+                                   specific_heat=4000.0,
+                                   density=1000.0,
+                                   viscosity=1e-3,
+                                   thermal_conductivity=0.6),
     'temp_init': inlet_temperature,
     'press_init': outlet_pressure,
     'nodes': nodes
@@ -71,8 +71,8 @@ channel_dict = {
     'width': width,
     'height': height,
     'bend_number': 0,
-    'bend_friction_factor': 500.0,
-    'constant_friction_fractor': 0.0
+    'bend_friction_factor': 500,
+    'additional_friction_fractor': 0.01
     }
 
 hydrogen = fluids.dict_factory(hydrogen_dict)
@@ -87,24 +87,52 @@ channels = [chl.Channel(channel_dicts[i], fluids[i]) for i in range(3)]
 
 error = 1e5
 iter_max = 50
+temp_old = np.asarray([channel.temp for channel in channels])
 mass_flows = [mass_flow_hydrogen, mass_flow_air, mass_flow_water]
-
-for j, channel in enumerate(channels):
-    channel.update(mass_flow_in=mass_flows[j])
+delta_temp = 30.0
+for i in range(iter_max):
+    if error < 1e-4:
+        break
+    error = 0.0
+    for j, channel in enumerate(channels):
+        channel.update(mass_flow_in=mass_flows[j], heat_flux=heat_flux,
+                       wall_temp=wall_temp)
+        mass_flows[j] = np.sum(channel.heat) \
+            / (np.average(channel.fluid.specific_heat) * delta_temp)
+        error += np.sum(np.abs(((temp_old[j] - channel.temp) / channel.temp)))
+        temp_old[j, :] = channel.temp
 
 x = ip.interpolate_1d(channels[0].x)
 for channel in channels:
-    plt.plot(x, ip.interpolate_1d(channel.p),
-             label='Fluid Pressure - ' + channel.fluid.name)
+    plt.plot(x, channel.temp_ele,
+             label='Fluid Temperature - ' + channel.fluid.name)
+    plt.plot(x, channel.wall_temp,
+             label='Wall Temperature - ' + channel.fluid.name)
 plt.xlabel('Channel Location [m]')
-plt.ylabel('Pressure [Pa]')
+plt.ylabel('Temperature [K]')
+plt.legend()
+plt.show()
+for channel in channels:
+    plt.plot(x, channel.heat,
+             label='Heat Transfer - ' + channel.fluid.name)
+plt.xlabel('Channel Location [m]')
+plt.ylabel('Heat [W]')
 plt.legend()
 plt.show()
 
-
-print('Pressure:')
+print('Pumping Power:')
 for i, channel in enumerate(channels):
-    print(channel.fluid.name + ': ', channel.p)
+    print(channel.fluid.name + ': ',
+          np.average(channel.vol_flow) * (channel.p[channel.id_in]
+                                          - channel.p[channel.id_out]))
+print('Mass Flows:')
+for i, channel in enumerate(channels):
+    print(channel.fluid.name + ': ', np.average(channel.mass_flow_total))
+
+print('Pressure drop:')
+for i, channel in enumerate(channels):
+    print(channel.fluid.name + ': ', channel.p[channel.id_in]
+                                          - channel.p[channel.id_out])
 
 print('Flow Velocity:')
 for i, channel in enumerate(channels):

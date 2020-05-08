@@ -77,7 +77,7 @@ class Channel(ABC, OutputObject):
 
         # Flow resistances
         # basic wall resistance
-        self.zetas = [fr.FlowResistance(self, {'type': 'FrictionFactor'})]
+        self.zetas = [fr.FlowResistance(self, {'type': 'WallFriction'})]
         # resistance due to bends
         n_bends = channel_dict.get('bend_number', 0)
         zeta_bends = channel_dict.get('bend_friction_factor', 0.0)

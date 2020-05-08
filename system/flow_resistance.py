@@ -9,9 +9,9 @@ class FlowResistance(ABC):
         if zeta_type == 'Constant':
             return super(FlowResistance, cls).\
                 __new__(ConstantFlowResistance)
-        elif zeta_type == 'FrictionFactor':
+        elif zeta_type == 'WallFriction':
             return super(FlowResistance, cls).\
-                __new__(FrictionFactorFlowResistance)
+                __new__(WallFrictionFlowResistance)
         elif zeta_type == 'Junction':
             return super(FlowResistance, cls).\
                 __new__(JunctionFlowResistance)
@@ -27,7 +27,7 @@ class ConstantFlowResistance(FlowResistance):
         self.value = zeta_dict['value']
 
 
-class FrictionFactorFlowResistance(FlowResistance):
+class WallFrictionFlowResistance(FlowResistance):
     def __init__(self, channel, zeta_dict, **kwargs):
         self.channel = channel
         self.method = zeta_dict.get('method', 'Blasius')
@@ -49,9 +49,9 @@ class FrictionFactorFlowResistance(FlowResistance):
             lam = np.divide(f * 16.0, reynolds, out=lam, where=reynolds > 0.0)
             turb = f * 0.0791 * np.power(reynolds, -0.25, out=turb,
                                          where=reynolds > 0.0)
-            # factor = np.where(reynolds < 2200.0, lam, turb)
-            factor = lam
-            self.value[:] = self.channel.length / self.channel.d_h * factor
+            factor = np.where(reynolds < 2200.0, lam, turb)
+            # factor = lam
+            self.value[:] = self.channel.dx / self.channel.d_h * factor
         else:
             raise NotImplementedError
 
