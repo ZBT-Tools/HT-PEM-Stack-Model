@@ -25,6 +25,7 @@ outlet_pressure = 101331.0
 
 length = 0.65501
 width = 0.004
+diameter = 0.0016
 height = 0.001
 
 hydrogen_dict = {
@@ -50,7 +51,7 @@ water_dict = {
     'fluid_components': None,
     'inlet_composition': None,
     'liquid_props':
-        species.ConstantProperties('Liquid',
+        species.ConstantProperties('Air',
                                    specific_heat=1007.0,
                                    density=1.20433,
                                    viscosity=1.824e-05,
@@ -70,6 +71,7 @@ channel_dict = {
     'flow_direction': 1,
     'width': width,
     'height': height,
+    'diameter': diameter,
     'bend_number': 0,
     'bend_friction_factor': 500.0,
     'constant_friction_fractor': 0.0
@@ -105,6 +107,11 @@ plt.show()
 print('Pressure:')
 for i, channel in enumerate(channels):
     print(channel.fluid.name + ': ', channel.p)
+
+print('Pressure drop:')
+for i, channel in enumerate(channels):
+    print(channel.fluid.name + ': ',
+          channel.p[channel.id_in] - channel.p[channel.id_out])
 
 print('Flow Velocity:')
 for i, channel in enumerate(channels):

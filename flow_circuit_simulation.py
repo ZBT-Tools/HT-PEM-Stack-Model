@@ -7,7 +7,7 @@ import data.input_dicts as input_dicts
 import copy
 import sys
 import system.channel as chl
-import system.fluid as fluids
+import system.fluid as fluid
 import system.flow_circuit as flow_circuit
 import matplotlib.pyplot as plt
 import system.interpolation as ip
@@ -33,14 +33,18 @@ def do_c_profile(func):
 n_chl = 40
 n_subchl = 1
 
+temperature = 293.15
+pressure = 101325.0
+nodes = 10
+
 channel_dict = {
     'name': 'Channel',
-    'length': 0.65,
+    'length': 0.65501,
     'cross_sectional_shape': 'rectangular',
     'width': 4e-3,
     'height': 1e-3,
-    'p_out': 101325.0,
-    'temp_in': 293.15,
+    'p_out': pressure,
+    'temp_in': temperature,
     'flow_direction': 1,
     'bend_number': 0,
     'bend_friction_factor': 0.1,
@@ -49,13 +53,26 @@ channel_dict = {
 
 
 fluid_dict = {
-    'fluid_name': 'Cathode Gas',
+    'name': 'Cathode Gas',
     'fluid_components': {'O2': 'gas', 'N2': 'gas', 'H2O': 'gas-liquid'},
     'inlet_composition': [0.21, 0.79, 0.0],
-    'temp_init': 293.15,
-    'press_init': 101325.0,
-    'nodes': 10
+    'temp_init': temperature,
+    'press_init': pressure,
+    'nodes': nodes
 }
+
+constant_fluid_dict = {
+    'name': 'Air',
+    'fluid_components': None,
+    'inlet_composition': None,
+    'specific_heat': 1007.0,
+    'density': 1.20433,
+    'viscosity': 1.824e-05,
+    'thermal_conductivity': 0.0257,
+    'temp_init': temperature,
+    'press_init': pressure,
+    'nodes': nodes
+    }
 
 in_manifold_dict = {
     'name': 'Inlet Manifold',
@@ -67,14 +84,14 @@ in_manifold_dict = {
     'height': 7.5e-3,
     'bend_number': 0,
     'bend_friction_factor': 0.0,
-    'constant_friction_factor': 0.25,
-    'flow_split_factor': 0.2
+    'constant_friction_factor': -0.5,
+    'flow_split_factor': 0.00001
     }
 
 out_manifold_dict = copy.deepcopy(in_manifold_dict)
 out_manifold_dict['name'] = 'Outlet Manifold'
-out_manifold_dict['constant_friction_factor'] = 0.25
-out_manifold_dict['flow_split_factor'] = 0.2
+out_manifold_dict['constant_friction_factor'] = 0.5
+out_manifold_dict['flow_split_factor'] = 0.0
 
 flow_circuit_dict = {
     'name': 'Flow Circuit',
@@ -82,10 +99,13 @@ flow_circuit_dict = {
     'shape': 'U'
     }
 
-flow_model = flow_circuit.factory(flow_circuit_dict, fluid_dict,
-                                  channel_dict, in_manifold_dict,
-                                  out_manifold_dict, n_chl,
-                                  n_subchl)
+channels = [chl.Channel(channel_dict, fluid.dict_factory(constant_fluid_dict))
+            for i in range(n_chl)]
+
+flow_model = \
+    flow_circuit.factory2(flow_circuit_dict, in_manifold_dict,
+                          out_manifold_dict, channels,
+                          channel_multiplier=n_subchl)
 
 
 x = (ip.interpolate_1d(flow_model.manifolds[0].x)
@@ -93,23 +113,30 @@ x = (ip.interpolate_1d(flow_model.manifolds[0].x)
     / (flow_model.manifolds[0].length - flow_model.manifolds[0].dx[0])
 # x = flow_model.manifolds[0].x / flow_model.manifolds[0].length
 
-flow_model.update(inlet_mass_flow=8.91E-04)
+flow_model.update(inlet_mass_flow=0.000449642)
 q = (flow_model.normalized_flow_distribution - 1.0) * 100.0
 reynolds = flow_model.manifolds[0].reynolds[0]
 plt.plot(x, q, label='Re={0:.2f}'.format(reynolds), color='k')
+plt.show()
 
-flow_model.update(inlet_mass_flow=0.00059425)
-q = (flow_model.normalized_flow_distribution - 1.0) * 100.0
-reynolds = flow_model.manifolds[0].reynolds[0]
-plt.plot(x, q, label='Re={0:.2f}'.format(reynolds), color='b')
 
-flow_model.update(inlet_mass_flow=0.000297125)
-q = (flow_model.normalized_flow_distribution - 1.0) * 100.0
-reynolds = flow_model.manifolds[0].reynolds[0]
-plt.plot(x, q, label='Re={0:.2f}'.format(reynolds), color='r')
+
+# flow_model.update(inlet_mass_flow=0.00059425)
+# q = (flow_model.normalized_flow_distribution - 1.0) * 100.0
+# reynolds = flow_model.manifolds[0].reynolds[0]
+# plt.plot(x, q, label='Re={0:.2f}'.format(reynolds), color='b')
+#
+# flow_model.update(inlet_mass_flow=0.000297125)
+# q = (flow_model.normalized_flow_distribution - 1.0) * 100.0
+# reynolds = flow_model.manifolds[0].reynolds[0]
+# plt.plot(x, q, label='Re={0:.2f}'.format(reynolds), color='r')
 
 # print('Normalized Flow Distribution: ',
 #       flow_model.normalized_flow_distribution)
 # np.savetxt('output/flow_distribution.txt',
 #            (flow_model.normalized_flow_distribution - 1.0) * 100.0)
+m_in = flow_model.manifolds[0]
+plt.plot(m_in.x, m_in.p - 101325.0, color='b')
+m_out = flow_model.manifolds[1]
+plt.plot(m_out.x, m_out.p - 101325.0, color='r')
 plt.show()

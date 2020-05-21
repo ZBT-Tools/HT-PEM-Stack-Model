@@ -767,6 +767,12 @@ def dict_factory(fluid_dict):
     mole_fractions = fluid_dict.get('inlet_composition', None)
     temperature = fluid_dict.get('temp_in', 293.15)
     pressure = fluid_dict.get('p_out', 101325.0)
+    prop_names = \
+        ('density', 'viscosity', 'thermal_conductivity', 'specific_heat')
+    if any(key in fluid_dict for key in prop_names):
+        props_dict = {key: fluid_dict[key] for key in prop_names}
+        fluid_props = species.ConstantProperties(name, **props_dict)
+        return ConstantFluid(nx, name, fluid_props, temperature, pressure)
     return arg_factory(nx, name, liquid_props=liquid_props,
                        species_dict=species_dict,
                        mole_fractions=mole_fractions, temperature=temperature,

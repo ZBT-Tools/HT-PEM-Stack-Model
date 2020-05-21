@@ -70,6 +70,7 @@ class Channel(ABC, OutputObject):
             raise NotImplementedError
         self.cross_area = None
         self.surface_area = None
+        self.aspect_ratio = None
         self.d_h = None
         self.base_area = None
         self.base_area_dx = None
@@ -115,14 +116,20 @@ class Channel(ABC, OutputObject):
     def calculate_geometry(self):
         if self.cross_shape == 'rectangular':
             self.cross_area = self._width * self._height
-            self.d_h = 4. * self.cross_area / (2. * (self._width + self._height))
+            self.d_h = \
+                4.0 * self.cross_area / (2.0 * (self._width + self._height))
             self.surface_area = 2.0 * (self._width + self._height) * self.dx
+            if self._width >= self._height:
+                self.aspect_ratio = self._height / self._width
+            else:
+                self.aspect_ratio = self._width / self._height
         elif self.cross_shape == 'circular':
             self.d_h = self._diameter
             self._width = self._diameter
             self._height = self._diameter
-            self.cross_area = self._diameter ** 2.0 / 4.0 * np.pi
+            self.cross_area = self._diameter ** 2.0 * 0.25 * np.pi
             self.surface_area = self._diameter * np.pi * self.dx
+            self.aspect_ratio = 1.0
         else:
             raise NotImplementedError
         self.base_area = self._width * self._length
