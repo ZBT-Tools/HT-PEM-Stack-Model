@@ -286,13 +286,32 @@ class Channel(ABC, OutputObject):
         self.g_fluid[:] = \
             factor * self.mass_flow_total * self.fluid.specific_heat
 
+    def calc_pressure_drop(self, velocity, density, zeta):
+        """
+        Calculates the element-wise pressure drop in the channel
+        """
+        if np.shape(velocity)[0] != (np.shape(zeta)[0] + 1):
+            raise ValueError('velocity array must be provided as a 1D'
+                             'nodal array (n+1), while the other settings arrays '
+                             'must be element-wise (n)')
+        if self.flow_direction == 1:
+            v1 = velocity[:-1]
+            v2 = velocity[1:]
+        else:
+            v2 = velocity[:-1]
+            v1 = velocity[1:]
+        a = density * v2 ** 2.0 * zeta * 0.5
+        # b = 0.0
+        b = (density * v2 ** 2.0 - density * v1 ** 2.0) * .5
+        return a + b
+
     def calc_pressure(self):
         """
         Calculates the static channel pressure
         """
         density_ele = ip.interpolate_1d(self.fluid.density)
         zeta = self.flow_resistance()
-        dp = g_func.calc_pressure_drop(self.velocity, density_ele, zeta)
+        dp = self.calc_pressure_drop(self.velocity, density_ele, zeta)
         pressure_direction = -self._flow_direction
         self.p[:] = self.p_out
         g_func.add_source(self.p, dp, pressure_direction)

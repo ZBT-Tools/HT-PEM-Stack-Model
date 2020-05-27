@@ -20,6 +20,7 @@ class FlowResistance(ABC):
 
     def __init__(self, channel, zeta_dict, **kwargs):
         self.channel = channel
+        self.value = None
 
     def update(self):
         pass

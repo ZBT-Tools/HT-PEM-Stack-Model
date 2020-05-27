@@ -242,31 +242,6 @@ def calc_friction_factor(reynolds, method='Blasius', type='Darcy'):
         raise NotImplementedError
 
 
-def calc_pressure_drop(velocity, density, zeta, pressure_recovery=False):
-    """
-    Calculates the pressure drop at a defined t-junction,
-    according to (Koh, 2003).
-    :param density: fluid density array (element-wise)
-    :param velocity: velocity array (node-wise)
-    :param f: darcy friction factor (element-wise)
-    :param zeta: additional loss factors
-    :param length: length of element (element-wise)
-    :param diameter: hydraulic diameter of pipe
-    :param pressure_recovery: for dividing manifolds with momentum effects
-    :return: pressure drop (element-wise)
-    """
-    if np.shape(velocity)[0] != (np.shape(zeta)[0] + 1):
-        raise ValueError('velocity array must be provided as a 1D'
-                         'nodal array (n+1), while the other settings arrays '
-                         'must be element-wise (n)')
-    v1 = velocity[:-1]
-    v2 = velocity[1:]
-    a = density * v2 ** 2.0 * zeta * 0.5
-    # b = 0.0
-    b = (density * v2 ** 2.0 - density * v1 ** 2.0) * .5
-    return a + b
-
-
 def calc_visc_mix(species_viscosity, mol_fraction, mol_mass):
     """
     Calculates the mixture viscosity of a gas acording to Herning ad Zipperer.

@@ -84,13 +84,13 @@ in_manifold_dict = {
     'height': 7.5e-3,
     'bend_number': 0,
     'bend_friction_factor': 0.0,
-    'constant_friction_factor': -0.5,
-    'flow_split_factor': 0.00001
+    'constant_friction_factor': 0.0,
+    'flow_split_factor': 0.0
     }
 
 out_manifold_dict = copy.deepcopy(in_manifold_dict)
 out_manifold_dict['name'] = 'Outlet Manifold'
-out_manifold_dict['constant_friction_factor'] = 0.5
+out_manifold_dict['constant_friction_factor'] = 0.0
 out_manifold_dict['flow_split_factor'] = 0.0
 
 flow_circuit_dict = {
