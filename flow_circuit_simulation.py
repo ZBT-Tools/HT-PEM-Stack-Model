@@ -48,7 +48,7 @@ channel_dict = {
     'flow_direction': 1,
     'bend_number': 0,
     'bend_friction_factor': 0.1,
-    'constant_friction_factor': 0.0
+    'constant_friction_factor': 0.2
     }
 
 
@@ -84,9 +84,10 @@ in_manifold_dict = {
     'height': 7.5e-3,
     'bend_number': 0,
     'bend_friction_factor': 0.0,
-    'constant_friction_factor': 0.0,
-    'flow_split_factor': 0.0
-    }
+    'constant_friction_factor': -0.5,
+    'flow_split_factor': 0.0,
+    'wall_friction': False
+}
 
 out_manifold_dict = copy.deepcopy(in_manifold_dict)
 out_manifold_dict['name'] = 'Outlet Manifold'
@@ -136,7 +137,8 @@ plt.show()
 # np.savetxt('output/flow_distribution.txt',
 #            (flow_model.normalized_flow_distribution - 1.0) * 100.0)
 m_in = flow_model.manifolds[0]
-plt.plot(m_in.x, m_in.p - 101325.0, color='b')
+plt.plot(m_in.p - 101325.0, color='b')
+plt.show()
 m_out = flow_model.manifolds[1]
-plt.plot(m_out.x, m_out.p - 101325.0, color='r')
+plt.plot(m_out.p - 101325.0, color='r')
 plt.show()

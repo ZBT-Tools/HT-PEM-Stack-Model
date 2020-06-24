@@ -73,8 +73,8 @@ class ParallelFlowCircuit(ABC, OutputObject):
         self.n_channels = len(self.channels)
         self.n_subchannels = n_subchannels
         self.tolerance = dict_flow_circuit.get('tolerance', 1e-6)
-        self.max_iter = dict_flow_circuit.get('max_iter', 10)
-        self.min_iter = dict_flow_circuit.get('min_iter', 2)
+        self.max_iter = dict_flow_circuit.get('max_iter', 20)
+        self.min_iter = dict_flow_circuit.get('min_iter', 3)
         self.calc_distribution = \
             dict_flow_circuit.get('calc_distribution', True)
         self.mass_flow_in = \

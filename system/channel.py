@@ -77,8 +77,10 @@ class Channel(ABC, OutputObject):
         self.calculate_geometry()
 
         # Flow resistances
+        self.zetas = []
         # basic wall resistance
-        self.zetas = [fr.FlowResistance(self, {'type': 'WallFriction'})]
+        if channel_dict.get('wall_friction', True):
+            self.zetas.append(fr.FlowResistance(self, {'type': 'WallFriction'}))
         # resistance due to bends
         n_bends = channel_dict.get('bend_number', 0)
         zeta_bends = channel_dict.get('bend_friction_factor', 0.0)
@@ -290,20 +292,15 @@ class Channel(ABC, OutputObject):
         """
         Calculates the element-wise pressure drop in the channel
         """
-        if np.shape(velocity)[0] != (np.shape(zeta)[0] + 1):
+        if np.shape(velocity)[0] != (np.shape(density)[0] + 1):
             raise ValueError('velocity array must be provided as a 1D'
                              'nodal array (n+1), while the other settings arrays '
                              'must be element-wise (n)')
-        if self.flow_direction == 1:
-            v1 = velocity[:-1]
-            v2 = velocity[1:]
-        else:
-            v2 = velocity[:-1]
-            v1 = velocity[1:]
-        a = density * v2 ** 2.0 * zeta * 0.5
-        # b = 0.0
-        b = (density * v2 ** 2.0 - density * v1 ** 2.0) * .5
-        return a + b
+        v1 = velocity[:-1]
+        v2 = velocity[1:]
+        a = v1 ** 2.0 * zeta
+        b = (v2 ** 2.0 - v1 ** 2.0) * self.flow_direction
+        return (a + b) * density * 0.5
 
     def calc_pressure(self):
         """
