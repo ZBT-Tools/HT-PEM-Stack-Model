@@ -1,9 +1,5 @@
 import numpy as np
 from scipy import ndimage
-import data.global_parameters as g_par
-from matplotlib import pyplot as plt
-import os
-# from numba import jit
 
 SMALL = 1e-12
 

@@ -1,13 +1,15 @@
 import numpy as np
-import data.global_parameters as g_par
-import system.cell as cl
-import system.electrical_coupling as el_cpl
-import system.temperature_system as therm_cpl
-import system.flow_circuit as flow_circuit
-import system.channel as chl
-import system.fluid as fluid
-import data.input_dicts as in_dicts
-import system.global_functions as g_func
+print(__name__)
+print(__file__)
+print(__package__)
+from data import global_parameters as g_par
+from . import cell as cl
+from . import electrical_coupling as el_cpl
+from . import temperature_system as therm_cpl
+from . import flow_circuit as flow_circuit
+from . import channel as chl
+from . import fluid as fluid
+from data import input_dicts as in_dicts
 
 
 class Stack:
@@ -168,7 +170,7 @@ class Stack:
 
         # Initialize the electrical coupling
         self.elec_sys = el_cpl.ElectricalCoupling(self)
-        # Initialize temperature system
+        # Initialize temperature lib
         self.temp_sys = therm_cpl.TemperatureSystem(self, temperature_dict)
 
         """boolean alarms"""

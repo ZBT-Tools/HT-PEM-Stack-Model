@@ -1,16 +1,16 @@
 import settings.operating_conditions as op_con
-import system.stack as stack
+import lib.stack as stack
 import numpy as np
 import data.global_parameters as g_par
 import cProfile
 import data.input_dicts as input_dicts
 import copy
 import sys
-import system.channel as chl
-import system.fluid as fluid
-import system.flow_circuit as flow_circuit
+import lib.channel as chl
+import lib.fluid as fluid
+import lib.flow_circuit as flow_circuit
 import matplotlib.pyplot as plt
-import system.interpolation as ip
+import lib.interpolation as ip
 
 np.set_printoptions(threshold=sys.maxsize, linewidth=10000,
                     precision=9, suppress=True)

@@ -1,6 +1,6 @@
 from abc import ABC
 import numpy as np
-import system.interpolation as ip
+from . import interpolation as ip
 
 
 class FlowResistance(ABC):

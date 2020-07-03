@@ -1,8 +1,8 @@
 import numpy as np
-import data.material_properties as mat_prop
+from data import material_properties as mat_prop
 from numpy.polynomial.polynomial import polyval
 from abc import ABC, abstractmethod
-import system.global_functions as g_func
+from . import global_functions as g_func
 
 
 class FluidProperties(ABC):

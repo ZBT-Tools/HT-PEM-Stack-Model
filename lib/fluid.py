@@ -1,9 +1,9 @@
 import numpy as np
-import data.global_parameters as g_par
-import system.global_functions as g_func
+from data import global_parameters as g_par
+from . import global_functions as g_func
 from abc import ABC, abstractmethod
-from system.output_object import OutputObject
-import system.species as species
+from lib.output_object import OutputObject
+from . import species as species
 
 
 class OneDimensionalFluid(ABC, OutputObject):

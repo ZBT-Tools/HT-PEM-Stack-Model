@@ -1,11 +1,11 @@
 import warnings
 import numpy as np
 from scipy import optimize
-import data.global_parameters as g_par
-import system.global_functions as g_func
-import system.fluid as fluids
-import system.layers as layers
-import system.interpolation as ip
+from data import global_parameters as g_par
+from . import global_functions as g_func
+from . import fluid as fluids
+from . import layers as layers
+from . import interpolation as ip
 
 
 warnings.filterwarnings("ignore")

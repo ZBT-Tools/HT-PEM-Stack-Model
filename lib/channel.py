@@ -1,19 +1,18 @@
 import numpy as np
-import data.global_parameters as g_par
-import system.fluid as fluids
-import system.global_functions as g_func
-import system.interpolation as ip
+from . import fluid as fluids
+from . import global_functions as g_func
+from . import interpolation as ip
 from abc import ABC, abstractmethod
-from system.output_object import OutputObject
-import system.flow_resistance as fr
+from . import output_object as oo
+from . import flow_resistance as fr
 try:
-    import system.channel_heat_transfer as cht
+    import lib.channel_heat_transfer as cht
     CHT_FOUND = True
 except ModuleNotFoundError:
     CHT_FOUND = False
 
 
-class Channel(ABC, OutputObject):
+class Channel(ABC, oo.OutputObject):
     def __new__(cls, channel_dict, fluid, number=None):
 
         if type(fluid) is fluids.IncompressibleFluid \

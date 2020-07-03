@@ -1,9 +1,9 @@
 import numpy as np
-import data.global_parameters as g_par
-import system.global_functions as g_func
+from data import global_parameters as g_par
+from . import global_functions as g_func
 from scipy import sparse
 from scipy.sparse.linalg import spsolve
-import system.matrix_functions as mtx
+from . import matrix_functions as mtx
 
 
 class ElectricalCoupling:
@@ -111,7 +111,7 @@ class ElectricalCoupling:
 
     def calc_boundary_condition(self):
         """
-        Updates the right hand side of the linear system.
+        Updates the right hand side of the linear lib.
         """
         cell_0 = self.cells[0]
         if self.current_control:

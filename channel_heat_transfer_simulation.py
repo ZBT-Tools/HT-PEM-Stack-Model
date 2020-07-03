@@ -1,11 +1,12 @@
 import numpy as np
 import cProfile
-import sys, copy
-import system.channel as chl
-import system.fluid as fluids
-import system.species as species
+import sys
+import copy
+import lib.channel as chl
+import lib.fluid as fluids
+import lib.species as species
 import matplotlib.pyplot as plt
-import system.interpolation as ip
+import lib.interpolation as ip
 
 np.set_printoptions(threshold=sys.maxsize, linewidth=10000,
                     precision=9, suppress=True)

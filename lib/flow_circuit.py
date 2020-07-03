@@ -1,15 +1,13 @@
 import numpy as np
-import data.global_parameters as g_par
-import system.interpolation as ip
-import system.global_functions as g_func
-import copy as copy
-import system.channel as chl
-from system.output_object import OutputObject
-import system.fluid as fluids
+from data import global_parameters as g_par
+from . import interpolation as ip
+from . import global_functions as g_func
+from . import channel as chl
+from . import output_object as oo
 from abc import ABC, abstractmethod
 
 
-class ParallelFlowCircuit(ABC, OutputObject):
+class ParallelFlowCircuit(ABC, oo.OutputObject):
     def __new__(cls, dict_flow_circuit, manifolds, channels,
                 n_subchannels=1.0, **kwargs):
         circuit_type = dict_flow_circuit.get('type', 'Koh')

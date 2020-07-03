@@ -1,8 +1,6 @@
-import numpy as np
 import string
 import weakref
 from copy import deepcopy
-import collections
 
 
 class OutputObject:

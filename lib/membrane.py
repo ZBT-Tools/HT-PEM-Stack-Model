@@ -1,7 +1,7 @@
 import numpy as np
 from abc import ABC, abstractmethod
-import system.layers as layers
-import data.global_parameters as g_par
+from . import layers as layers
+from data import global_parameters as g_par
 
 
 class Membrane(ABC, layers.SolidLayer):

@@ -1,11 +1,11 @@
 import numpy as np
-import data.global_parameters as g_par
-import system.global_functions as g_func
-import system.half_cell as h_c
-import system.matrix_functions as mtx
-import system.membrane as membrane
-import system.interpolation as ip
-from system.output_object import OutputObject
+from data import global_parameters as g_par
+from . import global_functions as g_func
+from . import half_cell as h_c
+from . import matrix_functions as mtx
+from . import membrane as membrane
+from . import interpolation as ip
+from lib.output_object import OutputObject
 import copy
 
 

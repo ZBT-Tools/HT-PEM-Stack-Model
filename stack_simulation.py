@@ -1,11 +1,11 @@
 import settings.operating_conditions as op_con
-import system.stack as stack
+import lib.stack as stack
 import numpy as np
 import data.global_parameters as g_par
 import cProfile
 import timeit
 import data.input_dicts as input_dicts
-import system.output_object as out_obj
+import lib.output_object as out_obj
 import output
 import os
 import sys

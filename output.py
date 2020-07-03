@@ -2,13 +2,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import errno
-import system.interpolation as ip
+import lib.interpolation as ip
 import settings.geometry as geom
 import shutil
 import data.global_parameters as g_par
-import system.global_functions as g_func
-import system.stack as stack
-import system.output_object as oo
+import lib.global_functions as g_func
+import lib.stack as stack
+import lib.output_object as oo
 from itertools import cycle, islice
 import matplotlib
 # configure backend here

@@ -3,11 +3,11 @@ import copy
 from scipy import linalg as sp_la
 from scipy import sparse
 from scipy.sparse.linalg import spsolve
-import data.global_parameters as g_par
-import system.global_functions as g_func
-import system.matrix_functions as mtx
-import system.channel as chl
-import system.cell as fcell
+from data import global_parameters as g_par
+from . import global_functions as g_func
+from . import matrix_functions as mtx
+from . import channel as chl
+from . import cell as fcell
 # import pandas as pd
 # from numba import jit
 
@@ -27,7 +27,7 @@ class TemperatureSystem:
         # use SciPy sparse solver, efficient for larger sparse matrices
         self.sparse_solve = True
 
-        # instead of solving the completely coupled temperature system at once
+        # instead of solving the completely coupled temperature lib at once
         # solve the decoupled cell-wise temperature systems and iterate
         # however not working yet!!!
         self.solve_individual_cells = False
@@ -64,7 +64,7 @@ class TemperatureSystem:
             np.hstack([cell.heat_rhs for cell in self.cells])
         # unsorted result layer temperature vector
         self.rhs = np.zeros(np.shape(self.temp_layer_vec))
-        # right side of the matrix system: mat T = rhs,
+        # right side of the matrix lib: mat T = rhs,
         # contains the power sources and explicit coupled terms
 
         """Building up the result temperature list and arrays"""
@@ -161,8 +161,8 @@ class TemperatureSystem:
         """
         Creates a vector with the right hand side entries,
         add explicit heat sources here.
-        Sources from outside the system
-        to the system must be defined negative.
+        Sources from outside the lib
+        to the lib must be defined negative.
         """
         for i, cell in enumerate(self.cells):
             cell.heat_rhs_dyn[:] = 0.0

@@ -1,10 +1,10 @@
-import settings.physical_properties as phy_prop
-import settings.geometry as geom
-import settings.simulation as sim
-import settings.operating_conditions as op_con
-import settings.output as out
+from settings import physical_properties as phy_prop
+from settings import geometry as geom
+from settings import simulation as sim
+from settings import operating_conditions as op_con
+from settings import output as out
 import data.global_parameters as g_par
-import system.species as species
+import lib.species as species
 import copy
 
 
