@@ -1,7 +1,4 @@
 import numpy as np
-print(__name__)
-print(__file__)
-print(__package__)
 from data import global_parameters as g_par
 from . import cell as cl
 from . import electrical_coupling as el_cpl
