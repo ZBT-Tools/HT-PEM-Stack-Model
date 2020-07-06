@@ -1,14 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-import errno
-import lib.interpolation as ip
-import settings.geometry as geom
+import pemfc.src.interpolation as ip
 import shutil
-import data.global_parameters as g_par
-import lib.global_functions as g_func
-import lib.stack as stack
-import lib.output_object as oo
+import pemfc.src.global_functions as g_func
+import pemfc.src.stack as stack
 from itertools import cycle, islice
 import matplotlib
 # configure backend here
@@ -35,7 +31,7 @@ class Output:
         self.delimiter = ','
         self.csv_format = '%.9e'
         # object of the class Stack
-        self.output_dir = os.path.join(os.path.dirname(__file__), 'output')
+        self.output_dir = os.path.join(os.getcwd(), 'output')
 
         if not os.path.exists(self.output_dir):
             os.makedirs(self.output_dir)

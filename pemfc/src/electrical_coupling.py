@@ -109,7 +109,7 @@ class ElectricalCoupling:
 
     def calc_boundary_condition(self):
         """
-        Updates the right hand side of the linear lib.
+        Updates the right hand side of the linear src.
         """
         cell_0 = self.cells[0]
         if self.current_control:

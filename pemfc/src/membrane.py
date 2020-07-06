@@ -1,7 +1,6 @@
 import numpy as np
 from abc import ABC, abstractmethod
-from . import layers as layers
-from . import constants
+from . import layers as layers, constants
 
 
 class Membrane(ABC, layers.SolidLayer):

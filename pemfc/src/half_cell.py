@@ -1,12 +1,8 @@
 import warnings
 import numpy as np
 from scipy import optimize
-from . import global_functions as g_func
-from . import fluid as fluids
-from . import layers as layers
-from . import interpolation as ip
-from . import constants
-
+from . import interpolation as ip, layers as layers, constants, \
+    global_functions as g_func, fluid as fluids
 
 warnings.filterwarnings("ignore")
 
@@ -199,7 +195,7 @@ class HalfCell:
             self.channel.mass_source[:], self.channel.mole_source[:] = \
                 self.calc_mass_source(current_density)
             if channel_update:
-                self.channel.update()
+                self.channel.run()
             self.update_voltage_loss(corrected_current_density)
 
             # calculate stoichiometry

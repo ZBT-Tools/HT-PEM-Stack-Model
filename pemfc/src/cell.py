@@ -1,9 +1,6 @@
 import numpy as np
-from . import global_functions as g_func
-from . import half_cell as h_c
-from . import matrix_functions as mtx
-from . import membrane as membrane
-from . import interpolation as ip
+from . import interpolation as ip, matrix_functions as mtx, half_cell as h_c, \
+    global_functions as g_func, membrane as membrane
 from .output_object import OutputObject
 import copy
 
@@ -33,6 +30,7 @@ class Cell(OutputObject):
         self.urf = cell_dict['underrelaxation_factor']
 
         self.e_0 = cell_dict['open_circuit_voltage']
+        self.e_tn = cell_dict['thermoneutral_voltage']
 
         self.width = self.cell_dict['width']
         self.length = self.cell_dict['length']

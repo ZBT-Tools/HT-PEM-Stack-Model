@@ -1,11 +1,8 @@
-from settings import physical_properties as phy_prop
-from settings import geometry as geom
-from settings import simulation as sim
-from settings import operating_conditions as op_con
-from settings import output as out
-import lib.species as species
-import copy
+from ..settings import simulation as sim, operating_conditions as op_con, \
+    output as out, geometry as geom, physical_properties as phy_prop
+from ..src import species
 
+nodes = sim.elements + 1
 
 dict_stack = {
     'cell_number': geom.cell_number,
@@ -17,11 +14,15 @@ dict_stack = {
     'init_current_density': op_con.current_density
     }
 
-simulation_dict = {
+dict_simulation = {
     'maximum_iteration': sim.maximum_iteration_number,
     'minimum_iteration': sim.minimum_iteration_number,
-    'iteration_criteria': sim.convergence_criteria
-    }
+    'iteration_criteria': sim.convergence_criteria,
+    'current_control': op_con.current_control,
+    'nodes': nodes,
+    'current_density': getattr(op_con, 'current_density', None),
+    'average_cell_voltage': getattr(op_con, 'average_cell_voltage', None)
+}
 
 dict_cell = {
     'th_mem': geom.membrane_thickness,
@@ -42,7 +43,8 @@ dict_cell = {
     'mem_acl_r': phy_prop.membrane_temperature_coefficient,
     'temp_init': op_con.temp_initial,
     'underrelaxation_factor': sim.underrelaxation_factor,
-    'open_circuit_voltage': op_con.open_circuit_voltage
+    'open_circuit_voltage': op_con.open_circuit_voltage,
+    'thermoneutral_voltage': phy_prop.v_thermo_neutral
     }
 
 dict_membrane = {
@@ -121,7 +123,7 @@ dict_cathode_fluid = {
     'inlet_composition': op_con.cathode_inlet_composition,
     'temp_init': op_con.temp_cathode_in,
     'press_init': op_con.p_manifold_cathode_out,
-    'nodes': sim.elements + 1
+    'nodes': nodes
     }
 
 dict_anode_fluid = {
@@ -130,7 +132,7 @@ dict_anode_fluid = {
     'inlet_composition': op_con.anode_inlet_composition,
     'temp_init': op_con.temp_anode_in,
     'press_init': op_con.p_manifold_anode_out,
-    'nodes': sim.elements + 1
+    'nodes': nodes
     }
 
 dict_cathode_channel = {
@@ -258,7 +260,7 @@ dict_coolant_fluid = {
                                    phy_prop.thermal_conductivity_coolant),
     'temp_init': op_con.temp_coolant_in,
     'press_init': op_con.p_manifold_anode_out,
-    'nodes': sim.elements + 1
+    'nodes': nodes
     }
 
 dict_coolant_channel = {

@@ -1,16 +1,12 @@
-import settings.operating_conditions as op_con
-import lib.stack as stack
 import numpy as np
-import data.global_parameters as g_par
 import cProfile
-import data.input_dicts as input_dicts
 import copy
 import sys
-import lib.channel as chl
-import lib.fluid as fluid
-import lib.flow_circuit as flow_circuit
+import pemfc.src.channel as chl
+import pemfc.src.fluid as fluid
+import pemfc.src.flow_circuit as flow_circuit
 import matplotlib.pyplot as plt
-import lib.interpolation as ip
+import pemfc.src.interpolation as ip
 
 np.set_printoptions(threshold=sys.maxsize, linewidth=10000,
                     precision=9, suppress=True)
@@ -114,7 +110,7 @@ x = (ip.interpolate_1d(flow_model.manifolds[0].x)
     / (flow_model.manifolds[0].length - flow_model.manifolds[0].dx[0])
 # x = flow_model.manifolds[0].x / flow_model.manifolds[0].length
 
-flow_model.update(inlet_mass_flow=0.000449642)
+flow_model.run(inlet_mass_flow=0.000449642)
 q = (flow_model.normalized_flow_distribution - 1.0) * 100.0
 reynolds = flow_model.manifolds[0].reynolds[0]
 plt.plot(x, q, label='Re={0:.2f}'.format(reynolds), color='k')

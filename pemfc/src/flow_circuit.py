@@ -1,8 +1,6 @@
 import numpy as np
-from . import interpolation as ip
-from . import global_functions as g_func
-from . import channel as chl
-from . import output_object as oo
+from . import interpolation as ip, global_functions as g_func, \
+    channel as chl, output_object as oo
 from abc import ABC, abstractmethod
 
 
@@ -170,8 +168,8 @@ class ParallelFlowCircuit(ABC, oo.OutputObject):
             np.asarray([chnl.g_fluid[chnl.id_out] * chnl.temp[chnl.id_out]
                         for chnl in self.channels]) * self.n_subchannels
         self.manifolds[1].update(mass_flow_in=0.0, mass_source=mass_source,
-                                 update_heat=False,
-                                 enthalpy_source=channel_enthalpy_out)
+                              update_heat=False,
+                              enthalpy_source=channel_enthalpy_out)
 
         # # dask channel update
         # def update(channel, manifold_in, manifold_out,
@@ -202,7 +200,7 @@ class ParallelFlowCircuit(ABC, oo.OutputObject):
             channel.temp[channel.id_in] = self.manifolds[0].temp_ele[i]
             channel.update(mass_flow_in=
                            channel_mass_flow_in[i]/self.n_subchannels,
-                           update_heat=False)
+                        update_heat=False)
         # print('Python time: ', timeit.default_timer() - start_time)
         
         # Inlet header update
@@ -216,7 +214,7 @@ class ParallelFlowCircuit(ABC, oo.OutputObject):
             mass_fraction = 1.0
         mass_source = -self.channel_mass_flow * mass_fraction
         self.manifolds[0].update(mass_flow_in=self.mass_flow_in,
-                                 mass_source=mass_source, update_heat=False)
+                              mass_source=mass_source, update_heat=False)
         id_in = self.manifolds[0].id_in
         self.vol_flow_in = \
             self.mass_flow_in / self.manifolds[0].fluid.density[id_in]

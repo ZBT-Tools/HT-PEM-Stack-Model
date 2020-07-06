@@ -1,12 +1,10 @@
 import numpy as np
-from . import fluid as fluids
-from . import global_functions as g_func
-from . import interpolation as ip
+from . import interpolation as ip, global_functions as g_func, \
+    fluid as fluids, flow_resistance as fr, output_object as oo
 from abc import ABC, abstractmethod
-from . import output_object as oo
-from . import flow_resistance as fr
+
 try:
-    import lib.channel_heat_transfer as cht
+    import pemfc.channel_heat_transfer as cht
     CHT_FOUND = True
 except ModuleNotFoundError:
     CHT_FOUND = False

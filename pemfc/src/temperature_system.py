@@ -3,11 +3,9 @@ import copy
 from scipy import linalg as sp_la
 from scipy import sparse
 from scipy.sparse.linalg import spsolve
-from data import global_parameters as g_par
-from . import global_functions as g_func
-from . import matrix_functions as mtx
-from . import channel as chl
-from . import cell as fcell
+from . import matrix_functions as mtx, cell as fcell, \
+    global_functions as g_func, channel as chl
+
 # import pandas as pd
 # from numba import jit
 
@@ -27,7 +25,7 @@ class TemperatureSystem:
         # use SciPy sparse solver, efficient for larger sparse matrices
         self.sparse_solve = True
 
-        # instead of solving the completely coupled temperature lib at once
+        # instead of solving the completely coupled temperature src at once
         # solve the decoupled cell-wise temperature systems and iterate
         # however not working yet!!!
         self.solve_individual_cells = False
@@ -50,9 +48,9 @@ class TemperatureSystem:
                 self.cool_ch_bc = False
             self.n_cool_sub_channels = stack.coolant_circuit.n_subchannels
 
-        self.e_tn = g_par.dict_case['v_tn']
+        self.e_tn = self.cells[0].e_tn
         # thermodynamic neutral cell potential
-        self.e_0 = g_par.dict_case['e_0']
+        self.e_0 = self.cells[0].e_0
         # open circuit potential
 
         self.mtx_const = None
@@ -64,7 +62,7 @@ class TemperatureSystem:
             np.hstack([cell.heat_rhs for cell in self.cells])
         # unsorted result layer temperature vector
         self.rhs = np.zeros(np.shape(self.temp_layer_vec))
-        # right side of the matrix lib: mat T = rhs,
+        # right side of the matrix src: mat T = rhs,
         # contains the power sources and explicit coupled terms
 
         """Building up the result temperature list and arrays"""
@@ -161,8 +159,8 @@ class TemperatureSystem:
         """
         Creates a vector with the right hand side entries,
         add explicit heat sources here.
-        Sources from outside the lib
-        to the lib must be defined negative.
+        Sources from outside the src
+        to the src must be defined negative.
         """
         for i, cell in enumerate(self.cells):
             cell.heat_rhs_dyn[:] = 0.0

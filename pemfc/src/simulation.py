@@ -1,18 +1,11 @@
-import settings.operating_conditions as op_con
-import lib.stack as stack
+import os
 import numpy as np
-import data.global_parameters as g_par
 import cProfile
 import timeit
-import data.input_dicts as input_dicts
-import lib.output_object as out_obj
-import output
-import os
-import sys
 
-np.set_printoptions(threshold=sys.maxsize, linewidth=10000,
-                    precision=9, suppress=True)
-np.seterr(all='raise')
+from . import stack
+from . import output
+from ..data import input_dicts
 
 
 def do_c_profile(func):
@@ -30,8 +23,8 @@ def do_c_profile(func):
 
 class Simulation:
 
-    def __init__(self, dict_simulation):
-        # Handover
+    def __init__(self, ):
+        dict_simulation = input_dicts.dict_simulation
         self.it_crit = dict_simulation['iteration_criteria']
         # iteration criteria
         self.max_it = dict_simulation['maximum_iteration']
@@ -45,22 +38,29 @@ class Simulation:
 
         """General variables"""
         # initialize stack object
-        self.current_control = g_par.dict_case['current_control']
-        self.stack = stack.Stack(current_control=self.current_control)
+        n_nodes = dict_simulation['nodes']
+        self.current_control = dict_simulation.get('current_control', True)
+        self.stack = stack.Stack(n_nodes, current_control=self.current_control)
+        self.current_density = dict_simulation['current_density']
+        self.average_cell_voltage = dict_simulation['average_cell_voltage']
+        if self.current_control and self.current_density is None:
+            raise ValueError('parameter current_density must be provided')
+        elif not self.current_density and self.average_cell_voltage is None:
+            raise ValueError('parameter average_cell_voltage must be provided')
 
         # initialize output object
         output_dict = input_dicts.dict_output
         self.output = output.Output(output_dict)
 
     @do_c_profile
-    def update(self):
+    def run(self):
         """
         This function coordinates the program sequence
         """
         if self.current_control:
-            target_value = op_con.current_density
+            target_value = self.current_density
         else:
-            target_value = op_con.average_cell_voltage * self.stack.n_cells
+            target_value = self.average_cell_voltage * self.stack.n_cells
         if not isinstance(target_value, (list, tuple, np.ndarray)):
             target_value = [target_value]
         cell_voltages = []
@@ -68,11 +68,9 @@ class Simulation:
         for i, tar_value in enumerate(target_value):
             current_errors = []
             temp_errors = []
-            # g_par.dict_case['tar_cd'] = tar_cd
             simulation_start_time = timeit.default_timer()
             counter = 0
             while True:
-                g_par.iteration = counter
                 if counter == 0:
                     if self.current_control:
                         self.stack.update(current_density=tar_value)
@@ -153,7 +151,8 @@ class Simulation:
         voltage_loss['diffusion']['GDL']['anode']['cells'] = \
             np.asarray([cell.anode.v_loss_gdl_diff for cell in fc_stack.cells])
         voltage_loss['diffusion']['GDL']['cathode']['cells'] = \
-            np.asarray([cell.cathode.v_loss_gdl_diff for cell in fc_stack.cells])
+            np.asarray([cell.cathode.v_loss_gdl_diff
+                        for cell in fc_stack.cells])
         voltage_loss['membrane']['cells'] = \
             np.asarray([cell.membrane.v_loss for cell in fc_stack.cells])
 
@@ -191,30 +190,3 @@ class Simulation:
                             - self.stack.temp_sys.temp_layer_vec)
                           / self.stack.temp_sys.temp_layer_vec) ** 2.0))
         return current_error, temp_error
-
-
-start_time = timeit.default_timer()
-simulation = Simulation(input_dicts.simulation_dict)
-simulation.timing['start'] = start_time
-simulation.timing['initialization'] = timeit.default_timer()
-# simulation.timing['start'] = start_time
-simulation.update()
-print('Initialization time: ',
-      simulation.timing['initialization'] - simulation.timing['start'])
-print('Simulation time: ', simulation.timing['simulation'])
-print('Output time: ', simulation.timing['output'])
-stop_time = timeit.default_timer()
-print('Total time:', stop_time - start_time)
-print('Stack Voltage [V]: ', simulation.stack.v_stack)
-print('Average Cell Voltage [V]: ',
-      simulation.stack.v_stack/simulation.stack.n_cells)
-print('Minimum Cell Voltage [V]: ', np.min(simulation.stack.v))
-print('Maximum Cell Voltage [V]: ', np.max(simulation.stack.v))
-average_current_density = \
-    np.average([np.average(cell.i_cd, weights=cell.active_area_dx)
-                for cell in simulation.stack.cells])
-print('Stack current density [A/m²]: ', average_current_density)
-average_current = \
-    average_current_density * simulation.stack.cells[0].active_area
-print('Stack power [W]: ', simulation.stack.v_stack * average_current)
-

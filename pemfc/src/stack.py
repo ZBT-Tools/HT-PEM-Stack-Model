@@ -1,24 +1,18 @@
 import numpy as np
-from data import global_parameters as g_par
-from . import cell as cl
-from . import electrical_coupling as el_cpl
-from . import temperature_system as therm_cpl
-from . import flow_circuit as flow_circuit
-from . import channel as chl
-from . import fluid as fluid
-from data import input_dicts as in_dicts
+from . import electrical_coupling as el_cpl, flow_circuit as flow_circuit, \
+    cell as cl, temperature_system as therm_cpl, fluid as fluid, channel as chl
+from ..data import input_dicts as in_dicts
 
 
 class Stack:
 
-    def __init__(self, current_control=False):
+    def __init__(self, n_nodes, current_control=False):
 
         # Read settings dictionaries
         stack_dict = in_dicts.dict_stack
 
         self.n_cells = stack_dict['cell_number']
         # number of cells of the stack
-        n_nodes = g_par.dict_case['nodes']
         n_ele = n_nodes - 1
         # node points/elements along the x-axis
         self.calc_temp = stack_dict['calc_temperature']
@@ -167,7 +161,7 @@ class Stack:
 
         # Initialize the electrical coupling
         self.elec_sys = el_cpl.ElectricalCoupling(self)
-        # Initialize temperature lib
+        # Initialize temperature src
         self.temp_sys = therm_cpl.TemperatureSystem(self, temperature_dict)
 
         """boolean alarms"""

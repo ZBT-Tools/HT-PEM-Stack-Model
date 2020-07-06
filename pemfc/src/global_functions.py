@@ -3,7 +3,6 @@ from scipy import ndimage
 from . import constants
 
 
-
 def ensure_list(variable):
     if isinstance(variable, (list, tuple)):
         return variable
