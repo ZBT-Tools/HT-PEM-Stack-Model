@@ -1,9 +1,9 @@
 import numpy as np
-from data import global_parameters as g_par
 from . import global_functions as g_func
 from abc import ABC, abstractmethod
 from lib.output_object import OutputObject
-from . import species as species
+from . import species
+from . import constants
 
 
 class OneDimensionalFluid(ABC, OutputObject):
@@ -273,7 +273,7 @@ class GasMixture(OneDimensionalFluid):
         self.name = name
         species_names = list(species_dict.keys())
         # self.n_species = len(species_names)
-        self.gas_constant = g_par.constants['R']
+        self.gas_constant = constants.GAS_CONSTANT
         self.species = species.GasProperties(species_names)
         self.n_species = len(self.species.names)
         self.species_viscosity = \
@@ -603,7 +603,7 @@ class TwoPhaseMixture(OneDimensionalFluid):
                method='ideal', *args, **kwargs):
         super().update(temperature, pressure)
         if mole_composition is not None:
-            if np.max(mole_composition) > g_par.SMALL:
+            if np.max(mole_composition) > constants.SMALL:
                 self._mole_fraction[:] = \
                     self.gas.calc_mole_fraction(mole_composition)
 

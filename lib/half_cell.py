@@ -1,11 +1,11 @@
 import warnings
 import numpy as np
 from scipy import optimize
-from data import global_parameters as g_par
 from . import global_functions as g_func
 from . import fluid as fluids
 from . import layers as layers
 from . import interpolation as ip
+from . import constants
 
 
 warnings.filterwarnings("ignore")
@@ -19,7 +19,7 @@ class HalfCell:
     def __init__(self, halfcell_dict, cell_dict, channel, number=None):
         self.number = number
         self.name = halfcell_dict['name']
-        self.n_nodes = g_par.dict_case['nodes']
+        self.n_nodes = channel.n_nodes
         n_ele = self.n_nodes - 1
         self.n_ele = n_ele
         # Discretization in elements and nodes along the x-axis (flow axis)
@@ -75,7 +75,7 @@ class HalfCell:
             self.inlet_composition[self.id_inert] \
             / self.inlet_composition[self.id_fuel]
 
-        self.faraday = g_par.constants['F']
+        self.faraday = constants.FARADAY
         # self.target_cd = g_par.dict_case['target_current_density']
 
         self.is_cathode = halfcell_dict['is_cathode']
@@ -147,8 +147,8 @@ class HalfCell:
         # at channel inlet (calculated when inlet concentration is known)
         self.i_lim_star = None
         # numerical parameter for tangent line extension at limiting current
-        self.conc_eps = g_par.dict_case['c_eps']
-        self.delta_i = g_par.dict_case['delta_i']
+        self.conc_eps = halfcell_dict['c_eps']
+        self.delta_i = halfcell_dict['delta_i']
         # critical local current density where Kulikovsky model transitions
         # into linear tangent line near limiting current
         self.i_crit = np.zeros(n_ele)
@@ -327,8 +327,8 @@ class HalfCell:
         np.seterr(divide='ignore')
         try:
             v_loss_act = \
-                np.where(np.logical_and(current_density > g_par.SMALL,
-                                        conc > g_par.SMALL),
+                np.where(np.logical_and(current_density > constants.SMALL,
+                                        conc > constants.SMALL),
                          self.tafel_slope
                          * np.arcsinh((current_density / self.i_sigma) ** 2.
                                       / (2. * conc

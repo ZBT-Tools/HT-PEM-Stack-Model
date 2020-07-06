@@ -1,6 +1,4 @@
 import numpy as np
-from data import global_parameters as g_par
-from . import global_functions as g_func
 from scipy import sparse
 from scipy.sparse.linalg import spsolve
 from . import matrix_functions as mtx

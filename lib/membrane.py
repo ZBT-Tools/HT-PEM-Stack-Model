@@ -1,7 +1,7 @@
 import numpy as np
 from abc import ABC, abstractmethod
 from . import layers as layers
-from data import global_parameters as g_par
+from . import constants
 
 
 class Membrane(ABC, layers.SolidLayer):
@@ -61,7 +61,7 @@ class WaterTransportMembrane(Membrane, ABC):
         self.vapour_coeff = membrane_dict['vapour transport coefficient']
         self.acid_group_conc = membrane_dict['acid group concentration']
         self.w_cross_flow = np.zeros(self.dx.shape)
-        self.faraday_const = g_par.constants['F']
+        self.faraday_const = constants.FARADAY
         # water cross flux through the membrane
 
     def calc_cross_water_flux(self, current_density, humidity):

@@ -1,5 +1,4 @@
 import numpy as np
-from data import global_parameters as g_par
 from . import interpolation as ip
 from . import global_functions as g_func
 from . import channel as chl
@@ -293,7 +292,7 @@ class ModifiedKohFlowCircuit(KohFlowCircuit):
                  n_subchannels=1.0):
         super().__init__(dict_flow_circuit, manifolds, channels,
                          n_subchannels)
-        self.urf = g_par.dict_case.get('underrelaxation_factor', 0.5)
+        self.urf = dict_flow_circuit.get('underrelaxation_factor', 0.5)
 
     def single_loop(self, inlet_mass_flow=None, update_channels=True):
         """

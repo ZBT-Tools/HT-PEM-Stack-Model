@@ -3,7 +3,6 @@ from settings import geometry as geom
 from settings import simulation as sim
 from settings import operating_conditions as op_con
 from settings import output as out
-import data.global_parameters as g_par
 import lib.species as species
 import copy
 
@@ -41,7 +40,9 @@ dict_cell = {
     'temp_cool_in': op_con.temp_coolant_in,
     'mem_base_r': phy_prop.membrane_basic_resistance,
     'mem_acl_r': phy_prop.membrane_temperature_coefficient,
-    'temp_init': op_con.temp_initial
+    'temp_init': op_con.temp_initial,
+    'underrelaxation_factor': sim.underrelaxation_factor,
+    'open_circuit_voltage': op_con.open_circuit_voltage
     }
 
 dict_membrane = {
@@ -82,7 +83,9 @@ dict_cathode = {
     'diff_coeff_gdl': phy_prop.oxygen_gas_diffusion_layer_diffusion_coefficient,
     'calc_act_loss': sim.calc_activation_loss,
     'calc_cl_diff_loss': sim.calc_cl_loss,
-    'calc_gdl_diff_loss': sim.calc_gdl_loss
+    'calc_gdl_diff_loss': sim.calc_gdl_loss,
+    'c_eps': sim.c_eps,
+    'delta_i': sim.delta_i
     }
 
 dict_anode = {
@@ -107,7 +110,9 @@ dict_anode = {
     'diff_coeff_gdl': phy_prop.hydrogen_diffusion_layer_diffusion_coefficient,
     'calc_act_loss': sim.calc_activation_loss,
     'calc_cl_diff_loss': sim.calc_cl_loss,
-    'calc_gdl_diff_loss': sim.calc_gdl_loss
+    'calc_gdl_diff_loss': sim.calc_gdl_loss,
+    'c_eps': sim.c_eps,
+    'delta_i': sim.delta_i
     }
 
 dict_cathode_fluid = {
@@ -116,7 +121,7 @@ dict_cathode_fluid = {
     'inlet_composition': op_con.cathode_inlet_composition,
     'temp_init': op_con.temp_cathode_in,
     'press_init': op_con.p_manifold_cathode_out,
-    'nodes': g_par.dict_case['nodes']
+    'nodes': sim.elements + 1
     }
 
 dict_anode_fluid = {
@@ -125,7 +130,7 @@ dict_anode_fluid = {
     'inlet_composition': op_con.anode_inlet_composition,
     'temp_init': op_con.temp_anode_in,
     'press_init': op_con.p_manifold_anode_out,
-    'nodes': g_par.dict_case['nodes']
+    'nodes': sim.elements + 1
     }
 
 dict_cathode_channel = {
@@ -192,8 +197,9 @@ dict_cathode_flow_circuit = {
     'calc_distribution': geom.calc_cathode_distribution,
     'tolerance': sim.convergence_criteria_flow,
     'min_iter': sim.minimum_iteration_number_flow,
-    'max_iter': sim.maximum_iteration_number_flow
-    }
+    'max_iter': sim.maximum_iteration_number_flow,
+    'underrelaxation_factor': sim.underrelaxation_factor
+}
 
 dict_anode_in_manifold = {
     'name': 'Anode Inlet Manifold',
@@ -235,7 +241,8 @@ dict_anode_flow_circuit = {
     'calc_distribution': geom.calc_anode_distribution,
     'tolerance': sim.convergence_criteria_flow,
     'min_iter': sim.minimum_iteration_number_flow,
-    'max_iter': sim.maximum_iteration_number_flow
+    'max_iter': sim.maximum_iteration_number_flow,
+    'underrelaxation_factor': sim.underrelaxation_factor
     }
 
 dict_coolant_fluid = {
@@ -251,7 +258,7 @@ dict_coolant_fluid = {
                                    phy_prop.thermal_conductivity_coolant),
     'temp_init': op_con.temp_coolant_in,
     'press_init': op_con.p_manifold_anode_out,
-    'nodes': g_par.dict_case['nodes']
+    'nodes': sim.elements + 1
     }
 
 dict_coolant_channel = {

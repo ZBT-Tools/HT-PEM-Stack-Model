@@ -1,11 +1,10 @@
 import numpy as np
-from data import global_parameters as g_par
 from . import global_functions as g_func
 from . import half_cell as h_c
 from . import matrix_functions as mtx
 from . import membrane as membrane
 from . import interpolation as ip
-from lib.output_object import OutputObject
+from .output_object import OutputObject
 import copy
 
 
@@ -26,14 +25,14 @@ class Cell(OutputObject):
 
         if self.last_cell:
             self.n_layer += 1
-        n_nodes = g_par.dict_case['nodes']
+        n_nodes = channels[0].n_nodes
         # number of nodes along the channel
         self.n_ele = n_nodes - 1
 
         # underrelaxation factor
-        self.urf = g_par.dict_case['underrelaxation_factor']
+        self.urf = cell_dict['underrelaxation_factor']
 
-        self.e_0 = g_par.dict_case['e_0']
+        self.e_0 = cell_dict['open_circuit_voltage']
 
         self.width = self.cell_dict['width']
         self.length = self.cell_dict['length']
@@ -48,7 +47,7 @@ class Cell(OutputObject):
 
         self.half_cells = [h_c.HalfCell(half_cell_dicts[i], cell_dict,
                                         channels[i], number=self.number)
-                           for i in range(2)]
+                           for i in range(len(channels))]
         self.cathode = self.half_cells[0]
         self.anode = self.half_cells[1]
 

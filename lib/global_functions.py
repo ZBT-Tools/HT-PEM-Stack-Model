@@ -1,7 +1,7 @@
 import numpy as np
 from scipy import ndimage
+from . import constants
 
-SMALL = 1e-12
 
 
 def ensure_list(variable):
@@ -87,7 +87,7 @@ def fill_last_zeros(array, axis=-1, axis_sum=None):
         axis_sum = np.abs(np.sum(array, axis=0))
     shape = array.shape
     prev = np.arange(shape[-1])
-    prev[axis_sum < SMALL] = 0
+    prev[axis_sum < constants.SMALL] = 0
     prev = np.maximum.accumulate(prev)
     return array[:, prev]
 
@@ -132,7 +132,7 @@ def fill_surrounding_average_1d(array, axis=0):
     mask_array = np.sum(np.abs(array), axis) * np.ones(array.shape)
     averaged = ndimage.generic_filter(array, np.nanmean, footprint=footprint,
                                       mode='constant', cval=np.NaN)
-    return np.where(mask_array < SMALL, averaged, array)
+    return np.where(mask_array < constants.SMALL, averaged, array)
 
 
 def construct_empty_stack_array(cell_array, n_cells):
