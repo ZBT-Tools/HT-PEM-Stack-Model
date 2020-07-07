@@ -1,8 +1,8 @@
 import numpy as np
 import sys
 import copy
-from pemfc import Channel
-from pemfc import fluids
+from pemfc import channel
+from pemfc import fluid
 import pemfc.src.species as species
 import matplotlib.pyplot as plt
 import pemfc.src.interpolation as ip
@@ -19,6 +19,7 @@ mass_flow_water = 0.002
 wall_temp = None  # 380
 # wall_temp_1 = 380.0
 # wall_temp_2 = 420.0
+heat_flux = 1000.0  # W/m²
 
 inlet_temperature = 293.15
 outlet_pressure = 101325.0
@@ -75,14 +76,14 @@ channel_dict = {
     'additional_friction_fractor': 0.01
     }
 
-hydrogen = fluids.dict_factory(hydrogen_dict)
-air = fluids.dict_factory(air_dict)
-water = fluids.dict_factory(water_dict)
+hydrogen = fluid.dict_factory(hydrogen_dict)
+air = fluid.dict_factory(air_dict)
+water = fluid.dict_factory(water_dict)
 fluids = [hydrogen, air, water]
 
 channel_dicts = [copy.deepcopy(channel_dict) for i in range(3)]
 
-channels = [chl.Channel(channel_dicts[i], fluids[i]) for i in range(3)]
+channels = [channel.Channel(channel_dicts[i], fluids[i]) for i in range(3)]
 
 
 error = 1e5

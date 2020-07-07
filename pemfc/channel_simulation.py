@@ -1,11 +1,11 @@
 import numpy as np
 import sys
 import copy
-import pemfc.src.channel as chl
-import pemfc.src.fluid as fluids
-import pemfc.src.species as species
+from pemfc import channel as chl
+from pemfc import fluid as fluids
+from pemfc import species as species
 import matplotlib.pyplot as plt
-import pemfc.src.interpolation as ip
+from pemfc import interpolation as ip
 
 np.set_printoptions(threshold=sys.maxsize, linewidth=10000,
                     precision=9, suppress=True)
