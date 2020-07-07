@@ -3,9 +3,9 @@ import sys
 import copy
 from pemfc import channel
 from pemfc import fluid
-import pemfc.src.species as species
+from pemfc import species
 import matplotlib.pyplot as plt
-import pemfc.src.interpolation as ip
+from pemfc import interpolation as ip
 
 np.set_printoptions(threshold=sys.maxsize, linewidth=10000,
                     precision=9, suppress=True)
