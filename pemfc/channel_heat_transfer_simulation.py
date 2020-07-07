@@ -1,10 +1,13 @@
+# general imports
 import numpy as np
 import sys
 import copy
+import matplotlib.pyplot as plt
+
+# local modul imports
 from pemfc import channel
 from pemfc import fluid
 from pemfc import species
-import matplotlib.pyplot as plt
 from pemfc import interpolation as ip
 
 np.set_printoptions(threshold=sys.maxsize, linewidth=10000,
