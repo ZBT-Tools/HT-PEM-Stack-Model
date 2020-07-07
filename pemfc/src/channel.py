@@ -1,7 +1,10 @@
+# general imports
 import numpy as np
+from abc import ABC, abstractmethod
+
+# local modul imports
 from . import interpolation as ip, global_functions as g_func, \
     fluid as fluids, flow_resistance as fr, output_object as oo
-from abc import ABC, abstractmethod
 
 try:
     import pemfc.channel_heat_transfer as cht

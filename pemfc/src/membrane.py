@@ -1,5 +1,8 @@
+# general imports
 import numpy as np
 from abc import ABC, abstractmethod
+
+# local module imports
 from . import layers as layers, constants
 
 

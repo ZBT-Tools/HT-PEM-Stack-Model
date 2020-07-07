@@ -1,5 +1,8 @@
+# general imports
 import numpy as np
 from scipy import ndimage
+
+# local module imports
 from . import constants
 
 

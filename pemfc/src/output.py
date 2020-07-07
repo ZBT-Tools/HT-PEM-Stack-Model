@@ -1,12 +1,16 @@
+# general imports
 import numpy as np
-import matplotlib.pyplot as plt
 import os
-import pemfc.src.interpolation as ip
 import shutil
-import pemfc.src.global_functions as g_func
-import pemfc.src.stack as stack
 from itertools import cycle, islice
 import matplotlib
+import matplotlib.pyplot as plt
+
+# local module imports
+from . import interpolation as ip
+from . import global_functions as g_func
+from . import stack as stack
+
 # configure backend here
 matplotlib.use('Agg')
 

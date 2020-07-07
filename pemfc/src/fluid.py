@@ -1,5 +1,8 @@
+# general imports
 import numpy as np
 from abc import ABC, abstractmethod
+
+# local module imports
 from .output_object import OutputObject
 from . import constants, global_functions as g_func, species
 

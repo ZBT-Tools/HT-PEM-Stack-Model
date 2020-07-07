@@ -1,7 +1,10 @@
+# general imports
 import numpy as np
+from abc import ABC, abstractmethod
+
+# local module imports
 from . import interpolation as ip, global_functions as g_func, \
     channel as chl, output_object as oo
-from abc import ABC, abstractmethod
 
 
 class ParallelFlowCircuit(ABC, oo.OutputObject):

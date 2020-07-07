@@ -1,6 +1,9 @@
+# general imports
 import numpy as np
 from scipy import sparse
 from scipy.sparse.linalg import spsolve
+
+# local module imports
 from . import matrix_functions as mtx
 
 

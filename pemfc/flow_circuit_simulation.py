@@ -1,12 +1,15 @@
+# general imports
 import numpy as np
 import cProfile
 import copy
 import sys
-import pemfc.src.channel as chl
-import pemfc.src.fluid as fluid
-import pemfc.src.flow_circuit as flow_circuit
 import matplotlib.pyplot as plt
-import pemfc.src.interpolation as ip
+
+# local module imports
+from pemfc import channel as chl
+from pemfc import fluid as fluid
+from pemfc import flow_circuit as flow_circuit
+from pemfc import interpolation as ip
 
 np.set_printoptions(threshold=sys.maxsize, linewidth=10000,
                     precision=9, suppress=True)

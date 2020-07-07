@@ -1,9 +1,11 @@
+# general imports
 import numpy as np
+import copy
+
+# local modul imports
 from . import interpolation as ip, matrix_functions as mtx, half_cell as h_c, \
     global_functions as g_func, membrane as membrane
 from .output_object import OutputObject
-import copy
-
 
 class Cell(OutputObject):
 

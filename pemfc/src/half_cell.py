@@ -1,6 +1,9 @@
+# general imports
 import warnings
 import numpy as np
 from scipy import optimize
+
+# local module imports
 from . import interpolation as ip, layers as layers, constants, \
     global_functions as g_func, fluid as fluids
 

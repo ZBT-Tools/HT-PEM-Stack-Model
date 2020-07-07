@@ -1,7 +1,10 @@
+# general imports
 import numpy as np
-from ..data import material_properties as mat_prop
 from numpy.polynomial.polynomial import polyval
 from abc import ABC, abstractmethod
+
+# local module imports
+from ..data import material_properties as mat_prop
 from . import global_functions as g_func
 
 

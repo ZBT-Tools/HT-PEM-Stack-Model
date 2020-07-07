@@ -1,5 +1,8 @@
+# general imports
 from abc import ABC
 import numpy as np
+
+# local module imports
 from . import interpolation as ip
 
 

@@ -1,8 +1,11 @@
+# general imports
 import numpy as np
 import copy
 from scipy import linalg as sp_la
 from scipy import sparse
 from scipy.sparse.linalg import spsolve
+
+# local module imports
 from . import matrix_functions as mtx, cell as fcell, \
     global_functions as g_func, channel as chl
 

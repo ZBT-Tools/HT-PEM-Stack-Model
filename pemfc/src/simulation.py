@@ -1,8 +1,10 @@
+# general imports
 import os
 import numpy as np
 import cProfile
 import timeit
 
+# local module imports
 from . import stack
 from . import output
 from ..data import input_dicts
