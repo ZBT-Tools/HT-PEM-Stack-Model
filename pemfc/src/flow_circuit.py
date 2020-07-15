@@ -482,8 +482,8 @@ class WangFlowCircuit(ParallelFlowCircuit):
         #     self.channel_vol_flow)/self.n_channels))
 
 
-def factory2(dict_circuit, dict_in_manifold, dict_out_manifold,
-             channels, channel_multiplier=1.0):
+def factory(dict_circuit, dict_in_manifold, dict_out_manifold,
+            channels, channel_multiplier=1.0):
     if not isinstance(channels, (list, tuple)):
         raise TypeError('argument channels must be a list of type Channel')
     if not isinstance(channels[0], chl.Channel):

@@ -1,9 +1,7 @@
 # from .src import *
-from .data.gas_properties import *
-# from .data.global_parameters import *
-from .data.input_dicts import *
-from .data.material_properties import *
-from .data.water_properties import *
+from .data import gas_properties
+from .data import input_dicts
+from .data import material_properties
 
 from .src import cell
 from .src import channel

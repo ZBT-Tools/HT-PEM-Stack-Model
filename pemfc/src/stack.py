@@ -98,10 +98,10 @@ class Stack:
             manifold_out_dicts[i]['length'] = manifold_length
             sub_channel_number = self.cells[0].half_cells[i].n_channel
             self.fuel_circuits.append(
-                flow_circuit.factory2(flow_circuit_dicts[i],
-                                      manifold_in_dicts[i],
-                                      manifold_out_dicts[i],
-                                      channels[i], sub_channel_number))
+                flow_circuit.factory(flow_circuit_dicts[i],
+                                     manifold_in_dicts[i],
+                                     manifold_out_dicts[i],
+                                     channels[i], sub_channel_number))
 
         cool_flow = stack_dict['cool_flow']
         if cool_flow:
@@ -136,10 +136,10 @@ class Stack:
                 cool_channels[-1].height *= 0.5
             if n_cool > 0:
                 self.coolant_circuit = \
-                    flow_circuit.factory2(in_dicts.dict_coolant_flow_circuit,
-                                          in_dicts.dict_coolant_in_manifold,
-                                          in_dicts.dict_coolant_out_manifold,
-                                          cool_channels, n_cool_cell)
+                    flow_circuit.factory(in_dicts.dict_coolant_flow_circuit,
+                                         in_dicts.dict_coolant_in_manifold,
+                                         in_dicts.dict_coolant_out_manifold,
+                                         cool_channels, n_cool_cell)
             else:
                 self.coolant_circuit = None
         else:

@@ -34,7 +34,3 @@ ToDo:
 **Polarization Curve**
 -   Some automatization algorithm to fit given polarization curves
     using defined fitting-parameter should be implemented.
-  
-**Species Data**
--   Species data should be stored in a class structure
-    including phase as lower level classes.
