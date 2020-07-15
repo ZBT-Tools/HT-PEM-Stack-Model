@@ -136,8 +136,8 @@ plt.show()
 # np.savetxt('output/flow_distribution.txt',
 #            (flow_model.normalized_flow_distribution - 1.0) * 100.0)
 m_in = flow_model.manifolds[0]
-plt.plot(m_in.p - 101325.0, color='b')
+plt.plot(m_in.pressure - 101325.0, color='b')
 plt.show()
 m_out = flow_model.manifolds[1]
-plt.plot(m_out.p - 101325.0, color='r')
+plt.plot(m_out.pressure - 101325.0, color='r')
 plt.show()

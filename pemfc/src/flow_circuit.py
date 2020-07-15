@@ -168,7 +168,7 @@ class ParallelFlowCircuit(ABC, oo.OutputObject):
         mass_source = channel_mass_flow_out * mass_fraction
         # mass_source = self.channel_mass_flow * mass_fraction
         channel_enthalpy_out = \
-            np.asarray([chnl.g_fluid[chnl.id_out] * chnl.temp[chnl.id_out]
+            np.asarray([chnl.g_fluid[chnl.id_out] * chnl.temperature[chnl.id_out]
                         for chnl in self.channels]) * self.n_subchannels
         self.manifolds[1].update(mass_flow_in=0.0, mass_source=mass_source,
                               update_heat=False,
@@ -199,8 +199,8 @@ class ParallelFlowCircuit(ABC, oo.OutputObject):
         # start_time = timeit.default_timer()
         # Channel update
         for i, channel in enumerate(self.channels):
-            channel.p_out = ip.interpolate_1d(self.manifolds[1].p)[i]
-            channel.temp[channel.id_in] = self.manifolds[0].temp_ele[i]
+            channel.p_out = ip.interpolate_1d(self.manifolds[1].pressure)[i]
+            channel.temperature[channel.id_in] = self.manifolds[0].temp_ele[i]
             channel.update(mass_flow_in=
                            channel_mass_flow_in[i]/self.n_subchannels,
                         update_heat=False)
@@ -208,7 +208,7 @@ class ParallelFlowCircuit(ABC, oo.OutputObject):
         
         # Inlet header update
         id_in = self.channels[-1].id_in
-        self.manifolds[0].p_out = self.channels[-1].p[id_in]
+        self.manifolds[0].p_out = self.channels[-1].pressure[id_in]
         if self.multi_component:
             mass_fraction = \
                 ip.interpolate_along_axis(self.manifolds[0].fluid.mass_fraction,
@@ -234,7 +234,7 @@ class KohFlowCircuit(ParallelFlowCircuit):
         id_in = self.channels[-1].id_in
         id_out = self.channels[-1].id_out
         self.dp_ref = \
-            self.channels[-1].p[id_in] - self.channels[-1].p[id_out]
+            self.channels[-1].pressure[id_in] - self.channels[-1].pressure[id_out]
         self.k_perm = np.zeros(self.n_channels)
         self.l_by_a = np.array([channel.length / channel.cross_area
                                 for channel in self.channels])
@@ -250,7 +250,7 @@ class KohFlowCircuit(ParallelFlowCircuit):
         if update_channels:
             self.update_channels()
             self.dp_channel[:] = \
-                np.array([channel.p[channel.id_in] - channel.p[channel.id_out]
+                np.array([channel.pressure[channel.id_in] - channel.pressure[channel.id_out]
                           for channel in self.channels])
             self.channel_vol_flow[:] = \
                 np.array([np.average(channel.vol_flow)
@@ -261,8 +261,8 @@ class KohFlowCircuit(ParallelFlowCircuit):
                           for channel in self.channels])
         # velocity = np.array([np.average(channel.velocity)
         #                      for channel in self.channels])
-        p_in = ip.interpolate_1d(self.manifolds[0].p)
-        p_out = ip.interpolate_1d(self.manifolds[1].p)
+        p_in = ip.interpolate_1d(self.manifolds[0].pressure)
+        p_out = ip.interpolate_1d(self.manifolds[1].pressure)
         if np.any(self.channel_vol_flow == 0.0):
             raise ValueError('zero flow rates detected, '
                              'check boundary conditions')
@@ -274,7 +274,7 @@ class KohFlowCircuit(ParallelFlowCircuit):
         self.dp_ref = self.vol_flow_in / np.sum(self.alpha) * self.l_by_a \
             * self.visc_channel[-1] / self.k_perm[-1] / self.n_subchannels
         p_in += self.dp_ref \
-            + self.manifolds[1].p[self.manifolds[1].id_out] \
+            + self.manifolds[1].pressure[self.manifolds[1].id_out] \
             - self.manifolds[0].p_out
         self.alpha[:] = (p_in - p_out) / self.dp_ref
         self.channel_vol_flow[:] = (p_in - p_out) * self.k_perm \
@@ -304,7 +304,7 @@ class ModifiedKohFlowCircuit(KohFlowCircuit):
         if update_channels:
             self.update_channels()
             self.dp_channel[:] = \
-                np.array([channel.p[channel.id_in] - channel.p[channel.id_out]
+                np.array([channel.pressure[channel.id_in] - channel.pressure[channel.id_out]
                           for channel in self.channels])
             self.channel_vol_flow[:] = \
                 np.array([np.average(channel.vol_flow)
@@ -315,8 +315,8 @@ class ModifiedKohFlowCircuit(KohFlowCircuit):
                           for channel in self.channels])
         # velocity = np.array([np.average(channel.velocity)
         #                      for channel in self.channels])
-        p_in = ip.interpolate_1d(self.manifolds[0].p)
-        p_out = ip.interpolate_1d(self.manifolds[1].p)
+        p_in = ip.interpolate_1d(self.manifolds[0].pressure)
+        p_out = ip.interpolate_1d(self.manifolds[1].pressure)
         if np.any(self.channel_vol_flow == 0.0):
             raise ValueError('zero flow rates detected, '
                              'check boundary conditions')
