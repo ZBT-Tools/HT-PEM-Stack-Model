@@ -193,7 +193,7 @@ class ParallelFlowCircuit(ABC, oo.OutputObject):
             mass_fraction = 1.0
         mass_source = -self.channel_mass_flow * mass_fraction
         self.manifolds[0].update(mass_flow_in=self.mass_flow_in,
-                              mass_source=mass_source, update_heat=False)
+                                 mass_source=mass_source, update_heat=False)
         id_in = self.manifolds[0].id_in
         self.vol_flow_in = \
             self.mass_flow_in / self.manifolds[0].fluid.density[id_in]
