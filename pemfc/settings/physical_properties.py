@@ -36,7 +36,7 @@ membrane_temperature_coefficient = 7e-8
 # membrane basic conductivity [S/m] (for 'Constant'-Model)
 membrane_basic_conductivity = 5.0
 # bipolar plate conductivity [S/m]
-electrical_conductivity_bipolar_plate = 15000.0
+electrical_conductivity_bipolar_plate = 20.0
 # gas diffusion electrode material conductivity [S/m]
 electrical_conductivity_gde = 500.0
 

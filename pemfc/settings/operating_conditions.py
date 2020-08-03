@@ -9,7 +9,7 @@
 current_control = True
 
 # target current density [A/m^2]
-current_density = 14000.0
+current_density = 10000.0
 # current_density = \
 #     (445.5,	891.1,	1336.6,	1782.1,	2227.7,	2673.2,	3118.7,	3564.3,	4009.8,
 #      4455.3, 4900.9, 5346.4, 5569.2, 6683.0, 7128.5, 7574.1, 8019.6, 8465.1,
