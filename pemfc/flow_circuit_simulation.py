@@ -106,9 +106,9 @@ channels = [chl.Channel(channel_dict, fluid.dict_factory(constant_fluid_dict))
             for i in range(n_chl)]
 
 flow_model = \
-    flow_circuit.factory2(flow_circuit_dict, in_manifold_dict,
-                          out_manifold_dict, channels,
-                          channel_multiplier=n_subchl)
+    flow_circuit.factory(flow_circuit_dict, in_manifold_dict,
+                         out_manifold_dict, channels,
+                         channel_multiplier=n_subchl)
 
 
 x = (ip.interpolate_1d(flow_model.manifolds[0].x)
@@ -137,8 +137,8 @@ plt.show()
 # np.savetxt('output/flow_distribution.txt',
 #            (flow_model.normalized_flow_distribution - 1.0) * 100.0)
 m_in = flow_model.manifolds[0]
-plt.plot(m_in.p - 101325.0, color='b')
+plt.plot(m_in.pressure - 101325.0, color='b')
 plt.show()
 m_out = flow_model.manifolds[1]
-plt.plot(m_out.p - 101325.0, color='r')
+plt.plot(m_out.pressure - 101325.0, color='r')
 plt.show()

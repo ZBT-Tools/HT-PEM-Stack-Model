@@ -91,7 +91,7 @@ channels = [channel.Channel(channel_dicts[i], fluids[i]) for i in range(3)]
 
 error = 1e5
 iter_max = 50
-temp_old = np.asarray([channel.temp for channel in channels])
+temp_old = np.asarray([channel.temperature for channel in channels])
 mass_flows = [mass_flow_hydrogen, mass_flow_air, mass_flow_water]
 delta_temp = 30.0
 for i in range(iter_max):
@@ -103,8 +103,8 @@ for i in range(iter_max):
                        wall_temp=wall_temp)
         mass_flows[j] = np.sum(channel.heat) \
             / (np.average(channel.fluid.specific_heat) * delta_temp)
-        error += np.sum(np.abs(((temp_old[j] - channel.temp) / channel.temp)))
-        temp_old[j, :] = channel.temp
+        error += np.sum(np.abs(((temp_old[j] - channel.temperature) / channel.temperature)))
+        temp_old[j, :] = channel.temperature
 
 x = ip.interpolate_1d(channels[0].x)
 for channel in channels:
@@ -127,16 +127,16 @@ plt.show()
 print('Pumping Power:')
 for i, channel in enumerate(channels):
     print(channel.fluid.name + ': ',
-          np.average(channel.vol_flow) * (channel.p[channel.id_in]
-                                          - channel.p[channel.id_out]))
+          np.average(channel.vol_flow) * (channel.pressure[channel.id_in]
+                                          - channel.pressure[channel.id_out]))
 print('Mass Flows:')
 for i, channel in enumerate(channels):
     print(channel.fluid.name + ': ', np.average(channel.mass_flow_total))
 
 print('Pressure drop:')
 for i, channel in enumerate(channels):
-    print(channel.fluid.name + ': ', channel.p[channel.id_in]
-                                          - channel.p[channel.id_out])
+    print(channel.fluid.name + ': ', channel.pressure[channel.id_in]
+          - channel.pressure[channel.id_out])
 
 print('Flow Velocity:')
 for i, channel in enumerate(channels):

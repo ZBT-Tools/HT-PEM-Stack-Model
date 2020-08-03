@@ -296,7 +296,7 @@ class HalfCell:
         humidity_in = self.channel.fluid.humidity[id_in]
         sat_p = self.channel.fluid.saturation_pressure[id_in]
         mol_flow_in = air_flow_in * sat_p * humidity_in / \
-            (self.channel.p[id_in] - humidity_in * sat_p)
+            (self.channel.pressure[id_in] - humidity_in * sat_p)
         dmol = np.zeros_like(current_density)
         h2o_prod = self._active_area_dx * self.n_stoi[self.id_h2o] \
             * current_density / (self.n_charge * self.faraday)

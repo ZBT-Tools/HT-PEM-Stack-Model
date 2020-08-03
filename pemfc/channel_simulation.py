@@ -99,7 +99,7 @@ for j, channel in enumerate(channels):
 
 x = ip.interpolate_1d(channels[0].x)
 for channel in channels:
-    plt.plot(x, ip.interpolate_1d(channel.p),
+    plt.plot(x, ip.interpolate_1d(channel.pressure),
              label='Fluid Pressure - ' + channel.fluid.name)
 plt.xlabel('Channel Location [m]')
 plt.ylabel('Pressure [Pa]')
@@ -109,12 +109,12 @@ plt.show()
 
 print('Pressure:')
 for i, channel in enumerate(channels):
-    print(channel.fluid.name + ': ', channel.p)
+    print(channel.fluid.name + ': ', channel.pressure)
 
 print('Pressure drop:')
 for i, channel in enumerate(channels):
     print(channel.fluid.name + ': ',
-          channel.p[channel.id_in] - channel.p[channel.id_out])
+          channel.pressure[channel.id_in] - channel.pressure[channel.id_out])
 
 print('Flow Velocity:')
 for i, channel in enumerate(channels):

@@ -44,10 +44,10 @@ class Channel(ABC, oo.OutputObject):
         self.dx = np.diff(self.x)
         # element length
         self.p_out = channel_dict['p_out']
-        self.p = g_func.full(self.n_nodes, self.p_out)
+        self.pressure = g_func.full(self.n_nodes, self.p_out)
         # outlet and initial pressure
         self.temp_in = channel_dict['temp_in']
-        self.temp = g_func.full(self.n_nodes, self.temp_in)
+        self.temperature = g_func.full(self.n_nodes, self.temp_in)
         self.temp_ele = g_func.full(self.n_ele, self.temp_in)
         # inlet temperature
 
@@ -273,7 +273,8 @@ class Channel(ABC, oo.OutputObject):
             nusselt = \
                 np.where(self.reynolds < 2300.0, nu_lam,
                          np.where(self.reynolds < 1e4,
-                                  (1. - (self.reynolds - 2300.) / 7700.) * nu_lam
+                                  (1. - (self.reynolds - 2300.) / 7700.)
+                                  * nu_lam
                                   + (self.reynolds - 2300.) / 7700. * nu_turb,
                                   nu_turb))
         else:
@@ -294,8 +295,8 @@ class Channel(ABC, oo.OutputObject):
         """
         if np.shape(velocity)[0] != (np.shape(density)[0] + 1):
             raise ValueError('velocity array must be provided as a 1D'
-                             'nodal array (n+1), while the other settings arrays '
-                             'must be element-wise (n)')
+                             'nodal array (n+1), while the other '
+                             'settings arrays must be element-wise (n)')
         v1 = velocity[:-1]
         v2 = velocity[1:]
         a = v1 ** 2.0 * zeta
@@ -310,8 +311,8 @@ class Channel(ABC, oo.OutputObject):
         zeta = self.flow_resistance()
         dp = self.calc_pressure_drop(self.velocity, density_ele, zeta)
         pressure_direction = -self._flow_direction
-        self.p[:] = self.p_out
-        g_func.add_source(self.p, dp, pressure_direction)
+        self.pressure[:] = self.p_out
+        g_func.add_source(self.pressure, dp, pressure_direction)
         # if np.any(self.p < (self.p[self.id_out] - 1e-5)):
         #     raise ValueError('Pressure dropped below outlet pressure, please '
         #                      'check boundary conditions. Pressure calculation'
@@ -341,18 +342,18 @@ class Channel(ABC, oo.OutputObject):
                 raise ValueError('wall temperature array must be element-based')
             if CHT_FOUND:
                 fluid_temp, heat = \
-                    cht.calc_heat_transfer(wall_temp, self.temp,
+                    cht.calc_heat_transfer(wall_temp, self.temperature,
                                            g_fluid, self.k_coeff,
                                            self.flow_direction)
             else:
                 fluid_temp, heat = \
-                    g_func.calc_temp_heat_transfer(wall_temp, self.temp,
+                    g_func.calc_temp_heat_transfer(wall_temp, self.temperature,
                                                    g_fluid, self.k_coeff,
                                                    self.flow_direction)
             self.wall_temp[:] = wall_temp
             self.heat[:] = heat
-            self.temp[:] = fluid_temp
-            self.temp_ele[:] = ip.interpolate_1d(self.temp)
+            self.temperature[:] = fluid_temp
+            self.temp_ele[:] = ip.interpolate_1d(self.temperature)
             return heat
         elif heat_flux is not None:
             if np.ndim(heat_flux) == 0:
@@ -361,11 +362,11 @@ class Channel(ABC, oo.OutputObject):
                 raise ValueError('wall temperature array must be element-based')
             heat = heat_flux * self.surface_area
             dtemp = heat / g_fluid
-            self.temp[:] = self.temp[self.id_in]
-            g_func.add_source(self.temp, dtemp,
+            self.temperature[:] = self.temperature[self.id_in]
+            g_func.add_source(self.temperature, dtemp,
                               self.flow_direction, self.tri_mtx)
             self.heat[:] = heat
-            self.temp_ele[:] = ip.interpolate_1d(self.temp)
+            self.temp_ele[:] = ip.interpolate_1d(self.temperature)
             wall_temp = self.temp_ele + heat / self.k_coeff
             self.wall_temp[:] = wall_temp
             return wall_temp
@@ -377,14 +378,14 @@ class Channel(ABC, oo.OutputObject):
         assert enthalpy_source.shape == self.temp_ele.shape
         if np.sum(np.abs(enthalpy_source)) > 0.0:
             if self.flow_direction == -1:
-                enthalpy_in = self.g_fluid[1:] * self.temp[1:]
-                self.temp[:-1] = 1.0 / self.g_fluid[:-1] \
+                enthalpy_in = self.g_fluid[1:] * self.temperature[1:]
+                self.temperature[:-1] = 1.0 / self.g_fluid[:-1] \
                     * (enthalpy_in + self.heat + enthalpy_source)
             else:
-                enthalpy_in = self.g_fluid[:-1] * self.temp[:-1]
-                self.temp[1:] = 1.0 / self.g_fluid[:1] \
+                enthalpy_in = self.g_fluid[:-1] * self.temperature[:-1]
+                self.temperature[1:] = 1.0 / self.g_fluid[:1] \
                     * (enthalpy_in + self.heat + enthalpy_source)
-            self.temp_ele[:] = ip.interpolate_1d(self.temp)
+            self.temp_ele[:] = ip.interpolate_1d(self.temperature)
 
 
 class IncompressibleFluidChannel(Channel):
@@ -409,13 +410,13 @@ class IncompressibleFluidChannel(Channel):
                     update_fluid=True):
         self.calc_mass_balance(mass_flow_in, mass_source)
         if update_fluid:
-            self.fluid.update(self.temp, self.p)
+            self.fluid.update(self.temperature, self.pressure)
 
     def update_flow(self, update_fluid=False):
         self.calc_flow_velocity()
         self.calc_pressure()
         if update_fluid:
-            self.fluid.update(self.temp, self.p)
+            self.fluid.update(self.temperature, self.pressure)
 
     def update_heat(self, wall_temp=None, heat_flux=None, update_fluid=True,
                     enthalpy_source=None, channel_factor=1.0):
@@ -425,7 +426,7 @@ class IncompressibleFluidChannel(Channel):
         if enthalpy_source is not None:
             self.calc_mix_temperature(enthalpy_source)
         if update_fluid:
-            self.fluid.update(self.temp, self.p)
+            self.fluid.update(self.temperature, self.pressure)
 
     def calc_mass_balance(self, mass_flow_in=None, mass_source=None):
         if mass_flow_in is not None:
@@ -468,13 +469,13 @@ class GasMixtureChannel(Channel):
                     update_fluid=True):
         self.calc_mass_balance(mass_flow_in, mass_source)
         if update_fluid:
-            self.fluid.update(self.temp, self.p, self.mole_flow)
+            self.fluid.update(self.temperature, self.pressure, self.mole_flow)
 
     def update_flow(self, update_fluid=False):
         self.calc_flow_velocity()
         self.calc_pressure()
         if update_fluid:
-            self.fluid.update(self.temp, self.p, self.mole_flow)
+            self.fluid.update(self.temperature, self.pressure, self.mole_flow)
 
     def update_heat(self, wall_temp=None, heat_flux=None, update_fluid=True,
                     enthalpy_source=None, channel_factor=1.0):
@@ -484,7 +485,7 @@ class GasMixtureChannel(Channel):
         if enthalpy_source is not None:
             self.calc_mix_temperature(enthalpy_source)
         if update_fluid:
-            self.fluid.update(self.temp, self.p, self.mole_flow)
+            self.fluid.update(self.temperature, self.pressure, self.mole_flow)
 
     def calc_mass_balance(self, mass_flow_in=None, mass_source=None):
         """
