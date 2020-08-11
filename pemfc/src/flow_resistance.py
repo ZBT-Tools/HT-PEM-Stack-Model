@@ -90,5 +90,3 @@ class JunctionFlowResistance(FlowResistance):
         if np.abs(ref_velocity > 0.0):
             self.value[:] += \
                 self.factor * np.log(self.channel.velocity[:-1] / ref_velocity)
-
-

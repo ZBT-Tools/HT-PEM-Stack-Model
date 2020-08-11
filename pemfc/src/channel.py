@@ -310,7 +310,7 @@ class Channel(ABC, oo.OutputObject):
         density_ele = ip.interpolate_1d(self.fluid.density)
         zeta = self.flow_resistance()
         dp = self.calc_pressure_drop(self.velocity, density_ele, zeta)
-        pressure_direction = -self._flow_direction
+        pressure_direction = -self.flow_direction
         self.pressure[:] = self.p_out
         g_func.add_source(self.pressure, dp, pressure_direction)
         # if np.any(self.p < (self.p[self.id_out] - 1e-5)):
