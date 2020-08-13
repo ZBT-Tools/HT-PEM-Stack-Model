@@ -3,11 +3,11 @@
 
 """Electrochemistry Settings"""
 # volumetric exchange current density of the cathode[A/m^3]
-exchange_current_density_cathode = 8.0e4
+exchange_current_density_cathode = 8.0e5
 # volumetric exchange current density of the anode [A/m^3]
 exchange_current_density_anode = 5.0e8
 # oxygen catalyst layer diffusion coefficient [m^2/s]
-oxygen_catalyst_layer_diffusion_coefficient = 5e-8
+oxygen_catalyst_layer_diffusion_coefficient = 1e-7
 # hydrogen catalyst layer diffusion coefficient [m^2/s]
 hydrogen_catalyst_layer_diffusion_coefficient = 1e-7
 # oxygen gas diffusion layer diffusion coefficient [[m^2/s]
@@ -15,9 +15,9 @@ oxygen_gas_diffusion_layer_diffusion_coefficient = 6e-6  # 2.95e-6
 # hydrogen gas diffusion layer diffusion coefficient [m^2/s]
 hydrogen_diffusion_layer_diffusion_coefficient = 10.0e-6
 # catalyst layer proton conductivity of the cathode [Ohm^-1/m]
-catalyst_layer_proton_conductivity_cathode = 1.2
+catalyst_layer_proton_conductivity_cathode = 1.5
 # catalyst layer proton conductivity of the anode [Ohm^-1/m]
-catalyst_layer_proton_conductivity_anode = 1.2
+catalyst_layer_proton_conductivity_anode = 1.5
 # tafel slope of the cathode [V]
 tafel_slope_cathode = 0.035
 # tafel slope of the anode [V]
@@ -28,7 +28,7 @@ v_thermo_neutral = 1.25
 """Membrane Resistance"""
 # membrane type ('Constant', 'Springer', or 'Kvesic') (Springer-Model
 # implementation must still be checked properly)
-membrane_type = 'Kvesic'
+membrane_type = 'Springer'
 # membrane basic resistance [Ohm-m2]
 membrane_basic_resistance = 4.3e-5
 # membrane temperature slope [Ohm-m2/K)]
@@ -36,7 +36,7 @@ membrane_temperature_coefficient = 7e-8
 # membrane basic conductivity [S/m] (for 'Constant'-Model)
 membrane_basic_conductivity = 5.0
 # bipolar plate conductivity [S/m]
-electrical_conductivity_bipolar_plate = 20.0
+electrical_conductivity_bipolar_plate = 60000.0
 # gas diffusion electrode material conductivity [S/m]
 electrical_conductivity_gde = 500.0
 

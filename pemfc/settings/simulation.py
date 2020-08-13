@@ -10,7 +10,7 @@ convergence_criteria_flow = 1e-4
 minimum_iteration_number = 3
 minimum_iteration_number_flow = 2
 maximum_iteration_number = 200
-maximum_iteration_number_flow = 10
+maximum_iteration_number_flow = 50
 # underrelaxation factor for current density updates (0.0 - 1.0)
 # lower: faster convergence, higher: better stability
 underrelaxation_factor = 0.2

@@ -9,7 +9,7 @@
 current_control = True
 
 # target current density [A/m^2]
-current_density = 10000.0
+current_density = 15000.0
 # current_density = \
 #     (445.5,	891.1,	1336.6,	1782.1,	2227.7,	2673.2,	3118.7,	3564.3,	4009.8,
 #      4455.3, 4900.9, 5346.4, 5569.2, 6683.0, 7128.5, 7574.1, 8019.6, 8465.1,
@@ -19,10 +19,10 @@ current_density = 10000.0
 # average_cell_voltage = 0.5
 
 # open circuit voltage [V]
-open_circuit_voltage = 0.96
+open_circuit_voltage = 1.0
 
 # cathode stoichiometry
-stoichiometry_cathode = 1.5
+stoichiometry_cathode = 1.3
 
 # anode stoichiometry
 stoichiometry_anode = 1.5
@@ -48,7 +48,7 @@ anode_inlet_composition = [0.667, 0.333, 0.0]
 """"Thermal Settings"""
 # temperature value used for most boundary conditions (see below and edit
 # as required) [K]
-temperature = 433.15
+temperature = 353.15
 
 # set the total mass flow of the coolant for the stack [kg/s]
 # coolant_mass_flow = 1.e-1

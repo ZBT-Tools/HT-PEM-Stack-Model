@@ -293,15 +293,16 @@ class Channel(ABC, oo.OutputObject):
         """
         Calculates the element-wise pressure drop in the channel
         """
-        if np.shape(velocity)[0] != (np.shape(density)[0] + 1):
-            raise ValueError('velocity array must be provided as a 1D'
-                             'nodal array (n+1), while the other '
-                             'settings arrays must be element-wise (n)')
+        if np.shape(velocity) != np.shape(density):
+            raise ValueError('velocity and density arrays '
+                             'must be of equal shape')
+        rho1 = density[:-1]
+        rho2 = density[1:]
         v1 = velocity[:-1]
         v2 = velocity[1:]
-        a = v1 ** 2.0 * zeta
-        b = (v2 ** 2.0 - v1 ** 2.0) * self.flow_direction
-        return (a + b) * density * 0.5
+        a = 0.5 * rho1 * v1 ** 2.0 * zeta
+        b = 0.5 * (rho2 * v2 ** 2.0 - rho1 * v1 ** 2.0) * self.flow_direction
+        return (a + b)
 
     def calc_pressure(self):
         """
@@ -309,7 +310,7 @@ class Channel(ABC, oo.OutputObject):
         """
         density_ele = ip.interpolate_1d(self.fluid.density)
         zeta = self.flow_resistance()
-        dp = self.calc_pressure_drop(self.velocity, density_ele, zeta)
+        dp = self.calc_pressure_drop(self.velocity, self.fluid.density, zeta)
         pressure_direction = -self.flow_direction
         self.pressure[:] = self.p_out
         g_func.add_source(self.pressure, dp, pressure_direction)
