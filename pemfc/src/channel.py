@@ -59,8 +59,15 @@ class Channel(ABC, oo.OutputObject):
         self.pressure_recovery = False
 
         # Geometry
+        if channel_dict.keys() >= {'width', 'height'}:
+            cross_shape = 'rectangular'
+        elif 'diameter' in channel_dict:
+            cross_shape = 'circular'
+        else:
+            raise KeyError('either width and height or diameter of channel '
+                           'must be specified')
         self.cross_shape = channel_dict.get('cross_sectional_shape',
-                                            'rectangular')
+                                            cross_shape)
         if self.cross_shape == 'rectangular':
             self._width = channel_dict['width']
             self._height = channel_dict['height']
