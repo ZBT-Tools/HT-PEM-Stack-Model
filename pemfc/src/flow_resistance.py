@@ -28,11 +28,19 @@ class FlowResistance(ABC):
     def update(self):
         pass
 
+    def calc_pressure_drop(self):
+        pass
+
 
 class ConstantFlowResistance(FlowResistance):
     def __init__(self, channel, zeta_dict, **kwargs):
         super().__init__(channel, zeta_dict, **kwargs)
         self.value = zeta_dict['value']
+
+    def calc_pressure_drop(self):
+        dp_node = 0.5 * self.channel.fluid.density * self.value \
+                  * self.channel.velocity ** 2.0
+        return ip.interpolate_1d(dp_node)
 
 
 class WallFrictionFlowResistance(FlowResistance):
@@ -77,17 +85,26 @@ class WallFrictionFlowResistance(FlowResistance):
         self.value[:] = self.channel.dx_node / self.channel.d_h * factor
         np.seterr(under='raise')
 
+    def calc_pressure_drop(self):
+        dp_node = 0.5 * self.channel.fluid.density * self.value \
+                  * self.channel.velocity ** 2.0
+        # get weighting according to dx and dx_node lengths for element-wise
+        # pressure drop
+        dp_node_1 = dp_node[:-1]
+        dp_node_2 = dp_node[1:]
+        dx_node_1 = self.channel.dx_node[:-1]
+        dx_node_2 = self.channel.dx_node[1:]
+        dx = self.channel.dx
+        dp = (dx_node_1 * dp_node_1 + dx_node_2 * dp_node_2) / dx
+        return dp
+
 
 class JunctionFlowResistance(FlowResistance):
     def __init__(self, channel, zeta_dict, **kwargs):
         super().__init__(channel, zeta_dict, **kwargs)
         self.zeta_const = zeta_dict.get('value', 0.0)
         self.factor = zeta_dict['factor']
-        self.value = np.zeros(self.channel.n_nodes)
+        self.value = np.zeros(self.channel.n_ele)
 
     def update(self):
-        ref_velocity = np.max(self.channel.velocity)
-        self.value[:] = self.zeta_const
-        if np.abs(ref_velocity > 0.0):
-            self.value[:] += \
-                self.factor * np.log(self.channel.velocity / ref_velocity)
+        pass

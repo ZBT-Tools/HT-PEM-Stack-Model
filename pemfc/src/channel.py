@@ -200,7 +200,7 @@ class Channel(ABC, oo.OutputObject):
                              enthalpy_source=enthalpy_source,
                              channel_factor=kwargs.get('channel_factor', 1.0))
 
-    def flow_resistance(self):
+    def flow_resistance_sum(self):
         """ Update and return the sum of flow resistances (zeta-values) """
         zeta_sum = 0.0
         for zeta in self.zetas:
@@ -300,28 +300,37 @@ class Channel(ABC, oo.OutputObject):
         self.g_fluid[:] = \
             factor * self.mass_flow_total * self.fluid.specific_heat
 
-    def calc_pressure_drop(self, velocity, density, zeta):
+    def calc_pressure_drop(self):
         """
         Calculates the element-wise pressure drop in the channel
         """
-        if np.shape(velocity) != np.shape(density):
+
+        if np.shape(self.velocity) != np.shape(self.fluid.density):
             raise ValueError('velocity and density arrays '
                              'must be of equal shape')
-        rho1 = density[:-1]
-        rho2 = density[1:]
-        v1 = velocity[:-1]
-        v2 = velocity[1:]
-        a = 0.5 * rho1 * v1 ** 2.0 * zeta
-        b = 0.5 * (rho2 * v2 ** 2.0 - rho1 * v1 ** 2.0) * self.flow_direction
-        return (a + b)
+        # calculate resistance based pressure drop
+        dp_res = np.zeros(self.n_ele)
+        for zeta in self.zetas:
+            zeta.update()
+            dp_res += zeta.calc_pressure_drop()
+
+        # calculate influence of dynamic pressure variation due to velocity
+        # changes on static pressure drop
+        rho1 = self.fluid.density[:-1]
+        rho2 = self.fluid.density[1:]
+        v1 = self.velocity[:-1]
+        v2 = self.velocity[1:]
+        dp_dyn = 0.5 * (rho2 * v2 ** 2.0 - rho1 * v1 ** 2.0) \
+            * self.flow_direction
+        return dp_res + dp_dyn
 
     def calc_pressure(self):
         """
         Calculates the static channel pressure
         """
-        density_ele = ip.interpolate_1d(self.fluid.density)
-        zeta = self.flow_resistance()
-        dp = self.calc_pressure_drop(self.velocity, self.fluid.density, zeta)
+        # density_ele = ip.interpolate_1d(self.fluid.density)
+        # zeta = self.flow_resistance_sum()
+        dp = self.calc_pressure_drop()
         pressure_direction = -self.flow_direction
         self.pressure[:] = self.p_out
         g_func.add_source(self.pressure, dp, pressure_direction)
