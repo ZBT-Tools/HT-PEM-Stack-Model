@@ -39,10 +39,11 @@ class WallFrictionFlowResistance(FlowResistance):
     def __init__(self, channel, zeta_dict, **kwargs):
         super().__init__(channel, zeta_dict, **kwargs)
         self.method = zeta_dict.get('method', 'Blasius')
-        self.value = np.zeros(self.channel.n_ele)
+        self.value = np.zeros(self.channel.n_nodes)
 
     def update(self):
-        reynolds = ip.interpolate_1d(self.channel.reynolds)
+        # reynolds = ip.interpolate_1d(self.channel.reynolds)
+        reynolds = self.channel.reynolds
         lam = reynolds < 2200.0
         turb = np.invert(lam)
         lam_id = np.where(lam)
@@ -73,7 +74,7 @@ class WallFrictionFlowResistance(FlowResistance):
             else:
                 raise NotImplementedError
         np.seterr(under='ignore')
-        self.value[:] = self.channel.dx / self.channel.d_h * factor
+        self.value[:] = self.channel.dx_node / self.channel.d_h * factor
         np.seterr(under='raise')
 
 
@@ -82,11 +83,11 @@ class JunctionFlowResistance(FlowResistance):
         super().__init__(channel, zeta_dict, **kwargs)
         self.zeta_const = zeta_dict.get('value', 0.0)
         self.factor = zeta_dict['factor']
-        self.value = np.zeros(self.channel.n_ele)
+        self.value = np.zeros(self.channel.n_nodes)
 
     def update(self):
         ref_velocity = np.max(self.channel.velocity)
         self.value[:] = self.zeta_const
         if np.abs(ref_velocity > 0.0):
             self.value[:] += \
-                self.factor * np.log(self.channel.velocity[:-1] / ref_velocity)
+                self.factor * np.log(self.channel.velocity / ref_velocity)

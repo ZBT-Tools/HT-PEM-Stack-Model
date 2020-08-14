@@ -42,6 +42,10 @@ class Channel(ABC, oo.OutputObject):
 
         self.x = np.linspace(0.0, self._length, self.n_nodes)
         self.dx = np.diff(self.x)
+        self.dx_node = np.zeros(self.n_nodes)
+        self.dx_node[1:-1] = np.diff(ip.interpolate_1d(self.x))
+        self.dx_node[0] = 0.5 * self.dx[0]
+        self.dx_node[-1] = 0.5 * self.dx[-1]
         # element length
         self.p_out = channel_dict['p_out']
         self.pressure = g_func.full(self.n_nodes, self.p_out)
