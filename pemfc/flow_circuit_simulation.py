@@ -4,12 +4,15 @@ import cProfile
 import copy
 import sys
 import matplotlib.pyplot as plt
+import matplotlib
 
 # local module imports
 from pemfc import channel as chl
 from pemfc import fluid as fluid
 from pemfc import flow_circuit as flow_circuit
 from pemfc import interpolation as ip
+
+matplotlib.use('TkAgg')
 
 np.set_printoptions(threshold=sys.maxsize, linewidth=10000,
                     precision=9, suppress=True)
@@ -83,14 +86,14 @@ in_manifold_dict = {
     'height': 7.5e-3,
     'bend_number': 0,
     'bend_friction_factor': 0.0,
-    'constant_friction_factor': -0.5,
+    'constant_friction_factor': 0.1,
     'flow_split_factor': 0.0,
-    'wall_friction': False
+    'wall_friction': True
 }
 
 out_manifold_dict = copy.deepcopy(in_manifold_dict)
 out_manifold_dict['name'] = 'Outlet Manifold'
-out_manifold_dict['constant_friction_factor'] = 0.0
+out_manifold_dict['constant_friction_factor'] = 0.1
 out_manifold_dict['flow_split_factor'] = 0.0
 
 flow_circuit_dict = {
@@ -113,13 +116,11 @@ x = (ip.interpolate_1d(flow_model.manifolds[0].x)
     / (flow_model.manifolds[0].length - flow_model.manifolds[0].dx[0])
 # x = flow_model.manifolds[0].x / flow_model.manifolds[0].length
 
-flow_model.run(inlet_mass_flow=0.000449642)
+flow_model.update(inlet_mass_flow=0.000449642)
 q = (flow_model.normalized_flow_distribution - 1.0) * 100.0
 reynolds = flow_model.manifolds[0].reynolds[0]
 plt.plot(x, q, label='Re={0:.2f}'.format(reynolds), color='k')
 plt.show()
-
-
 
 # flow_model.update(inlet_mass_flow=0.00059425)
 # q = (flow_model.normalized_flow_distribution - 1.0) * 100.0

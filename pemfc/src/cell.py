@@ -7,6 +7,7 @@ from . import interpolation as ip, matrix_functions as mtx, half_cell as h_c, \
     global_functions as g_func, membrane as membrane
 from .output_object import OutputObject
 
+
 class Cell(OutputObject):
 
     def __init__(self, cell_dict, membrane_dict, half_cell_dicts,

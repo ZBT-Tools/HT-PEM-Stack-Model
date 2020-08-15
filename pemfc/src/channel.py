@@ -42,6 +42,10 @@ class Channel(ABC, oo.OutputObject):
 
         self.x = np.linspace(0.0, self._length, self.n_nodes)
         self.dx = np.diff(self.x)
+        self.dx_node = np.zeros(self.n_nodes)
+        self.dx_node[1:-1] = np.diff(ip.interpolate_1d(self.x))
+        self.dx_node[0] = 0.5 * self.dx[0]
+        self.dx_node[-1] = 0.5 * self.dx[-1]
         # element length
         self.p_out = channel_dict['p_out']
         self.pressure = g_func.full(self.n_nodes, self.p_out)
@@ -59,8 +63,15 @@ class Channel(ABC, oo.OutputObject):
         self.pressure_recovery = False
 
         # Geometry
+        if channel_dict.keys() >= {'width', 'height'}:
+            cross_shape = 'rectangular'
+        elif 'diameter' in channel_dict:
+            cross_shape = 'circular'
+        else:
+            raise KeyError('either width and height or diameter of channel '
+                           'must be specified')
         self.cross_shape = channel_dict.get('cross_sectional_shape',
-                                            'rectangular')
+                                            cross_shape)
         if self.cross_shape == 'rectangular':
             self._width = channel_dict['width']
             self._height = channel_dict['height']
@@ -189,7 +200,7 @@ class Channel(ABC, oo.OutputObject):
                              enthalpy_source=enthalpy_source,
                              channel_factor=kwargs.get('channel_factor', 1.0))
 
-    def flow_resistance(self):
+    def flow_resistance_sum(self):
         """ Update and return the sum of flow resistances (zeta-values) """
         zeta_sum = 0.0
         for zeta in self.zetas:
@@ -289,28 +300,38 @@ class Channel(ABC, oo.OutputObject):
         self.g_fluid[:] = \
             factor * self.mass_flow_total * self.fluid.specific_heat
 
-    def calc_pressure_drop(self, velocity, density, zeta):
+    def calc_pressure_drop(self):
         """
         Calculates the element-wise pressure drop in the channel
         """
-        if np.shape(velocity)[0] != (np.shape(density)[0] + 1):
-            raise ValueError('velocity array must be provided as a 1D'
-                             'nodal array (n+1), while the other '
-                             'settings arrays must be element-wise (n)')
-        v1 = velocity[:-1]
-        v2 = velocity[1:]
-        a = v1 ** 2.0 * zeta
-        b = (v2 ** 2.0 - v1 ** 2.0) * self.flow_direction
-        return (a + b) * density * 0.5
+
+        if np.shape(self.velocity) != np.shape(self.fluid.density):
+            raise ValueError('velocity and density arrays '
+                             'must be of equal shape')
+        # calculate resistance based pressure drop
+        dp_res = np.zeros(self.n_ele)
+        for zeta in self.zetas:
+            zeta.update()
+            dp_res += zeta.calc_pressure_drop()
+
+        # calculate influence of dynamic pressure variation due to velocity
+        # changes on static pressure drop
+        rho1 = self.fluid.density[:-1]
+        rho2 = self.fluid.density[1:]
+        v1 = self.velocity[:-1]
+        v2 = self.velocity[1:]
+        dp_dyn = 0.5 * (rho2 * v2 ** 2.0 - rho1 * v1 ** 2.0) \
+            * self.flow_direction
+        return dp_res + dp_dyn
 
     def calc_pressure(self):
         """
         Calculates the static channel pressure
         """
-        density_ele = ip.interpolate_1d(self.fluid.density)
-        zeta = self.flow_resistance()
-        dp = self.calc_pressure_drop(self.velocity, density_ele, zeta)
-        pressure_direction = -self._flow_direction
+        # density_ele = ip.interpolate_1d(self.fluid.density)
+        # zeta = self.flow_resistance_sum()
+        dp = self.calc_pressure_drop()
+        pressure_direction = -self.flow_direction
         self.pressure[:] = self.p_out
         g_func.add_source(self.pressure, dp, pressure_direction)
         # if np.any(self.p < (self.p[self.id_out] - 1e-5)):
