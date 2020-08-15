@@ -92,7 +92,7 @@ class ParallelFlowCircuit(ABC, oo.OutputObject):
             np.zeros(self.channel_vol_flow.shape)
         self.add_print_variables(self.print_variables)
 
-    def update(self, inlet_mass_flow=None, calc_distribution=None):
+    def update(self, inlet_mass_flow=None, calc_distribution=None, **kwargs):
         """
         Update the flow circuit
         """
