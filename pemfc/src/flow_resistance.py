@@ -88,14 +88,15 @@ class WallFrictionFlowResistance(FlowResistance):
     def calc_pressure_drop(self):
         dp_node = 0.5 * self.channel.fluid.density * self.value \
                   * self.channel.velocity ** 2.0
-        # get weighting according to dx and dx_node lengths for element-wise
+        # weighting according to dx and dx_node lengths for element-wise
         # pressure drop
         dp_node_1 = dp_node[:-1]
         dp_node_2 = dp_node[1:]
         dx_node_1 = self.channel.dx_node[:-1]
         dx_node_2 = self.channel.dx_node[1:]
         dx = self.channel.dx
-        dp = (dx_node_1 * dp_node_1 + dx_node_2 * dp_node_2) / dx
+        # dp = (dx_node_1 * dp_node_1 + dx_node_2 * dp_node_2) / dx
+        dp = (dp_node_1 + dp_node_2) * dx / (dx_node_1 + dx_node_2)
         return dp
 
 
