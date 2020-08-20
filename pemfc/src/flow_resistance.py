@@ -4,6 +4,7 @@ import numpy as np
 
 # local module imports
 from . import interpolation as ip
+from . import constants
 
 
 class FlowResistance(ABC):
@@ -84,6 +85,7 @@ class WallFrictionFlowResistance(FlowResistance):
         np.seterr(under='ignore')
         self.value[:] = self.channel.dx_node / self.channel.d_h * factor
         np.seterr(under='raise')
+        self.value[self.value < constants.SMALL] = 0.0
 
     def calc_pressure_drop(self):
         dp_node = 0.5 * self.channel.fluid.density * self.value \
