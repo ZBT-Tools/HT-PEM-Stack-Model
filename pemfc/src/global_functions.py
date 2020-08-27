@@ -6,11 +6,11 @@ from scipy import ndimage
 from . import constants
 
 
-def ensure_list(variable):
+def ensure_list(variable, length=1):
     if isinstance(variable, (list, tuple)):
         return variable
     else:
-        return [variable]
+        return [variable for i in range(length)]
 
 
 def full_like(array):
