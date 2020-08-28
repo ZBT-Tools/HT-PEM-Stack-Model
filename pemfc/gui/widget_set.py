@@ -1,5 +1,6 @@
 # global imports
 import tkinter as tk
+from tkinter import Grid
 from abc import ABC, abstractmethod
 
 # local imports
@@ -34,10 +35,13 @@ class WidgetSet(ABC):
     def __init__(self, frame, label, **kwargs):
         self.padx = kwargs.pop('padx', self.PADX)
         self.pady = kwargs.pop('pady', self.PADY)
-        self.column = kwargs.pop('column', 0)
-        self.row = kwargs.pop('row', frame.grid_size()[1])
+        self.column = kwargs.pop('column', None)
+        self.row = kwargs.pop('row', None)
+        self.name = label.lower()
         kwargs['text'] = label
-        sticky = kwargs.pop('sticky', 'W')
+        self.sticky = kwargs.pop('sticky', 'W')
+        self.columns = 1
+        self.frame = frame
         self.label = tk.Label(frame, **kwargs)
         # self.label.grid(row=self.row, column=self.column, padx=self.padx,
         #                 pady=self.pady, sticky=kwargs.pop('sticky', 'W'))
@@ -48,10 +52,13 @@ class WidgetSet(ABC):
             row = self.row
         if column is None:
             column = self.column
+        Grid.rowconfigure(self.frame, row, weight=1)
+        Grid.columnconfigure(self.frame, column, weight=1)
         self.label.grid(row=row, column=column,
                         padx=kwargs.get('padx', self.PADX),
                         pady=kwargs.get('pady', self.PADY),
-                        sticky=kwargs.pop('sticky', 'W'), **kwargs)
+                        sticky=kwargs.pop('sticky', self.sticky), **kwargs)
+        return row, column
 
 
 class Label(WidgetSet):
@@ -59,7 +66,7 @@ class Label(WidgetSet):
         super().__init__(frame, label, **kwargs)
 
     def set_grid(self, row=None, column=None, **kwargs):
-        super().set_grid(row=row, column=column, **kwargs)
+        return super().set_grid(row=row, column=column, **kwargs)
 
 
 class MultiEntrySet(WidgetSet):
@@ -70,6 +77,7 @@ class MultiEntrySet(WidgetSet):
             value = gf.ensure_list(value, length=number)
         self.entries = []
         for i in range(number):
+            self.columns += 1
             entry = tk.Entry(frame, justify='right')
             # entry.grid(row=self.row, column=self.column + 1 + i,
             #            padx=self.padx, pady=self.pady)
@@ -79,12 +87,15 @@ class MultiEntrySet(WidgetSet):
             self.entries.append(entry)
 
     def set_grid(self, row=None, column=None, **kwargs):
-        super().set_grid(row, column, **kwargs)
+        row, column = super().set_grid(row, column, **kwargs)
         for i, entry in enumerate(self.entries):
             column += 1
+            Grid.rowconfigure(self.frame, row, weight=1)
+            Grid.columnconfigure(self.frame, column, weight=1)
             entry.grid(row=row, column=column,
                        padx=kwargs.get('padx', self.PADX),
                        pady=kwargs.get('pady', self.PADY), **kwargs)
+        return row, column
 
 
 class DimensionedEntrySet(MultiEntrySet):
@@ -93,16 +104,21 @@ class DimensionedEntrySet(MultiEntrySet):
         super().__init__(frame, label, number=number, value=value, **kwargs)
         kwargs['text'] = dimensions
         self.dimensions = tk.Label(frame, **kwargs)
+        self.columns += 1
         # self.dimensions.grid(row=self.row, column=self.column + number + 1,
         #                      padx=kwargs.get('padx', self.PADX),
         #                      pady=kwargs.get('pady', self.PADY))
 
     def set_grid(self, row=None, column=None, **kwargs):
-        super().set_grid(row, column, **kwargs)
+        row, column = super().set_grid(row, column, **kwargs)
         column += 1
+        Grid.rowconfigure(self.frame, row, weight=1)
+        Grid.columnconfigure(self.frame, column, weight=1)
         self.dimensions.grid(row=row, column=column,
                              padx=kwargs.get('padx', self.PADX),
-                             pady=kwargs.get('pady', self.PADY), **kwargs)
+                             pady=kwargs.get('pady', self.PADY),
+                             sticky='W', **kwargs)
+        return row, column
 
 
 class MultiCheckButtonSet(WidgetSet):
@@ -113,6 +129,7 @@ class MultiCheckButtonSet(WidgetSet):
         self.check_buttons = []
         self.check_vars = []
         for i in range(number):
+            self.columns += 1
             check_var = tk.BooleanVar()
             self.check_vars.append(check_var)
             check_button = \
@@ -125,9 +142,12 @@ class MultiCheckButtonSet(WidgetSet):
             self.check_buttons.append(check_button)
 
     def set_grid(self, row=None, column=None, **kwargs):
-        super().set_grid(row, column, **kwargs)
+        row, column = super().set_grid(row, column, **kwargs)
         for i, check_button in enumerate(self.check_buttons):
             column += 1
+            Grid.rowconfigure(self.frame, row, weight=1)
+            Grid.columnconfigure(self.frame, column, weight=1)
             check_button.grid(row=row, column=column,
                               padx=kwargs.get('padx', self.PADX),
                               pady=kwargs.get('pady', self.PADY), **kwargs)
+        return row, column

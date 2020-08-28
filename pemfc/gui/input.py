@@ -30,7 +30,7 @@ mem_thickness = {'label': 'Bipolar Plate Thickness:', 'dimensions': 'm',
 cool_circuit = {'label': 'Activate Cooling Circuit', 'type': 'CheckButtonSet'}
 cool_channel_length = {'label': 'Coolant Channel Length:', 'dimensions': 'm',
                        'type': 'EntrySet'}
-anode_label = {'label': 'Anode', 'column': 1,
+anode_label = {'label': 'Anode', 'row': 1, 'column': 1,
                'type': 'Label', 'sticky': 'WENS'}
 cathode_label = \
     {'label': 'Cathode', 'row': 1, 'column': 2,
@@ -38,23 +38,24 @@ cathode_label = \
 
 channel_frame_dict = \
     {'title': 'Channel Settings',
-     'widget_set_dicts': [#anode_label,
+     'widget_set_dicts': [anode_label,
                           cathode_label,
-                          #channel_length, channel_width,
-                          #channel_height,
+                          channel_length, channel_width,
+                          channel_height,
                           channel_bends, bend_pressure_loss_coefficient,
                           channel_flow_direction],
-     'highlightbackground': 'grey', 'highlightthickness': 1}
+     # 'highlightbackground': 'grey', 'highlightthickness': 1,
+     'sticky': 'WENS'}
 cool_frame_dict = \
-    {'title': 'Cooling Settings',
-     'widget_set_dicts': [cool_circuit], #cool_channel_length],
-     'highlightbackground': 'grey', 'highlightthickness': 1}
+    {'title': 'Cooling Settings', 'font': 'Arial 10 bold',
+     'widget_set_dicts': [cool_circuit, cool_channel_length],
+     'highlightbackground': 'grey', 'highlightthickness': 1} #, 'sticky': 'WENS'}
 
-cell_frame_dict = {'title': 'Cell Settings', 'show_title': True,
+cell_frame_dict = {'title': 'Cell Settings',
                    'sub_frame_dicts': [channel_frame_dict],
                    'widget_set_dicts': [cell_number, cell_length, cell_width],
                    'highlightbackground': 'grey', 'highlightthickness': 1}
-geometry_frame_dict = {'title': 'Geometry',
+geometry_frame_dict = {'title': 'Geometry', 'show_title': False,
                        'sub_frame_dicts': [cell_frame_dict, cool_frame_dict]}
 main_frame_dicts = [geometry_frame_dict]
 

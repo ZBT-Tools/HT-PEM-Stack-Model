@@ -1,5 +1,6 @@
 # global imports
 import tkinter as tk
+from tkinter import Grid
 from tkinter import ttk
 
 # local imports
@@ -11,6 +12,7 @@ from pemfc.gui import input
 class NotebookApp:
     def __init__(self, master, main_frame_dicts=None, **kwargs):
         notebook = ttk.Notebook(master)
+
         notebook.grid()
 
         # Make tabs and corresponding frames
@@ -25,6 +27,10 @@ class NotebookApp:
 
         notebook.select(self.frames[0])
         notebook.enable_traversal()
+
+    def set_grid(self, grid_list=None, **kwargs):
+        for fr in self.frames:
+            fr.set_grid(grid_list=grid_list, **kwargs)
 
         # # self.label = tk.Label(self.frames[-1], text=title)
         # # self.label.pack(padx=10, pady=10)
@@ -49,11 +55,14 @@ class NotebookApp:
 
 if __name__ == "__main__":
     root = tk.Tk()
+    root.title('PEMFC Model')
+    Grid.rowconfigure(root, 0, weight=1)
+    Grid.columnconfigure(root, 0, weight=1)
     # make frames
     # frame_names = ['Geometry', 'Physical Properties',
     #                'Operating Conditions', 'Output', 'Simulation']
 
     # base_app = NotebookApp(root, frame_names=frame_names)
     base_app = NotebookApp(root, main_frame_dicts=input.main_frame_dicts)
-
+    base_app.set_grid()
     root.mainloop()
