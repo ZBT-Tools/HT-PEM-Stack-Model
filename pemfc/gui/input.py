@@ -1,7 +1,13 @@
 # entry set dictionaries for geometry frame
-cell_number = {'label': 'Cell Number:', 'type': 'EntrySet'}
-cell_length = {'label': 'Cell Length:', 'dimensions': 'm', 'type': 'EntrySet'}
-cell_width = {'label': 'Cell Width:', 'dimensions': 'm', 'type': 'EntrySet'}
+cell_number = {'label': 'Cell Number:', 'number': 1,
+               'grid_location': (1, 0),
+               'type': 'EntrySet'}
+cell_length = {'label': 'Cell Length:', 'dimensions': 'm',
+               'grid_location': (2, 0),
+               'type': 'EntrySet'}
+cell_width = {'label': 'Cell Width:', 'number': 1, 'dimensions': 'm',
+              'grid_location': (3, 0),
+              'type': 'EntrySet'}
 channel_length = {'label': 'Channel Length:', 'number': 2,
                   'dimensions': 'm', 'type': 'EntrySet'}
 channel_width = {'label': 'Channel Width:', 'number': 2,
@@ -37,25 +43,32 @@ cathode_label = \
      'type': 'Label', 'sticky': 'WENS'}
 
 channel_frame_dict = \
-    {'title': 'Channel Settings',
+    {'title': 'Channel Settings', 'grid_location': (1, 1),
      'widget_set_dicts': [anode_label,
                           cathode_label,
                           channel_length, channel_width,
                           channel_height,
                           channel_bends, bend_pressure_loss_coefficient,
                           channel_flow_direction],
-     # 'highlightbackground': 'grey', 'highlightthickness': 1,
-     'sticky': 'WENS'}
+     'highlightbackground': 'grey', 'highlightthickness': 1}
+     # 'sticky': 'WENS'}
 cool_frame_dict = \
     {'title': 'Cooling Settings', 'font': 'Arial 10 bold',
      'widget_set_dicts': [cool_circuit, cool_channel_length],
-     'highlightbackground': 'grey', 'highlightthickness': 1} #, 'sticky': 'WENS'}
+     'highlightbackground': 'grey', 'highlightthickness': 1, 'sticky': 'WENS'}
+cell_frame_sub_dict = \
+    {'title': 'Cell Lengths', 'grid_location': (1, 0),
+     'widget_set_dicts': [cell_number, cell_length, cell_width],
+     'highlightbackground': 'grey', 'highlightthickness': 1}
 
-cell_frame_dict = {'title': 'Cell Settings',
-                   'sub_frame_dicts': [channel_frame_dict],
-                   'widget_set_dicts': [cell_number, cell_length, cell_width],
+cell_frame_dict = {'title': 'Cell Settings', 'show_title': True,
+                   'sub_frame_dicts': [cell_frame_sub_dict,
+                                       channel_frame_dict],
                    'highlightbackground': 'grey', 'highlightthickness': 1}
+
 geometry_frame_dict = {'title': 'Geometry', 'show_title': False,
-                       'sub_frame_dicts': [cell_frame_dict, cool_frame_dict]}
+                       'sub_frame_dicts': [cell_frame_dict, cool_frame_dict],
+                       'highlightbackground': 'grey', 'highlightthickness': 1}
+
 main_frame_dicts = [geometry_frame_dict]
 
