@@ -35,10 +35,15 @@ class WidgetSet(ABC):
     def __init__(self, frame, label, **kwargs):
         self.padx = kwargs.pop('padx', self.PADX)
         self.pady = kwargs.pop('pady', self.PADY)
-        self.column = kwargs.pop('column', None)
-        self.row = kwargs.pop('row', None)
-        self.grid_location = kwargs.pop('grid_location', (None, None))
-
+        grid_location = kwargs.pop('grid_location', (None, None))
+        self.row = grid_location[0]
+        self.column = grid_location[1]
+        row = kwargs.pop('row', None)
+        column = kwargs.pop('column', None)
+        if row is not None:
+            self.row = row
+        if column is not None:
+            self.column = column
         self.name = label.lower()
         kwargs['text'] = label
         self.sticky = kwargs.pop('sticky', 'NW')
@@ -48,31 +53,25 @@ class WidgetSet(ABC):
         # self.label.grid(row=self.row, column=self.column, padx=self.padx,
         #                 pady=self.pady, sticky=kwargs.pop('sticky', 'W'))
 
-    def set_widget_grid(self, widget, **kwargs):
+    def _set_grid(self, widget, **kwargs):
         # Grid.rowconfigure(self.frame, row, weight=1)
         # Grid.columnconfigure(self.frame, column, weight=1)
         # self.frame.rowconfigure(row, weight=1)
         # self.frame.columnconfigure(column, weight=1)
-        row = kwargs.pop('row', 0)
-        column = kwargs.pop('column', 0)
-        if self.grid_location[0] is not None:
-            row = self.grid_location[0]
-        if self.grid_location[1] is not None:
-            column = self.grid_location[1]
+        row = kwargs.pop('row', self.row)
+        column = kwargs.pop('column', self.column)
         widget.grid(row=row, column=column,
                     padx=kwargs.get('padx', self.PADX),
                     pady=kwargs.get('pady', self.PADY),
                     sticky=kwargs.pop('sticky', self.sticky), **kwargs)
         return row, column
 
-    def set_grid(self, widget=None, row=None, column=None, **kwargs):
-        if row is None:
-            row = self.row
-        if column is None:
-            column = self.column
+    def set_grid(self, widget=None, **kwargs):
+        row = kwargs.pop('row', self.row)
+        column = kwargs.pop('column', self.column)
         if widget is None:
             widget = self.label
-        self.set_widget_grid(widget, row=row, column=column, **kwargs)
+        self._set_grid(widget, row=row, column=column, **kwargs)
         return row, column
 
 
@@ -87,13 +86,15 @@ class MultiWidgetSet(WidgetSet):
         super().__init__(frame, label, **kwargs)
         self.widgets = []
 
-    def set_grid(self, widgets=None, row=None, column=None, **kwargs):
+    def set_grid(self, widgets=None, **kwargs):
+        row = kwargs.pop('row', self.row)
+        column = kwargs.pop('column', self.column)
         row, column = super().set_grid(row=row, column=column, **kwargs)
         if widgets is None:
             widgets = self.widgets
         for i, widget in enumerate(widgets):
             column += 1
-            super().set_grid(widget=widget, row=row, column=column)
+            super().set_grid(widget=widget, row=row, column=column, **kwargs)
         return row, column
 
 
@@ -127,10 +128,13 @@ class DimensionedEntrySet(MultiEntrySet):
         #                      padx=kwargs.get('padx', self.PADX),
         #                      pady=kwargs.get('pady', self.PADY))
 
-    def set_grid(self, row=None, column=None, **kwargs):
+    def set_grid(self, **kwargs):
+        row = kwargs.pop('row', self.row)
+        column = kwargs.pop('column', self.column)
+
         row, column = super().set_grid(row=row, column=column, **kwargs)
         column += 1
-        self.set_widget_grid(self.dimensions, row=row, column=column, **kwargs)
+        self._set_grid(self.dimensions, row=row, column=column, **kwargs)
         return row, column
 
 
