@@ -65,7 +65,6 @@ class WidgetSet(ABC):
                     sticky=kwargs.pop('sticky', self.sticky), **kwargs)
         return row, column
 
-    @abstractmethod
     def set_grid(self, widget=None, row=None, column=None, **kwargs):
         if row is None:
             row = self.row
@@ -81,18 +80,30 @@ class Label(WidgetSet):
     def __init__(self, frame, label, **kwargs):
         super().__init__(frame, label, **kwargs)
 
-    def set_grid(self, row=None, column=None, **kwargs):
-        return super().set_grid(row=row, column=column, **kwargs)
+
+class MultiWidgetSet(WidgetSet):
+
+    def __init__(self, frame, label, number=1, **kwargs):
+        super().__init__(frame, label, **kwargs)
+        self.widgets = []
+
+    def set_grid(self, widgets=None, row=None, column=None, **kwargs):
+        row, column = super().set_grid(row=row, column=column, **kwargs)
+        if widgets is None:
+            widgets = self.widgets
+        for i, widget in enumerate(widgets):
+            column += 1
+            super().set_grid(widget=widget, row=row, column=column)
+        return row, column
 
 
-class MultiEntrySet(WidgetSet):
+class MultiEntrySet(MultiWidgetSet):
 
     def __init__(self, frame, label, number=1, value=None, **kwargs):
-        super().__init__(frame, label, **kwargs)
+        super().__init__(frame, label, number=number, **kwargs)
         kwargs.pop('grid_location', None)
         if value is not None:
             value = gf.ensure_list(value, length=number)
-        self.entries = []
         for i in range(number):
             self.columns += 1
             entry = tk.Entry(frame, justify='right', **kwargs)
@@ -101,23 +112,7 @@ class MultiEntrySet(WidgetSet):
             entry.delete(0, -1)
             if value is not None:
                 entry.insert(0, value[i])
-            self.entries.append(entry)
-
-    def set_grid(self, widgets=None, row=None, column=None, **kwargs):
-        row, column = super().set_grid(row=row, column=column, **kwargs)
-        if widgets is None:
-            widgets = self.entries
-        for i, widget in enumerate(widgets):
-            column += 1
-            super().set_grid(widget=widget, row=row, column=column)
-            # # Grid.rowconfigure(self.frame, row, weight=1)
-            # # Grid.columnconfigure(self.frame, column, weight=1)
-            # # self.frame.rowconfigure(row, weight=1)
-            # # self.frame.columnconfigure(column, weight=1)
-            # entry.grid(row=row, column=column,
-            #            padx=kwargs.get('padx', self.PADX),
-            #            pady=kwargs.get('pady', self.PADY), **kwargs)
-        return row, column
+            self.widgets.append(entry)
 
 
 class DimensionedEntrySet(MultiEntrySet):
@@ -135,24 +130,15 @@ class DimensionedEntrySet(MultiEntrySet):
     def set_grid(self, row=None, column=None, **kwargs):
         row, column = super().set_grid(row=row, column=column, **kwargs)
         column += 1
-        # # Grid.rowconfigure(self.frame, row, weight=1)
-        # # Grid.columnconfigure(self.frame, column, weight=1)
-        # # self.frame.rowconfigure(row, weight=1)
-        # # self.frame.columnconfigure(column, weight=1)
-        # self.dimensions.grid(row=row, column=column,
-        #                      padx=kwargs.get('padx', self.PADX),
-        #                      pady=kwargs.get('pady', self.PADY),
-        #                      sticky='W', **kwargs)
         self.set_widget_grid(self.dimensions, row=row, column=column, **kwargs)
         return row, column
 
 
-class MultiCheckButtonSet(WidgetSet):
+class MultiCheckButtonSet(MultiWidgetSet):
     def __init__(self, frame, label, number=1, value=None, **kwargs):
         super().__init__(frame, label, **kwargs)
         if value is not None:
             value = gf.ensure_list(value, length=number)
-        self.check_buttons = []
         self.check_vars = []
         for i in range(number):
             self.columns += 1
@@ -165,17 +151,5 @@ class MultiCheckButtonSet(WidgetSet):
             #                   padx=self.padx, pady=self.pady)
             if value is not None and value[i] is True:
                 check_button.select()
-            self.check_buttons.append(check_button)
+            self.widgets.append(check_button)
 
-    def set_grid(self, row=None, column=None, **kwargs):
-        row, column = super().set_grid(row=row, column=column, **kwargs)
-        for i, check_button in enumerate(self.check_buttons):
-            column += 1
-            # Grid.rowconfigure(self.frame, row, weight=1)
-            # Grid.columnconfigure(self.frame, column, weight=1)
-            # self.frame.rowconfigure(row, weight=1)
-            # self.frame.columnconfigure(column, weight=1)
-            check_button.grid(row=row, column=column,
-                              padx=kwargs.get('padx', self.PADX),
-                              pady=kwargs.get('pady', self.PADY), **kwargs)
-        return row, column
