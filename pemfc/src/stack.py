@@ -4,7 +4,10 @@ import numpy as np
 # local module imports
 from . import electrical_coupling as el_cpl, flow_circuit as flow_circuit, \
     cell as cl, temperature_system as therm_cpl, fluid as fluid, channel as chl
-from ..data import input_dicts as in_dicts
+# from ..data import input_dicts as in_dicts
+from ..gui import data_transfer
+
+gui_data = True
 
 
 class Stack:
@@ -12,7 +15,7 @@ class Stack:
     def __init__(self, n_nodes, current_control=False):
 
         # Read settings dictionaries
-        stack_dict = in_dicts.dict_stack
+        stack_dict = data_transfer.main_dict['stack']
 
         self.n_cells = stack_dict['cell_number']
         # number of cells of the stack
@@ -24,29 +27,46 @@ class Stack:
         # switch to calculate the current density distribution
         # self.calc_flow_dis = stack_dict['calc_flow_distribution']
         # switch to calculate the flow distribution
-
-        cell_dict = in_dicts.dict_cell
-        membrane_dict = in_dicts.dict_membrane
-        anode_dict = in_dicts.dict_anode
-        cathode_dict = in_dicts.dict_cathode
-        ano_channel_dict = in_dicts.dict_anode_channel
-        cat_channel_dict = in_dicts.dict_cathode_channel
-        ano_fluid_dict = in_dicts.dict_anode_fluid
-        cat_fluid_dict = in_dicts.dict_cathode_fluid
-        ano_in_manifold_dict = in_dicts.dict_anode_in_manifold
-        cat_in_manifold_dict = in_dicts.dict_cathode_in_manifold
-        ano_out_manifold_dict = in_dicts.dict_anode_out_manifold
-        cat_out_manifold_dict = in_dicts.dict_cathode_out_manifold
-        # electrical_dict = in_dicts.dict_electrical_coupling
-        temperature_dict = in_dicts.dict_temp_sys
+        if gui_data:
+            cell_dict = data_transfer.main_dict['cell']
+            membrane_dict = data_transfer.main_dict['membrane']
+            anode_dict = data_transfer.main_dict['anode']
+            cathode_dict = data_transfer.main_dict['cathode']
+            ano_channel_dict = anode_dict['channel']
+            cat_channel_dict = cathode_dict['channel']
+            ano_fluid_dict = ano_channel_dict['fluid']
+            cat_fluid_dict = cat_channel_dict['fluid']
+            ano_flow_circuit_dict = anode_dict['flow circuit']
+            ano_in_manifold_dict = ano_flow_circuit_dict['inlet manifold']
+            ano_out_manifold_dict = ano_flow_circuit_dict['outlet manifold']
+            cat_flow_circuit_dict = cathode_dict['flow circuit']
+            cat_in_manifold_dict = cat_flow_circuit_dict['inlet manifold']
+            cat_out_manifold_dict = cat_flow_circuit_dict['outlet manifold']
+            temperature_dict = data_transfer.main_dict['temperature system']
+        else:
+            raise NotImplementedError
+            # cell_dict = in_dicts.dict_cell
+            # membrane_dict = in_dicts.dict_membrane
+            # anode_dict = in_dicts.dict_anode
+            # cathode_dict = in_dicts.dict_cathode
+            # ano_channel_dict = in_dicts.dict_anode_channel
+            # cat_channel_dict = in_dicts.dict_cathode_channel
+            # ano_fluid_dict = in_dicts.dict_anode_fluid
+            # cat_fluid_dict = in_dicts.dict_cathode_fluid
+            # ano_in_manifold_dict = in_dicts.dict_anode_in_manifold
+            # cat_in_manifold_dict = in_dicts.dict_cathode_in_manifold
+            # ano_out_manifold_dict = in_dicts.dict_anode_out_manifold
+            # cat_out_manifold_dict = in_dicts.dict_cathode_out_manifold
+            # cat_flow_circuit_dict = in_dicts.dict_cathode_flow_circuit
+            # ano_flow_circuit_dict = in_dicts.dict_anode_flow_circuit
+            # temperature_dict = in_dicts.dict_temp_sys
 
         half_cell_dicts = [cathode_dict, anode_dict]
         channel_dicts = [cat_channel_dict, ano_channel_dict]
         fluid_dicts = [cat_fluid_dict, ano_fluid_dict]
         manifold_in_dicts = [cat_in_manifold_dict, ano_in_manifold_dict]
         manifold_out_dicts = [cat_out_manifold_dict, ano_out_manifold_dict]
-        flow_circuit_dicts = [in_dicts.dict_cathode_flow_circuit,
-                              in_dicts.dict_anode_flow_circuit]
+        flow_circuit_dicts = [cat_flow_circuit_dict, ano_flow_circuit_dict]
 
         # Initialize fluid channels
         fluids, channels = [], []
@@ -105,12 +125,18 @@ class Stack:
 
         cool_flow = stack_dict['cool_flow']
         if cool_flow:
-            coolant_dict = in_dicts.dict_coolant_fluid
-            in_dicts.dict_coolant_in_manifold['length'] = manifold_length
-            in_dicts.dict_coolant_out_manifold['length'] = manifold_length
-            coolant_dict['temp_in'] = \
-                in_dicts.dict_coolant_in_manifold['temp_in']
-            coolant_dict['p_out'] = in_dicts.dict_coolant_out_manifold['p_out']
+            coolant_channel_dict = data_transfer.main_dict['coolant channel']
+            coolant_dict = coolant_channel_dict['fluid']
+            dict_coolant_flow_circuit = \
+                data_transfer.main_dict['coolant flow circuit']
+            dict_coolant_in_manifold = \
+                dict_coolant_flow_circuit['inlet manifold']
+            dict_coolant_out_manifold = \
+                dict_coolant_flow_circuit['outlet manifold']
+            dict_coolant_in_manifold['length'] = manifold_length
+            dict_coolant_out_manifold['length'] = manifold_length
+            coolant_dict['temp_in'] = dict_coolant_in_manifold['temp_in']
+            coolant_dict['p_out'] = dict_coolant_out_manifold['p_out']
 
             cool_bc = temperature_dict['cool_ch_bc']
             if cool_bc:
@@ -122,7 +148,7 @@ class Stack:
             cool_channels = []
             for i in range(n_cool):
                 cool_channels.append(
-                    chl.Channel(in_dicts.dict_coolant_channel,
+                    chl.Channel(coolant_channel_dict,
                                 fluid.dict_factory(coolant_dict),
                                 number=str(i)))
                 cool_channels[i].extend_data_names(cool_channels[i].name)
@@ -136,9 +162,9 @@ class Stack:
                 cool_channels[-1].height *= 0.5
             if n_cool > 0:
                 self.coolant_circuit = \
-                    flow_circuit.factory(in_dicts.dict_coolant_flow_circuit,
-                                         in_dicts.dict_coolant_in_manifold,
-                                         in_dicts.dict_coolant_out_manifold,
+                    flow_circuit.factory(dict_coolant_flow_circuit,
+                                         dict_coolant_in_manifold,
+                                         dict_coolant_out_manifold,
                                          cool_channels, n_cool_cell)
             else:
                 self.coolant_circuit = None
@@ -154,7 +180,7 @@ class Stack:
 
         self.current_control = current_control
 
-        i_cd_target = np.asarray(in_dicts.dict_stack['init_current_density'])
+        i_cd_target = np.asarray(stack_dict['init_current_density'])
         if i_cd_target.ndim > 0:
             self.i_cd_target = i_cd_target[0]
         else:
