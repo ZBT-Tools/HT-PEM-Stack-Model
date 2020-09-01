@@ -42,11 +42,9 @@ class WidgetSet(base.Base, ABC):
         self.name = label.lower()
         super().__init__(self.name, **kwargs)
         self.frame = frame
-        remove_kwargs = \
-            ['padx', 'pady', 'row', 'column', 'grid_location',
-             'sticky', 'sim_name']
-        for arg in remove_kwargs:
-            kwargs.pop(arg, None)
+        kwargs = self.remove_dict_entries(
+            kwargs, ['padx', 'pady', 'row', 'column', 'grid_location',
+                     'sticky', 'sim_name'])
         kwargs['text'] = label
         self.label = tk.Label(frame, **kwargs)
         # self.label.grid(row=self.row, column=self.column, padx=self.padx,
@@ -108,10 +106,7 @@ class MultiEntrySet(MultiWidgetSet):
 
     def __init__(self, frame, label, number=1, value=None, **kwargs):
         super().__init__(frame, label, **kwargs)
-        remove_kwargs = \
-            ['grid_location', 'sim_name']
-        for arg in remove_kwargs:
-            kwargs.pop(arg, None)
+        kwargs = self.remove_dict_entries(kwargs, ['grid_location', 'sim_name'])
         if value is not None:
             value = gf.ensure_list(value, length=number)
         for i in range(number):
@@ -130,10 +125,7 @@ class DimensionedEntrySet(MultiEntrySet):
                  value=None, **kwargs):
         super().__init__(frame, label, number=number, value=value, **kwargs)
         kwargs['text'] = dimensions
-        remove_kwargs = \
-            ['grid_location', 'sim_name']
-        for arg in remove_kwargs:
-            kwargs.pop(arg, None)
+        kwargs = self.remove_dict_entries(kwargs, ['grid_location', 'sim_name'])
         self.dimensions = tk.Label(frame, **kwargs)
         self.columns += 1
         # self.dimensions.grid(row=self.row, column=self.column + number + 1,
@@ -143,7 +135,6 @@ class DimensionedEntrySet(MultiEntrySet):
     def set_grid(self, **kwargs):
         row = kwargs.pop('row', self.row)
         column = kwargs.pop('column', self.column)
-
         row, column = super().set_grid(row=row, column=column, **kwargs)
         column += 1
         self._set_grid(self.dimensions, row=row, column=column, **kwargs)
@@ -153,10 +144,7 @@ class DimensionedEntrySet(MultiEntrySet):
 class MultiCheckButtonSet(MultiWidgetSet):
     def __init__(self, frame, label, number=1, value=None, **kwargs):
         super().__init__(frame, label, **kwargs)
-        remove_kwargs = \
-            ['grid_location', 'sim_name']
-        for arg in remove_kwargs:
-            kwargs.pop(arg, None)
+        kwargs = self.remove_dict_entries(kwargs, ['grid_location', 'sim_name'])
         if value is not None:
             value = gf.ensure_list(value, length=number)
         self.check_vars = []

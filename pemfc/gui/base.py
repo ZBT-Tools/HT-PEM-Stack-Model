@@ -35,3 +35,10 @@ class Base(ABC):
                     pady=kwargs.get('pady', self.PADY),
                     sticky=kwargs.pop('sticky', self.sticky), **kwargs)
         return row, column
+
+    @staticmethod
+    def remove_dict_entries(dictionary, entries):
+        for entry in entries:
+            dictionary.pop(entry, None)
+        return dictionary
+

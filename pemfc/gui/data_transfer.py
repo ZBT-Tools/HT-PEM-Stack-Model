@@ -7,10 +7,10 @@ nodes = sim.elements + 1
 
 
 def gen_dict_extract(key, var):
-    if hasattr(var, 'iteritems'):
+    if hasattr(var, 'items'):
         for k, v in var.items():
             if k == key:
-                yield v
+                yield var
             if isinstance(v, dict):
                 for result in gen_dict_extract(key, v):
                     yield result
@@ -20,20 +20,23 @@ def gen_dict_extract(key, var):
                         yield result
 
 
-def transfer(gui_values):
+def transfer(gui_entries, sim_dict):
     # loop through tab frames of gui notebook
-    for ki, vi in gui_values.items():
-        for kj, vj in vi.items():
-            print(kj, vj, '\n')
+    # for ki, vi in gui_values.items():
+    #     for kj, vj in vi.items():
+    #         print(kj, vj, '\n')
+
     # get only widgets with sim_names
-    dict_sim = gen_dict_extract('sim_name', gui_values)
-    # dict_sim = fun('sim_name', gui_values)
+    extracted_gui_entries = gen_dict_extract('sim_name', gui_entries)
+    for gui_entry in extracted_gui_entries:
+        sim_names = gui_entry['sim_name']
+        dict_list = [sim_dict]
+        for name in sim_names:
+            dict_list[0] = dict_list[0][name]
+        sub_dict = gui_entry['value']
 
-    print(list(dict_sim))
-    #
 
-
-main_dict = {
+sim_dict = {
     'stack': {
         'cell_number': geom.cell_number,
         'heat_power': op_con.endplates_heat_power,
