@@ -83,17 +83,15 @@ class HalfCell:
         self.calc_cl_diff_loss = halfcell_dict['calc_cl_diff_loss']
         self.calc_gdl_diff_loss = halfcell_dict['calc_gdl_diff_loss']
 
-        self.th_gdl = halfcell_dict['th_gdl']
+        self.th_gdl = halfcell_dict['thickness_gdl']
         # thickness of the gas diffusion layer
-        self.th_bpp = halfcell_dict['th_bpp']
+        self.th_bpp = halfcell_dict['thickness_bpp']
         # thickness of the bipolar plate
-        self.th_cl = halfcell_dict['th_cl']
+        self.th_cl = halfcell_dict['thickness_cl']
         # thickness of the catalyst layer
-        self.th_gde = self.th_gdl + self.th_cl
-        # thickness gas diffusion electrode
 
         bpp_layer_dict = \
-            {'thickness': halfcell_dict['th_bpp'],
+            {'thickness': halfcell_dict['thickness_bpp'],
              'width': self.width_straight_channels,
              'length': self.length_straight_channels,
              'electrical conductivity':
@@ -104,7 +102,8 @@ class HalfCell:
         #             self.th_bpp * self.width)}
         self.bpp = layers.SolidLayer(bpp_layer_dict, self.channel.dx)
         gde_layer_dict = \
-            {'thickness': halfcell_dict['th_gdl'] + halfcell_dict['th_cl'],
+            {'thickness': halfcell_dict['thickness_gdl']
+                + halfcell_dict['thickness_cl'],
              'width': self.width_straight_channels,
              'length': self.length_straight_channels,
              'electrical conductivity':

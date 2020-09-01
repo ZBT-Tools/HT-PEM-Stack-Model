@@ -80,11 +80,11 @@ class Cell(OutputObject):
 
         # heat conductivity along the gas diffusion electrode and membrane
         self.th_layer = \
-            np.asarray([self.cathode.th_bpp,
-                        self.cathode.th_gde,
+            np.asarray([self.cathode.bpp.thickness,
+                        self.cathode.gde.thickness,
                         self.membrane.thickness,
-                        self.anode.th_gde,
-                        self.anode.th_bpp])
+                        self.anode.gde.thickness,
+                        self.anode.bpp.thickness])
 
         self.thermal_conductance_z = \
             np.asarray([self.cathode.bpp.thermal_conductance[0],
@@ -169,10 +169,10 @@ class Cell(OutputObject):
 
         """general parameter"""
         self.height = self.membrane.thickness \
-            + self.cathode.th_bpp \
-            + self.cathode.th_gde \
-            + self.anode.th_bpp \
-            + self.anode.th_gde
+            + self.cathode.bpp.thickness \
+            + self.cathode.gde.thickness \
+            + self.anode.bpp.thickness \
+            + self.anode.gde.thickness
 
         self.v_loss = np.zeros(self.n_ele)
         # voltage loss
