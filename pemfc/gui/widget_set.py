@@ -59,7 +59,11 @@ class WidgetSet(base.Base, ABC):
         return row, column
 
     def _get_values(self):
-        return {'sim_name': self.sim_name, 'gui_name': self.label.cget('text')}
+        if self.sim_name is None:
+            return {'gui_name': self.label.cget('text')}
+        else:
+            return {'sim_name': self.sim_name,
+                    'gui_name': self.label.cget('text')}
 
     @abstractmethod
     def get_values(self):

@@ -2,6 +2,7 @@
 from ..settings import simulation as sim, operating_conditions as op_con, \
     output as out, geometry as geom, physical_properties as phy_prop
 from ..src import species
+from ..src import global_functions as gf
 
 nodes = sim.elements + 1
 
@@ -20,20 +21,37 @@ def gen_dict_extract(key, var):
                         yield result
 
 
-def transfer(gui_entries, sim_dict):
+def set_dict_entry(value, name_list, target_dict):
+    if isinstance(target_dict, dict):
+        sub_dict = target_dict
+        for i in range(len(name_list)):
+            sub_dict = sub_dict[name_list[i]]
+        sub_dict = value
+        return target_dict
+
+
+def transfer(source_dict, target_dict):
     # loop through tab frames of gui notebook
     # for ki, vi in gui_values.items():
     #     for kj, vj in vi.items():
     #         print(kj, vj, '\n')
 
     # get only widgets with sim_names
-    extracted_gui_entries = gen_dict_extract('sim_name', gui_entries)
+    extracted_gui_entries = list(gen_dict_extract('sim_name', source_dict))
     for gui_entry in extracted_gui_entries:
         sim_names = gui_entry['sim_name']
-        dict_list = [sim_dict]
-        for name in sim_names:
-            dict_list[0] = dict_list[0][name]
-        sub_dict = gui_entry['value']
+        sim_names = gf.ensure_list(sim_names)
+        sub_dict = target_dict
+
+        if isinstance(sim_names[0], list):
+            gui_values = gf.ensure_list(gui_entry['value'])
+            if len(sim_names) != len(gui_values):
+                gui_values = [gui_values[0] for i in range(len(sim_names))]
+            for i, name in enumerate(sim_names):
+                sub_dict = set_dict_entry(gui_values[i], name, sub_dict)
+        else:
+            sub_dict = set_dict_entry(gui_entry['value'], sim_names, sub_dict)
+    #print(sub_dict)
 
 
 sim_dict = {
