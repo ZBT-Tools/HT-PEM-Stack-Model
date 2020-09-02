@@ -49,7 +49,7 @@ class NotebookApp:
 
     def run(self):
         values = self.get_values()
-        data_transfer.transfer(values)
+        data_transfer.transfer(values, data_transfer.sim_dict)
         # print(values)
 
 

@@ -9,7 +9,7 @@ class Base(ABC):
 
     def __init__(self, name, **kwargs):
         self.name = name
-        self.sim_name = kwargs.pop('sim_name', self.name)
+        self.sim_name = kwargs.pop('sim_name', None)
         self.padx = kwargs.pop('padx', self.PADX)
         self.pady = kwargs.pop('pady', self.PADY)
         grid_location = kwargs.pop('grid_location', (None, None))
@@ -35,3 +35,10 @@ class Base(ABC):
                     pady=kwargs.get('pady', self.PADY),
                     sticky=kwargs.pop('sticky', self.sticky), **kwargs)
         return row, column
+
+    @staticmethod
+    def remove_dict_entries(dictionary, entries):
+        for entry in entries:
+            dictionary.pop(entry, None)
+        return dictionary
+
