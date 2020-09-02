@@ -8,6 +8,7 @@ from pemfc.gui import button
 from pemfc.gui import frame
 from pemfc.gui import input
 from pemfc.gui import data_transfer
+from pemfc import stack_simulation
 
 
 class NotebookApp:
@@ -50,6 +51,7 @@ class NotebookApp:
     def run(self):
         values = self.get_values()
         data_transfer.transfer(values, data_transfer.sim_dict)
+        stack_simulation.main()
         # print(values)
 
 

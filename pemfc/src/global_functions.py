@@ -7,7 +7,7 @@ from . import constants
 
 
 def ensure_list(variable, length=1):
-    if isinstance(variable, (list, tuple)):
+    if isinstance(variable, (list, tuple, np.ndarray)):
         return variable
     else:
         return [variable for i in range(length)]

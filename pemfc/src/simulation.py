@@ -54,7 +54,7 @@ class Simulation:
         output_dict = input_dicts.dict_output
         self.output = output.Output(output_dict)
 
-    @do_c_profile
+    # @do_c_profile
     def run(self):
         """
         This function coordinates the program sequence

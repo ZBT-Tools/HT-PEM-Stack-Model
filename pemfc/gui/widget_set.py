@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 # local imports
 from pemfc.src import global_functions as gf
 from . import base
+from . import entry_value
 
 
 class WidgetSetFactory:
@@ -39,12 +40,12 @@ class WidgetSet(base.Base, ABC):
     def __init__(self, frame, label, **kwargs):
 
         self.columns = 1
-        self.name = label.lower()
+        self.name = label.lower().strip(':')
         super().__init__(self.name, **kwargs)
         self.frame = frame
         kwargs = self.remove_dict_entries(
             kwargs, ['padx', 'pady', 'row', 'column', 'grid_location',
-                     'sticky', 'sim_name'])
+                     'sticky', 'sim_name', 'dtype'])
         kwargs['text'] = label
         self.label = tk.Label(frame, **kwargs)
         # self.label.grid(row=self.row, column=self.column, padx=self.padx,
@@ -78,10 +79,12 @@ class Label(WidgetSet):
         return super().get_values()
 
 
-class MultiWidgetSet(WidgetSet):
+class MultiWidgetSet(WidgetSet, ABC):
 
     def __init__(self, frame, label, **kwargs):
         super().__init__(frame, label, **kwargs)
+        self.dtype = kwargs.pop('dtype', None)
+        self.entry_value_factory = entry_value.EntryValueFactory()
         self.widgets = []
 
     def set_grid(self, widgets=None, **kwargs):
@@ -95,24 +98,33 @@ class MultiWidgetSet(WidgetSet):
             super().set_grid(widget=widget, row=row, column=column, **kwargs)
         return row, column
 
-    def get_values(self):
+    def get_tk_values(self, tk_objects):
         values = super().get_values()
-        if len(self.widgets) > 1:
+        if len(tk_objects) > 1:
             values['value'] = []
-            for widget in self.widgets:
-                values['value'].append(widget.get())
+            for item in tk_objects:
+                values['value'].append(
+                    self.entry_value_factory.create(item.get(),
+                                                    self.dtype, self))
         else:
-            values['value'] = self.widgets[0].get()
+            values['value'] = \
+                self.entry_value_factory.create(tk_objects[0].get(),
+                                                self.dtype, self)
         return values
+
+    def get_values(self):
+        return self.get_tk_values(self.widgets)
 
 
 class MultiEntrySet(MultiWidgetSet):
 
     def __init__(self, frame, label, number=1, value=None, **kwargs):
         super().__init__(frame, label, **kwargs)
+        self.dtype = kwargs.pop('dtype', 'float')
         kwargs = self.remove_dict_entries(kwargs, ['grid_location', 'sim_name'])
         if value is not None:
             value = gf.ensure_list(value, length=number)
+            number = len(value)
         for i in range(number):
             self.columns += 1
             entry = tk.Entry(frame, justify='right', **kwargs)
@@ -129,7 +141,9 @@ class DimensionedEntrySet(MultiEntrySet):
                  value=None, **kwargs):
         super().__init__(frame, label, number=number, value=value, **kwargs)
         kwargs['text'] = dimensions
-        kwargs = self.remove_dict_entries(kwargs, ['grid_location', 'sim_name'])
+        kwargs = \
+            self.remove_dict_entries(kwargs,
+                                     ['grid_location', 'sim_name', 'dtype'])
         self.dimensions = tk.Label(frame, **kwargs)
         self.columns += 1
         # self.dimensions.grid(row=self.row, column=self.column + number + 1,
@@ -148,6 +162,7 @@ class DimensionedEntrySet(MultiEntrySet):
 class MultiCheckButtonSet(MultiWidgetSet):
     def __init__(self, frame, label, number=1, value=None, **kwargs):
         super().__init__(frame, label, **kwargs)
+        self.dtype = kwargs.pop('dtype', 'boolean')
         kwargs = self.remove_dict_entries(kwargs, ['grid_location', 'sim_name'])
         if value is not None:
             value = gf.ensure_list(value, length=number)
@@ -166,17 +181,14 @@ class MultiCheckButtonSet(MultiWidgetSet):
             self.widgets.append(check_button)
 
     def get_values(self):
-        values = super()._get_values()
-        values['value'] = []
-        for i, widget in enumerate(self.widgets):
-            values['value'].append(self.check_vars[i].get())
-        return values
+        return super().get_tk_values(self.check_vars)
 
 
 class OptionMenuSet(MultiWidgetSet):
     def __init__(self, frame, label, number=1, **kwargs):
         options = kwargs.pop('options', [])
         super().__init__(frame, label, **kwargs)
+        self.dtype = kwargs.pop('dtype', 'string')
         self.option_vars = []
         for i in range(number):
             self.columns += 1
@@ -190,6 +202,7 @@ class ComboboxSet(MultiWidgetSet):
     def __init__(self, frame, label, number=1, **kwargs):
         options = kwargs.pop('options', [])
         super().__init__(frame, label, **kwargs)
+        self.dtype = kwargs.pop('dtype', 'string')
         for i in range(number):
             self.columns += 1
             option_menu = ttk.Combobox(self.frame, values=options)

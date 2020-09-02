@@ -4,6 +4,8 @@ from ..settings import simulation as sim, operating_conditions as op_con, \
 from ..src import species
 from ..src import global_functions as gf
 
+from . import entry_value
+
 nodes = sim.elements + 1
 
 
@@ -24,9 +26,11 @@ def gen_dict_extract(key, var):
 def set_dict_entry(value, name_list, target_dict):
     if isinstance(target_dict, dict):
         sub_dict = target_dict
-        for i in range(len(name_list)):
+        for i in range(len(name_list) - 1):
             sub_dict = sub_dict[name_list[i]]
-        sub_dict = value
+        if isinstance(value, entry_value.EntryValue):
+            value = value.value
+        sub_dict[name_list[-1]] = value
         return target_dict
 
 
@@ -51,7 +55,7 @@ def transfer(source_dict, target_dict):
                 sub_dict = set_dict_entry(gui_values[i], name, sub_dict)
         else:
             sub_dict = set_dict_entry(gui_entry['value'], sim_names, sub_dict)
-    #print(sub_dict)
+    print(sub_dict)
 
 
 sim_dict = {
