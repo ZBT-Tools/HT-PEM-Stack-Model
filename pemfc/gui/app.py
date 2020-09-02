@@ -39,7 +39,6 @@ class NotebookApp:
         self.notebook.rowconfigure(0, weight=1)
         self.notebook.columnconfigure(0, weight=1)
         # self.notebook.grid(sticky='WENS', **kwargs)
-
         for fr in self.frames:
             fr.set_grid(grid_list=grid_list, **kwargs)
         self.notebook.grid(sticky='WENS', **kwargs)
