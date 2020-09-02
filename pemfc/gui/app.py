@@ -1,6 +1,7 @@
 # global imports
 import tkinter as tk
 from tkinter import ttk
+from tkinter.filedialog import askopenfilename
 import os
 
 # local imports
@@ -9,6 +10,7 @@ from pemfc.gui import frame
 from pemfc.gui import input
 from pemfc.gui import data_transfer
 from pemfc import stack_simulation
+from pemfc.src import global_functions as gf
 
 
 class NotebookApp:
@@ -24,13 +26,21 @@ class NotebookApp:
                                                              **main_frame_dict)
                 self.frames.append(main_frame)
                 self.notebook.add(main_frame, text=main_frame_dict['title'])
-
-        if 'button_dict' in kwargs:
-            button_dict = kwargs['button_dict']
-            button_factory = button.ButtonFactory()
-            run_button = button_factory.create(self.frames[-1], **button_dict)
-            self.frames[-1].add_widget(run_button)
-            run_button.button.configure(command=self.run)
+        # self.buttons = []
+        # if 'button_dicts' in kwargs:
+        #     button_dicts = kwargs['button_dicts']
+        #     button_dicts = gf.ensure_list(button_dicts)
+        #     for button_dict in button_dicts:
+        #         button_factory = button.ButtonFactory()
+        #
+        #         button_widget = \
+        #             button_factory.create(self.frames[-1], **button_dict)
+        #         self.buttons.append(button_widget)
+        #
+        #     self.frames[-1].add_widget(self.buttons[0])
+        #     self.buttons[0].button.configure(command=self.run)
+        #     self.frames[-1].add_widget(self.buttons[1])
+        self.frames[-1].sub_frames[-1].buttons[-1].button.configure(command=self.run)
 
         self.notebook.select(self.frames[0])
         self.notebook.enable_traversal()
@@ -66,6 +76,7 @@ if __name__ == "__main__":
     root.columnconfigure(0, weight=1)
 
     base_app = NotebookApp(root, main_frame_dicts=input.main_frame_dicts,
-                           button_dict=input.button_dict)
+                           button_dicts=[input.run_button_dict,
+                                         input.output_dir_button_dict])
 
     root.mainloop()

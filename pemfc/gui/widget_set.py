@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from pemfc.src import global_functions as gf
 from . import base
 from . import entry_value
+from . import button
 
 
 class WidgetSetFactory:
@@ -23,6 +24,8 @@ class WidgetSetFactory:
             return OptionMenuSet(frame, **kwargs)
         elif widget_type == 'ComboboxSet':
             return ComboboxSet(frame, **kwargs)
+        elif widget_type == 'EntryButtonSet':
+            return EntryButtonSet(frame, **kwargs)
         else:
             raise NotImplementedError('type of WidgetSet not implemented')
 
@@ -119,15 +122,18 @@ class MultiWidgetSet(WidgetSet, ABC):
 class MultiEntrySet(MultiWidgetSet):
 
     def __init__(self, frame, label, number=1, value=None, **kwargs):
+        justify = kwargs.pop('justify', 'right')
         super().__init__(frame, label, **kwargs)
         self.dtype = kwargs.pop('dtype', 'float')
-        kwargs = self.remove_dict_entries(kwargs, ['grid_location', 'sim_name'])
+        kwargs = self.remove_dict_entries(kwargs,
+                                          ['grid_location', 'sim_name',
+                                           'sticky'])
         if value is not None:
             value = gf.ensure_list(value, length=number)
             number = len(value)
         for i in range(number):
             self.columns += 1
-            entry = tk.Entry(frame, justify='right', **kwargs)
+            entry = tk.Entry(frame, justify=justify, **kwargs)
             # entry.grid(row=self.row, column=self.column + 1 + i,
             #            padx=self.padx, pady=self.pady)
             entry.delete(0, -1)
@@ -210,3 +216,24 @@ class ComboboxSet(MultiWidgetSet):
             self.widgets.append(option_menu)
 
 
+class EntryButtonSet(MultiEntrySet):
+    def __init__(self, frame, label, button_dict, number=1,
+                 value=None, **kwargs):
+        super().__init__(frame, label, number=number, value=value,
+                         justify='left', **kwargs)
+        self.dtype = kwargs.pop('dtype', 'string')
+        button_factory = button.ButtonFactory()
+        self.button = button_factory.create(frame, entry=self.widgets[0],
+                                            **button_dict)
+        self.columns += 1
+        # self.dimensions.grid(row=self.row, column=self.column + number + 1,
+        #                      padx=kwargs.get('padx', self.PADX),
+        #                      pady=kwargs.get('pady', self.PADY))
+
+    def set_grid(self, **kwargs):
+        row = kwargs.pop('row', self.row)
+        column = kwargs.pop('column', self.column)
+        row, column = super().set_grid(row=row, column=column, **kwargs)
+        column += 1
+        self._set_grid(self.button.button, row=row, column=column, **kwargs)
+        return row, column

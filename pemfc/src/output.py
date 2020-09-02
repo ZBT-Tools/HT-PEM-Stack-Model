@@ -35,7 +35,8 @@ class Output:
         self.delimiter = ','
         self.csv_format = '%.9e'
         # object of the class Stack
-        self.output_dir = os.path.join(os.getcwd(), 'output')
+        self.output_dir = dict_output.get('directory',
+                                          os.path.join(os.getcwd(), 'output'))
 
         if not os.path.exists(self.output_dir):
             os.makedirs(self.output_dir)

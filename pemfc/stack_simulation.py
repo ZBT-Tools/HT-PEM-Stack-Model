@@ -32,5 +32,7 @@ def main():
     print('Stack current density [A/m²]: ', average_current_density)
     average_current = \
         average_current_density * sim.stack.cells[0].active_area
+    print('Stack power density [W/m²]: ',
+          sim.stack.v_stack * average_current_density)
     print('Stack power [W]: ', sim.stack.v_stack * average_current)
 

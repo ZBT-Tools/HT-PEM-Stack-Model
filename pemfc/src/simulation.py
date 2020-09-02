@@ -8,6 +8,7 @@ import timeit
 from . import stack
 from . import output
 from ..data import input_dicts
+from ..gui import data_transfer
 
 
 def do_c_profile(func):
@@ -51,7 +52,7 @@ class Simulation:
             raise ValueError('parameter average_cell_voltage must be provided')
 
         # initialize output object
-        output_dict = input_dicts.dict_output
+        output_dict = data_transfer.sim_dict['output']
         self.output = output.Output(output_dict)
 
     # @do_c_profile

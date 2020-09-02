@@ -362,6 +362,7 @@ sim_dict = {
     'output': {
         'save_csv': out.save_csv_data,
         'save_plot': out.save_plot_data,
-        'show_loss': getattr(out, 'show_voltage_loss', False)
+        'show_loss': getattr(out, 'show_voltage_loss', False),
+        'directory': out.directory
         }
     }

@@ -6,18 +6,24 @@ import numpy as np
 # local imports
 from . import base
 from . import widget_set as ws
+from . import button
 
 
 class FrameFactory:
     @staticmethod
     def create_frame(master, sub_frame_dicts: list = None,
-                     widget_set_dicts: list = None, **kwargs):
-        if sub_frame_dicts is None:
-            return BaseFrame(master, widget_set_dicts=widget_set_dicts,
-                             **kwargs)
+                     widget_set_dicts: list = None, button_dicts: list = None,
+                     **kwargs):
+        if button_dicts is None:
+            if sub_frame_dicts is None:
+                return BaseFrame(master, widget_set_dicts=widget_set_dicts,
+                                 **kwargs)
+            else:
+                return MainFrame(master, sub_frame_dicts=sub_frame_dicts,
+                                 widget_set_dicts=widget_set_dicts, **kwargs)
         else:
-            return MainFrame(master, sub_frame_dicts=sub_frame_dicts,
-                             widget_set_dicts=widget_set_dicts, **kwargs)
+            return ButtonMainFrame(master, widget_set_dicts=widget_set_dicts,
+                                   button_dicts=button_dicts, **kwargs)
 
 
 class BaseFrame(base.Base, tk.Frame):
@@ -131,22 +137,13 @@ class MainFrame(BaseFrame):
     def set_grid(self, grid_list=None, **kwargs):
         row, column = super().set_grid(tk_objects=self.sub_frames,
                                        grid_list=grid_list, **kwargs)
-
         if self.widget_sets:
             kwargs.pop('row', None)
             kwargs.pop('column', None)
-            super().set_grid(tk_objects=self.widget_sets, grid_list=grid_list,
-                             row=row, column=column, **kwargs)
-        # if grid_list is None:
-        #     kwargs.pop('row', None)
-        #     kwargs.pop('column', None)
-        #     for i, sub_frame in enumerate(self.sub_frames):
-        #         row = i + 1
-        #         column = 0
-        #         sub_frame.set_grid(row=row, column=column, **kwargs)
-        #     if self.title is not None:
-        #         self.title.set_grid(row=0, column=0,
-        #                             columnspan=self.grid_size()[0])
+            row, column = super().set_grid(tk_objects=self.widget_sets,
+                                           grid_list=grid_list,
+                                           row=row, column=column, **kwargs)
+        return row, column
 
     def get_values(self, tk_objects=None):
         if tk_objects is None:
@@ -154,6 +151,27 @@ class MainFrame(BaseFrame):
         return self._get_values(tk_objects=tk_objects)
 
 
+class ButtonMainFrame(MainFrame):
+    def __init__(self, master, sub_frame_dicts: list = None,
+                 widget_set_dicts: list = None, button_dicts: list = None,
+                 **kwargs):
+        super().__init__(master, sub_frame_dicts=sub_frame_dicts,
+                         widget_set_dicts=widget_set_dicts, **kwargs)
 
+        button_factory = button.ButtonFactory()
+        self.buttons = []
+        if button_dicts is not None:
+            self.buttons = [button_factory.create(self, **b_dict)
+                            for b_dict in button_dicts]
+
+    def set_grid(self, grid_list=None, **kwargs):
+        row, column = super().set_grid(grid_list=grid_list, **kwargs)
+        if self.buttons:
+            kwargs.pop('row', None)
+            kwargs.pop('column', None)
+            row, column = BaseFrame.set_grid(self, tk_objects=self.buttons,
+                                             grid_list=grid_list,
+                                             row=row, column=column, **kwargs)
+        return row, column
 
 

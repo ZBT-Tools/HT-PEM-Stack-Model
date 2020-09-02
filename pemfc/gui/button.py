@@ -1,5 +1,6 @@
 # global imports
 import tkinter as tk
+from tkinter import filedialog
 
 # local imports
 from . import base
@@ -14,6 +15,9 @@ class ButtonFactory:
             return Button(frame, **kwargs)
         elif button_type == 'RunButton':
             return RunButton(frame, **kwargs)
+        elif button_type == 'OpenDirectoryButton':
+            return OpenDirectoryButton(frame, kwargs.pop('entry', None),
+                                       **kwargs)
         else:
             raise NotImplementedError('type of WidgetSet not implemented')
 
@@ -41,8 +45,36 @@ class Button(base.Base):
     def command(self, *args):
         pass
 
+    def _get_values(self):
+        if self.sim_name is None:
+            return {'gui_name': self.button.cget('text')}
+        else:
+            return {'sim_name': self.sim_name,
+                    'gui_name': self.button.cget('text')}
+
+    def get_values(self):
+        return self._get_values()
+
 
 class RunButton(Button):
     def __init__(self, frame, **kwargs):
         super().__init__(frame, **kwargs)
+
+
+class OpenDirectoryButton(Button):
+    def __init__(self, frame, entry, **kwargs):
+        self.entry = entry
+        self.directory = kwargs.pop('directory', None)
+        super().__init__(frame, **kwargs)
+
+    def command(self):
+        directory = filedialog.askdirectory()
+        try:
+            self.entry.insert(0, directory)
+        except AttributeError:
+            raise AttributeError('member entry hast not been referenced '
+                                 'correctly to tk.Entry object')
+        print(directory)
+        return directory
+
 

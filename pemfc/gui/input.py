@@ -147,13 +147,33 @@ manifold_frame_dict = \
      'widget_set_dicts': [calc_distribution, manifold_configuration],
      'highlightbackground': 'grey', 'highlightthickness': 1}
 
+
+output_dir_button_dict = \
+    {'label': 'Open', 'type': 'OpenDirectoryButton'}
+output_dir = \
+    {'label': 'Output Directory:', 'button_dict': output_dir_button_dict,
+     'sim_name': ['output', 'directory'],
+     'dtype': 'string', 'type': 'EntryButtonSet', 'sticky': 'W'}
+
+run_button_dict = {'label': 'Run Simulation', 'type': 'RunButton'}
+
+output_frame_dict = \
+    {'title': 'Output Settings', 'show_title': True,
+     'widget_set_dicts': [output_dir],
+     'button_dicts': [run_button_dict],
+     'highlightbackground': 'grey', 'highlightthickness': 1}
+
 geometry_frame_dict = \
     {'title': 'Geometry', 'show_title': False,
-     'sub_frame_dicts': [cell_frame_dict, cool_frame_dict, manifold_frame_dict],
+     'sub_frame_dicts': [cell_frame_dict, cool_frame_dict, manifold_frame_dict,
+                         output_frame_dict],
      'highlightbackground': 'grey', 'highlightthickness': 1}
 
 main_frame_dicts = [geometry_frame_dict]
 
-button_dict = {'label': 'Run Simulation', 'type': 'RunButton'}
+
+
+
+
 
 
