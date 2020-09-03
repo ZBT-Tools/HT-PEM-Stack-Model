@@ -9,11 +9,11 @@ from . import layers as layers, constants
 class Membrane(ABC, layers.SolidLayer):
     def __new__(cls, membrane_dict, dx, **kwargs):
         model_type = membrane_dict.get('type', 'Constant')
-        if model_type is 'Constant':
+        if model_type == 'Constant':
             return super(Membrane, cls).__new__(Constant)
-        elif model_type is 'Springer':
+        elif model_type == 'Springer':
             return super(Membrane, cls).__new__(SpringerMembrane)
-        elif model_type is 'Kvesic':
+        elif model_type == 'Kvesic':
             return super(Membrane, cls).__new__(KvesicMembrane)
         else:
             raise NotImplementedError('Specified membrane model not '
