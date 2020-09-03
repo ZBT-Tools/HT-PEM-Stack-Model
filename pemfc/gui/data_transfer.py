@@ -53,6 +53,8 @@ def transfer(source_dict, target_dict):
                 gui_values = [gui_values[0] for i in range(len(sim_names))]
             for i, name in enumerate(sim_names):
                 sub_dict = set_dict_entry(gui_values[i], name, sub_dict)
+                if name == 'directory':
+                    print(sub_dict)
         else:
             sub_dict = set_dict_entry(gui_entry['value'], sim_names, sub_dict)
     print(sub_dict)
