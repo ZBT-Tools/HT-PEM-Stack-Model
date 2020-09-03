@@ -57,7 +57,7 @@ def transfer(source_dict, target_dict):
             else:
                 sub_dict = \
                     set_dict_entry(gui_entry['value'], sim_names, sub_dict)
-        return sub_dict
+    return target_dict
 
 
 sim_dict = {
