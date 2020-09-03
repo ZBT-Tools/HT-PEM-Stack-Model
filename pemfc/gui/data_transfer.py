@@ -42,22 +42,22 @@ def transfer(source_dict, target_dict):
 
     # get only widgets with sim_names
     extracted_gui_entries = list(gen_dict_extract('sim_name', source_dict))
-    for gui_entry in extracted_gui_entries:
-        sim_names = gui_entry['sim_name']
-        sim_names = gf.ensure_list(sim_names)
-        sub_dict = target_dict
+    if extracted_gui_entries:
+        for gui_entry in extracted_gui_entries:
+            sim_names = gui_entry['sim_name']
+            sim_names = gf.ensure_list(sim_names)
+            sub_dict = target_dict
 
-        if isinstance(sim_names[0], list):
-            gui_values = gf.ensure_list(gui_entry['value'])
-            if len(sim_names) != len(gui_values):
-                gui_values = [gui_values[0] for i in range(len(sim_names))]
-            for i, name in enumerate(sim_names):
-                sub_dict = set_dict_entry(gui_values[i], name, sub_dict)
-                if name == 'directory':
-                    print(sub_dict)
-        else:
-            sub_dict = set_dict_entry(gui_entry['value'], sim_names, sub_dict)
-    print(sub_dict)
+            if isinstance(sim_names[0], list):
+                gui_values = gf.ensure_list(gui_entry['value'])
+                if len(sim_names) != len(gui_values):
+                    gui_values = [gui_values[0] for i in range(len(sim_names))]
+                for i, name in enumerate(sim_names):
+                    sub_dict = set_dict_entry(gui_values[i], name, sub_dict)
+            else:
+                sub_dict = \
+                    set_dict_entry(gui_entry['value'], sim_names, sub_dict)
+        return sub_dict
 
 
 sim_dict = {
