@@ -148,7 +148,10 @@ class MainFrame(BaseFrame):
     def get_values(self, tk_objects=None):
         if tk_objects is None:
             tk_objects = self.sub_frames
-        return self._get_values(tk_objects=tk_objects)
+        values = self._get_values(tk_objects=tk_objects)
+        if self.widget_sets:
+            values.update(self._get_values(tk_objects=self.widget_sets))
+        return values
 
 
 class ButtonMainFrame(MainFrame):
@@ -174,4 +177,9 @@ class ButtonMainFrame(MainFrame):
                                              row=row, column=column, **kwargs)
         return row, column
 
+    def get_values(self, tk_objects=None):
+        values = super().get_values()
+        if self.buttons:
+            values.update(self._get_values(tk_objects=self.buttons))
+        return values
 
