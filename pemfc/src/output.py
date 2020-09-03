@@ -37,9 +37,15 @@ class Output:
         # object of the class Stack
         self.output_dir = dict_output.get('directory',
                                           os.path.join(os.getcwd(), 'output'))
-
         if not os.path.exists(self.output_dir):
-            os.makedirs(self.output_dir)
+            try:
+                original_umask = os.umask(0)
+                print(self.output_dir)
+                os.makedirs(self.output_dir, 0o0777)
+            finally:
+                os.umask(original_umask)
+        # if not os.path.exists(self.output_dir):
+        #     os.makedirs(self.output_dir)
             # shutil.rmtree(self.output_dir, ignore_errors=True)
 
     @staticmethod
