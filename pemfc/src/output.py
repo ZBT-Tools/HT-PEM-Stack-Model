@@ -12,7 +12,7 @@ from . import global_functions as g_func
 from . import stack as stack
 
 # configure backend here
-matplotlib.use('Agg')
+matplotlib.use('TkAgg')
 
 # globals
 FONT_SIZE = 14
@@ -40,8 +40,8 @@ class Output:
         if not os.path.exists(self.output_dir):
             try:
                 original_umask = os.umask(0)
-                print(self.output_dir)
-                os.makedirs(self.output_dir, 0o0777)
+                # print(self.output_dir)
+                os.makedirs(self.output_dir)  # , 0o0777)
             finally:
                 os.umask(original_umask)
         # if not os.path.exists(self.output_dir):

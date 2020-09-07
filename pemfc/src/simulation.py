@@ -132,6 +132,9 @@ class Simulation:
         output_stop_time = timeit.default_timer()
         self.timing['output'] += output_stop_time - output_start_time
 
+        ### for testing executable
+        return self.stack.i_cd_avg
+
     @staticmethod
     def get_voltage_losses(fc_stack):
         """

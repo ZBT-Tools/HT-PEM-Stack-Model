@@ -84,6 +84,8 @@ class Label(WidgetSet):
 
 class MultiWidgetSet(WidgetSet, ABC):
 
+    WIDTH = 10
+
     def __init__(self, frame, label, **kwargs):
         super().__init__(frame, label, **kwargs)
         self.dtype = kwargs.pop('dtype', None)
@@ -133,7 +135,8 @@ class MultiEntrySet(MultiWidgetSet):
             number = len(value)
         for i in range(number):
             self.columns += 1
-            entry = tk.Entry(frame, justify=justify, **kwargs)
+            entry = tk.Entry(frame, justify=justify,
+                             width=kwargs.pop('width', self.WIDTH), **kwargs)
             # entry.grid(row=self.row, column=self.column + 1 + i,
             #            padx=self.padx, pady=self.pady)
             entry.delete(0, -1)
@@ -208,10 +211,13 @@ class ComboboxSet(MultiWidgetSet):
     def __init__(self, frame, label, number=1, **kwargs):
         options = kwargs.pop('options', [])
         super().__init__(frame, label, **kwargs)
+        kwargs = self.remove_dict_entries(kwargs, ['grid_location', 'sim_name'])
         self.dtype = kwargs.pop('dtype', 'string')
         for i in range(number):
             self.columns += 1
-            option_menu = ttk.Combobox(self.frame, values=options)
+            option_menu = ttk.Combobox(self.frame, values=options,
+                                       width=kwargs.pop('width', self.WIDTH),
+                                       **kwargs)
             option_menu.current(0)
             self.widgets.append(option_menu)
 

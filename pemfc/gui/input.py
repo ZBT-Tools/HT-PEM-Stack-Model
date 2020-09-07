@@ -1,16 +1,7 @@
-# entry set dictionaries for geometry frame
-cell_number = {'label': 'Cell Number:', 'number': 1, 'value': 10,
-               'sim_name': ['stack', 'cell_number'], 'dtype': 'int',
-               # 'grid_location': (1, 0),
-               'type': 'EntrySet'}
-cell_length = {'label': 'Cell Length:', 'dimensions': 'm', 'value': 0.1,
-               'sim_name': ['cell', 'length'], 'dtype': 'float',
-               # 'grid_location': (2, 0),
-               'type': 'EntrySet'}
-cell_width = {'label': 'Cell Width:', 'number': 1, 'value': 0.1,
-              'sim_name': ['cell', 'width'],
-              # 'grid_location': (3, 0),
-              'dtype': 'float', 'dimensions': 'm', 'type': 'EntrySet'}
+"""Geometry"""
+# Cell Settings
+#
+
 channel_length = \
     {'label': 'Channel Length:', 'number': 2, 'value': [0.4, 0.4],
      'sim_name': [['anode', 'channel', 'length'],
@@ -88,11 +79,13 @@ cool_bend_pressure_loss_coefficient = \
 cool_flow_end_cells = \
     {'label': 'Activate Cooling Flow at End Plates', 'type': 'CheckButtonSet'}
 
-anode_label_cell = {'label': 'Anode', 'row': 1, 'column': 1,
-                    'type': 'Label', 'sticky': 'WENS'}
-cathode_label_cell = \
+anode_label_channel = {'label': 'Anode', 'row': 1, 'column': 1,
+                       'type': 'Label', 'sticky': 'WENS'}
+cathode_label_channel = \
     {'label': 'Cathode', 'row': 1, 'column': 2,
      'type': 'Label', 'sticky': 'WENS'}
+empty_row = {'label': ' ', # 'row': 1, 'column': 1,
+             'type': 'Label', 'sticky': 'WENS'}
 
 """Manifold Settings"""
 calc_distribution = \
@@ -119,31 +112,67 @@ manifold_configuration = \
      'options': ['U', 'Z'], 'type': 'ComboboxSet'}
 
 channel_frame_dict = \
-    {'title': 'Channel Settings', 'grid_location': (1, 1),
-     'widget_set_dicts': [anode_label_cell,
-                          cathode_label_cell,
+    {'title': 'Channel Settings', #'grid_location': (1, 1),
+     'font': 'Arial 10 bold',
+     'widget_set_dicts': [anode_label_channel,
+                          cathode_label_channel,
                           channel_length, channel_width,
                           channel_height,
-                          channel_bends, bend_pressure_loss_coefficient,
-                          channel_flow_direction],
-     'highlightbackground': 'grey', 'highlightthickness': 1}
-     # 'sticky': 'WENS'}
+                          channel_bends,
+                          channel_flow_direction,
+                          empty_row,
+                          bend_pressure_loss_coefficient],
+     'highlightbackground': 'grey', 'highlightthickness': 1,
+     'sticky': 'WENS'}
+
 cool_frame_dict = \
     {'title': 'Cooling Settings', 'font': 'Arial 10 bold',
      'widget_set_dicts': [cool_circuit, cool_channel_length],
-     'highlightbackground': 'grey', 'highlightthickness': 1, 'sticky': 'WENS'}
+     'highlightbackground': 'grey', 'highlightthickness': 1, 'sticky': 'WNS'}
+
+# Cell Settings (sub frame)
+cell_number = {'label': 'Cell Number:', 'number': 1, 'value': 10,
+               'sim_name': ['stack', 'cell_number'], 'dtype': 'int',
+               # 'grid_location': (1, 0),
+               'type': 'EntrySet'}
+cell_length = {'label': 'Cell Length:', 'dimensions': 'm', 'value': 0.1,
+               'sim_name': ['cell', 'length'], 'dtype': 'float',
+               # 'grid_location': (2, 0),
+               'type': 'EntrySet'}
+cell_width = {'label': 'Cell Width:', 'number': 1, 'value': 0.1,
+              'sim_name': ['cell', 'width'],
+              # 'grid_location': (3, 0),
+              'dtype': 'float', 'dimensions': 'm', 'type': 'EntrySet'}
+anode_label_cell = {'label': 'Anode', 'row': 5, 'column': 1,
+                    'type': 'Label', 'sticky': 'WENS'}
+cathode_label_cell = \
+    {'label': 'Cathode', 'row': 5, 'column': 2,
+     'type': 'Label', 'sticky': 'WENS'}
+empty_row = {'label': ' ',  # 'row': 1, 'column': 1,
+             'type': 'Label', 'sticky': 'WENS'}
 cell_frame_sub_dict = \
-    {'title': 'Cell Lengths', 'grid_location': (1, 0),
-     'widget_set_dicts': [cell_number, cell_length, cell_width],
-     'highlightbackground': 'grey', 'highlightthickness': 1, 'sticky': 'WEN'}
+    {'title': 'Cell Lengths', 'show_title': False,
+     'grid_location': (1, 0), 'font': 'Arial 10 bold',
+     'widget_set_dicts': [cell_number, cell_length,
+                          cell_width,
+                          anode_label_cell,
+                          cathode_label_cell,
+                          thickness_bpp,
+                          thickness_gdl,
+                          thickness_cl,
+                          empty_row,
+                          thickness_mem],
+     #'highlightbackground': 'grey', 'highlightthickness': 1,
+     'sticky': 'WESN'}
 
 cell_frame_dict = \
-    {'title': 'Cell Settings', 'show_title': True,
+    {'title': 'Cell Settings', 'show_title': True, 'font': 'Arial 10 bold',
      'sub_frame_dicts': [cell_frame_sub_dict, channel_frame_dict],
+     # 'widget_set_dicts': [cell_number, cell_length, cell_width],
      'highlightbackground': 'grey', 'highlightthickness': 1}
 
 manifold_frame_dict = \
-    {'title': 'Manifold Settings', 'show_title': True,
+    {'title': 'Manifold Settings', 'show_title': True, 'font': 'Arial 10 bold',
      'widget_set_dicts': [calc_distribution, manifold_configuration],
      'highlightbackground': 'grey', 'highlightthickness': 1}
 
@@ -158,13 +187,13 @@ output_dir = \
 run_button_dict = {'label': 'Run Simulation', 'type': 'RunButton'}
 
 output_frame_dict = \
-    {'title': 'Output Settings', 'show_title': True,
+    {'title': 'Output Settings', 'show_title': True, 'font': 'Arial 10 bold',
      'widget_set_dicts': [output_dir],
      'button_dicts': [run_button_dict],
      'highlightbackground': 'grey', 'highlightthickness': 1}
 
 geometry_frame_dict = \
-    {'title': 'Geometry', 'show_title': False,
+    {'title': 'Geometry', 'show_title': False, 'font': 'Arial 10 bold',
      'sub_frame_dicts': [cell_frame_dict, cool_frame_dict, manifold_frame_dict,
                          output_frame_dict],
      'highlightbackground': 'grey', 'highlightthickness': 1}
