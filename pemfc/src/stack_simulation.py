@@ -46,3 +46,6 @@ def main():
 
     return avg_icd
 
+
+if __name__ == "__main__":
+    main()
