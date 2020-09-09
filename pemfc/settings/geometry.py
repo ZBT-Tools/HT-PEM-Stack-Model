@@ -53,7 +53,7 @@ anode_flow_direction = -1
 # set boolean to calculate coolant flow
 coolant_circuit = True
 # set boolean for coolant flow between the edge cells and endplates
-cooling_bc = False
+cooling_bc = True
 # channel length [m]
 coolant_channel_length = 0.14
 # height of the coolant channel [m]
@@ -119,3 +119,6 @@ coolant_out_manifold_pressure_loss_coefficient = 0.16
 anode_manifold_model = 'ModifiedKoh'
 cathode_manifold_model = 'ModifiedKoh'
 coolant_manifold_model = 'ModifiedKoh'
+# anode_manifold_model = 'Koh'
+# cathode_manifold_model = 'Koh'
+# coolant_manifold_model = 'Koh'

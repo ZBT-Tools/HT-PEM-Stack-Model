@@ -6,14 +6,14 @@ import pkg_resources
 # GUI applications require a different base on Windows (the default is for a
 # console application).
 base = None
-if sys.platform == "win32":
-    base = "Win32GUI"
+# if sys.platform == "win32":
+#     base = "Win32GUI"
 
 
 PYTHON_INSTALL_DIR = os.path.dirname(os.path.dirname(os.__file__))
 os.environ['TCL_LIBRARY'] = os.path.join(PYTHON_INSTALL_DIR, 'tcl', 'tcl8.6')
 os.environ['TK_LIBRARY'] = os.path.join(PYTHON_INSTALL_DIR, 'tcl', 'tk8.6')
-icon_file = r'C:\Users\lukas\PycharmProjects\PEMFCModel\pemfc\logo-zbt.ico'
+icon_file = r'C:\Users\feierabend\PycharmProjects\PEMFCModel\pemfc\logo-zbt.ico'
 
 include_files = \
     [(os.path.join(PYTHON_INSTALL_DIR, 'DLLs', 'tcl86t.dll'),
@@ -27,7 +27,7 @@ options = {
         'packages': packages,
         'namespace_packages': ['mpl_toolkits'],
         'includes': ['matplotlib.backends.backend_tkagg'],
-        'excludes': ['scipy.spatial', 'scipy.optimize'],
+        'excludes': ['scipy.optimize', 'pandas', 'PyQt5'],
         'include_files': include_files
                  }
           }
