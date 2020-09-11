@@ -68,6 +68,7 @@ class Simulation:
             target_value = [target_value]
         cell_voltages = []
         current_densities = []
+        local_data = None
         for i, tar_value in enumerate(target_value):
             current_errors = []
             temp_errors = []
@@ -105,6 +106,7 @@ class Simulation:
 
                 case_name = 'Case'+str(i)
                 self.output.save(case_name, self.stack)
+                local_data = self.output.get_data(self.stack)
                 if self.output.save_plot:
                     path = os.path.join(self.output.output_dir, case_name,
                                         'plots', 'Convergence.png')
@@ -131,9 +133,29 @@ class Simulation:
             #                                     target_value)
         output_stop_time = timeit.default_timer()
         self.timing['output'] += output_stop_time - output_start_time
+        average_current_density = \
+            np.average([np.average(cell.i_cd, weights=cell.active_area_dx)
+                        for cell in self.stack.cells])
+        global_data = \
+            {'Stack Voltage': {'value': self.stack.v_stack, 'units': 'V'},
+             'Average Cell Voltage':
+                 {'value': self.stack.v_stack/self.stack.n_cells, 'units': 'V'},
+             'Minimum Cell Voltage':
+                 {'value': np.min(self.stack.v), 'units': 'V'},
+             'Maximum Cell Voltage':
+                 {'value': np.max(self.stack.v), 'units': 'V'},
+             'Average Current Density':
+                 {'value': average_current_density, 'units': 'A/m²'},
+             'Stack Power Density':
+                 {'value': self.stack.v_stack * average_current_density,
+                  'units': 'W/m²'},
+             'Stack Power':
+                 {'value': self.stack.v_stack * average_current_density
+                  * self.stack.cells[0].active_area,
+                  'units': 'W'},
 
-        ### for testing executable
-        return self.stack.i_cd_avg
+             }
+        return global_data, local_data
 
     @staticmethod
     def get_voltage_losses(fc_stack):

@@ -108,7 +108,7 @@ def fill_zero_sum(array, axis=-1, axis_sum=None):
             try:
                 axis_sum = np.abs(np.sum(array, axis=0))
             except RecursionError:
-                print('test')
+                print('RecursionError in fill_zero_sum reached')
         else:
             axis_sum = np.abs(axis_sum)
     else:
