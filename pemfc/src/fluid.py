@@ -64,9 +64,13 @@ class OneDimensionalFluid(ABC, OutputObject):
         Calculates mixture fractions based on a multi-dimensional
         array with different species along the provided axis.
         """
+        np.seterr(all='raise')
         try:
             comp_sum = np.sum(composition, axis)
-            return composition / comp_sum
+            # result = np.divide(composition, comp_sum, out=composition,
+            #                    where=comp_sum != 0.0)
+            result = composition / comp_sum
+            return result
         except FloatingPointError:
             if axis == 0:
                 composition = g_func.fill_zero_sum(composition, axis=-1)
@@ -74,7 +78,8 @@ class OneDimensionalFluid(ABC, OutputObject):
                 composition = g_func.fill_zero_sum(composition, axis=0)
             recursion_count += 1
             if recursion_count > 1:
-                raise ValueError('something wrong')
+                raise ValueError('Something wrong in '
+                                 '{}.calc_fraction()'.format(self))
             return self.calc_fraction(composition, axis, recursion_count)
 
     @property

@@ -280,7 +280,8 @@ class ModifiedKohFlowCircuit(KohFlowCircuit):
         if update_channels:
             self.update_channels()
             self.dp_channel[:] = \
-                np.array([channel.pressure[channel.id_in] - channel.pressure[channel.id_out]
+                np.array([channel.pressure[channel.id_in]
+                          - channel.pressure[channel.id_out]
                           for channel in self.channels])
             self.channel_vol_flow[:] = \
                 np.array([np.average(channel.vol_flow)

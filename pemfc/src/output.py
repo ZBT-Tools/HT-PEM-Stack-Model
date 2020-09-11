@@ -296,17 +296,122 @@ class Output:
                 raise KeyError('either keyword argument directory '
                                'or csv_dir must be provided')
             file_path = os.path.join(directory, file_name + '.csv')
-            header = data_name + ' [' + units + ']'
+            header = kwargs.pop('header', data_name + ' [' + units + ']')
             mode = kwargs.get('write_mode', 'a')
             self.write_array_to_csv(file_path, data_array,
                                     header=header, mode=mode)
 
+    @staticmethod
+    def get_data(fc_stack):
+        if not isinstance(fc_stack, stack.Stack):
+            raise TypeError('argument fc_stack must be of type Stack from pemfc'
+                            'module')
+
+        # def get_oo_collection_data(oo_collection, data_dict=None, **kwargs):
+        #     if data_dict is None:
+        #         data_dict = {}
+        #     if len(oo_collection) > 1:
+        #         names = kwargs.pop('names',
+        #                            [item.name + ' ' + str(i + 1)
+        #                             for i, item in enumerate(oo_collection)])
+        #     else:
+        #         names = kwargs.pop('names', [oo_collection[0].name])
+        #     for i, item in enumerate(oo_collection):
+        #         for p_data in item.print_data:
+        #             data_dict[names[i]] = p_data
+        #     return data_dict
+
+        def get_oo_collection_data(oo_collection, data_dict=None, **kwargs):
+            if data_dict is None:
+                data_dict = {}
+            n_items = len(oo_collection)
+            names = kwargs.pop('names', [name for name
+                                         in oo_collection[0].print_data[0]])
+            # data_name = kwargs.pop('name', oo_collection[0].name)
+            for i, (name, content) \
+                    in enumerate(oo_collection[0].print_data[0].items()):
+                value = content['value']
+                var_array = g_func.construct_empty_stack_array(value, n_items)
+                for j, item in enumerate(oo_collection):
+                    var_array[j] = item.print_data[0][name]['value']
+                data_dict[names[i]] = \
+                    {'value': var_array,
+                     'units': oo_collection[0].print_data[0][name]['units']}
+
+            names = kwargs.pop('names', None)
+            # names = kwargs.pop('names',
+            #                    [[key + ' ' + sub_key for sub_key in sub_dict]
+            #                     for key, sub_dict
+            #                     in oo_collection[0].print_data[1].items()])
+            for i, (base_name, sub_dict) \
+                    in enumerate(oo_collection[0].print_data[1].items()):
+                first_key = base_name if names is None else names[i][0]
+                data_dict[first_key] = {}
+                for j, (sub_name, content) in enumerate(sub_dict.items()):
+                    value = content['value']
+                    var_array = \
+                        g_func.construct_empty_stack_array(value, n_items)
+                    for k, item in enumerate(oo_collection):
+                        var_array[k] = \
+                            item.print_data[1][base_name][sub_name]['value']
+                    second_key = sub_name if names is None else names[i][1]
+                    data_dict[first_key][second_key] = \
+                        {'value': var_array,
+                         'units': oo_collection[0].
+                         print_data[1][base_name][sub_name]['units']}
+            return data_dict
+
+        # Save cell values
+        cells = fc_stack.cells
+        xvalues = cells[0].cathode.channel.x
+        xlabel = 'Channel Location'
+
+        data = {'Channel Location':
+                {'value': xvalues, 'units': 'm', 'label': xlabel},
+                'Cells':
+                {'value': [i + 1 for i in range(len(cells))], 'units': '-'}}
+        data = get_oo_collection_data(cells, data_dict=data)
+        # Save channel values
+        cathode_channels = [cell.cathode.channel for cell in fc_stack.cells]
+        data = get_oo_collection_data(cathode_channels, data_dict=data)
+        anode_channels = [cell.anode.channel for cell in fc_stack.cells]
+        data = get_oo_collection_data(anode_channels, data_dict=data)
+
+        # Save fluid values
+        cathode_fluids = [cell.cathode.channel.fluid for cell in fc_stack.cells]
+        data = get_oo_collection_data(cathode_fluids, data_dict=data)
+        anode_fluids = [cell.anode.channel.fluid for cell in fc_stack.cells]
+        data = get_oo_collection_data(anode_fluids, data_dict=data)
+
+        # Save fuel circuit values
+        if fc_stack.n_cells > 1:
+            fuel_circuits = fc_stack.fuel_circuits
+            data = get_oo_collection_data(fuel_circuits, data_dict=data,
+                                          names=['Cathode', 'Anode'])
+
+        # Save coolant circuit values
+        if fc_stack.coolant_circuit is not None:
+            coolant_circuits = [fc_stack.coolant_circuit]
+            data['Coolant Channels'] = \
+                {'value': [i + 1 for i
+                           in range(coolant_circuits[0].n_channels)],
+                 'units': '-'}
+            data = get_oo_collection_data(coolant_circuits, data_dict=data)
+
+            cool_channels = \
+                [channel for channel in coolant_circuits[0].channels]
+
+            cool_fluids = [channel.fluid for channel in cool_channels]
+            data = get_oo_collection_data(cool_fluids, data_dict=data)
+
+        return data
+
     def save(self, folder_name, fc_stack):
         if not self.save_csv and not self.save_plot:
             return None
-
         if not isinstance(fc_stack, stack.Stack):
-            raise TypeError
+            raise TypeError('argument fc_stack must be of type Stack from pemfc'
+                            'module')
 
         csv_path = os.path.join(self.output_dir, folder_name, 'csv_data')
         plot_path = os.path.join(self.output_dir, folder_name, 'plots')
@@ -320,6 +425,7 @@ class Output:
         #    self.clean_directory(plot_path)
 
         def save_oo_collection(oo_collection, x_values, x_label, **kwargs):
+            # data_dict = kwargs.get('data_dict', {})
             if not hasattr(oo_collection[0], 'print_data'):
                 raise TypeError
             n_items = len(oo_collection)
@@ -328,6 +434,7 @@ class Output:
                 var_array = g_func.construct_empty_stack_array(value, n_items)
                 for i, item in enumerate(oo_collection):
                     var_array[i] = item.print_data[0][name]['value']
+                    # data_dict[item.name + ' ' + str(i)] =
                 x = x_values
                 if var_array.shape[-1] == (len(x_values) - 1):
                     x = ip.interpolate_1d(x_values)
@@ -361,6 +468,8 @@ class Output:
         # save_oo_collection(cathodes, xvalues, xlabel)
         # anodes = [cell.anode for cell in fc_stack.cells]
         # save_oo_collection(cathodes, xvalues, xlabel)
+        data = {'channel_location':
+                {'value': xvalues, 'units': 'm', 'label': xlabel}}
 
         # Save channel values
         cathode_channels = [cell.cathode.channel for cell in fc_stack.cells]
@@ -371,6 +480,7 @@ class Output:
         # Save fluid values
         cathode_fluids = [cell.cathode.channel.fluid for cell in fc_stack.cells]
         save_oo_collection(cathode_fluids, xvalues, xlabel)
+
         anode_fluids = [cell.anode.channel.fluid for cell in fc_stack.cells]
         save_oo_collection(anode_fluids, xvalues, xlabel)
 
