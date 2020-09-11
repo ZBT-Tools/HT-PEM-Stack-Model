@@ -79,12 +79,12 @@ cool_bend_pressure_loss_coefficient = \
 cool_flow_end_cells = \
     {'label': 'Activate Cooling Flow at End Plates', 'type': 'CheckButtonSet'}
 
-anode_label_channel = {'label': 'Anode', 'row': 1, 'column': 1,
+anode_label_channel = {'label': 'Anode', 'row': 0, 'column': 1,
                        'type': 'Label', 'sticky': 'WENS'}
 cathode_label_channel = \
-    {'label': 'Cathode', 'row': 1, 'column': 2,
+    {'label': 'Cathode', 'row': 0, 'column': 2,
      'type': 'Label', 'sticky': 'WENS'}
-empty_row = {'label': ' ', # 'row': 1, 'column': 1,
+empty_row = {'label': ' ', 'font': 'Arial 1',  # 'row': 1, 'column': 1,
              'type': 'Label', 'sticky': 'WENS'}
 
 """Manifold Settings"""
@@ -128,7 +128,7 @@ channel_frame_dict = \
 cool_frame_dict = \
     {'title': 'Cooling Settings', 'font': 'Arial 10 bold',
      'widget_set_dicts': [cool_circuit, cool_channel_length],
-     'highlightbackground': 'grey', 'highlightthickness': 1, 'sticky': 'WNS'}
+     'highlightbackground': 'grey', 'highlightthickness': 1, 'sticky': 'WENS'}
 
 # Cell Settings (sub frame)
 cell_number = {'label': 'Cell Number:', 'number': 1, 'value': 10,
@@ -148,7 +148,7 @@ anode_label_cell = {'label': 'Anode', 'row': 5, 'column': 1,
 cathode_label_cell = \
     {'label': 'Cathode', 'row': 5, 'column': 2,
      'type': 'Label', 'sticky': 'WENS'}
-empty_row = {'label': ' ',  # 'row': 1, 'column': 1,
+empty_row = {'label': ' ',  'font': 'Arial 1',  # 'row': 1, 'column': 1,
              'type': 'Label', 'sticky': 'WENS'}
 cell_frame_sub_dict = \
     {'title': 'Cell Lengths', 'show_title': False,
@@ -181,24 +181,30 @@ output_dir_button_dict = \
     {'label': 'Open', 'type': 'OpenDirectoryButton'}
 output_dir = \
     {'label': 'Output Directory:', 'button_dict': output_dir_button_dict,
-     'sim_name': ['output', 'directory'],
+     'sim_name': ['output', 'directory'], 'width': 20,
      'dtype': 'string', 'type': 'EntryButtonSet', 'sticky': 'W'}
 
 run_button_dict = {'label': 'Run Simulation', 'type': 'RunButton'}
 
 output_frame_dict = \
     {'title': 'Output Settings', 'show_title': True, 'font': 'Arial 10 bold',
-     'widget_set_dicts': [output_dir],
-     'button_dicts': [run_button_dict],
+     'widget_set_dicts': [output_dir, run_button_dict],
+     # 'button_dicts': [run_button_dict],
+     'sticky': 'WEN',
      'highlightbackground': 'grey', 'highlightthickness': 1}
 
 geometry_frame_dict = \
     {'title': 'Geometry', 'show_title': False, 'font': 'Arial 10 bold',
-     'sub_frame_dicts': [cell_frame_dict, cool_frame_dict, manifold_frame_dict,
-                         output_frame_dict],
+     'sub_frame_dicts': [cell_frame_dict, cool_frame_dict, manifold_frame_dict],
      'highlightbackground': 'grey', 'highlightthickness': 1}
 
-main_frame_dicts = [geometry_frame_dict]
+simulation_frame_dict = \
+    {'title': 'Simulation', 'show_title': False, 'font': 'Arial 10 bold',
+     'sub_frame_dicts': [output_frame_dict],
+     'highlightbackground': 'grey', 'highlightthickness': 1}
+
+
+main_frame_dicts = [geometry_frame_dict, simulation_frame_dict]
 
 
 

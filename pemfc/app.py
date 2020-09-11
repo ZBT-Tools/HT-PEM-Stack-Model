@@ -25,7 +25,8 @@ class NotebookApp:
                 main_frame = self.frame_factory.create_frame(self.notebook,
                                                              **main_frame_dict)
                 self.frames.append(main_frame)
-                self.notebook.add(main_frame, text=main_frame_dict['title'])
+                self.notebook.add(main_frame, text=main_frame_dict['title'],
+                                  sticky='WENS')
         # self.buttons = []
         # if 'button_dicts' in kwargs:
         #     button_dicts = kwargs['button_dicts']
@@ -40,7 +41,8 @@ class NotebookApp:
         #     self.frames[-1].add_widget(self.buttons[0])
         #     self.buttons[0].button.configure(command=self.run)
         #     self.frames[-1].add_widget(self.buttons[1])
-        self.frames[-1].sub_frames[-1].buttons[-1].button.configure(command=self.run)
+        # self.frames[-1].sub_frames[-1].buttons[-1].button.configure(
+        #     command=self.run)
 
         self.notebook.select(self.frames[0])
         self.notebook.enable_traversal()

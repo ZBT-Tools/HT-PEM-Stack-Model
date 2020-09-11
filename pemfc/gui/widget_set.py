@@ -12,7 +12,7 @@ from . import button
 
 class WidgetSetFactory:
 
-    def create_set(self, frame, **kwargs):
+    def create(self, frame, **kwargs):
         widget_type = kwargs.pop('type', None)
         if widget_type == 'EntrySet':
             return self.create_entry_set(frame, **kwargs)
@@ -38,7 +38,7 @@ class WidgetSetFactory:
             return DimensionedEntrySet(frame, **kwargs)
 
 
-class WidgetSet(base.Base, ABC):
+class Label(base.Base):
 
     def __init__(self, frame, label, **kwargs):
 
@@ -69,20 +69,20 @@ class WidgetSet(base.Base, ABC):
             return {'sim_name': self.sim_name,
                     'gui_name': self.label.cget('text')}
 
-    @abstractmethod
+    # @abstractmethod
     def get_values(self):
         return self._get_values()
 
 
-class Label(WidgetSet):
-    def __init__(self, frame, label, **kwargs):
-        super().__init__(frame, label, **kwargs)
+# class Label(WidgetSet):
+#     def __init__(self, frame, label, **kwargs):
+#         super().__init__(frame, label, **kwargs)
+#
+#     def get_values(self, values=None):
+#         return super().get_values()
 
-    def get_values(self, values=None):
-        return super().get_values()
 
-
-class MultiWidgetSet(WidgetSet, ABC):
+class MultiWidgetSet(Label, ABC):
 
     WIDTH = 10
 
