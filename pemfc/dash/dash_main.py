@@ -13,9 +13,11 @@ from pemfc.gui import data_transfer
 from flask_caching import Cache
 import pickle
 
-#external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
-external_stylesheets = [dbc.themes.BOOTSTRAP]
-app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+# external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
+# external_stylesheets = [dbc.themes.BOOTSTRAP]
+# app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+app = dash.Dash(__name__)
+
 
 CACHE_CONFIG = {
     "DEBUG": True,          # some Flask specific configs
@@ -49,15 +51,21 @@ app.layout = html.Div([
     html.Div(dcc.Graph(id='graph')),
     # hidden signal value
     html.Div(id='signal', style={'display': 'none'})])
-# app.layout = html.Div(
-#     [
-#         # html.I("Inputs"),
-#         # html.Br(),
-#         # dcc.Input(id="input1", type="text", placeholder=""),
-#         # dcc.Input(id="input2", type="text", placeholder="", debounce=True),
-#         # html.Div(id="output"),
-#         cell_input
-#     ]
+# layout = dict(
+#     autosize=True,
+#     automargin=True,
+#     margin=dict(l=30, r=30, b=20, t=40),
+#     hovermode="closest",
+#     plot_bgcolor="#F9F9F9",
+#     paper_bgcolor="#F9F9F9",
+#     legend=dict(font=dict(size=10), orientation="h"),
+#     title="Satellite Overview",
+#     mapbox=dict(
+#         accesstoken=mapbox_access_token,
+#         style="light",
+#         center=dict(lon=-78.05, lat=42.54),
+#         zoom=7,
+#     ),
 # )
 
 
