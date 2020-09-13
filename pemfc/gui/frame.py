@@ -47,9 +47,8 @@ class BaseFrame(base.Base, tk.Frame):
             self.name = title.lower()
         base.Base.__init__(self, self.name, sticky=kwargs.pop('sticky', 'WENS'),
                            **kwargs)
-        remove_kwargs = ['grid_location', 'sim_name']
-        for arg in remove_kwargs:
-            kwargs.pop(arg, None)
+        kwargs = self.remove_dict_entries(kwargs, self.REMOVE_ARGS)
+
         tk.Frame.__init__(self, master, name=self.name, **kwargs)
         if title is not None and show_title:
             self.title = self.set_title(title, font=font)

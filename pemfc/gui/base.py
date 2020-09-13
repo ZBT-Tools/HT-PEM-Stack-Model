@@ -7,6 +7,9 @@ class Base(ABC):
     PADX = 1
     PADY = 1
 
+    REMOVE_ARGS = ['row', 'column', 'grid_location', 'columnspan',
+                   'rowspan', 'sticky', 'sim_name', 'dtype']
+
     def __init__(self, name, **kwargs):
         self.name = name
         self.sim_name = kwargs.pop('sim_name', None)

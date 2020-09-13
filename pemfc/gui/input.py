@@ -185,7 +185,7 @@ output_dir = \
      'dtype': 'string', 'type': 'EntryButtonSet', 'sticky': 'W'}
 
 run_button_dict = {'label': 'Run Simulation', 'type': 'RunButton',
-                   'columnspan': 3}
+                   'columnspan': 3, 'width': 20, 'sticky': 'WNES'}
 
 output_frame_dict = \
     {'title': 'Output Settings', 'show_title': True, 'font': 'Arial 10 bold',
