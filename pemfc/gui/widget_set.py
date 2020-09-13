@@ -97,12 +97,14 @@ class MultiWidgetSet(Label, ABC):
     def set_grid(self, widgets=None, **kwargs):
         row = kwargs.pop('row', self.row)
         column = kwargs.pop('column', self.column)
+        sticky = kwargs.pop('sticky', 'NE')
         row, column = super().set_grid(row=row, column=column, **kwargs)
         if widgets is None:
             widgets = self.widgets
         for i, widget in enumerate(widgets):
             column += 1
-            super().set_grid(widget=widget, row=row, column=column, **kwargs)
+            super().set_grid(widget=widget, row=row, column=column,
+                             sticky=sticky, **kwargs)
         return row, column
 
     def get_tk_values(self, tk_objects):
@@ -199,6 +201,10 @@ class MultiCheckButtonSet(MultiWidgetSet):
 
     def get_values(self):
         return super().get_tk_values(self.check_vars)
+
+    def set_grid(self, **kwargs):
+        sticky = kwargs.pop('sticky', 'NWE')
+        super().set_grid(sticky=sticky, **kwargs)
 
 
 class OptionMenuSet(MultiWidgetSet):
