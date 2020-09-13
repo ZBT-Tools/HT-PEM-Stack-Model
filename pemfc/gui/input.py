@@ -184,7 +184,8 @@ output_dir = \
      'sim_name': ['output', 'directory'], 'width': 20,
      'dtype': 'string', 'type': 'EntryButtonSet', 'sticky': 'W'}
 
-run_button_dict = {'label': 'Run Simulation', 'type': 'RunButton'}
+run_button_dict = {'label': 'Run Simulation', 'type': 'RunButton',
+                   'columnspan': 3}
 
 output_frame_dict = \
     {'title': 'Output Settings', 'show_title': True, 'font': 'Arial 10 bold',

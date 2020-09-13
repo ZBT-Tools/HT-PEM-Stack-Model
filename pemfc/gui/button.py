@@ -29,8 +29,7 @@ class Button(base.Base):
 
     def __init__(self, frame, **kwargs):
 
-        label = kwargs.get('label', '')
-        kwargs['text'] = label
+        label = kwargs.pop('label', '')
         self.name = label.lower()
         super().__init__(self.name, **kwargs)
         self.frame = frame
