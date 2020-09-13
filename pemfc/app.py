@@ -41,7 +41,7 @@ class NotebookApp:
         #     self.frames[-1].add_widget(self.buttons[0])
         #     self.buttons[0].button.configure(command=self.run)
         #     self.frames[-1].add_widget(self.buttons[1])
-        self.frames[-1].sub_frames[-1].widgets[-1].button.configure(
+        self.frames[-1].sub_frames[-1].widgets[0].button.configure(
             command=self.run)
 
         self.notebook.select(self.frames[0])

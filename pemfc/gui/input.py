@@ -114,7 +114,7 @@ manifold_configuration = \
 channel_frame_dict = \
     {'title': 'Channel Settings', #'grid_location': (1, 1),
      'font': 'Arial 10 bold',
-     'widget_set_dicts': [anode_label_channel,
+     'widget_dicts': [anode_label_channel,
                           cathode_label_channel,
                           channel_length, channel_width,
                           channel_height,
@@ -127,7 +127,7 @@ channel_frame_dict = \
 
 cool_frame_dict = \
     {'title': 'Cooling Settings', 'font': 'Arial 10 bold',
-     'widget_set_dicts': [cool_circuit, cool_channel_length],
+     'widget_dicts': [cool_circuit, cool_channel_length],
      'highlightbackground': 'grey', 'highlightthickness': 1, 'sticky': 'WENS'}
 
 # Cell Settings (sub frame)
@@ -153,7 +153,7 @@ empty_row = {'label': ' ',  'font': 'Arial 1',  # 'row': 1, 'column': 1,
 cell_frame_sub_dict = \
     {'title': 'Cell Lengths', 'show_title': False,
      'grid_location': (1, 0), 'font': 'Arial 10 bold',
-     'widget_set_dicts': [cell_number, cell_length,
+     'widget_dicts': [cell_number, cell_length,
                           cell_width,
                           anode_label_cell,
                           cathode_label_cell,
@@ -168,12 +168,12 @@ cell_frame_sub_dict = \
 cell_frame_dict = \
     {'title': 'Cell Settings', 'show_title': True, 'font': 'Arial 10 bold',
      'sub_frame_dicts': [cell_frame_sub_dict, channel_frame_dict],
-     # 'widget_set_dicts': [cell_number, cell_length, cell_width],
+     # 'widget_dicts': [cell_number, cell_length, cell_width],
      'highlightbackground': 'grey', 'highlightthickness': 1}
 
 manifold_frame_dict = \
     {'title': 'Manifold Settings', 'show_title': True, 'font': 'Arial 10 bold',
-     'widget_set_dicts': [calc_distribution, manifold_configuration],
+     'widget_dicts': [calc_distribution, manifold_configuration],
      'highlightbackground': 'grey', 'highlightthickness': 1}
 
 
@@ -184,15 +184,24 @@ output_dir = \
      'sim_name': ['output', 'directory'], 'width': 20,
      'dtype': 'string', 'type': 'EntryButtonSet', 'sticky': 'W'}
 
-run_button_dict = {'label': 'Run Simulation', 'type': 'RunButton',
-                   'columnspan': 3, 'width': 20, 'sticky': 'WNES'}
 
 output_frame_dict = \
     {'title': 'Output Settings', 'show_title': True, 'font': 'Arial 10 bold',
-     'widget_set_dicts': [output_dir, run_button_dict],
-     # 'button_dicts': [run_button_dict],
+     'widget_dicts': [output_dir],
      'sticky': 'WEN',
      'highlightbackground': 'grey', 'highlightthickness': 1}
+
+run_button_dict = {'label': 'Run Simulation', 'type': 'RunButton',
+                   'columnspan': 3, 'width': 20, 'sticky': 'WNE'}
+
+empty_row = {'label': ' ',  'font': 'Arial 1',  'height': 100,
+             'type': 'Label', 'sticky': 'WENS'}
+run_button_frame_dict = \
+    {'title': 'Run Simulation', 'show_title': False,
+     'widget_dicts': [run_button_dict, empty_row], 'sticky': ''}
+
+
+
 
 geometry_frame_dict = \
     {'title': 'Geometry', 'show_title': False, 'font': 'Arial 10 bold',
@@ -201,8 +210,8 @@ geometry_frame_dict = \
 
 simulation_frame_dict = \
     {'title': 'Simulation', 'show_title': False, 'font': 'Arial 10 bold',
-     'sub_frame_dicts': [output_frame_dict],
-     'highlightbackground': 'grey', 'highlightthickness': 1}
+     'sub_frame_dicts': [output_frame_dict, run_button_frame_dict],
+     'highlightbackground': 'grey', 'highlightthickness': 1, 'sticky': 'WEN'}
 
 
 main_frame_dicts = [geometry_frame_dict, simulation_frame_dict]
