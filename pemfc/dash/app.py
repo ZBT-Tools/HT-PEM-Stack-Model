@@ -79,20 +79,24 @@ app.layout = html.Div(
         html.Div(id="output-clientside"),
         html.Div(
             [
-                # html.Div(
-                #     [
-                #         html.Img(
-                #             src=app.get_asset_url("dash-logo.png"),
-                #             id="plotly-image",
-                #             style={
-                #                 "height": "60px",
-                #                 "width": "auto",
-                #                 "margin-bottom": "25px",
-                #             },
-                #         )
-                #     ],
-                #     className="one-third column",
-                # ),
+                html.Div(
+                    [
+                        html.Img(
+                            src=app.get_asset_url("logo-zbt-duisburg.png"),
+                            id="zbt-image",
+                            style={
+                                "height": "60px",
+                                "width": "auto",
+                                "margin-left": "auto",
+                                "margin-right": "auto",
+                                #"margin-top": "25px",
+                                #"margin-bottom": "20px",
+                            },
+                        )
+                    ],
+                    id="logoContainer",
+                    className="pretty_container four columns",
+                ),
                 html.Div(
                     [
                         html.Div(
@@ -107,15 +111,15 @@ app.layout = html.Div(
                             ]
                         )
                     ],
-                    className="column",
+                    className="eight columns",
                     id="title",
                 ),
                 # html.Div(
                 #     [
-                #         html.A(
-                #             html.Button("Learn More", id="learn-more-button"),
-                #             href="https://plot.ly/dash/pricing/",
-                #         )
+                #         # html.A(
+                #         #     html.Button("Learn More", id="learn-more-button"),
+                #         #     href="https://plot.ly/dash/pricing/",
+                #         # )
                 #     ],
                 #     className="one-third column",
                 #     id="button",
