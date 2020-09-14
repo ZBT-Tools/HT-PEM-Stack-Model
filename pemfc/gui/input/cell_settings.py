@@ -84,7 +84,7 @@ bend_pressure_loss_coefficient = \
                   ['cathode', 'channel', 'bend_friction_factor']],
      'dtype': 'float', 'dimensions': '-', 'type': 'EntrySet'}
 channel_flow_direction = \
-    {'label': 'Channel Flow Direction (1 or -1):', 'value': [1, -1],
+    {'label': 'Channel Flow Direction (1 or -1):', 'value': [-1, 1],
      'sim_name': [['anode', 'channel', 'flow_direction'],
                   ['cathode', 'channel', 'flow_direction']],
      'dtype': 'int', 'dimensions': '-', 'type': 'EntrySet'}

@@ -33,9 +33,7 @@ class Button(base.Base):
         self.name = label.lower()
         super().__init__(self.name, **kwargs)
         self.frame = frame
-        kwargs = self.remove_dict_entries(
-            kwargs, ['row', 'column', 'grid_location', 'columnspan',
-                     'rowspan', 'sticky', 'sim_name', 'dtype'])
+        kwargs = self.remove_dict_entries(kwargs, self.REMOVE_ARGS)
         self.button = tk.Button(self.frame, text=label, command=self.command,
                                 **kwargs)
 
