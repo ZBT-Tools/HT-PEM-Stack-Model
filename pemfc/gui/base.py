@@ -12,6 +12,8 @@ class Base(ABC):
         self.sim_name = kwargs.pop('sim_name', None)
         self.padx = kwargs.pop('padx', self.PADX)
         self.pady = kwargs.pop('pady', self.PADY)
+        self.rowspan = kwargs.pop('rowspan', None)
+        self.columnspan = kwargs.pop('columnspan', None)
         grid_location = kwargs.pop('grid_location', (None, None))
         self.row = grid_location[0]
         self.column = grid_location[1]
@@ -31,8 +33,10 @@ class Base(ABC):
         row = kwargs.pop('row', self.row)
         column = kwargs.pop('column', self.column)
         widget.grid(row=row, column=column,
-                    padx=kwargs.get('padx', self.PADX),
-                    pady=kwargs.get('pady', self.PADY),
+                    padx=kwargs.pop('padx', self.PADX),
+                    pady=kwargs.pop('pady', self.PADY),
+                    rowspan=kwargs.pop('rowspan', self.rowspan),
+                    columnspan=kwargs.pop('columnspan', self.columnspan),
                     sticky=kwargs.pop('sticky', self.sticky), **kwargs)
         return row, column
 
