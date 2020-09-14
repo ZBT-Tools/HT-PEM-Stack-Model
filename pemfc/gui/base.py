@@ -21,7 +21,7 @@ class Base(ABC):
         grid_location = kwargs.pop('grid_location', (None, None))
         self.row = kwargs.pop('row', grid_location[0])
         self.column = kwargs.pop('column', grid_location[1])
-        self.sticky = kwargs.pop('sticky', 'NW')
+        self.sticky = kwargs.pop('sticky', 'NE')
 
     def _set_grid(self, widget, **kwargs):
         # Grid.rowconfigure(self.frame, row, weight=1)

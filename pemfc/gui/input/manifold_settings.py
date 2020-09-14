@@ -4,7 +4,7 @@ calc_distribution = \
      'sim_name': [['anode', 'flow circuit', 'calc_distribution'],
                   ['cathode', 'flow circuit', 'calc_distribution'],
                   ['coolant flow circuit', 'calc_distribution']],
-     'type': 'CheckButtonSet'}
+     'sticky': ['NW', 'NWE'], 'type': 'CheckButtonSet'}
 
 anode_label_manifold = {'label': 'Anode', 'row': 1, 'column': 1,
                         'type': 'Label', 'sticky': 'WENS'}
@@ -47,42 +47,48 @@ inlet_manifold_diameter = \
      'sim_name': [['anode', 'flow circuit', 'inlet manifold', 'diameter'],
                   ['cathode', 'flow circuit', 'inlet manifold', 'diameter'],
                   ['coolant flow circuit', 'inlet manifold', 'diameter']],
-     'dtype': 'float', 'dimensions': 'm', 'type': 'EntrySet'}
+     'sticky': ['NW', 'NWE'], 'dtype': 'float', 'dimensions': 'm',
+     'type': 'EntrySet'}
 
 outlet_manifold_diameter = \
     {'label': 'Outlet Manifold Diameter:', 'value': [1e-2, 1e-2, 1e-2],
      'sim_name': [['anode', 'flow circuit', 'outlet manifold', 'diameter'],
                   ['cathode', 'flow circuit', 'outlet manifold', 'diameter'],
                   ['coolant flow circuit', 'outlet manifold', 'diameter']],
-     'dtype': 'float', 'dimensions': 'm', 'type': 'EntrySet'}
+     'sticky': ['NW', 'NWE'], 'dtype': 'float', 'dimensions': 'm',
+     'type': 'EntrySet'}
 
 inlet_manifold_height = \
     {'label': 'Inlet Manifold Height:', 'value': [1e-2, 1e-2, 1e-2],
      'sim_name': [['anode', 'flow circuit', 'inlet manifold', 'height'],
                   ['cathode', 'flow circuit', 'inlet manifold', 'height'],
                   ['coolant flow circuit', 'inlet manifold', 'height']],
-     'dtype': 'float', 'dimensions': 'm', 'type': 'EntrySet'}
+     'sticky': ['NW', 'NWE'], 'dtype': 'float', 'dimensions': 'm',
+     'type': 'EntrySet'}
 
 outlet_manifold_height = \
     {'label': 'Outlet Manifold Height:', 'value': [1e-2, 1e-2, 1e-2],
      'sim_name': [['anode', 'flow circuit', 'outlet manifold', 'height'],
                   ['cathode', 'flow circuit', 'outlet manifold', 'height'],
                   ['coolant flow circuit', 'outlet manifold', 'height']],
-     'dtype': 'float', 'dimensions': 'm', 'type': 'EntrySet'}
+     'sticky': ['NW', 'NWE'], 'dtype': 'float', 'dimensions': 'm',
+     'type': 'EntrySet'}
 
 inlet_manifold_width = \
     {'label': 'Inlet Manifold Width:', 'value': [1e-2, 1e-2, 1e-2],
      'sim_name': [['anode', 'flow circuit', 'inlet manifold', 'width'],
                   ['cathode', 'flow circuit', 'inlet manifold', 'width'],
                   ['coolant flow circuit', 'inlet manifold', 'width']],
-     'dtype': 'float', 'dimensions': 'm', 'type': 'EntrySet'}
+     'sticky': ['NW', 'NWE'], 'dtype': 'float', 'dimensions': 'm',
+     'type': 'EntrySet'}
 
 outlet_manifold_width = \
     {'label': 'Outlet Manifold Width:', 'value': [1e-2, 1e-2, 1e-2],
      'sim_name': [['anode', 'flow circuit', 'outlet manifold', 'width'],
                   ['cathode', 'flow circuit', 'outlet manifold', 'width'],
                   ['coolant flow circuit', 'outlet manifold', 'width']],
-     'dtype': 'float', 'dimensions': 'm', 'type': 'EntrySet'}
+     'sticky': ['NW', 'NWE'], 'dtype': 'float', 'dimensions': 'm',
+     'type': 'EntrySet'}
 
 inlet_pressure_loss_coeff = \
     {'label': 'Inlet Manifold T-Junction Loss Coefficient:',
@@ -93,7 +99,8 @@ inlet_pressure_loss_coeff = \
                    'constant_friction_factor'],
                   ['coolant flow circuit', 'inlet manifold',
                    'constant_friction_factor']],
-     'dtype': 'float', 'dimensions': '-', 'type': 'EntrySet'}
+     'sticky': ['NW', 'NWE'], 'dtype': 'float', 'dimensions': '-',
+     'type': 'EntrySet'}
 
 outlet_pressure_loss_coeff = \
     {'label': 'Outlet Manifold T-Junction Loss Coefficient:',
@@ -104,7 +111,8 @@ outlet_pressure_loss_coeff = \
                    'constant_friction_factor'],
                   ['coolant flow circuit', 'outlet manifold',
                    'constant_friction_factor']],
-     'dtype': 'float', 'dimensions': '-', 'type': 'EntrySet'}
+     'sticky': ['NW', 'NWE'], 'dtype': 'float', 'dimensions': '-',
+     'type': 'EntrySet'}
 
 manifold_frame_dict = \
     {'title': 'Manifold Settings', 'show_title': False, 'font': 'Arial 10 bold',

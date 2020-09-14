@@ -91,20 +91,23 @@ class MultiWidgetSet(Label, ABC):
     def __init__(self, frame, label, **kwargs):
         super().__init__(frame, label, **kwargs)
         self.dtype = kwargs.pop('dtype', None)
+        self.set_sticky(**kwargs)
         self.entry_value_factory = entry_value.EntryValueFactory()
         self.widgets = []
 
     def set_grid(self, widgets=None, **kwargs):
         row = kwargs.pop('row', self.row)
         column = kwargs.pop('column', self.column)
-        sticky = kwargs.pop('sticky', 'NE')
-        row, column = super().set_grid(row=row, column=column, **kwargs)
+        sticky = kwargs.pop('sticky', self.sticky)
+        row, column = super().set_grid(row=row, column=column,
+                                       sticky=self.sticky[0],
+                                       **kwargs)
         if widgets is None:
             widgets = self.widgets
         for i, widget in enumerate(widgets):
             column += 1
             super().set_grid(widget=widget, row=row, column=column,
-                             sticky=sticky, **kwargs)
+                             sticky=self.sticky[-1], **kwargs)
         return row, column
 
     def get_tk_values(self, tk_objects):
@@ -124,6 +127,12 @@ class MultiWidgetSet(Label, ABC):
     def get_values(self):
         return self.get_tk_values(self.widgets)
 
+    def set_sticky(self, **kwargs):
+        sticky = kwargs.pop('sticky', ['NW', 'NE'])
+        if not isinstance(sticky, (list, tuple)):
+            sticky = [sticky, 'NE']
+        self.sticky = sticky
+
 
 class MultiEntrySet(MultiWidgetSet):
 
@@ -131,9 +140,6 @@ class MultiEntrySet(MultiWidgetSet):
         justify = kwargs.pop('justify', 'right')
         super().__init__(frame, label, **kwargs)
         self.dtype = kwargs.pop('dtype', 'float')
-        # kwargs = self.remove_dict_entries(kwargs,
-        #                                   ['grid_location', 'sim_name',
-        #                                    'sticky'])
         kwargs = self.remove_dict_entries(kwargs, self.REMOVE_ARGS)
 
         if value is not None:
@@ -172,7 +178,8 @@ class DimensionedEntrySet(MultiEntrySet):
         column = kwargs.pop('column', self.column)
         row, column = super().set_grid(row=row, column=column, **kwargs)
         column += 1
-        self._set_grid(self.dimensions, row=row, column=column, **kwargs)
+        self._set_grid(self.dimensions, row=row, column=column,
+                       sticky='NW', **kwargs)
         return row, column
 
 

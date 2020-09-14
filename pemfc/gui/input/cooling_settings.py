@@ -1,6 +1,6 @@
 # Cooling Settings
 cool_circuit = \
-    {'label': 'Activate Cooling:', 'value': True,
+    {'label': 'Activate Cooling:', 'value': True, 'sticky': ['NW', 'NWE'],
      'sim_name': ['stack', 'cool_flow'], 'type': 'CheckButtonSet'}
 cool_channel_length = \
     {'label': 'Coolant Channel Length:', 'value': 0.4,
@@ -24,7 +24,7 @@ cool_bend_pressure_loss_coefficient = \
      'value': 0.5, 'dimensions': '-', 'type': 'EntrySet'}
 cool_flow_end_cells = \
     {'label': 'Activate Cooling Flow at End Plates:', 'value': False,
-     'type': 'CheckButtonSet'}
+     'sticky': ['NW', 'NWE'], 'type': 'CheckButtonSet'}
 cool_frame_dict = \
     {'title': 'Cooling Settings', 'show_title': False, 'font': 'Arial 10 bold',
      'sticky': 'WEN',
