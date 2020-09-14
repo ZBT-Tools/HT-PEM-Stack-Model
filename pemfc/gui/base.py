@@ -7,23 +7,21 @@ class Base(ABC):
     PADX = 1
     PADY = 1
 
+    REMOVE_ARGS = ['row', 'column', 'grid_location', 'columnspan',
+                   'rowspan', 'sticky', 'sim_name', 'dtype']
+
     def __init__(self, name, **kwargs):
         self.name = name
         self.sim_name = kwargs.pop('sim_name', None)
         self.padx = kwargs.pop('padx', self.PADX)
         self.pady = kwargs.pop('pady', self.PADY)
+
         self.rowspan = kwargs.pop('rowspan', None)
         self.columnspan = kwargs.pop('columnspan', None)
         grid_location = kwargs.pop('grid_location', (None, None))
-        self.row = grid_location[0]
-        self.column = grid_location[1]
-        row = kwargs.pop('row', None)
-        column = kwargs.pop('column', None)
-        if row is not None:
-            self.row = row
-        if column is not None:
-            self.column = column
-        self.sticky = kwargs.pop('sticky', 'NW')
+        self.row = kwargs.pop('row', grid_location[0])
+        self.column = kwargs.pop('column', grid_location[1])
+        self.sticky = kwargs.pop('sticky', 'NE')
 
     def _set_grid(self, widget, **kwargs):
         # Grid.rowconfigure(self.frame, row, weight=1)
@@ -35,8 +33,8 @@ class Base(ABC):
         widget.grid(row=row, column=column,
                     padx=kwargs.pop('padx', self.PADX),
                     pady=kwargs.pop('pady', self.PADY),
-                    rowspan=kwargs.pop('rowspan', self.rowspan),
                     columnspan=kwargs.pop('columnspan', self.columnspan),
+                    rowspan=kwargs.pop('rowspan', self.rowspan),
                     sticky=kwargs.pop('sticky', self.sticky), **kwargs)
         return row, column
 

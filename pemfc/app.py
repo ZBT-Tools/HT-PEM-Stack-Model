@@ -41,8 +41,8 @@ class NotebookApp:
         #     self.frames[-1].add_widget(self.buttons[0])
         #     self.buttons[0].button.configure(command=self.run)
         #     self.frames[-1].add_widget(self.buttons[1])
-        # self.frames[-1].sub_frames[-1].buttons[-1].button.configure(
-        #     command=self.run)
+        self.frames[-1].sub_frames[-1].widgets[0].button.configure(
+            command=self.run)
 
         self.notebook.select(self.frames[0])
         self.notebook.enable_traversal()
@@ -54,7 +54,7 @@ class NotebookApp:
         # self.notebook.grid(sticky='WENS', **kwargs)
         for fr in self.frames:
             fr.set_grid(grid_list=grid_list, **kwargs)
-        self.notebook.grid(sticky='WENS', **kwargs)
+        self.notebook.grid(sticky='WEN', **kwargs)
 
     def get_values(self):
         # return [fr.get_values() for fr in self.frames]
@@ -99,8 +99,6 @@ if __name__ == "__main__":
     root.rowconfigure(0, weight=1)
     root.columnconfigure(0, weight=1)
 
-    base_app = NotebookApp(root, main_frame_dicts=input.main_frame_dicts,
-                           button_dicts=[input.run_button_dict,
-                                         input.output_dir_button_dict])
+    base_app = NotebookApp(root, main_frame_dicts=input.main_frame_dicts)
 
     root.mainloop()

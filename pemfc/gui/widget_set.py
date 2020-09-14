@@ -46,9 +46,11 @@ class Label(base.Base):
         self.name = label.lower().strip(':')
         super().__init__(self.name, **kwargs)
         self.frame = frame
-        kwargs = self.remove_dict_entries(
-            kwargs, ['padx', 'pady', 'row', 'column', 'grid_location',
-                     'sticky', 'sim_name', 'dtype'])
+        # kwargs = self.remove_dict_entries(
+        #     kwargs, ['padx', 'pady', 'row', 'column', 'grid_location',
+        #              'sticky', 'sim_name', 'dtype'])
+        kwargs = self.remove_dict_entries(kwargs, self.REMOVE_ARGS)
+
         kwargs['text'] = label
         self.label = tk.Label(frame, **kwargs)
         # self.label.grid(row=self.row, column=self.column, padx=self.padx,
@@ -89,18 +91,23 @@ class MultiWidgetSet(Label, ABC):
     def __init__(self, frame, label, **kwargs):
         super().__init__(frame, label, **kwargs)
         self.dtype = kwargs.pop('dtype', None)
+        self.set_sticky(**kwargs)
         self.entry_value_factory = entry_value.EntryValueFactory()
         self.widgets = []
 
     def set_grid(self, widgets=None, **kwargs):
         row = kwargs.pop('row', self.row)
         column = kwargs.pop('column', self.column)
-        row, column = super().set_grid(row=row, column=column, **kwargs)
+        sticky = kwargs.pop('sticky', self.sticky)
+        row, column = super().set_grid(row=row, column=column,
+                                       sticky=self.sticky[0],
+                                       **kwargs)
         if widgets is None:
             widgets = self.widgets
         for i, widget in enumerate(widgets):
             column += 1
-            super().set_grid(widget=widget, row=row, column=column, **kwargs)
+            super().set_grid(widget=widget, row=row, column=column,
+                             sticky=self.sticky[-1], **kwargs)
         return row, column
 
     def get_tk_values(self, tk_objects):
@@ -120,6 +127,12 @@ class MultiWidgetSet(Label, ABC):
     def get_values(self):
         return self.get_tk_values(self.widgets)
 
+    def set_sticky(self, **kwargs):
+        sticky = kwargs.pop('sticky', ['NW', 'NE'])
+        if not isinstance(sticky, (list, tuple)):
+            sticky = [sticky, 'NE']
+        self.sticky = sticky
+
 
 class MultiEntrySet(MultiWidgetSet):
 
@@ -127,9 +140,8 @@ class MultiEntrySet(MultiWidgetSet):
         justify = kwargs.pop('justify', 'right')
         super().__init__(frame, label, **kwargs)
         self.dtype = kwargs.pop('dtype', 'float')
-        kwargs = self.remove_dict_entries(kwargs,
-                                          ['grid_location', 'sim_name',
-                                           'sticky'])
+        kwargs = self.remove_dict_entries(kwargs, self.REMOVE_ARGS)
+
         if value is not None:
             value = gf.ensure_list(value, length=number)
             number = len(value)
@@ -150,9 +162,11 @@ class DimensionedEntrySet(MultiEntrySet):
                  value=None, **kwargs):
         super().__init__(frame, label, number=number, value=value, **kwargs)
         kwargs['text'] = dimensions
-        kwargs = \
-            self.remove_dict_entries(kwargs,
-                                     ['grid_location', 'sim_name', 'dtype'])
+        # kwargs = \
+        #     self.remove_dict_entries(kwargs,
+        #                              ['grid_location', 'sim_name', 'dtype'])
+        kwargs = self.remove_dict_entries(kwargs, self.REMOVE_ARGS)
+
         self.dimensions = tk.Label(frame, **kwargs)
         self.columns += 1
         # self.dimensions.grid(row=self.row, column=self.column + number + 1,
@@ -164,7 +178,8 @@ class DimensionedEntrySet(MultiEntrySet):
         column = kwargs.pop('column', self.column)
         row, column = super().set_grid(row=row, column=column, **kwargs)
         column += 1
-        self._set_grid(self.dimensions, row=row, column=column, **kwargs)
+        self._set_grid(self.dimensions, row=row, column=column,
+                       sticky='NW', **kwargs)
         return row, column
 
 
@@ -172,7 +187,9 @@ class MultiCheckButtonSet(MultiWidgetSet):
     def __init__(self, frame, label, number=1, value=None, **kwargs):
         super().__init__(frame, label, **kwargs)
         self.dtype = kwargs.pop('dtype', 'boolean')
-        kwargs = self.remove_dict_entries(kwargs, ['grid_location', 'sim_name'])
+        # kwargs = self.remove_dict_entries(kwargs, ['grid_location', 'sim_name'])
+        kwargs = self.remove_dict_entries(kwargs, self.REMOVE_ARGS)
+
         if value is not None:
             value = gf.ensure_list(value, length=number)
         self.check_vars = []
@@ -191,6 +208,10 @@ class MultiCheckButtonSet(MultiWidgetSet):
 
     def get_values(self):
         return super().get_tk_values(self.check_vars)
+
+    def set_grid(self, **kwargs):
+        sticky = kwargs.pop('sticky', 'NWE')
+        super().set_grid(sticky=sticky, **kwargs)
 
 
 class OptionMenuSet(MultiWidgetSet):
@@ -211,7 +232,9 @@ class ComboboxSet(MultiWidgetSet):
     def __init__(self, frame, label, number=1, **kwargs):
         options = kwargs.pop('options', [])
         super().__init__(frame, label, **kwargs)
-        kwargs = self.remove_dict_entries(kwargs, ['grid_location', 'sim_name'])
+        # kwargs = self.remove_dict_entries(kwargs, ['grid_location', 'sim_name'])
+        kwargs = self.remove_dict_entries(kwargs, self.REMOVE_ARGS)
+
         self.dtype = kwargs.pop('dtype', 'string')
         for i in range(number):
             self.columns += 1

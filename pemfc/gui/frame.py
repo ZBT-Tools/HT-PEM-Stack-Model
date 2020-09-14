@@ -13,15 +13,15 @@ from . import widget_factory as wf
 class FrameFactory:
     @staticmethod
     def create_frame(master, sub_frame_dicts: list = None,
-                     widget_set_dicts: list = None, # button_dicts: list = None,
+                     widget_dicts: list = None,  # button_dicts: list = None,
                      **kwargs):
         # if button_dicts is None:
         if sub_frame_dicts is None:
-            return BaseFrame(master, widget_dicts=widget_set_dicts,
+            return BaseFrame(master, widget_dicts=widget_dicts,
                              **kwargs)
         else:
             return MainFrame(master, sub_frame_dicts=sub_frame_dicts,
-                             widget_dicts=widget_set_dicts, **kwargs)
+                             widget_dicts=widget_dicts, **kwargs)
         # else:
         #     return ButtonMainFrame(master, widget_dicts=widget_set_dicts,
         #                            button_dicts=button_dicts, **kwargs)
@@ -47,9 +47,8 @@ class BaseFrame(base.Base, tk.Frame):
             self.name = title.lower()
         base.Base.__init__(self, self.name, sticky=kwargs.pop('sticky', 'WENS'),
                            **kwargs)
-        remove_kwargs = ['grid_location', 'sim_name']
-        for arg in remove_kwargs:
-            kwargs.pop(arg, None)
+        kwargs = self.remove_dict_entries(kwargs, self.REMOVE_ARGS)
+
         tk.Frame.__init__(self, master, name=self.name, **kwargs)
         if title is not None and show_title:
             self.title = self.set_title(title, font=font)
