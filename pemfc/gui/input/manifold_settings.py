@@ -1,9 +1,9 @@
 # Manifold Settings
 calc_distribution = \
     {'label': 'Activate Distribution Calculation:', 'number': 3,
-     'sim_name': [['anode', 'flow circuit', 'calc_distribution'],
-                  ['cathode', 'flow circuit', 'calc_distribution'],
-                  ['coolant flow circuit', 'calc_distribution']],
+     'sim_name': [['anode', 'flow_circuit', 'calc_distribution'],
+                  ['cathode', 'flow_circuit', 'calc_distribution'],
+                  ['coolant_flow_circuit', 'calc_distribution']],
      'sticky': ['NW', 'NWE'], 'type': 'CheckButtonSet'}
 
 anode_label_manifold = {'label': 'Anode', 'row': 1, 'column': 1,
@@ -17,87 +17,87 @@ cooling_label_manifold = \
 
 manifold_configuration = \
     {'label': 'Manifold Flow Configuration:', 'number': 3,
-     'sim_name': [['anode', 'flow circuit', 'shape'],
-                  ['cathode', 'flow circuit', 'shape'],
-                  ['coolant flow circuit', 'shape']],
+     'sim_name': [['anode', 'flow_circuit', 'shape'],
+                  ['cathode', 'flow_circuit', 'shape'],
+                  ['coolant_flow_circuit', 'shape']],
      'options': ['U', 'Z'], 'type': 'ComboboxSet'}
 
 inlet_manifold_cross_section = \
     {'label': 'Inlet Manifold Cross-Section:', 'number': 3,
-     'sim_name': [['anode', 'flow circuit', 'inlet manifold',
+     'sim_name': [['anode', 'flow_circuit', 'inlet_manifold',
                    'cross_sectional_shape'],
-                  ['cathode', 'flow circuit', 'inlet manifold',
+                  ['cathode', 'flow_circuit', 'inlet_manifold',
                    'cross_sectional_shape'],
-                  ['coolant flow circuit', 'inlet manifold',
+                  ['coolant_flow_circuit', 'inlet_manifold',
                    'cross_sectional_shape']],
      'options': ['circular', 'rectangular'], 'type': 'ComboboxSet'}
 
 outlet_manifold_cross_section = \
     {'label': 'Outlet Manifold Cross-Section:', 'number': 3,
-     'sim_name': [['anode', 'flow circuit', 'outlet manifold',
+     'sim_name': [['anode', 'flow_circuit', 'outlet_manifold',
                    'cross_sectional_shape'],
-                  ['cathode', 'flow circuit', 'outlet manifold',
+                  ['cathode', 'flow_circuit', 'outlet_manifold',
                    'cross_sectional_shape'],
-                  ['coolant flow circuit', 'outlet manifold',
+                  ['coolant_flow_circuit', 'outlet_manifold',
                    'cross_sectional_shape']],
      'options': ['circular', 'rectangular'], 'type': 'ComboboxSet'}
 
 inlet_manifold_diameter = \
     {'label': 'Inlet Manifold Diameter:', 'value': [1e-2, 1e-2, 1e-2],
-     'sim_name': [['anode', 'flow circuit', 'inlet manifold', 'diameter'],
-                  ['cathode', 'flow circuit', 'inlet manifold', 'diameter'],
-                  ['coolant flow circuit', 'inlet manifold', 'diameter']],
+     'sim_name': [['anode', 'flow_circuit', 'inlet_manifold', 'diameter'],
+                  ['cathode', 'flow_circuit', 'inlet_manifold', 'diameter'],
+                  ['coolant_flow_circuit', 'inlet_manifold', 'diameter']],
      'sticky': ['NW', 'NWE'], 'dtype': 'float', 'dimensions': 'm',
      'type': 'EntrySet'}
 
 outlet_manifold_diameter = \
     {'label': 'Outlet Manifold Diameter:', 'value': [1e-2, 1e-2, 1e-2],
-     'sim_name': [['anode', 'flow circuit', 'outlet manifold', 'diameter'],
-                  ['cathode', 'flow circuit', 'outlet manifold', 'diameter'],
-                  ['coolant flow circuit', 'outlet manifold', 'diameter']],
+     'sim_name': [['anode', 'flow_circuit', 'outlet_manifold', 'diameter'],
+                  ['cathode', 'flow_circuit', 'outlet_manifold', 'diameter'],
+                  ['coolant_flow_circuit', 'outlet_manifold', 'diameter']],
      'sticky': ['NW', 'NWE'], 'dtype': 'float', 'dimensions': 'm',
      'type': 'EntrySet'}
 
 inlet_manifold_height = \
     {'label': 'Inlet Manifold Height:', 'value': [1e-2, 1e-2, 1e-2],
-     'sim_name': [['anode', 'flow circuit', 'inlet manifold', 'height'],
-                  ['cathode', 'flow circuit', 'inlet manifold', 'height'],
-                  ['coolant flow circuit', 'inlet manifold', 'height']],
+     'sim_name': [['anode', 'flow_circuit', 'inlet_manifold', 'height'],
+                  ['cathode', 'flow_circuit', 'inlet_manifold', 'height'],
+                  ['coolant_flow_circuit', 'inlet_manifold', 'height']],
      'sticky': ['NW', 'NWE'], 'dtype': 'float', 'dimensions': 'm',
      'type': 'EntrySet'}
 
 outlet_manifold_height = \
     {'label': 'Outlet Manifold Height:', 'value': [1e-2, 1e-2, 1e-2],
-     'sim_name': [['anode', 'flow circuit', 'outlet manifold', 'height'],
-                  ['cathode', 'flow circuit', 'outlet manifold', 'height'],
-                  ['coolant flow circuit', 'outlet manifold', 'height']],
+     'sim_name': [['anode', 'flow_circuit', 'outlet_manifold', 'height'],
+                  ['cathode', 'flow_circuit', 'outlet_manifold', 'height'],
+                  ['coolant_flow_circuit', 'outlet_manifold', 'height']],
      'sticky': ['NW', 'NWE'], 'dtype': 'float', 'dimensions': 'm',
      'type': 'EntrySet'}
 
 inlet_manifold_width = \
     {'label': 'Inlet Manifold Width:', 'value': [1e-2, 1e-2, 1e-2],
-     'sim_name': [['anode', 'flow circuit', 'inlet manifold', 'width'],
-                  ['cathode', 'flow circuit', 'inlet manifold', 'width'],
-                  ['coolant flow circuit', 'inlet manifold', 'width']],
+     'sim_name': [['anode', 'flow_circuit', 'inlet_manifold', 'width'],
+                  ['cathode', 'flow_circuit', 'inlet_manifold', 'width'],
+                  ['coolant_flow_circuit', 'inlet_manifold', 'width']],
      'sticky': ['NW', 'NWE'], 'dtype': 'float', 'dimensions': 'm',
      'type': 'EntrySet'}
 
 outlet_manifold_width = \
     {'label': 'Outlet Manifold Width:', 'value': [1e-2, 1e-2, 1e-2],
-     'sim_name': [['anode', 'flow circuit', 'outlet manifold', 'width'],
-                  ['cathode', 'flow circuit', 'outlet manifold', 'width'],
-                  ['coolant flow circuit', 'outlet manifold', 'width']],
+     'sim_name': [['anode', 'flow_circuit', 'outlet_manifold', 'width'],
+                  ['cathode', 'flow_circuit', 'outlet_manifold', 'width'],
+                  ['coolant_flow_circuit', 'outlet_manifold', 'width']],
      'sticky': ['NW', 'NWE'], 'dtype': 'float', 'dimensions': 'm',
      'type': 'EntrySet'}
 
 inlet_pressure_loss_coeff = \
     {'label': 'Inlet Manifold T-Junction Loss Coefficient:',
      'value': [0.4, 0.4, 0.4],
-     'sim_name': [['anode', 'flow circuit', 'inlet manifold',
+     'sim_name': [['anode', 'flow_circuit', 'inlet_manifold',
                    'constant_friction_factor'],
-                  ['cathode', 'flow circuit', 'inlet manifold',
+                  ['cathode', 'flow_circuit', 'inlet_manifold',
                    'constant_friction_factor'],
-                  ['coolant flow circuit', 'inlet manifold',
+                  ['coolant_flow_circuit', 'inlet_manifold',
                    'constant_friction_factor']],
      'sticky': ['NW', 'NWE'], 'dtype': 'float', 'dimensions': '-',
      'type': 'EntrySet'}
@@ -105,11 +105,11 @@ inlet_pressure_loss_coeff = \
 outlet_pressure_loss_coeff = \
     {'label': 'Outlet Manifold T-Junction Loss Coefficient:',
      'value': [0.4, 0.4, 0.4],
-     'sim_name': [['anode', 'flow circuit', 'outlet manifold',
+     'sim_name': [['anode', 'flow_circuit', 'outlet_manifold',
                    'constant_friction_factor'],
-                  ['cathode', 'flow circuit', 'outlet manifold',
+                  ['cathode', 'flow_circuit', 'outlet_manifold',
                    'constant_friction_factor'],
-                  ['coolant flow circuit', 'outlet manifold',
+                  ['coolant_flow_circuit', 'outlet_manifold',
                    'constant_friction_factor']],
      'sticky': ['NW', 'NWE'], 'dtype': 'float', 'dimensions': '-',
      'type': 'EntrySet'}

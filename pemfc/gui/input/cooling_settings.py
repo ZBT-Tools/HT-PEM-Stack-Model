@@ -4,15 +4,15 @@ cool_circuit = \
      'sim_name': ['stack', 'cool_flow'], 'type': 'CheckButtonSet'}
 cool_channel_length = \
     {'label': 'Coolant Channel Length:', 'value': 0.4,
-     'sim_name': ['coolant channel', 'length'],
+     'sim_name': ['coolant_channel', 'length'],
      'dtype': 'float', 'dimensions': 'm', 'type': 'EntrySet'}
 cool_channel_height = \
     {'label': 'Coolant Channel Height:', 'value': 1e-3,
-     'sim_name': ['coolant channel', 'height'],
+     'sim_name': ['coolant_channel', 'height'],
      'dtype': 'float', 'dimensions': 'm', 'type': 'EntrySet'}
 cool_channel_width = \
     {'label': 'Coolant Channel Height:', 'value': 1e-3,
-     'sim_name': ['coolant channel', 'width'],
+     'sim_name': ['coolant_channel', 'width'],
      'dtype': 'float', 'dimensions': 'm', 'type': 'EntrySet'}
 cool_channel_number = \
     {'label': 'Coolant Channel Number:', 'value': 2, 'type': 'EntrySet'}

@@ -27,20 +27,7 @@ class NotebookApp:
                 self.frames.append(main_frame)
                 self.notebook.add(main_frame, text=main_frame_dict['title'],
                                   sticky='WENS')
-        # self.buttons = []
-        # if 'button_dicts' in kwargs:
-        #     button_dicts = kwargs['button_dicts']
-        #     button_dicts = gf.ensure_list(button_dicts)
-        #     for button_dict in button_dicts:
-        #         button_factory = button.ButtonFactory()
-        #
-        #         button_widget = \
-        #             button_factory.create(self.frames[-1], **button_dict)
-        #         self.buttons.append(button_widget)
-        #
-        #     self.frames[-1].add_widget(self.buttons[0])
-        #     self.buttons[0].button.configure(command=self.run)
-        #     self.frames[-1].add_widget(self.buttons[1])
+
         self.frames[-1].sub_frames[-1].widgets[0].button.configure(
             command=self.run)
 
