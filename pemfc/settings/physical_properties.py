@@ -36,9 +36,12 @@ membrane_temperature_coefficient = 7e-8
 # membrane basic conductivity [S/m] (for 'Constant'-Model)
 membrane_basic_conductivity = 5.0
 # bipolar plate conductivity [S/m]
-electrical_conductivity_bipolar_plate = 60000.0
+electrical_conductivity_bipolar_plate_z = 60000.0
+electrical_conductivity_bipolar_plate_x = 60000.0
+
 # gas diffusion electrode material conductivity [S/m]
-electrical_conductivity_gde = 500.0
+electrical_conductivity_gas_diffusion_electrode_z = 500.0
+electrical_conductivity_gas_diffusion_electrode_x = 500.0
 
 """Membrane Water Transport Properties"""
 # molar concentration of membrane acid groups [mol/m^3]

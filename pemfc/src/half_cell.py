@@ -94,10 +94,10 @@ class HalfCell:
             {'thickness': halfcell_dict['thickness_bpp'],
              'width': self.width_straight_channels,
              'length': self.length_straight_channels,
-             'electrical conductivity':
-                 cell_dict['electrical conductivity bpp'],
-             'thermal conductivity':
-                 cell_dict['thermal conductivity bpp']}
+             'electrical_conductivity':
+                 halfcell_dict['electrical_conductivity_bpp'],
+             'thermal_conductivity':
+                 halfcell_dict['thermal_conductivity_bpp']}
         # 'porosity': self.channel.cross_area * self.n_channel / (
         #             self.th_bpp * self.width)}
         self.bpp = layers.SolidLayer(bpp_layer_dict, self.channel.dx)
@@ -106,10 +106,10 @@ class HalfCell:
                 + halfcell_dict['thickness_cl'],
              'width': self.width_straight_channels,
              'length': self.length_straight_channels,
-             'electrical conductivity':
-                 cell_dict['electrical conductivity gde'],
-             'thermal conductivity':
-                 cell_dict['thermal conductivity gde']}
+             'electrical_conductivity':
+                 halfcell_dict['electrical_conductivity_gde'],
+             'thermal_conductivity':
+                 halfcell_dict['thermal_conductivity_gde']}
         # 'porosity':
         #    (self.th_gdl * halfcell_dict['porosity gdl']
         #     + self.th_cl * halfcell_dict['porosity cl'])

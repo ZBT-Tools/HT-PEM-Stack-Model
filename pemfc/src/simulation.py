@@ -7,7 +7,7 @@ import timeit
 # local module imports
 from . import stack
 from . import output
-from ..data import input_dicts
+# from ..data import input_dicts
 from ..gui import data_transfer
 
 
@@ -27,7 +27,8 @@ def do_c_profile(func):
 class Simulation:
 
     def __init__(self, ):
-        dict_simulation = input_dicts.dict_simulation
+        #dict_simulation = input_dicts.dict_simulation
+        dict_simulation = data_transfer.sim_dict['simulation']
         self.it_crit = dict_simulation['iteration_criteria']
         # iteration criteria
         self.max_it = dict_simulation['maximum_iteration']
