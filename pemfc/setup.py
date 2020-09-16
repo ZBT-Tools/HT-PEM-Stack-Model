@@ -35,4 +35,4 @@ setup(name="pemfc",
       version="0.1",
       description="PEMFC Model",
       options=options,
-      executables=[Executable("app.py", base=base, icon=icon_file)])
+      executables=[Executable("gui_app.py", base=base, icon=icon_file)])

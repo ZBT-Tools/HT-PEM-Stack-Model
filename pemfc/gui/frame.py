@@ -64,6 +64,7 @@ class BaseFrame(base.Base, tk.Frame):
             self.widgets = [self.widget_factory.create(self, **w_dict)
                             for w_dict in widget_dicts]
             # self.columns = np.max([widget.columns for widget in self.widgets])
+        self.widget_grid = []
 
     def set_title(self, text, font=None, **kwargs):
         title = ws.Label(self, label=text, font=font, sticky='WENS', **kwargs)
@@ -129,7 +130,18 @@ class BaseFrame(base.Base, tk.Frame):
         #     for j in range(self.grid_size()[0]):
         #         self.rowconfigure(i, weight=1)
         #         self.columnconfigure(j, weight=1)
+        self.add_widget_grid()
         return row, column
+
+    def add_widget_grid(self):
+        grid_size = self.grid_size()
+        self.widget_grid = [[None for column in range(grid_size[0])]
+                            for row in range(grid_size[1])]
+        widget_list = self.winfo_children()
+        for widget in widget_list:
+            row = widget.grid_info()['row']
+            column = widget.grid_info()['column']
+            self.widget_grid[row][column] = widget
 
     def add_widget(self, widget):
         self.widgets.append(widget)

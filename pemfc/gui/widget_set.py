@@ -178,13 +178,27 @@ class DimensionedEntrySet(MultiEntrySet):
 
 class MultiCheckButtonSet(MultiWidgetSet):
     def __init__(self, frame, label, number=1, value=None, **kwargs):
+        command = kwargs.pop('command', None)
+
         super().__init__(frame, label, **kwargs)
+
         self.dtype = kwargs.pop('dtype', 'boolean')
         kwargs = self.remove_dict_entries(kwargs, self.REMOVE_ARGS)
 
+        # if value is not None:
+        #     value = gf.ensure_list(value, length=number)
         if value is not None:
+            # number = len(value)
             value = gf.ensure_list(value, length=number)
-
+            value = np.asarray(value).flatten()
+            number = len(value)
+            # value = gf.ensure_list(value, length=number)
+            self.shape = gf.dim(value)
+        if command is not None:
+            command_list = self.set_commands(command)
+        else:
+            command_list = [None for i in range(number)]
+        # [print(command('test')) for command in command_list if command is not None]
         self.check_vars = []
         for i in range(number):
             self.columns += 1
@@ -192,12 +206,37 @@ class MultiCheckButtonSet(MultiWidgetSet):
             self.check_vars.append(check_var)
             check_button = \
                 tk.Checkbutton(frame, variable=check_var, onvalue=True,
-                               offvalue=False, **kwargs)
+                               offvalue=False, command=command_list[i], **kwargs)
             # check_button.grid(row=self.row, column=self.column + 1 + i,
             #                   padx=self.padx, pady=self.pady)
             if value is not None and value[i] is True:
                 check_button.select()
             self.widgets.append(check_button)
+
+    def set_commands(self, commands_dict):
+        if commands_dict.pop('function', None) == 'hide_widgets':
+            arg_list = commands_dict['args']
+            command_list = []
+            for i, args in enumerate(arg_list):
+                command_list.append(lambda arg1=i, arg2=args:
+                                    self.hide_widget(arg1, arg2))
+            commands_dict['function'] = self.hide_widget
+            return command_list
+        else:
+            raise NotImplementedError
+
+    def hide_widget(self, widget_id, grid_list):
+        check_var = self.check_vars[widget_id].get()
+        if check_var:
+            for item in grid_list:
+                widget = self.frame.widget_grid[item[0]][item[1]]
+                if isinstance(widget, tk.Widget):
+                    widget.grid()
+        else:
+            for item in grid_list:
+                widget = self.frame.widget_grid[item[0]][item[1]]
+                if isinstance(widget, tk.Widget):
+                    widget.grid_remove()
 
     def get_values(self):
         return super().get_tk_values(self.check_vars)

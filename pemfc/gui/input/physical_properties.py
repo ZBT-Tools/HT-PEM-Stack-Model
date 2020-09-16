@@ -51,14 +51,12 @@ porosity_cl = \
      'dtype': 'float', 'dimensions': '-', 'type': 'EntrySet'}
 
 porous_frame_dict = \
-    {'title': 'Porous Layers Properties', 'show_title': False,
+    {'title': 'Porous Layers', 'show_title': True,
      'font': 'Arial 10 bold', 'sticky': 'WEN',
      'widget_dicts': [thermal_conductivity_bpp,
                       thermal_conductivity_gde,
                       electrical_conductivity_bpp,
                       electrical_conductivity_gde,
-                      empty_row,
-                      thermal_conductivity_mem,
                       empty_row,
                       porosity_gdl, porosity_cl],
      'highlightbackground': 'grey', 'highlightthickness': 1}

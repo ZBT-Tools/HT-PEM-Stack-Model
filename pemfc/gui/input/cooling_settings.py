@@ -1,7 +1,11 @@
+
 # Cooling Settings
 cool_circuit = \
     {'label': 'Activate Cooling:', 'value': True, 'sticky': ['NW', 'NWE'],
-     'sim_name': ['stack', 'cool_flow'], 'type': 'CheckButtonSet'}
+     'sim_name': ['stack', 'cool_flow'], 'type': 'CheckButtonSet',
+     'command': {'function': 'hide_widgets',
+                 'args': [[[1, 0], [1, 1], [1, 2], [2, 0], [2, 1], [2, 2]]]}}
+
 cool_channel_length = \
     {'label': 'Coolant Channel Length:', 'value': 0.4,
      'sim_name': ['coolant_channel', 'length'],
