@@ -8,7 +8,7 @@ class Base(ABC):
     PADY = 1
 
     REMOVE_ARGS = ['row', 'column', 'grid_location', 'columnspan',
-                   'rowspan', 'sticky', 'sim_name', 'dtype']
+                   'rowspan', 'sticky', 'sim_name', 'dtype', 'width']
 
     def __init__(self, name, **kwargs):
         self.name = name
@@ -26,10 +26,11 @@ class Base(ABC):
     def _set_grid(self, widget, **kwargs):
         # Grid.rowconfigure(self.frame, row, weight=1)
         # Grid.columnconfigure(self.frame, column, weight=1)
-        # self.frame.rowconfigure(row, weight=1)
-        # self.frame.columnconfigure(column, weight=1)
+
         row = kwargs.pop('row', self.row)
         column = kwargs.pop('column', self.column)
+        # self.frame.rowconfigure(row, weight=1)
+        # self.frame.columnconfigure(column, weight=1)
         widget.grid(row=row, column=column,
                     padx=kwargs.pop('padx', self.PADX),
                     pady=kwargs.pop('pady', self.PADY),

@@ -1,3 +1,7 @@
+# global module imports
+import os
+import json
+
 # local module imports
 from ..settings import simulation as sim, operating_conditions as op_con, \
     output as out, geometry as geom, physical_properties as phy_prop
@@ -43,6 +47,15 @@ def set_dict_entry(value, name_list, target_dict, list_value=False, index=0):
     return target_dict
 
 
+def save_settings(settings, fmt='json'):
+    if not isinstance(settings, dict):
+        raise TypeError('must provide python dict to save settings')
+    file_path = os.path.join(settings['output']['directory'], 'settings.json')
+    if fmt == 'json':
+        with open(file_path, 'w') as file:
+            file.write(json.dumps(settings, indent=2))
+
+
 def transfer(source_dict, target_dict):
     # loop through tab frames of gui notebook
     # for ki, vi in gui_values.items():
@@ -59,16 +72,14 @@ def transfer(source_dict, target_dict):
 
             if isinstance(sim_names[0], list):
                 gui_values = gf.ensure_list(gui_entry['value'])
-                print(sim_names)
-                print(sub_dict)
-                print(gui_values)
+
 
                 # if len(sim_names) != len(gui_values):
                 #     gui_values = [gui_values[0] for i in range(len(sim_names))]
                 if len(sim_names) == len(gui_values):
-                    multi_value = True
+                    multi_variable = True
                 else:
-                    multi_value = False
+                    multi_variable = False
 
                 for i, sim_name_list in enumerate(sim_names):
                     if isinstance(sim_name_list[-1], list):
@@ -81,7 +92,7 @@ def transfer(source_dict, target_dict):
                             set_dict_entry(value_list, pure_name_list,
                                            sub_dict)
                     else:
-                        gui_value = gui_values[i] if multi_value \
+                        gui_value = gui_values[i] if multi_variable \
                             else gui_values[0]
                         sub_dict = set_dict_entry(gui_value, sim_name_list,
                                                   sub_dict)
@@ -89,7 +100,7 @@ def transfer(source_dict, target_dict):
             else:
                 sub_dict = \
                     set_dict_entry(gui_entry['value'], sim_names, sub_dict)
-        print(target_dict)
+        save_settings(target_dict)
     return target_dict
 
 
@@ -166,8 +177,6 @@ sim_dict = {
         #     [phy_prop.electrical_conductivity_gas_diffusion_electrode_z,
         #      phy_prop.electrical_conductivity_gas_diffusion_electrode_x],
         'temp_cool_in': op_con.temp_coolant_in,
-        'mem_base_r': phy_prop.membrane_basic_resistance,
-        'mem_acl_r': phy_prop.membrane_temperature_coefficient,
         'temp_init': op_con.temp_initial,
         'underrelaxation_factor': sim.underrelaxation_factor,
         'open_circuit_voltage': op_con.open_circuit_voltage,
@@ -389,17 +398,20 @@ sim_dict = {
         'name': 'Coolant Channel',
         'fluid': {
             'name': 'Coolant Fluid',
-            'fluid_components': None,
-            'inlet_composition': None,
-            'liquid_props':
-                species.ConstantProperties(
-                    phy_prop.coolant_name,
-                    specific_heat=phy_prop.heat_capacity_coolant,
-                    density=phy_prop.density_coolant,
-                    viscosity=phy_prop.dynamic_viscosity_coolant,
-                    thermal_conductivity=phy_prop.thermal_conductivity_coolant),
-            'temp_init': op_con.temp_coolant_in,
-            'press_init': op_con.p_manifold_anode_out,
+            # 'liquid_props':
+            #     species.ConstantProperties(
+            #         phy_prop.coolant_name,
+            #         specific_heat=phy_prop.heat_capacity_coolant,
+            #         density=phy_prop.density_coolant,
+            #         viscosity=phy_prop.dynamic_viscosity_coolant,
+            #         thermal_conductivity=phy_prop.thermal_conductivity_coolant),
+
+            'specific_heat': phy_prop.heat_capacity_coolant,
+            'density': phy_prop.density_coolant,
+            'viscosity': phy_prop.dynamic_viscosity_coolant,
+            'thermal_conductivity': phy_prop.thermal_conductivity_coolant,
+            # 'temp_init': op_con.temp_coolant_in,
+            # 'press_init': op_con.p_manifold_anode_out,
             'nodes': nodes
             },
         'length': geom.coolant_channel_length,

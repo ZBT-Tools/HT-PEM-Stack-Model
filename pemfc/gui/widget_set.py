@@ -89,15 +89,15 @@ class MultiWidgetSet(Label, ABC):
         row = kwargs.pop('row', self.row)
         column = kwargs.pop('column', self.column)
         kwargs.pop('sticky', None)
+        sticky = gf.ensure_list(self.sticky)
         row, column = super().set_grid(row=row, column=column,
-                                       sticky=self.sticky[0],
-                                       **kwargs)
+                                       sticky=sticky[0], **kwargs)
         if widgets is None:
             widgets = self.widgets
         for i, widget in enumerate(widgets):
             column += 1
             super().set_grid(widget=widget, row=row, column=column,
-                             sticky=self.sticky[-1], **kwargs)
+                             sticky=sticky[-1], **kwargs)
         return row, column
 
     def get_tk_values(self, tk_objects):
@@ -128,6 +128,7 @@ class MultiEntrySet(MultiWidgetSet):
 
     def __init__(self, frame, label, number=1, value=None, **kwargs):
         justify = kwargs.pop('justify', 'right')
+        width = kwargs.pop('width', self.WIDTH)
         super().__init__(frame, label, **kwargs)
         self.dtype = kwargs.pop('dtype', 'float')
         kwargs = self.remove_dict_entries(kwargs, self.REMOVE_ARGS)
@@ -143,8 +144,7 @@ class MultiEntrySet(MultiWidgetSet):
 
         for i in range(number):
             self.columns += 1
-            entry = tk.Entry(frame, justify=justify,
-                             width=kwargs.pop('width', self.WIDTH), **kwargs)
+            entry = tk.Entry(frame, justify=justify, width=width, **kwargs)
             # entry.grid(row=self.row, column=self.column + 1 + i,
             #            padx=self.padx, pady=self.pady)
             entry.delete(0, -1)
