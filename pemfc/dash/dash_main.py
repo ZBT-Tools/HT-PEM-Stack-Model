@@ -93,12 +93,15 @@ def compute_simulation(cell_number, n_clicks):
 
 
 @app.callback(
-    Output('results-dropdown', 'options'), [Input('signal', 'children')]
+    [Output('results-dropdown', 'options'),
+     Output('results-dropdown', 'value')],
+    [Input('signal', 'children')]
 )
 def get_dropdown_options(value):
     results = simulation_store(value)
     local_data = results[1]
-    return [{'label': key, 'value': key} for key in local_data]
+    return [{'label': key, 'value': key} for key in local_data], \
+        'Current Density'
 
 
 @app.callback(
@@ -111,7 +114,8 @@ def update_graph(value, dropdown_key):
     result = 'Stack power [W/m²]: {:05.2f}'.format(
         global_data['Stack Power']['value'])
 
-    #z_key = 'Current Density'
+    # if dropdown_key is None:
+    #     dropdown_key = 'Current Density'
     z_key = dropdown_key
     x_key = 'Channel Location'
     y_key = 'Cells'
