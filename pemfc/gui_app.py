@@ -34,6 +34,7 @@ class NotebookApp:
         self.notebook.select(self.frames[0])
         self.notebook.enable_traversal()
         self.set_grid()
+        self.call_commands()
 
     def set_grid(self, grid_list=None, **kwargs):
         self.notebook.rowconfigure(0, weight=1)
@@ -46,6 +47,10 @@ class NotebookApp:
     def get_values(self):
         # return [fr.get_values() for fr in self.frames]
         return {fr.name: fr.get_values() for fr in self.frames}
+
+    def call_commands(self):
+        for item in self.frames:
+            item.call_commands()
 
     # def configure_gui(self):
     #     self.master.tk.call('wm', 'iconphoto', self.master._w,

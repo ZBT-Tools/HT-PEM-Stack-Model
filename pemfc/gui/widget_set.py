@@ -195,9 +195,9 @@ class MultiCheckButtonSet(MultiWidgetSet):
             # value = gf.ensure_list(value, length=number)
             self.shape = gf.dim(value)
         if command is not None:
-            command_list = self.set_commands(command)
+            self.command_list = self.set_commands(command)
         else:
-            command_list = [None for i in range(number)]
+            self.command_list = [None for i in range(number)]
         # [print(command('test')) for command in command_list if command is not None]
         self.check_vars = []
         for i in range(number):
@@ -206,7 +206,8 @@ class MultiCheckButtonSet(MultiWidgetSet):
             self.check_vars.append(check_var)
             check_button = \
                 tk.Checkbutton(frame, variable=check_var, onvalue=True,
-                               offvalue=False, command=command_list[i], **kwargs)
+                               offvalue=False, command=self.command_list[i],
+                               **kwargs)
             # check_button.grid(row=self.row, column=self.column + 1 + i,
             #                   padx=self.padx, pady=self.pady)
             if value is not None and value[i] is True:
@@ -219,13 +220,13 @@ class MultiCheckButtonSet(MultiWidgetSet):
             command_list = []
             for i, args in enumerate(arg_list):
                 command_list.append(lambda arg1=i, arg2=args:
-                                    self.hide_widget(arg1, arg2))
-            commands_dict['function'] = self.hide_widget
+                                    self.set_visibility(arg1, arg2))
+            commands_dict['function'] = self.set_visibility
             return command_list
         else:
             raise NotImplementedError
 
-    def hide_widget(self, widget_id, grid_list):
+    def set_visibility(self, widget_id, grid_list):
         check_var = self.check_vars[widget_id].get()
         if check_var:
             for item in grid_list:
@@ -238,12 +239,30 @@ class MultiCheckButtonSet(MultiWidgetSet):
                 if isinstance(widget, tk.Widget):
                     widget.grid_remove()
 
+    def set_activity(self, widget_id, grid_list):
+        check_var = self.check_vars[widget_id].get()
+        if check_var:
+            for item in grid_list:
+                widget = self.frame.widget_grid[item[0]][item[1]]
+                if isinstance(widget, tk.Widget):
+                    widget.config(state='normal')
+        else:
+            for item in grid_list:
+                widget = self.frame.widget_grid[item[0]][item[1]]
+                if isinstance(widget, tk.Widget):
+                    widget.grid_remove()
+
     def get_values(self):
         return super().get_tk_values(self.check_vars)
 
     def set_grid(self, **kwargs):
         sticky = kwargs.pop('sticky', 'NWE')
         super().set_grid(sticky=sticky, **kwargs)
+
+    def call_commands(self):
+        if self.command_list[0] is not None:
+            for command in self.command_list:
+                command()
 
 
 class OptionMenuSet(MultiWidgetSet):

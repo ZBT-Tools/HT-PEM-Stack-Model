@@ -146,6 +146,10 @@ class BaseFrame(base.Base, tk.Frame):
     def add_widget(self, widget):
         self.widgets.append(widget)
 
+    def call_commands(self):
+        for widget in self.widgets:
+            widget.call_commands()
+
 
 class MainFrame(BaseFrame):
     def __init__(self, master, sub_frame_dicts: list = None,
@@ -176,6 +180,10 @@ class MainFrame(BaseFrame):
         if self.widgets:
             values.update(self._get_values(tk_objects=self.widgets))
         return values
+
+    def call_commands(self):
+        for frame in self.sub_frames:
+            frame.call_commands()
 
 
 # class ButtonMainFrame(BaseFrame):

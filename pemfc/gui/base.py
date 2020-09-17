@@ -45,3 +45,6 @@ class Base(ABC):
             dictionary.pop(entry, None)
         return dictionary
 
+    def call_commands(self):
+        pass
+
