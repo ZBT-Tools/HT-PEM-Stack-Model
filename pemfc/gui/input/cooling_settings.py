@@ -3,8 +3,14 @@
 cool_circuit = \
     {'label': 'Activate Cooling:', 'value': True, 'sticky': ['NW', 'NWE'],
      'sim_name': ['stack', 'cool_flow'], 'type': 'CheckButtonSet',
-     'command': {'function': 'hide_widgets',
-                 'args': [[[1, 0], [1, 1], [1, 2], [2, 0], [2, 1], [2, 2]]]}}
+     'command': {'function': 'set_status',
+                 'args': [[[1, 0], [1, 1], [1, 2],
+                           [2, 0], [2, 1], [2, 2],
+                           [3, 0], [3, 1], [3, 2],
+                           [4, 0], [4, 1], [4, 2],
+                           [5, 0], [5, 1], [5, 2],
+                           [6, 0], [6, 1], [6, 2],
+                           [7, 0], [7, 1], [7, 2]]]}}
 
 cool_channel_length = \
     {'label': 'Coolant Channel Length:', 'value': 0.4,
