@@ -226,6 +226,8 @@ class MultiCheckButtonSet(MultiWidgetSet):
         else:
             raise NotImplementedError
 
+    # def modify_other_widgets(self, ):
+
     def set_visibility(self, widget_id, grid_list):
         check_var = self.check_vars[widget_id].get()
         if check_var:
