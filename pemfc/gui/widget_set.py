@@ -84,6 +84,31 @@ class MultiWidgetSet(Label, ABC):
         self.set_sticky(**kwargs)
         self.entry_value_factory = entry_value.EntryValueFactory()
         self.widgets = []
+        self.command_list = None
+        self.shape = None
+
+    def get_number(self, value, number, dtype=None):
+        if value is not None:
+            # number = len(value)
+            value = gf.ensure_list(value, length=number)
+            value = np.asarray(value, dtype=dtype).flatten()
+            number = len(value)
+            # value = gf.ensure_list(value, length=number)
+            self.shape = gf.dim(value)
+            return number
+        else:
+            return number
+
+    def get_commands(self, command, number):
+        self.command_list = [None for i in range(number)]
+        if command is not None:
+            commands = self.set_commands(command)
+            len_commands = len(commands)
+            self.command_list[:len_commands] = commands
+
+    @abstractmethod
+    def set_commands(self, command):
+        pass
 
     def set_grid(self, widgets=None, **kwargs):
         row = kwargs.pop('row', self.row)
@@ -122,7 +147,6 @@ class MultiWidgetSet(Label, ABC):
         if not isinstance(sticky, (list, tuple)):
             sticky = [sticky, 'NE']
         self.sticky = sticky
-
 
 class MultiEntrySet(MultiWidgetSet):
 
@@ -187,19 +211,11 @@ class MultiCheckButtonSet(MultiWidgetSet):
 
         # if value is not None:
         #     value = gf.ensure_list(value, length=number)
-        if value is not None:
-            # number = len(value)
-            value = gf.ensure_list(value, length=number)
-            value = np.asarray(value).flatten()
-            number = len(value)
-            # value = gf.ensure_list(value, length=number)
-            self.shape = gf.dim(value)
-        self.command_list = [None for i in range(number)]
-        if command is not None:
-            commands = self.set_commands(command)
-            len_commands = len(commands)
-            self.command_list[:len_commands] = commands
+        number = self.get_number(value, number)
+        self.get_commands(command, number)
+        self.create_widgets(frame, number, value, **kwargs)
 
+    def create_widgets(self, frame, number, value, **kwargs):
         # [print(command('test')) for command in command_list if command is not None]
         self.check_vars = []
         for i in range(number):
