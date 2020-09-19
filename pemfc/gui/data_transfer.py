@@ -1,10 +1,14 @@
+# global module imports
+import os
+import json
+
 # local module imports
 from ..settings import simulation as sim, operating_conditions as op_con, \
     output as out, geometry as geom, physical_properties as phy_prop
 from ..src import species
 from ..src import global_functions as gf
 
-from . import entry_value
+from .entry_value import EntryValue
 
 nodes = sim.elements + 1
 
@@ -23,15 +27,33 @@ def gen_dict_extract(key, var):
                         yield result
 
 
-def set_dict_entry(value, name_list, target_dict):
+def set_dict_entry(value, name_list, target_dict, list_value=False, index=0):
     if isinstance(target_dict, dict):
         sub_dict = target_dict
-        for i in range(len(name_list) - 1):
-            sub_dict = sub_dict[name_list[i]]
-        if isinstance(value, entry_value.EntryValue):
-            value = value.value
-        sub_dict[name_list[-1]] = value
-        return target_dict
+    else:
+        raise TypeError
+    # if list_value:
+    #     for i in range(len(name_list) - 1):
+    #         sub_dict = sub_dict[name_list[i]]
+    #         name = name_list[i]
+    #         print(sub_dict)
+    #         print(name_list)
+    #         print(name)
+    #     sub_dict[name][int(index)] = value
+    # else:
+    for i in range(len(name_list) - 1):
+        sub_dict = sub_dict[name_list[i]]
+    sub_dict[name_list[-1]] = EntryValue.get_value(value)
+    return target_dict
+
+
+def save_settings(settings, fmt='json'):
+    if not isinstance(settings, dict):
+        raise TypeError('must provide python dict to save settings')
+    file_path = os.path.join(settings['output']['directory'], 'settings.json')
+    if fmt == 'json':
+        with open(file_path, 'w') as file:
+            file.write(json.dumps(settings, indent=2))
 
 
 def transfer(source_dict, target_dict):
@@ -50,15 +72,74 @@ def transfer(source_dict, target_dict):
 
             if isinstance(sim_names[0], list):
                 gui_values = gf.ensure_list(gui_entry['value'])
-                if len(sim_names) != len(gui_values):
-                    gui_values = [gui_values[0] for i in range(len(sim_names))]
-                for i, name in enumerate(sim_names):
-                    sub_dict = set_dict_entry(gui_values[i], name, sub_dict)
+
+
+                # if len(sim_names) != len(gui_values):
+                #     gui_values = [gui_values[0] for i in range(len(sim_names))]
+                if len(sim_names) == len(gui_values):
+                    multi_variable = True
+                else:
+                    multi_variable = False
+
+                for i, sim_name_list in enumerate(sim_names):
+                    if isinstance(sim_name_list[-1], list):
+                        pure_name_list = sim_name_list[:-1]
+                        value_list = []
+                        for j in sim_name_list[-1]:
+                            value = gui_values[j]
+                            value_list.append(EntryValue.get_value(value))
+                        sub_dict = \
+                            set_dict_entry(value_list, pure_name_list,
+                                           sub_dict)
+                    else:
+                        gui_value = gui_values[i] if multi_variable \
+                            else gui_values[0]
+                        sub_dict = set_dict_entry(gui_value, sim_name_list,
+                                                  sub_dict)
+
             else:
                 sub_dict = \
                     set_dict_entry(gui_entry['value'], sim_names, sub_dict)
-        # print(sub_dict)
+        save_settings(target_dict)
     return target_dict
+
+
+# def set_dict_entry(value, name_list, target_dict):
+#     if isinstance(target_dict, dict):
+#         sub_dict = target_dict
+#         for i in range(len(name_list) - 1):
+#             sub_dict = sub_dict[name_list[i]]
+#         if isinstance(value, EntryValue):
+#             value = value.value
+#         sub_dict[name_list[-1]] = value
+#         return target_dict
+#
+#
+# def transfer(source_dict, target_dict):
+#     # loop through tab frames of gui notebook
+#     # for ki, vi in gui_values.items():
+#     #     for kj, vj in vi.items():
+#     #         print(kj, vj, '\n')
+#
+#     # get only widgets with sim_names
+#     extracted_gui_entries = list(gen_dict_extract('sim_name', source_dict))
+#     if extracted_gui_entries:
+#         for gui_entry in extracted_gui_entries:
+#             sim_names = gui_entry['sim_name']
+#             sim_names = gf.ensure_list(sim_names)
+#             sub_dict = target_dict
+#
+#             if isinstance(sim_names[0], list):
+#                 gui_values = gf.ensure_list(gui_entry['value'])
+#                 if len(sim_names) != len(gui_values):
+#                     gui_values = [gui_values[0] for i in range(len(sim_names))]
+#                 for i, name in enumerate(sim_names):
+#                     sub_dict = set_dict_entry(gui_values[i], name, sub_dict)
+#             else:
+#                 sub_dict = \
+#                     set_dict_entry(gui_entry['value'], sim_names, sub_dict)
+#         # print(sub_dict)
+#     return target_dict
 
 
 sim_dict = {
@@ -83,19 +164,19 @@ sim_dict = {
     'cell': {
         'width': geom.cell_width,
         'length': geom.cell_length,
-        'thermal conductivity bpp':
-            (phy_prop.thermal_conductivity_bipolar_plate_z,
-             phy_prop.thermal_conductivity_bipolar_plate_x),
-        'thermal conductivity gde':
-            (phy_prop.thermal_conductivity_gas_diffusion_electrode_z,
-             phy_prop.thermal_conductivity_gas_diffusion_electrode_x),
-        'electrical conductivity bpp':
-            phy_prop.electrical_conductivity_bipolar_plate,
-        'electrical conductivity gde':
-            phy_prop.electrical_conductivity_gde,
+        # 'thermal_conductivity_bpp':
+        #     [phy_prop.thermal_conductivity_bipolar_plate_z,
+        #      phy_prop.thermal_conductivity_bipolar_plate_x],
+        # 'thermal_conductivity_gde':
+        #     [phy_prop.thermal_conductivity_gas_diffusion_electrode_z,
+        #      phy_prop.thermal_conductivity_gas_diffusion_electrode_x],
+        # 'electrical_conductivity_bpp':
+        #     [phy_prop.electrical_conductivity_bipolar_plate_z,
+        #      phy_prop.electrical_conductivity_bipolar_plate_x],
+        # 'electrical_conductivity_gde':
+        #     [phy_prop.electrical_conductivity_gas_diffusion_electrode_z,
+        #      phy_prop.electrical_conductivity_gas_diffusion_electrode_x],
         'temp_cool_in': op_con.temp_coolant_in,
-        'mem_base_r': phy_prop.membrane_basic_resistance,
-        'mem_acl_r': phy_prop.membrane_temperature_coefficient,
         'temp_init': op_con.temp_initial,
         'underrelaxation_factor': sim.underrelaxation_factor,
         'open_circuit_voltage': op_con.open_circuit_voltage,
@@ -104,17 +185,17 @@ sim_dict = {
     'membrane': {
         'type': phy_prop.membrane_type,
         'thickness': geom.membrane_thickness,
-        'acid group concentration':
+        'acid_group_concentration':
             phy_prop.molar_membrane_acid_group_concentration,
-        'vapour transport coefficient':
+        'vapour_transport_coefficient':
             phy_prop.vapour_mass_transport_coefficient,
-        'ionic conductivity': phy_prop.membrane_basic_conductivity,
-        'basic resistance': phy_prop.membrane_basic_resistance,
-        'temperature coefficient':
+        'ionic_conductivity': phy_prop.membrane_basic_conductivity,
+        'basic_resistance': phy_prop.membrane_basic_resistance,
+        'temperature_coefficient':
             phy_prop.membrane_temperature_coefficient,
-        'thermal conductivity':
-            (phy_prop.thermal_conductivity_membrane_z,
-             phy_prop.thermal_conductivity_membrane_x),
+        'thermal_conductivity':
+            [phy_prop.thermal_conductivity_membrane_z,
+             phy_prop.thermal_conductivity_membrane_x],
         'calc_loss': sim.calc_membrane_loss
         },
     'cathode': {
@@ -127,6 +208,18 @@ sim_dict = {
         'inlet_composition': op_con.cathode_inlet_composition,
         'charge_number': op_con.cathode_electron_number,
         'reaction_stoichiometry': op_con.cathode_reaction_stoich,
+        'electrical_conductivity_bpp':
+            [phy_prop.electrical_conductivity_bipolar_plate_z,
+             phy_prop.electrical_conductivity_bipolar_plate_x],
+        'electrical_conductivity_gde':
+            [phy_prop.electrical_conductivity_gas_diffusion_electrode_z,
+             phy_prop.electrical_conductivity_gas_diffusion_electrode_x],
+        'thermal_conductivity_bpp':
+            [phy_prop.thermal_conductivity_bipolar_plate_z,
+             phy_prop.thermal_conductivity_bipolar_plate_x],
+        'thermal_conductivity_gde':
+            [phy_prop.thermal_conductivity_gas_diffusion_electrode_z,
+             phy_prop.thermal_conductivity_gas_diffusion_electrode_x],
         'thickness_cl': geom.cathode_catalyst_layer_thickness,
         'thickness_gdl': geom.cathode_gdl_thickness,
         'thickness_bpp': geom.cathode_bipolar_plate_thickness,
@@ -162,7 +255,7 @@ sim_dict = {
             'bend_number': geom.cathode_channel_bends,
             'bend_friction_factor': geom.bend_pressure_loss_coefficient
             },
-        'flow circuit': {
+        'flow_circuit': {
             'name': 'Cathode Flow Circuit',
             'type': geom.cathode_manifold_model,
             'shape': geom.cathode_manifold_configuration,
@@ -171,7 +264,7 @@ sim_dict = {
             'min_iter': sim.minimum_iteration_number_flow,
             'max_iter': sim.maximum_iteration_number_flow,
             'underrelaxation_factor': sim.underrelaxation_factor,
-            'inlet manifold': {
+            'inlet_manifold': {
                 'name': 'Cathode Inlet Manifold',
                 'length': None,
                 'p_out': op_con.p_manifold_cathode_out,
@@ -186,7 +279,7 @@ sim_dict = {
                 'constant_friction_factor':
                     geom.cathode_in_manifold_pressure_loss_coefficient
                 },
-            'outlet manifold': {
+            'outlet_manifold': {
                 'name': 'Cathode Outlet Manifold',
                 'length': None,
                 'p_out': op_con.p_manifold_cathode_out,
@@ -213,11 +306,23 @@ sim_dict = {
         'inlet_composition': op_con.anode_inlet_composition,
         'charge_number': op_con.anode_electron_number,
         'reaction_stoichiometry': op_con.anode_reaction_stoich,
+        'electrical_conductivity_bpp':
+            [phy_prop.electrical_conductivity_bipolar_plate_z,
+             phy_prop.electrical_conductivity_bipolar_plate_x],
+        'electrical_conductivity_gde':
+            [phy_prop.electrical_conductivity_gas_diffusion_electrode_z,
+             phy_prop.electrical_conductivity_gas_diffusion_electrode_x],
+        'thermal_conductivity_bpp':
+            [phy_prop.thermal_conductivity_bipolar_plate_z,
+             phy_prop.thermal_conductivity_bipolar_plate_x],
+        'thermal_conductivity_gde':
+            [phy_prop.thermal_conductivity_gas_diffusion_electrode_z,
+             phy_prop.thermal_conductivity_gas_diffusion_electrode_x],
         'thickness_cl': geom.anode_catalyst_layer_thickness,
         'thickness_gdl': geom.anode_gdl_thickness,
         'thickness_bpp': geom.anode_bipolar_plate_thickness,
-        'porosity cl': geom.anode_catalyst_layer_porosity,
-        'porosity gdl': geom.anode_gdl_porosity,
+        'porosity_cl': geom.anode_catalyst_layer_porosity,
+        'porosity_gdl': geom.anode_gdl_porosity,
         'tafel_slope': phy_prop.tafel_slope_anode,
         'prot_con_cl': phy_prop.catalyst_layer_proton_conductivity_anode,
         'vol_ex_cd': phy_prop.exchange_current_density_anode,
@@ -248,7 +353,7 @@ sim_dict = {
             'bend_number': geom.anode_channel_bends,
             'bend_friction_factor': geom.bend_pressure_loss_coefficient
             },
-        'flow circuit': {
+        'flow_circuit': {
             'name': 'Anode Flow Circuit',
             'type': geom.anode_manifold_model,
             'shape': geom.anode_manifold_configuration,
@@ -257,7 +362,7 @@ sim_dict = {
             'min_iter': sim.minimum_iteration_number_flow,
             'max_iter': sim.maximum_iteration_number_flow,
             'underrelaxation_factor': sim.underrelaxation_factor,
-            'inlet manifold': {
+            'inlet_manifold': {
                 'name': 'Anode Inlet Manifold',
                 'length': None,
                 'p_out': op_con.p_manifold_anode_out,
@@ -272,7 +377,7 @@ sim_dict = {
                 'constant_friction_factor':
                     geom.anode_in_manifold_pressure_loss_coefficient
                 },
-            'outlet manifold': {
+            'outlet_manifold': {
                 'name': 'Anode Outlet Manifold',
                 'length': None,
                 'p_out': op_con.p_manifold_anode_out,
@@ -289,21 +394,24 @@ sim_dict = {
                 }
             }
         },
-    'coolant channel': {
+    'coolant_channel': {
         'name': 'Coolant Channel',
         'fluid': {
             'name': 'Coolant Fluid',
-            'fluid_components': None,
-            'inlet_composition': None,
-            'liquid_props':
-                species.ConstantProperties(
-                    phy_prop.coolant_name,
-                    specific_heat=phy_prop.heat_capacity_coolant,
-                    density=phy_prop.density_coolant,
-                    viscosity=phy_prop.dynamic_viscosity_coolant,
-                    thermal_conductivity=phy_prop.thermal_conductivity_coolant),
-            'temp_init': op_con.temp_coolant_in,
-            'press_init': op_con.p_manifold_anode_out,
+            # 'liquid_props':
+            #     species.ConstantProperties(
+            #         phy_prop.coolant_name,
+            #         specific_heat=phy_prop.heat_capacity_coolant,
+            #         density=phy_prop.density_coolant,
+            #         viscosity=phy_prop.dynamic_viscosity_coolant,
+            #         thermal_conductivity=phy_prop.thermal_conductivity_coolant),
+
+            'specific_heat': phy_prop.heat_capacity_coolant,
+            'density': phy_prop.density_coolant,
+            'viscosity': phy_prop.dynamic_viscosity_coolant,
+            'thermal_conductivity': phy_prop.thermal_conductivity_coolant,
+            # 'temp_init': op_con.temp_coolant_in,
+            # 'press_init': op_con.p_manifold_anode_out,
             'nodes': nodes
             },
         'length': geom.coolant_channel_length,
@@ -315,7 +423,7 @@ sim_dict = {
         'bend_number': geom.coolant_channel_bends,
         'bend_friction_factor': geom.coolant_bend_pressure_loss_coefficient
         },
-    'coolant flow circuit': {
+    'coolant_flow_circuit': {
         'name': 'Coolant Flow Circuit',
         'type': geom.coolant_manifold_model,
         'shape': geom.coolant_manifold_configuration,
@@ -323,7 +431,7 @@ sim_dict = {
         'tolerance': sim.convergence_criteria_flow,
         'min_iter': sim.minimum_iteration_number_flow,
         'max_iter': sim.maximum_iteration_number_flow,
-        'inlet manifold': {
+        'inlet_manifold': {
             'name': 'Coolant Inlet Manifold',
             'p_out': op_con.p_manifold_cathode_out,
             'temp_in': op_con.temp_coolant_in,
@@ -337,7 +445,7 @@ sim_dict = {
             'constant_friction_factor':
                 geom.coolant_in_manifold_pressure_loss_coefficient
             },
-        'outlet manifold': {
+        'outlet_manifold': {
             'name': 'Coolant Inlet Manifold',
             'p_out': op_con.p_manifold_cathode_out,
             'temp_in': op_con.temp_coolant_in,
@@ -352,7 +460,7 @@ sim_dict = {
                 geom.coolant_out_manifold_pressure_loss_coefficient
             }
         },
-    'temperature system': {
+    'temperature_system': {
         'temp_amb': op_con.temp_environment,
         'alpha_amb': op_con.convection_coefficient_environment,
         'heat_pow': op_con.endplates_heat_power,

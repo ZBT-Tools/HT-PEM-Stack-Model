@@ -36,13 +36,13 @@ class Stack:
             cat_channel_dict = cathode_dict['channel']
             ano_fluid_dict = ano_channel_dict['fluid']
             cat_fluid_dict = cat_channel_dict['fluid']
-            ano_flow_circuit_dict = anode_dict['flow circuit']
-            ano_in_manifold_dict = ano_flow_circuit_dict['inlet manifold']
-            ano_out_manifold_dict = ano_flow_circuit_dict['outlet manifold']
-            cat_flow_circuit_dict = cathode_dict['flow circuit']
-            cat_in_manifold_dict = cat_flow_circuit_dict['inlet manifold']
-            cat_out_manifold_dict = cat_flow_circuit_dict['outlet manifold']
-            temperature_dict = data_transfer.sim_dict['temperature system']
+            ano_flow_circuit_dict = anode_dict['flow_circuit']
+            ano_in_manifold_dict = ano_flow_circuit_dict['inlet_manifold']
+            ano_out_manifold_dict = ano_flow_circuit_dict['outlet_manifold']
+            cat_flow_circuit_dict = cathode_dict['flow_circuit']
+            cat_in_manifold_dict = cat_flow_circuit_dict['inlet_manifold']
+            cat_out_manifold_dict = cat_flow_circuit_dict['outlet_manifold']
+            temperature_dict = data_transfer.sim_dict['temperature_system']
         else:
             raise NotImplementedError
             # cell_dict = in_dicts.dict_cell
@@ -125,14 +125,14 @@ class Stack:
 
         cool_flow = stack_dict['cool_flow']
         if cool_flow:
-            coolant_channel_dict = data_transfer.sim_dict['coolant channel']
+            coolant_channel_dict = data_transfer.sim_dict['coolant_channel']
             coolant_dict = coolant_channel_dict['fluid']
             dict_coolant_flow_circuit = \
-                data_transfer.sim_dict['coolant flow circuit']
+                data_transfer.sim_dict['coolant_flow_circuit']
             dict_coolant_in_manifold = \
-                dict_coolant_flow_circuit['inlet manifold']
+                dict_coolant_flow_circuit['inlet_manifold']
             dict_coolant_out_manifold = \
-                dict_coolant_flow_circuit['outlet manifold']
+                dict_coolant_flow_circuit['outlet_manifold']
             dict_coolant_in_manifold['length'] = manifold_length
             dict_coolant_out_manifold['length'] = manifold_length
             coolant_dict['temp_in'] = dict_coolant_in_manifold['temp_in']

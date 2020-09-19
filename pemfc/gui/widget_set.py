@@ -2,6 +2,7 @@
 import tkinter as tk
 from tkinter import Grid, ttk
 from abc import ABC, abstractmethod
+import numpy as np
 
 # local imports
 from pemfc.src import global_functions as gf
@@ -12,7 +13,7 @@ from . import button
 
 class WidgetSetFactory:
 
-    def create_set(self, frame, **kwargs):
+    def create(self, frame, **kwargs):
         widget_type = kwargs.pop('type', None)
         if widget_type == 'EntrySet':
             return self.create_entry_set(frame, **kwargs)
@@ -38,7 +39,7 @@ class WidgetSetFactory:
             return DimensionedEntrySet(frame, **kwargs)
 
 
-class WidgetSet(base.Base, ABC):
+class Label(base.Base):
 
     def __init__(self, frame, label, **kwargs):
 
@@ -46,9 +47,8 @@ class WidgetSet(base.Base, ABC):
         self.name = label.lower().strip(':')
         super().__init__(self.name, **kwargs)
         self.frame = frame
-        kwargs = self.remove_dict_entries(
-            kwargs, ['padx', 'pady', 'row', 'column', 'grid_location',
-                     'sticky', 'sim_name', 'dtype'])
+        kwargs = self.remove_dict_entries(kwargs, self.REMOVE_ARGS)
+
         kwargs['text'] = label
         self.label = tk.Label(frame, **kwargs)
         # self.label.grid(row=self.row, column=self.column, padx=self.padx,
@@ -69,38 +69,35 @@ class WidgetSet(base.Base, ABC):
             return {'sim_name': self.sim_name,
                     'gui_name': self.label.cget('text')}
 
-    @abstractmethod
+    # @abstractmethod
     def get_values(self):
         return self._get_values()
 
 
-class Label(WidgetSet):
-    def __init__(self, frame, label, **kwargs):
-        super().__init__(frame, label, **kwargs)
-
-    def get_values(self, values=None):
-        return super().get_values()
-
-
-class MultiWidgetSet(WidgetSet, ABC):
+class MultiWidgetSet(Label, ABC):
 
     WIDTH = 10
 
     def __init__(self, frame, label, **kwargs):
         super().__init__(frame, label, **kwargs)
         self.dtype = kwargs.pop('dtype', None)
+        self.set_sticky(**kwargs)
         self.entry_value_factory = entry_value.EntryValueFactory()
         self.widgets = []
 
     def set_grid(self, widgets=None, **kwargs):
         row = kwargs.pop('row', self.row)
         column = kwargs.pop('column', self.column)
-        row, column = super().set_grid(row=row, column=column, **kwargs)
+        kwargs.pop('sticky', None)
+        sticky = gf.ensure_list(self.sticky)
+        row, column = super().set_grid(row=row, column=column,
+                                       sticky=sticky[0], **kwargs)
         if widgets is None:
             widgets = self.widgets
         for i, widget in enumerate(widgets):
             column += 1
-            super().set_grid(widget=widget, row=row, column=column, **kwargs)
+            super().set_grid(widget=widget, row=row, column=column,
+                             sticky=sticky[-1], **kwargs)
         return row, column
 
     def get_tk_values(self, tk_objects):
@@ -120,23 +117,34 @@ class MultiWidgetSet(WidgetSet, ABC):
     def get_values(self):
         return self.get_tk_values(self.widgets)
 
+    def set_sticky(self, **kwargs):
+        sticky = kwargs.pop('sticky', ['NW', 'NE'])
+        if not isinstance(sticky, (list, tuple)):
+            sticky = [sticky, 'NE']
+        self.sticky = sticky
+
 
 class MultiEntrySet(MultiWidgetSet):
 
     def __init__(self, frame, label, number=1, value=None, **kwargs):
         justify = kwargs.pop('justify', 'right')
+        width = kwargs.pop('width', self.WIDTH)
         super().__init__(frame, label, **kwargs)
         self.dtype = kwargs.pop('dtype', 'float')
-        kwargs = self.remove_dict_entries(kwargs,
-                                          ['grid_location', 'sim_name',
-                                           'sticky'])
+        kwargs = self.remove_dict_entries(kwargs, self.REMOVE_ARGS)
+        self.shape = (number, 0)
+
         if value is not None:
+            # number = len(value)
             value = gf.ensure_list(value, length=number)
+            value = np.asarray(value).flatten()
             number = len(value)
+            # value = gf.ensure_list(value, length=number)
+            self.shape = gf.dim(value)
+
         for i in range(number):
             self.columns += 1
-            entry = tk.Entry(frame, justify=justify,
-                             width=kwargs.pop('width', self.WIDTH), **kwargs)
+            entry = tk.Entry(frame, justify=justify, width=width, **kwargs)
             # entry.grid(row=self.row, column=self.column + 1 + i,
             #            padx=self.padx, pady=self.pady)
             entry.delete(0, -1)
@@ -150,9 +158,8 @@ class DimensionedEntrySet(MultiEntrySet):
                  value=None, **kwargs):
         super().__init__(frame, label, number=number, value=value, **kwargs)
         kwargs['text'] = dimensions
-        kwargs = \
-            self.remove_dict_entries(kwargs,
-                                     ['grid_location', 'sim_name', 'dtype'])
+        kwargs = self.remove_dict_entries(kwargs, self.REMOVE_ARGS)
+
         self.dimensions = tk.Label(frame, **kwargs)
         self.columns += 1
         # self.dimensions.grid(row=self.row, column=self.column + number + 1,
@@ -164,17 +171,36 @@ class DimensionedEntrySet(MultiEntrySet):
         column = kwargs.pop('column', self.column)
         row, column = super().set_grid(row=row, column=column, **kwargs)
         column += 1
-        self._set_grid(self.dimensions, row=row, column=column, **kwargs)
+        self._set_grid(self.dimensions, row=row, column=column,
+                       sticky='NW', **kwargs)
         return row, column
 
 
 class MultiCheckButtonSet(MultiWidgetSet):
     def __init__(self, frame, label, number=1, value=None, **kwargs):
+        command = kwargs.pop('command', None)
+
         super().__init__(frame, label, **kwargs)
+
         self.dtype = kwargs.pop('dtype', 'boolean')
-        kwargs = self.remove_dict_entries(kwargs, ['grid_location', 'sim_name'])
+        kwargs = self.remove_dict_entries(kwargs, self.REMOVE_ARGS)
+
+        # if value is not None:
+        #     value = gf.ensure_list(value, length=number)
         if value is not None:
+            # number = len(value)
             value = gf.ensure_list(value, length=number)
+            value = np.asarray(value).flatten()
+            number = len(value)
+            # value = gf.ensure_list(value, length=number)
+            self.shape = gf.dim(value)
+        self.command_list = [None for i in range(number)]
+        if command is not None:
+            commands = self.set_commands(command)
+            len_commands = len(commands)
+            self.command_list[:len_commands] = commands
+
+        # [print(command('test')) for command in command_list if command is not None]
         self.check_vars = []
         for i in range(number):
             self.columns += 1
@@ -182,15 +208,105 @@ class MultiCheckButtonSet(MultiWidgetSet):
             self.check_vars.append(check_var)
             check_button = \
                 tk.Checkbutton(frame, variable=check_var, onvalue=True,
-                               offvalue=False, **kwargs)
+                               offvalue=False, command=self.command_list[i],
+                               **kwargs)
             # check_button.grid(row=self.row, column=self.column + 1 + i,
             #                   padx=self.padx, pady=self.pady)
             if value is not None and value[i] is True:
                 check_button.select()
             self.widgets.append(check_button)
 
+    def set_commands(self, commands_dict):
+        function = commands_dict.pop('function', None)
+        if function == 'set_visibility':
+            arg_list = commands_dict['args']
+            command_list = []
+            for i, args in enumerate(arg_list):
+                command_list.append(lambda arg1=i, arg2=args:
+                                    self.set_visibility(arg1, arg2))
+            commands_dict['function'] = self.set_visibility
+            return command_list
+        elif function == 'set_status':
+            arg_list = commands_dict['args']
+            command_list = []
+            for i, args in enumerate(arg_list):
+                command_list.append(lambda arg1=i, arg2=args:
+                                    self.set_status(arg1, arg2))
+            commands_dict['function'] = self.set_status
+            return command_list
+        else:
+            print(function)
+            raise NotImplementedError
+
+    @staticmethod
+    def call_object_method(obj, func, **kwargs):
+        if isinstance(kwargs, dict):
+            getattr(obj, func)(**kwargs)
+        else:
+            getattr(obj, func)()
+
+    def widget_connector(self, widget_id, grid_list, func1, func2=None,
+                         kwargs1=None, kwargs2=None):
+        check_var = self.check_vars[widget_id].get()
+        if check_var:
+            for item in grid_list:
+                widget = self.frame.widget_grid[item[0]][item[1]]
+                if isinstance(widget, tk.Widget):
+                    self.call_object_method(widget, func1, **kwargs1)
+
+        else:
+            if func2 is None:
+                func2 = func1
+            for item in grid_list:
+                widget = self.frame.widget_grid[item[0]][item[1]]
+                if isinstance(widget, tk.Widget):
+                    self.call_object_method(widget, func2, **kwargs2)
+
+    def set_visibility(self, widget_id, grid_list):
+        self.widget_connector(widget_id, grid_list, 'grid', 'grid_remove')
+
+    def set_status(self, widget_id, grid_list):
+        self.widget_connector(widget_id, grid_list, 'config',
+                              kwargs1={'state': 'normal'},
+                              kwargs2={'state': 'disable'})
+
+    # def set_visibility(self, widget_id, grid_list):
+    #     check_var = self.check_vars[widget_id].get()
+    #     if check_var:
+    #         for item in grid_list:
+    #             widget = self.frame.widget_grid[item[0]][item[1]]
+    #             if isinstance(widget, tk.Widget):
+    #                 widget.grid()
+    #     else:
+    #         for item in grid_list:
+    #             widget = self.frame.widget_grid[item[0]][item[1]]
+    #             if isinstance(widget, tk.Widget):
+    #                 widget.grid_remove()
+
+    # def set_status(self, widget_id, grid_list):
+    #     check_var = self.check_vars[widget_id].get()
+    #     if check_var:
+    #         for item in grid_list:
+    #             widget = self.frame.widget_grid[item[0]][item[1]]
+    #             if isinstance(widget, tk.Widget):
+    #                 widget.config(state='normal')
+    #     else:
+    #         for item in grid_list:
+    #             widget = self.frame.widget_grid[item[0]][item[1]]
+    #             if isinstance(widget, tk.Widget):
+    #                 widget.config(state='disable')
+
     def get_values(self):
         return super().get_tk_values(self.check_vars)
+
+    def set_grid(self, **kwargs):
+        sticky = kwargs.pop('sticky', 'NWE')
+        super().set_grid(sticky=sticky, **kwargs)
+
+    def call_commands(self):
+        for command in self.command_list:
+            if callable(command):
+                command()
 
 
 class OptionMenuSet(MultiWidgetSet):
@@ -211,7 +327,8 @@ class ComboboxSet(MultiWidgetSet):
     def __init__(self, frame, label, number=1, **kwargs):
         options = kwargs.pop('options', [])
         super().__init__(frame, label, **kwargs)
-        kwargs = self.remove_dict_entries(kwargs, ['grid_location', 'sim_name'])
+        kwargs = self.remove_dict_entries(kwargs, self.REMOVE_ARGS)
+
         self.dtype = kwargs.pop('dtype', 'string')
         for i in range(number):
             self.columns += 1

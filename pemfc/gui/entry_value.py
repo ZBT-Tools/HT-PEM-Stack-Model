@@ -19,6 +19,13 @@ class EntryValue:
     def __init__(self, value):
         self._value = value
 
+    @classmethod
+    def get_value(cls, obj):
+        if isinstance(obj, cls):
+            return obj.value
+        else:
+            return obj
+
     @property
     def value(self):
         return self._value

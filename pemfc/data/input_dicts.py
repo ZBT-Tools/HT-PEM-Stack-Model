@@ -29,16 +29,18 @@ dict_cell = {
     'th_mem': geom.membrane_thickness,
     'width': geom.cell_width,
     'length': geom.cell_length,
-    'thermal conductivity bpp':
+    'thermal_conductivity_bpp':
         (phy_prop.thermal_conductivity_bipolar_plate_z,
          phy_prop.thermal_conductivity_bipolar_plate_x),
-    'thermal conductivity gde':
+    'thermal_conductivity_gde':
         (phy_prop.thermal_conductivity_gas_diffusion_electrode_z,
          phy_prop.thermal_conductivity_gas_diffusion_electrode_x),
-    'electrical conductivity bpp':
-        phy_prop.electrical_conductivity_bipolar_plate,
-    'electrical conductivity gde':
-        phy_prop.electrical_conductivity_gde,
+    'electrical_conductivity_bpp':
+        (phy_prop.electrical_conductivity_bipolar_plate_z,
+         phy_prop.electrical_conductivity_bipolar_plate_x),
+    'electrical_conductivity_gde':
+        (phy_prop.electrical_conductivity_gas_diffusion_electrode_z,
+         phy_prop.electrical_conductivity_gas_diffusion_electrode_x),
     'temp_cool_in': op_con.temp_coolant_in,
     'mem_base_r': phy_prop.membrane_basic_resistance,
     'mem_acl_r': phy_prop.membrane_temperature_coefficient,
@@ -51,14 +53,14 @@ dict_cell = {
 dict_membrane = {
     'type': phy_prop.membrane_type,
     'thickness': geom.membrane_thickness,
-    'acid group concentration':
+    'acid_group_concentration':
         phy_prop.molar_membrane_acid_group_concentration,
-    'vapour transport coefficient': phy_prop.vapour_mass_transport_coefficient,
-    'ionic conductivity': phy_prop.membrane_basic_conductivity,
-    'basic resistance': phy_prop.membrane_basic_resistance,
-    'temperature coefficient':
+    'vapour_transport_coefficient': phy_prop.vapour_mass_transport_coefficient,
+    'ionic_conductivity': phy_prop.membrane_basic_conductivity,
+    'basic_resistance': phy_prop.membrane_basic_resistance,
+    'temperature_coefficient':
         phy_prop.membrane_temperature_coefficient,
-    'thermal conductivity':
+    'thermal_conductivity':
         (phy_prop.thermal_conductivity_membrane_z,
          phy_prop.thermal_conductivity_membrane_x),
     'calc_loss': sim.calc_membrane_loss

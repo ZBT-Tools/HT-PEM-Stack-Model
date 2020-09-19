@@ -13,6 +13,12 @@ def ensure_list(variable, length=1):
         return [variable for i in range(length)]
 
 
+def dim(a):
+    if not isinstance(a, (list, tuple)):
+        return []
+    return [len(a)] + dim(a[0])
+
+
 def full_like(array):
     """faster than native numpy version"""
     result = np.zeros(array.shape)

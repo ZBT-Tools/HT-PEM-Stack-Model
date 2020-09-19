@@ -33,3 +33,6 @@ if __name__ == "__main__":
         for k, v in global_data.items():
             file.write('{} [{}]: {}\n'.format(k, v['value'], v['units']))
 
+
+if __name__ == "__main__":
+    main()

@@ -29,12 +29,13 @@ class Button(base.Base):
 
     def __init__(self, frame, **kwargs):
 
-        label = kwargs.get('label', '')
-        kwargs['text'] = label
+        label = kwargs.pop('label', '')
         self.name = label.lower()
         super().__init__(self.name, **kwargs)
         self.frame = frame
-        self.button = tk.Button(self.frame, text=label, command=self.command)
+        kwargs = self.remove_dict_entries(kwargs, self.REMOVE_ARGS)
+        self.button = tk.Button(self.frame, text=label, command=self.command,
+                                **kwargs)
 
     def set_grid(self, **kwargs):
         row = kwargs.pop('row', self.row)

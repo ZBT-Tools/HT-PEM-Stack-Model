@@ -26,7 +26,7 @@ class Membrane(ABC, layers.SolidLayer):
         self.temp = np.zeros(self.dx.shape)
         # membrane temperature
         self.ionic_conductivity = \
-            membrane_dict.get('ionic conductivity', 1.0e-3)
+            membrane_dict.get('ionic_conductivity', 1.0e-3)
         # constant ionic conductivity of membrane
         self.omega_ca = np.zeros(self.dx.shape)
         # area specific membrane resistance
@@ -60,8 +60,8 @@ class WaterTransportMembrane(Membrane, ABC):
     def __init__(self, membrane_dict, dx, **kwargs):
         super().__init__(membrane_dict, dx, **kwargs)
 
-        self.vapour_coeff = membrane_dict['vapour transport coefficient']
-        self.acid_group_conc = membrane_dict['acid group concentration']
+        self.vapour_coeff = membrane_dict['vapour_transport_coefficient']
+        self.acid_group_conc = membrane_dict['acid group_concentration']
         self.w_cross_flow = np.zeros(self.dx.shape)
         self.faraday_const = constants.FARADAY
         # water cross flux through the membrane
@@ -131,9 +131,9 @@ class SpringerMembrane(WaterTransportMembrane):
 class KvesicMembrane(Membrane):
     def __init__(self, membrane_dict, dx, **kwargs):
         super().__init__(membrane_dict, dx, **kwargs)
-        self.basic_resistance = membrane_dict['basic resistance']
+        self.basic_resistance = membrane_dict['basic_resistance']
         # basic electrical resistance of the membrane
-        self.temp_coeff = membrane_dict['temperature coefficient']
+        self.temp_coeff = membrane_dict['temperature_coefficient']
         # thermal related electrical resistance gain of the membrane
 
     def calc_ionic_resistance(self, *args):
