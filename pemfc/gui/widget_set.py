@@ -84,7 +84,6 @@ class MultiWidgetSet(Label, ABC):
         self.set_sticky(**kwargs)
         self.entry_value_factory = entry_value.EntryValueFactory()
         self.widgets = []
-        self.command_list = None
         self.shape = None
 
     def get_number(self, number, value, dtype=None):
@@ -99,19 +98,8 @@ class MultiWidgetSet(Label, ABC):
         else:
             return number, value
 
-    def get_commands(self, command, number):
-        self.command_list = [None for i in range(number)]
-        if command is not None:
-            commands = self.set_commands(command)
-            len_commands = len(commands)
-            self.command_list[:len_commands] = commands
-
     @abstractmethod
     def create_widgets(self, frame, number, value, **kwargs):
-        pass
-
-    @abstractmethod
-    def set_commands(self, command):
         pass
 
     def set_grid(self, widgets=None, **kwargs):
@@ -205,7 +193,38 @@ class DimensionedEntrySet(MultiEntrySet):
         return row, column
 
 
-class MultiCheckButtonSet(MultiWidgetSet):
+class MultiCommandWidgetSet(MultiWidgetSet, ABC):
+
+    def __init__(self, frame, label, **kwargs):
+        super().__init__(frame, label, **kwargs)
+        self.command_list = None
+
+    def get_commands(self, command, number):
+        self.command_list = [None for i in range(number)]
+        if command is not None:
+            commands = self.set_commands(command)
+            len_commands = len(commands)
+            self.command_list[:len_commands] = commands
+
+    @abstractmethod
+    def set_commands(self, command):
+        pass
+
+    def call_commands(self):
+        if isinstance(self.command_list, list):
+            for command in self.command_list:
+                if callable(command):
+                    command()
+
+    @staticmethod
+    def call_object_method(obj, func, **kwargs):
+        if isinstance(kwargs, dict):
+            getattr(obj, func)(**kwargs)
+        else:
+            getattr(obj, func)()
+
+
+class MultiCheckButtonSet(MultiCommandWidgetSet):
     def __init__(self, frame, label, number=1, value=None, **kwargs):
         command = kwargs.pop('command', None)
 
@@ -259,13 +278,6 @@ class MultiCheckButtonSet(MultiWidgetSet):
             print(function)
             raise NotImplementedError
 
-    @staticmethod
-    def call_object_method(obj, func, **kwargs):
-        if isinstance(kwargs, dict):
-            getattr(obj, func)(**kwargs)
-        else:
-            getattr(obj, func)()
-
     def widget_connector(self, widget_id, grid_list, func1, func2=None,
                          kwargs1=None, kwargs2=None):
         check_var = self.check_vars[widget_id].get()
@@ -298,13 +310,8 @@ class MultiCheckButtonSet(MultiWidgetSet):
         sticky = kwargs.pop('sticky', 'NWE')
         super().set_grid(sticky=sticky, **kwargs)
 
-    def call_commands(self):
-        for command in self.command_list:
-            if callable(command):
-                command()
 
-
-class OptionMenuSet(MultiWidgetSet):
+class OptionMenuSet(MultiCommandWidgetSet):
     def __init__(self, frame, label, number=1, **kwargs):
         value = kwargs.pop('options', [])
         super().__init__(frame, label, **kwargs)
@@ -325,7 +332,7 @@ class OptionMenuSet(MultiWidgetSet):
         pass
 
 
-class ComboboxSet(MultiWidgetSet):
+class ComboboxSet(MultiCommandWidgetSet):
     def __init__(self, frame, label, number=1, value=None, **kwargs):
         # value = kwargs.pop('options', [])
         super().__init__(frame, label, **kwargs)
@@ -343,8 +350,27 @@ class ComboboxSet(MultiWidgetSet):
             option_menu.current(0)
             self.widgets.append(option_menu)
 
-    def set_commands(self, command):
-        pass
+    def set_commands(self, commands_dict):
+        function = commands_dict.pop('function', None)
+        if function == 'set_visibility':
+            arg_list = commands_dict['args']
+            command_list = []
+            for i, args in enumerate(arg_list):
+                command_list.append(lambda arg1=i, arg2=args:
+                                    self.set_visibility(arg1, arg2))
+            commands_dict['function'] = self.set_visibility
+            return command_list
+        elif function == 'set_status':
+            arg_list = commands_dict['args']
+            command_list = []
+            for i, args in enumerate(arg_list):
+                command_list.append(lambda arg1=i, arg2=args:
+                                    self.set_status(arg1, arg2))
+            commands_dict['function'] = self.set_status
+            return command_list
+        else:
+            print(function)
+            raise NotImplementedError
 
 
 class EntryButtonSet(MultiEntrySet):
