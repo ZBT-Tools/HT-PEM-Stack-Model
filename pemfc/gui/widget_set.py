@@ -84,7 +84,6 @@ class MultiWidgetSet(Label, ABC):
         self.set_sticky(**kwargs)
         self.entry_value_factory = entry_value.EntryValueFactory()
         self.widgets = []
-        self.command_list = None
         self.shape = None
 
     def get_number(self, value, number, dtype=None):
@@ -100,15 +99,19 @@ class MultiWidgetSet(Label, ABC):
             return number
 
     def get_commands(self, command, number):
-        self.command_list = [None for i in range(number)]
+        command_list = [None for i in range(number)]
         if command is not None:
             commands = self.set_commands(command)
             len_commands = len(commands)
-            self.command_list[:len_commands] = commands
+            command_list[:len_commands] = commands
+            return command_list
 
-    @abstractmethod
+    # @abstractmethod
     def set_commands(self, command):
         pass
+
+    @abstractmethod
+    def create_widgets(self, frame, number, value, **kwargs):
 
     def set_grid(self, widgets=None, **kwargs):
         row = kwargs.pop('row', self.row)
@@ -147,6 +150,7 @@ class MultiWidgetSet(Label, ABC):
         if not isinstance(sticky, (list, tuple)):
             sticky = [sticky, 'NE']
         self.sticky = sticky
+
 
 class MultiEntrySet(MultiWidgetSet):
 
@@ -212,7 +216,7 @@ class MultiCheckButtonSet(MultiWidgetSet):
         # if value is not None:
         #     value = gf.ensure_list(value, length=number)
         number = self.get_number(value, number)
-        self.get_commands(command, number)
+        self.command_list = self.get_commands(command, number)
         self.create_widgets(frame, number, value, **kwargs)
 
     def create_widgets(self, frame, number, value, **kwargs):
