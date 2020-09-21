@@ -84,9 +84,10 @@ class MultiWidgetSet(Label, ABC):
         self.set_sticky(**kwargs)
         self.entry_value_factory = entry_value.EntryValueFactory()
         self.widgets = []
+        self.command_list = None
         self.shape = None
 
-    def get_number(self, value, number, dtype=None):
+    def get_number(self, number, value, dtype=None):
         if value is not None:
             # number = len(value)
             value = gf.ensure_list(value, length=number)
@@ -94,24 +95,24 @@ class MultiWidgetSet(Label, ABC):
             number = len(value)
             # value = gf.ensure_list(value, length=number)
             self.shape = gf.dim(value)
-            return number
+            return number, value
         else:
-            return number
+            return number, value
 
     def get_commands(self, command, number):
-        command_list = [None for i in range(number)]
+        self.command_list = [None for i in range(number)]
         if command is not None:
             commands = self.set_commands(command)
             len_commands = len(commands)
-            command_list[:len_commands] = commands
-            return command_list
-
-    # @abstractmethod
-    def set_commands(self, command):
-        pass
+            self.command_list[:len_commands] = commands
 
     @abstractmethod
     def create_widgets(self, frame, number, value, **kwargs):
+        pass
+
+    @abstractmethod
+    def set_commands(self, command):
+        pass
 
     def set_grid(self, widgets=None, **kwargs):
         row = kwargs.pop('row', self.row)
@@ -161,24 +162,24 @@ class MultiEntrySet(MultiWidgetSet):
         self.dtype = kwargs.pop('dtype', 'float')
         kwargs = self.remove_dict_entries(kwargs, self.REMOVE_ARGS)
         self.shape = (number, 0)
+        number, value = self.get_number(number, value)
+        kwargs['width'] = width
+        kwargs['justify'] = justify
+        self.create_widgets(frame, number, value, **kwargs)
 
-        if value is not None:
-            # number = len(value)
-            value = gf.ensure_list(value, length=number)
-            value = np.asarray(value).flatten()
-            number = len(value)
-            # value = gf.ensure_list(value, length=number)
-            self.shape = gf.dim(value)
-
+    def create_widgets(self, frame, number, value, **kwargs):
         for i in range(number):
             self.columns += 1
-            entry = tk.Entry(frame, justify=justify, width=width, **kwargs)
+            entry = tk.Entry(frame, **kwargs)
             # entry.grid(row=self.row, column=self.column + 1 + i,
             #            padx=self.padx, pady=self.pady)
             entry.delete(0, -1)
             if value is not None:
                 entry.insert(0, value[i])
             self.widgets.append(entry)
+
+    def set_commands(self, command):
+        pass
 
 
 class DimensionedEntrySet(MultiEntrySet):
@@ -215,8 +216,8 @@ class MultiCheckButtonSet(MultiWidgetSet):
 
         # if value is not None:
         #     value = gf.ensure_list(value, length=number)
-        number = self.get_number(value, number)
-        self.command_list = self.get_commands(command, number)
+        number, value = self.get_number(number, value)
+        self.get_commands(command, number)
         self.create_widgets(frame, number, value, **kwargs)
 
     def create_widgets(self, frame, number, value, **kwargs):
@@ -290,32 +291,6 @@ class MultiCheckButtonSet(MultiWidgetSet):
                               kwargs1={'state': 'normal'},
                               kwargs2={'state': 'disable'})
 
-    # def set_visibility(self, widget_id, grid_list):
-    #     check_var = self.check_vars[widget_id].get()
-    #     if check_var:
-    #         for item in grid_list:
-    #             widget = self.frame.widget_grid[item[0]][item[1]]
-    #             if isinstance(widget, tk.Widget):
-    #                 widget.grid()
-    #     else:
-    #         for item in grid_list:
-    #             widget = self.frame.widget_grid[item[0]][item[1]]
-    #             if isinstance(widget, tk.Widget):
-    #                 widget.grid_remove()
-
-    # def set_status(self, widget_id, grid_list):
-    #     check_var = self.check_vars[widget_id].get()
-    #     if check_var:
-    #         for item in grid_list:
-    #             widget = self.frame.widget_grid[item[0]][item[1]]
-    #             if isinstance(widget, tk.Widget):
-    #                 widget.config(state='normal')
-    #     else:
-    #         for item in grid_list:
-    #             widget = self.frame.widget_grid[item[0]][item[1]]
-    #             if isinstance(widget, tk.Widget):
-    #                 widget.config(state='disable')
-
     def get_values(self):
         return super().get_tk_values(self.check_vars)
 
@@ -331,32 +306,45 @@ class MultiCheckButtonSet(MultiWidgetSet):
 
 class OptionMenuSet(MultiWidgetSet):
     def __init__(self, frame, label, number=1, **kwargs):
-        options = kwargs.pop('options', [])
+        value = kwargs.pop('options', [])
         super().__init__(frame, label, **kwargs)
         self.dtype = kwargs.pop('dtype', 'string')
         self.option_vars = []
+        number, value = self.get_number(number, value)
+        self.create_widgets(frame, number, value, **kwargs)
+
+    def create_widgets(self, frame, number, value, **kwargs):
         for i in range(number):
             self.columns += 1
             option_var = tk.StringVar()
             self.option_vars.append(option_var)
-            option_menu = tk.OptionMenu(self.frame, option_var, *options)
+            option_menu = tk.OptionMenu(self.frame, option_var, *value)
             self.widgets.append(option_menu)
+
+    def set_commands(self, command):
+        pass
 
 
 class ComboboxSet(MultiWidgetSet):
-    def __init__(self, frame, label, number=1, **kwargs):
-        options = kwargs.pop('options', [])
+    def __init__(self, frame, label, number=1, value=None, **kwargs):
+        # value = kwargs.pop('options', [])
         super().__init__(frame, label, **kwargs)
         kwargs = self.remove_dict_entries(kwargs, self.REMOVE_ARGS)
-
         self.dtype = kwargs.pop('dtype', 'string')
+        # number, value = self.get_number(number, value, dtype=object)
+        self.create_widgets(frame, number, value, **kwargs)
+
+    def create_widgets(self, frame, number, value, **kwargs):
         for i in range(number):
             self.columns += 1
-            option_menu = ttk.Combobox(self.frame, values=options,
+            option_menu = ttk.Combobox(self.frame, values=value,
                                        width=kwargs.pop('width', self.WIDTH),
                                        **kwargs)
             option_menu.current(0)
             self.widgets.append(option_menu)
+
+    def set_commands(self, command):
+        pass
 
 
 class EntryButtonSet(MultiEntrySet):

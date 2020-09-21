@@ -27,7 +27,7 @@ manifold_configuration = \
      'sim_name': [['anode', 'flow_circuit', 'shape'],
                   ['cathode', 'flow_circuit', 'shape'],
                   ['coolant_flow_circuit', 'shape']],
-     'options': ['U', 'Z'], 'type': 'ComboboxSet'}
+     'value': ['U', 'Z'], 'type': 'ComboboxSet'}
 
 inlet_manifold_cross_section = \
     {'label': 'Inlet Manifold Cross-Section:', 'number': 3,
@@ -37,7 +37,7 @@ inlet_manifold_cross_section = \
                    'cross_sectional_shape'],
                   ['coolant_flow_circuit', 'inlet_manifold',
                    'cross_sectional_shape']],
-     'options': ['circular', 'rectangular'], 'type': 'ComboboxSet'}
+     'value': ['circular', 'rectangular'], 'type': 'ComboboxSet'}
 
 outlet_manifold_cross_section = \
     {'label': 'Outlet Manifold Cross-Section:', 'number': 3,
@@ -47,7 +47,7 @@ outlet_manifold_cross_section = \
                    'cross_sectional_shape'],
                   ['coolant_flow_circuit', 'outlet_manifold',
                    'cross_sectional_shape']],
-     'options': ['circular', 'rectangular'], 'type': 'ComboboxSet'}
+     'value': ['circular', 'rectangular'], 'type': 'ComboboxSet'}
 
 inlet_manifold_diameter = \
     {'label': 'Inlet Manifold Diameter:', 'value': [1e-2, 1e-2, 1e-2],
