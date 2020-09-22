@@ -232,7 +232,7 @@ class MultiCheckButtonSet(MultiCommandWidgetSet):
 
         self.dtype = kwargs.pop('dtype', 'boolean')
         kwargs = self.remove_dict_entries(kwargs, self.REMOVE_ARGS)
-
+        self.check_vars = None
         # if value is not None:
         #     value = gf.ensure_list(value, length=number)
         number, value = self.get_number(number, value)
@@ -335,42 +335,52 @@ class OptionMenuSet(MultiCommandWidgetSet):
 class ComboboxSet(MultiCommandWidgetSet):
     def __init__(self, frame, label, number=1, value=None, **kwargs):
         # value = kwargs.pop('options', [])
+        command = kwargs.pop('command', None)
+
         super().__init__(frame, label, **kwargs)
+        self.vars = []
         kwargs = self.remove_dict_entries(kwargs, self.REMOVE_ARGS)
         self.dtype = kwargs.pop('dtype', 'string')
         # number, value = self.get_number(number, value, dtype=object)
+        self.get_commands(command, number)
         self.create_widgets(frame, number, value, **kwargs)
 
     def create_widgets(self, frame, number, value, **kwargs):
         for i in range(number):
+            self.vars.append(tk.StringVar)
             self.columns += 1
             option_menu = ttk.Combobox(self.frame, values=value,
                                        width=kwargs.pop('width', self.WIDTH),
                                        **kwargs)
             option_menu.current(0)
+            option_menu.bind('<<ComboboxSelected>>', self.command_list[i])
             self.widgets.append(option_menu)
 
     def set_commands(self, commands_dict):
         function = commands_dict.pop('function', None)
-        if function == 'set_visibility':
+        if function == 'show_connected_widgets':
             arg_list = commands_dict['args']
             command_list = []
             for i, args in enumerate(arg_list):
                 command_list.append(lambda arg1=i, arg2=args:
-                                    self.set_visibility(arg1, arg2))
-            commands_dict['function'] = self.set_visibility
-            return command_list
-        elif function == 'set_status':
-            arg_list = commands_dict['args']
-            command_list = []
-            for i, args in enumerate(arg_list):
-                command_list.append(lambda arg1=i, arg2=args:
-                                    self.set_status(arg1, arg2))
-            commands_dict['function'] = self.set_status
+                                    self.show_connected_widgets(arg1, arg2))
+            commands_dict['function'] = self.show_connected_widgets
             return command_list
         else:
             print(function)
             raise NotImplementedError
+
+    def widget_connector(self, widget_id, grid_list, func1, func2=None,
+                         kwargs1=None, kwargs2=None):
+        var = self.vars[widget_id].get()
+        for item in grid_list:
+            widget = self.frame.widget_grid[item[0]][item[1]]
+            if isinstance(widget, tk.Widget):
+                self.call_object_method(widget, func1, **kwargs1)
+                self.call_object_method(widget, func1, **kwargs1)
+
+    def show_connected_widgets(self, widget_id, grid_list):
+        self.widget_connector(widget_id, grid_list, 'grid', 'grid_remove')
 
 
 class EntryButtonSet(MultiEntrySet):
