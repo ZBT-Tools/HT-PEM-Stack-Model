@@ -377,7 +377,7 @@ class ComboboxSet(MultiCommandWidgetSet):
             widget = self.frame.widget_grid[item[0]][item[1]]
             if isinstance(widget, tk.Widget):
                 self.call_object_method(widget, func1, **kwargs1)
-                self.call_object_method(widget, func1, **kwargs1)
+                self.call_object_method(widget, func2, **kwargs2)
 
     def show_connected_widgets(self, widget_id, grid_list):
         self.widget_connector(widget_id, grid_list, 'grid', 'grid_remove')

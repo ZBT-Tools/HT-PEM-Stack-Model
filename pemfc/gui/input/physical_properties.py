@@ -61,10 +61,42 @@ porous_frame_dict = \
                       porosity_gdl, porosity_cl],
      'highlightbackground': 'grey', 'highlightthickness': 1}
 
+membrane_model = \
+    {'label': 'Membrane Model:', 'number': 1,
+     'sim_name': ['membrane', 'type'],
+     'value': ['Constant', 'Springer'], 'type': 'ComboboxSet',
+     # 'command': {'function': 'show_connected_widgets',
+     #             'args': [[[[1, 0]], [[2, 0]]],
+     #                      [[[2, 0]], [[1, 0]]]]}
+     }
+
+mem_ionic_conductivity = \
+    {'label': 'Ionic Conductivity:', 'value': 0.5,
+     'width': 5, #'column': 1,
+     'sim_name': ['membrane', 'ionic_conductivity'],
+     'dtype': 'float', 'dimensions': 'S/m', 'type': 'EntrySet'}
+
+mem_temp_coefficient = \
+    {'label': 'Temperature Coefficient:', 'value': 7e-8,
+     'width': 5, #'column': 1,
+     'sim_name': ['membrane', 'temperature_coefficient'],
+     'dtype': 'float', 'dimensions': 'Ohm-m²/K', 'type': 'EntrySet'}
+
+
+membrane_frame_dict = \
+    {'title': 'Membrane Settings', 'show_title': True,
+     'font': 'Arial 10 bold', 'sticky': 'WEN',
+     'widget_dicts': [membrane_model,
+                      mem_ionic_conductivity,
+                      mem_temp_coefficient],
+     'highlightbackground': 'grey', 'highlightthickness': 1}
+
+
 frame_dict = \
     {'title': 'Physical Properties', 'show_title': False,
      'font': 'Arial 10 bold', 'sticky': 'WEN',
-     'sub_frame_dicts': [porous_frame_dict],
+     'sub_frame_dicts': [porous_frame_dict,
+                         membrane_frame_dict],
      'highlightbackground': 'grey', 'highlightthickness': 1}
 
 tab_dict = {'title': 'Physical Properties', 'show_title': False,
