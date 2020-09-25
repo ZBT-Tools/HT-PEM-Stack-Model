@@ -92,10 +92,11 @@ class BaseFrame(base.Base, tk.Frame):
         self.rowconfigure(row, weight=1)
         self.columnconfigure(column, weight=1)
         if not self.notebook_tab:
-            self.grid(sticky=kwargs.pop('sticky', self.sticky),
-                      row=row, column=column,
-                      padx=kwargs.get('padx', self.PADX),
-                      pady=kwargs.get('pady', self.PADY), **kwargs)
+            # self.grid(sticky=kwargs.pop('sticky', self.sticky),
+            #           row=row, column=column,
+            #           padx=kwargs.get('padx', self.PADX),
+            #           pady=kwargs.get('pady', self.PADY), **kwargs)
+            self._set_grid(self, **kwargs)
 
         if tk_objects is None:
             tk_objects = self.widgets

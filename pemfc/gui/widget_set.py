@@ -347,7 +347,7 @@ class ComboboxSet(MultiCommandWidgetSet):
 
     def create_widgets(self, frame, number, value, **kwargs):
         for i in range(number):
-            self.vars.append(tk.StringVar)
+            self.vars.append(tk.StringVar())
             self.columns += 1
             option_menu = ttk.Combobox(self.frame, values=value,
                                        width=kwargs.pop('width', self.WIDTH),
@@ -364,20 +364,35 @@ class ComboboxSet(MultiCommandWidgetSet):
             for i, args in enumerate(arg_list):
                 command_list.append(lambda arg1=i, arg2=args:
                                     self.show_connected_widgets(arg1, arg2))
-            commands_dict['function'] = self.show_connected_widgets
+            # commands_dict['function'] = self.show_connected_widgets
             return command_list
         else:
-            print(function)
+            # print(function)
             raise NotImplementedError
 
-    def widget_connector(self, widget_id, grid_list, func1, func2=None,
+    def widget_connector(self, widget_id, arg_list, func1, func2=None,
                          kwargs1=None, kwargs2=None):
-        var = self.vars[widget_id].get()
-        for item in grid_list:
+        # var = self.vars[widget_id].get()
+        if hasattr(widget_id, 'widget'):
+            widget = widget_id.widget
+            for i, item in enumerate(self.widgets):
+                if widget is item:
+                    widget_id = i
+                    break
+
+        selected_id = self.widgets[widget_id].current()
+        grid_list = arg_list[selected_id]
+        show_list = grid_list[0]
+        hide_list = grid_list[1]
+        for item in show_list:
             widget = self.frame.widget_grid[item[0]][item[1]]
             if isinstance(widget, tk.Widget):
-                self.call_object_method(widget, func1, **kwargs1)
-                self.call_object_method(widget, func2, **kwargs2)
+                self.call_object_method(widget, func1)
+
+        for item in hide_list:
+            widget = self.frame.widget_grid[item[0]][item[1]]
+            if isinstance(widget, tk.Widget):
+                self.call_object_method(widget, func2)
 
     def show_connected_widgets(self, widget_id, grid_list):
         self.widget_connector(widget_id, grid_list, 'grid', 'grid_remove')

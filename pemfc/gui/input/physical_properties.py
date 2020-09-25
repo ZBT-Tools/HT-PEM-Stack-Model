@@ -65,9 +65,9 @@ membrane_model = \
     {'label': 'Membrane Model:', 'number': 1,
      'sim_name': ['membrane', 'type'],
      'value': ['Constant', 'Springer'], 'type': 'ComboboxSet',
-     # 'command': {'function': 'show_connected_widgets',
-     #             'args': [[[[1, 0]], [[2, 0]]],
-     #                      [[[2, 0]], [[1, 0]]]]}
+     'command': {'function': 'show_connected_widgets',
+                 'args': [[[[[2, 0]], [[3, 0]]],
+                           [[[3, 0]], [[2, 0]]]]]}
      }
 
 mem_ionic_conductivity = \
@@ -82,13 +82,17 @@ mem_temp_coefficient = \
      'sim_name': ['membrane', 'temperature_coefficient'],
      'dtype': 'float', 'dimensions': 'Ohm-m²/K', 'type': 'EntrySet'}
 
+constant_frame = \
+    {'widget_dicts': [mem_ionic_conductivity], 'sticky': 'WEN', 'columnspan': 2}
+springer_frame = \
+    {'widget_dicts': [mem_temp_coefficient], 'sticky': 'WEN', 'columnspan': 2}
 
 membrane_frame_dict = \
     {'title': 'Membrane Settings', 'show_title': True,
      'font': 'Arial 10 bold', 'sticky': 'WEN',
      'widget_dicts': [membrane_model,
-                      mem_ionic_conductivity,
-                      mem_temp_coefficient],
+                      constant_frame,
+                      springer_frame],
      'highlightbackground': 'grey', 'highlightthickness': 1}
 
 
