@@ -1,5 +1,6 @@
 # general imports
 import numpy as np
+import math
 from abc import ABC, abstractmethod
 
 # local modul imports
@@ -35,17 +36,10 @@ class Channel(ABC, oo.OutputObject):
         self.number = number
         super().__init__(name)
         self.fluid = fluid
-        self._length = channel_dict['length']
-        # channel length
+        self._length = channel_dict.get('length', 0.1)
         self.n_nodes = len(self.fluid.density)
         self.n_ele = self.n_nodes - 1
 
-        self.x = np.linspace(0.0, self._length, self.n_nodes)
-        self.dx = np.diff(self.x)
-        self.dx_node = np.zeros(self.n_nodes)
-        self.dx_node[1:-1] = np.diff(ip.interpolate_1d(self.x))
-        self.dx_node[0] = 0.5 * self.dx[0]
-        self.dx_node[-1] = 0.5 * self.dx[-1]
         # element length
         self.p_out = channel_dict['p_out']
         self.pressure = g_func.full(self.n_nodes, self.p_out)
@@ -77,8 +71,17 @@ class Channel(ABC, oo.OutputObject):
             self._height = channel_dict['height']
         elif self.cross_shape == 'circular':
             self._diameter = channel_dict['diameter']
+        elif self.cross_shape == 'trapezoidal':
+            self._width = channel_dict['width']
+            self._height = channel_dict['height']
+            self._base_width = channel_dict['base_width']
+        elif self.cross_shape == 'triangular':
+            self._width = channel_dict['width']
+            self._height = channel_dict['height']
         else:
             raise NotImplementedError
+        # Initialize geometry
+        self.x, self.dx, self.dx_node = None, None, None
         self.cross_area = None
         self.surface_area = None
         self.aspect_ratio = None
@@ -127,24 +130,43 @@ class Channel(ABC, oo.OutputObject):
         # self.add_print_data(self.p, 'Fluid Pressure', 'Pa')
 
     def calculate_geometry(self):
+        self.x = np.linspace(0.0, self._length, self.n_nodes)
+        self.dx = np.diff(self.x)
+        self.dx_node = np.zeros(self.n_nodes)
+        self.dx_node[1:-1] = np.diff(ip.interpolate_1d(self.x))
+        self.dx_node[0] = 0.5 * self.dx[0]
+        self.dx_node[-1] = 0.5 * self.dx[-1]
         if self.cross_shape == 'rectangular':
             self.cross_area = self._width * self._height
-            self.d_h = \
-                4.0 * self.cross_area / (2.0 * (self._width + self._height))
-            self.surface_area = 2.0 * (self._width + self._height) * self.dx
+            perimeter = 2.0 * (self._width + self._height)
             if self._width >= self._height:
                 self.aspect_ratio = self._height / self._width
             else:
                 self.aspect_ratio = self._width / self._height
         elif self.cross_shape == 'circular':
-            self.d_h = self._diameter
             self._width = self._diameter
             self._height = self._diameter
             self.cross_area = self._diameter ** 2.0 * 0.25 * np.pi
-            self.surface_area = self._diameter * np.pi * self.dx
+            perimeter = self._diameter * np.pi
             self.aspect_ratio = 1.0
+        elif self.cross_shape == 'trapezoidal':
+            self.cross_area = \
+                (self._base_width + self._width) * self._height * 0.5
+            edge = abs(self._width - self._base_width) * 0.5
+            side = math.sqrt(edge ** 2.0 + self._height ** 2.0)
+            perimeter = 2.0 * side + self._width + self._base_width
+            if self._width >= self._height:
+                self.aspect_ratio = self._height / self._width
+            else:
+                self.aspect_ratio = self._width / self._height
+        elif self.cross_shape == 'triangular':
+            self.cross_area = self._width * self._height * 0.5
+            side = math.sqrt((self._width * 0.5) ** 2.0 + self._height ** 2.0)
+            perimeter = 2.0 * side + self._width
         else:
             raise NotImplementedError
+        self.surface_area = perimeter * self.dx
+        self.d_h = 4.0 * self.cross_area / perimeter
         self.base_area = self._width * self._length
         self.base_area_dx = self._width * self.dx
 

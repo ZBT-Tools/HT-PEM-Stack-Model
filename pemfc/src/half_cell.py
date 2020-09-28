@@ -5,7 +5,7 @@ from scipy import optimize
 
 # local module imports
 from . import interpolation as ip, layers as layers, constants, \
-    global_functions as g_func, fluid as fluids
+    global_functions as g_func, fluid as fluids, flow_field as ff
 
 warnings.filterwarnings("ignore")
 
@@ -35,23 +35,29 @@ class HalfCell:
 
         # number of channels of each half cell
         self.n_channel = halfcell_dict['channel_number']
-        area_factor = self.length * self.width \
-            / (self.channel.base_area * self.n_channel)
-        if area_factor < 1.0:
-            raise ValueError('width and length of cell result in a cell '
-                             'surface area  smaller than the area covered by '
-                             'channels')
 
-        self.rib_width = self.channel.width * (area_factor - 1.0)
-        self.width_straight_channels = \
-            (self.channel.width + self.rib_width) * self.n_channel
-        self.length_straight_channels = (self.length * self.width) \
-            / self.width_straight_channels
-        self._active_area = area_factor * self.channel.base_area
-        # self.active_area = area_factor * self.channel.base_area
-        # factor active area with ribs / active channel area
-        self._active_area_dx = area_factor * self.channel.base_area_dx
-        # self.active_area_dx = area_factor * self.channel.base_area_dx
+        flowfield_dict = {**cell_dict, **halfcell_dict}
+
+        self.flow_field = \
+            ff.FlowField(self.name + 'Flow Field', flowfield_dict, self.channel)
+
+        # area_factor = self.length * self.width \
+        #     / (self.channel.base_area * self.n_channel)
+        # if area_factor < 1.0:
+        #     raise ValueError('width and length of cell result in a cell '
+        #                      'surface area  smaller than the area covered by '
+        #                      'channels')
+
+        # self.rib_width = self.channel.width * (area_factor - 1.0)
+        # self.width_straight_channels = \
+        #     (self.channel.width + self.rib_width) * self.n_channel
+        # self.length_straight_channels = (self.length * self.width) \
+        #     / self.width_straight_channels
+        # self._active_area = area_factor * self.channel.base_area
+        # # self.active_area = area_factor * self.channel.base_area
+        # # factor active area with ribs / active channel area
+        # self._active_area_dx = area_factor * self.channel.base_area_dx
+        # # self.active_area_dx = area_factor * self.channel.base_area_dx
 
         self.id_fuel = 0
         self.id_h2o = 2
@@ -92,8 +98,8 @@ class HalfCell:
 
         bpp_layer_dict = \
             {'thickness': halfcell_dict['thickness_bpp'],
-             'width': self.width_straight_channels,
-             'length': self.length_straight_channels,
+             'width': self.flow_field.width_straight_channels,
+             'length': self.flow_field.length_straight_channels,
              'electrical_conductivity':
                  halfcell_dict['electrical_conductivity_bpp'],
              'thermal_conductivity':
@@ -104,8 +110,8 @@ class HalfCell:
         gde_layer_dict = \
             {'thickness': halfcell_dict['thickness_gdl']
                 + halfcell_dict['thickness_cl'],
-             'width': self.width_straight_channels,
-             'length': self.length_straight_channels,
+             'width': self.flow_field.width_straight_channels,
+             'length': self.flow_field.length_straight_channels,
              'electrical_conductivity':
                  halfcell_dict['electrical_conductivity_gde'],
              'thermal_conductivity':
@@ -201,7 +207,7 @@ class HalfCell:
             self.update_voltage_loss(corrected_current_density)
 
             # calculate stoichiometry
-            current = np.sum(current_density * self._active_area_dx)
+            current = np.sum(current_density * self.flow_field.active_area_dx)
             self.inlet_stoi = \
                 self.channel.mole_flow[self.id_fuel, self.channel.id_in] \
                 * self.faraday * self.n_charge \
@@ -227,7 +233,7 @@ class HalfCell:
 
     def calc_mass_balance(self, current_density, stoi=None):
         avg_current_density = \
-            np.average(current_density, weights=self._active_area_dx)
+            np.average(current_density, weights=self.flow_field.active_area_dx)
         mass_flow_in, mole_flow_in = \
             self.calc_inlet_flow(avg_current_density, stoi)
         mass_flow_in = g_func.fill_transposed(mass_flow_in,
@@ -243,7 +249,8 @@ class HalfCell:
         if np.ndim(current_density) > 0:
             raise ValueError('current_density must be scalar')
         mole_flow_in = np.zeros(self.channel.fluid.n_species)
-        mole_flow_in[self.id_fuel] = current_density * self._active_area \
+        mole_flow_in[self.id_fuel] = \
+            current_density * self.flow_field.active_area \
             * stoi * abs(self.n_stoi[self.id_fuel]) \
             / (self.n_charge * self.faraday)
         inlet_composition = \
@@ -259,11 +266,13 @@ class HalfCell:
         mole_source = np.zeros((self.channel.fluid.n_species, self.n_ele))
 
         for i in range(len(mole_source)):
-            mole_source[i] = current_density * self._active_area_dx \
+            mole_source[i] = \
+                current_density * self.flow_field.active_area_dx \
                 * self.n_stoi[i] / (self.n_charge * self.faraday)
 
         # water cross flow
-        mole_source[self.id_h2o] += self._active_area_dx * self.w_cross_flow \
+        mole_source[self.id_h2o] += \
+            self.flow_field.active_area_dx * self.w_cross_flow \
             * self.channel.flow_direction
         mass_source = (mole_source.transpose()
                        * self.channel.fluid.species.mw).transpose()
@@ -275,11 +284,12 @@ class HalfCell:
         """
         if stoi is None:
             stoi = self.target_stoi
-        curr_den = np.average(current_density, weights=self._active_area_dx)
+        curr_den = \
+            np.average(current_density, weights=self.flow_field.active_area_dx)
         # curr_den = self.target_cd
-        mol_flow_in = curr_den * self._active_area * stoi \
-            * abs(self.n_stoi[self.id_fuel]) / (self.n_charge * self.faraday)
-        dmol = current_density * self._active_area_dx \
+        mol_flow_in = curr_den * self.flow_field.active_area * stoi \
+                      * abs(self.n_stoi[self.id_fuel]) / (self.n_charge * self.faraday)
+        dmol = current_density * self.flow_field.active_area_dx \
             * self.n_stoi[self.id_fuel] / (self.n_charge * self.faraday)
         # g_func.add_source(self.mol_flow[self.id_fuel], dmol,
         #                   self.flow_direction)
@@ -297,11 +307,11 @@ class HalfCell:
         mol_flow_in = air_flow_in * sat_p * humidity_in / \
             (self.channel.pressure[id_in] - humidity_in * sat_p)
         dmol = np.zeros_like(current_density)
-        h2o_prod = self._active_area_dx * self.n_stoi[self.id_h2o] \
-            * current_density / (self.n_charge * self.faraday)
+        h2o_prod = self.flow_field.active_area_dx * self.n_stoi[self.id_h2o] \
+                   * current_density / (self.n_charge * self.faraday)
         dmol += h2o_prod
-        h2o_cross = self._active_area_dx * self.w_cross_flow \
-            * self.channel.flow_direction
+        h2o_cross = self.flow_field.active_area_dx * self.w_cross_flow \
+                    * self.channel.flow_direction
         dmol += h2o_cross
         return mol_flow_in, dmol
 
@@ -312,7 +322,7 @@ class HalfCell:
         self.updated_v_loss = True
 
     def calc_plate_loss(self, current_density):
-        current = current_density * self._active_area_dx
+        current = current_density * self.flow_field.active_area_dx
         v_loss_bpp = current / self.bpp.electrical_conductance[0]
         # self.v_loss_bpp[:] = current / self.bpp.electrical_conductance[0]
         return v_loss_bpp

@@ -60,8 +60,10 @@ class Cell(OutputObject):
         self.dx = self.cathode.channel.dx
 
         # Setup membrane
-        membrane_dict['width'] = self.cathode.width_straight_channels
-        membrane_dict['length'] = self.cathode.length_straight_channels
+        membrane_dict['width'] = \
+            self.cathode.flow_field.width_straight_channels
+        membrane_dict['length'] = \
+            self.cathode.flow_field.length_straight_channels
 
         self.membrane = membrane.Membrane(membrane_dict, self.dx)
 
@@ -75,7 +77,8 @@ class Cell(OutputObject):
         # self.is_ht_pem = self.cell_dict['is_ht_pem']
 
         """heat conductivity along and through the cell layers"""
-        self.width_straight_channels = self.cathode.width_straight_channels
+        self.width_straight_channels = \
+            self.cathode.flow_field.width_straight_channels
         self.active_area_dx = self.width_straight_channels * self.dx
 
         # heat conductivity along the gas diffusion electrode and membrane
