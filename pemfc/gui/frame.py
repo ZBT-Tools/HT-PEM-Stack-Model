@@ -149,7 +149,7 @@ class BaseFrame(base.Base, tk.Frame):
 
     def call_commands(self):
         for widget in self.widgets:
-            if isinstance(widget, ws.MultiCommandWidgetSet):
+            if isinstance(widget, (ws.MultiCommandWidgetSet, MainFrame)):
                 widget.call_commands()
 
 

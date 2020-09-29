@@ -58,21 +58,69 @@ channel_number = \
      'sim_name': [['anode', 'channel', 'number'],
                   ['cathode', 'channel', 'number']],
      'dtype': 'int', 'type': 'EntrySet'}
-channel_length = \
-    {'label': 'Channel Length:', 'number': 2, 'value': [0.4, 0.4],
-     'sim_name': [['anode', 'channel', 'length'],
-                  ['cathode', 'channel', 'length']],
-     'dtype': 'float', 'dimensions': 'm', 'type': 'EntrySet'}
+
+channel_shape = \
+    {'label': 'Shape of Cross-Section:', 'number': 1,
+     'sim_name': ['membrane', 'type'],
+     'value': ['rectangular', 'trapezoidal', 'triangular'],
+     'type': 'ComboboxSet',
+     'command': {'function': 'show_connected_widgets',
+                 'args': [[[[[1, 0]], [[2, 0], [3, 0]]],
+                           [[[2, 0]], [[1, 0], [3, 0]]],
+                           [[[1, 0]], [[2, 0], [3, 0]]]]]}
+     }
+
+
 channel_width = \
-    {'label': 'Channel Width:', 'number': 2, 'value': [1e-3, 1e-3],
+    {'label': 'Width:', 'number': 2, 'value': [1e-3, 1e-3],
      'sim_name': [['anode', 'channel', 'width'],
                   ['cathode', 'channel', 'width']],
      'dtype': 'float', 'dimensions': 'm', 'type': 'EntrySet'}
+
+channel_rib_width = \
+    {'label': 'Width of Ribs:', 'number': 2, 'value': [1e-3, 1e-3],
+     'sim_name': [['anode', 'channel', 'rib_width'],
+                  ['cathode', 'channel', 'width']],
+     'dtype': 'float', 'dimensions': 'm', 'type': 'EntrySet'}
+
 channel_height = \
-    {'label': 'Channel Height:', 'number': 2, 'value': [1e-3, 1e-3],
+    {'label': 'Height:', 'number': 2, 'value': [1e-3, 1e-3],
      'sim_name': [['anode', 'channel', 'height'],
                   ['cathode', 'channel', 'height']],
      'dtype': 'float', 'dimensions': 'm', 'type': 'EntrySet'}
+
+channel_base_width = \
+    {'label': 'Base Width:', 'number': 2, 'value': [1e-3, 1e-3],
+     'sim_name': [['anode', 'channel', 'base_width'],
+                  ['cathode', 'channel', 'base_width']],
+     'dtype': 'float', 'dimensions': 'm', 'type': 'EntrySet'}
+
+rectangular_frame = \
+    {'widget_dicts': [channel_width,
+                      channel_rib_width,
+                      channel_height],
+     'sticky': 'WENS'}
+
+trapezoidal_frame = \
+    {'widget_dicts': [channel_width,
+                      channel_rib_width,
+                      channel_height,
+                      channel_base_width],
+     'sticky': 'WENS'}
+
+channel_shape_frame = \
+    {'widget_dicts': [channel_shape,
+                      rectangular_frame,
+                      trapezoidal_frame,
+                      rectangular_frame],
+     'sticky': 'WENS'}
+
+channel_length = \
+    {'label': 'Channel Length:', 'number': 2, 'value': [0.1, 0.1],
+     'sim_name': [['anode', 'channel', 'length'],
+                  ['cathode', 'channel', 'length']],
+     'dtype': 'float', 'dimensions': 'm', 'type': 'EntrySet'}
+
 channel_bends = \
     {'label': 'Number of Channel Bends:', 'value': [48, 48],
      'sim_name': [['anode', 'channel', 'bend_number'],
@@ -99,8 +147,9 @@ channel_frame_dict = \
      'widget_dicts': [anode_label_channel,
                       cathode_label_channel,
                       channel_number,
-                      channel_length, channel_width,
-                      channel_height,
+                      channel_shape_frame,
+                      # channel_length, channel_width,
+                      # channel_height,
                       channel_bends,
                       channel_flow_direction,
                       empty_row,
