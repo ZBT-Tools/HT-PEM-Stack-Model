@@ -57,13 +57,13 @@ channel_number = \
     {'label': 'Channel Number:', 'number': 2, 'value': [10, 10],
      'sim_name': [['anode', 'channel', 'number'],
                   ['cathode', 'channel', 'number']],
-     'dtype': 'int', 'type': 'EntrySet'}
+     'dtype': 'int', 'dimensions': 'm', 'type': 'EntrySet'}
 
 channel_shape = \
     {'label': 'Shape of Cross-Section:', 'number': 1,
      'sim_name': ['membrane', 'type'],
      'value': ['rectangular', 'trapezoidal', 'triangular'],
-     'type': 'ComboboxSet',
+     'type': 'ComboboxSet', 'sticky': 'WN',
      'command': {'function': 'show_connected_widgets',
                  'args': [[[[[1, 0]], [[2, 0], [3, 0]]],
                            [[[2, 0]], [[1, 0], [3, 0]]],
@@ -99,21 +99,21 @@ rectangular_frame = \
     {'widget_dicts': [channel_width,
                       channel_rib_width,
                       channel_height],
-     'sticky': 'WENS'}
+     'sticky': 'WEN', 'columnspan': 4, 'padx': 0.0, 'pady': 0.0}
 
 trapezoidal_frame = \
     {'widget_dicts': [channel_width,
                       channel_rib_width,
                       channel_height,
                       channel_base_width],
-     'sticky': 'WENS'}
+     'sticky': 'WEN', 'columnspan': 4, 'padx': 0.0, 'pady': 0.0}
 
 channel_shape_frame = \
     {'widget_dicts': [channel_shape,
                       rectangular_frame,
                       trapezoidal_frame,
                       rectangular_frame],
-     'sticky': 'WENS'}
+     'sticky': 'WEN', 'columnspan': 2, 'padx': 0.0, 'pady': 0.0}
 
 channel_length = \
     {'label': 'Channel Length:', 'number': 2, 'value': [0.1, 0.1],
