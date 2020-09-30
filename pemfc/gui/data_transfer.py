@@ -246,6 +246,9 @@ sim_dict = {
                 'press_init': op_con.p_manifold_cathode_out,
                 'nodes': nodes
                 },
+            'cross_sectional_shape': geom.cathode_channel_shape,
+            'rib_width': geom.cathode_channel_rib_width,
+            'base_width': geom.cathode_channel_base_width,
             'length': geom.cathode_channel_length,
             'p_out': op_con.p_manifold_cathode_out,
             'temp_in': op_con.temp_cathode_in,
@@ -344,6 +347,9 @@ sim_dict = {
                 'press_init': op_con.p_manifold_anode_out,
                 'nodes': nodes
                 },
+            'cross_sectional_shape': geom.anode_channel_shape,
+            'rib_width': geom.anode_channel_rib_width,
+            'base_width': geom.anode_channel_base_width,
             'length': geom.anode_channel_length,
             'p_out': op_con.p_manifold_anode_out,
             'temp_in': op_con.temp_anode_in,
@@ -414,6 +420,8 @@ sim_dict = {
             # 'press_init': op_con.p_manifold_anode_out,
             'nodes': nodes
             },
+        'cross_sectional_shape': geom.cool_channel_shape,
+        'base_width': geom.cool_channel_base_width,
         'length': geom.coolant_channel_length,
         'p_out': op_con.p_manifold_cathode_out,
         'temp_in': op_con.temp_coolant_in,

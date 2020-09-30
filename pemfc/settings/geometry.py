@@ -34,12 +34,21 @@ anode_channel_length = 0.24
 # channel width [m]
 cathode_channel_width = 1.e-3
 anode_channel_width = 1.e-3
+# rib width [m]
+cathode_channel_rib_width = cathode_channel_width
+anode_channel_rib_width = anode_channel_width
 # channel height [m]
 cathode_channel_height = 1.e-3
 anode_channel_height = 1.e-3
 # number of channels
 cathode_channel_number = 10
 anode_channel_number = 10
+# shape of channel (rectangular, trapezoidal, triangular)
+cathode_channel_shape = 'rectangular'
+anode_channel_shape = 'rectangular'
+# width of channel at its base (only for trapezoidal) [m]
+cathode_channel_base_width = 0.8 * cathode_channel_width
+anode_channel_base_width = 0.8 * anode_channel_width
 # channel bends [n]
 cathode_channel_bends = 48
 anode_channel_bends = 48
@@ -60,6 +69,9 @@ coolant_channel_length = 0.14
 coolant_channel_height = 1.e-3
 # width of the coolant channel [m]
 coolant_channel_width = 2.e-3
+# coolant channel shape
+cool_channel_shape = 'rectangular'
+cool_channel_base_width = 0.8 * coolant_channel_width
 # number of coolant channels per cell
 coolant_channel_number = 10
 # channel bends [n]

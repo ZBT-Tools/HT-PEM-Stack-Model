@@ -35,8 +35,10 @@ thickness_mem = \
     {'label': 'Membrane Thickness:',  'value': 1.5e-5,
      'sim_name': ['membrane', 'thickness'],
      'dtype': 'float', 'dimensions': 'm', 'type': 'EntrySet'}
+
 empty_row = {'label': ' ',  'font': 'Arial 1',  # 'row': 1, 'column': 1,
              'type': 'Label', 'sticky': 'WENS'}
+
 cell_frame_sub_dict = \
     {'title': 'Cell Lengths', 'show_title': False,
      'grid_location': (1, 0), 'font': 'Arial 10 bold',
@@ -67,8 +69,7 @@ channel_shape = \
      'command': {'function': 'show_connected_widgets',
                  'args': [[[[[1, 0]], [[2, 0], [3, 0]]],
                            [[[2, 0]], [[1, 0], [3, 0]]],
-                           [[[1, 0]], [[2, 0], [3, 0]]]]]}
-     }
+                           [[[1, 0]], [[2, 0], [3, 0]]]]]}}
 
 
 channel_width = \
@@ -113,7 +114,7 @@ channel_shape_frame = \
                       rectangular_frame,
                       trapezoidal_frame,
                       rectangular_frame],
-     'sticky': 'WEN', 'columnspan': 2, 'padx': 0.0, 'pady': 0.0}
+     'sticky': 'WEN', 'columnspan': 4, 'padx': 0.0, 'pady': 0.0}
 
 channel_length = \
     {'label': 'Channel Length:', 'number': 2, 'value': [0.1, 0.1],
@@ -141,19 +142,24 @@ anode_label_channel = {'label': 'Anode', 'row': 1, 'column': 1,
 cathode_label_channel = \
     {'label': 'Cathode', 'row': 1, 'column': 2,
      'type': 'Label', 'sticky': 'WENS'}
+channel_first_frame = \
+    {'widget_dicts': [anode_label_channel,
+                      cathode_label_channel,
+                      channel_number],
+     'sticky': 'WEN', 'columnspan': 4, 'padx': 0.0, 'pady': 0.0}
+
+channel_last_frame = \
+    {'widget_dicts': [channel_length,
+                      channel_bends,
+                      bend_pressure_loss_coefficient,
+                      channel_flow_direction],
+     'sticky': 'WEN', 'columnspan': 4, 'padx': 0.0, 'pady': 0.0}
 channel_frame_dict = \
     {'title': 'Channel Settings', #'grid_location': (1, 1),
      'font': 'Arial 10 bold',
-     'widget_dicts': [anode_label_channel,
-                      cathode_label_channel,
-                      channel_number,
+     'widget_dicts': [channel_first_frame,
                       channel_shape_frame,
-                      # channel_length, channel_width,
-                      # channel_height,
-                      channel_bends,
-                      channel_flow_direction,
-                      empty_row,
-                      bend_pressure_loss_coefficient],
+                      channel_last_frame],
      'highlightbackground': 'grey', 'highlightthickness': 1,
      'sticky': 'WENS'}
 
