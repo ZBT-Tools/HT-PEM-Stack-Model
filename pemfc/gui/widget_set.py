@@ -336,22 +336,25 @@ class ComboboxSet(MultiCommandWidgetSet):
     def __init__(self, frame, label, number=1, value=None, **kwargs):
         # value = kwargs.pop('options', [])
         command = kwargs.pop('command', None)
-
+        justify = kwargs.pop('justify', 'right')
+        width = kwargs.pop('width', self.WIDTH)
         super().__init__(frame, label, **kwargs)
         self.vars = []
         kwargs = self.remove_dict_entries(kwargs, self.REMOVE_ARGS)
         self.dtype = kwargs.pop('dtype', 'string')
         # number, value = self.get_number(number, value, dtype=object)
         self.get_commands(command, number)
+        kwargs['width'] = width
+        kwargs['justify'] = justify
         self.create_widgets(frame, number, value, **kwargs)
 
     def create_widgets(self, frame, number, value, **kwargs):
+        width = kwargs.pop('width', self.WIDTH)
         for i in range(number):
             self.vars.append(tk.StringVar())
             self.columns += 1
             option_menu = ttk.Combobox(self.frame, values=value,
-                                       width=kwargs.pop('width', self.WIDTH),
-                                       **kwargs)
+                                       width=width, **kwargs)
             option_menu.current(0)
             option_menu.bind('<<ComboboxSelected>>', self.command_list[i])
             self.widgets.append(option_menu)
@@ -364,6 +367,14 @@ class ComboboxSet(MultiCommandWidgetSet):
             for i, args in enumerate(arg_list):
                 command_list.append(lambda arg1=i, arg2=args:
                                     self.show_connected_widgets(arg1, arg2))
+            # commands_dict['function'] = self.show_connected_widgets
+            return command_list
+        elif function == 'set_status':
+            arg_list = commands_dict['args']
+            command_list = []
+            for i, args in enumerate(arg_list):
+                command_list.append(lambda arg1=i, arg2=args:
+                                    self.set_status(arg1, arg2))
             # commands_dict['function'] = self.show_connected_widgets
             return command_list
         else:
@@ -387,15 +398,26 @@ class ComboboxSet(MultiCommandWidgetSet):
         for item in show_list:
             widget = self.frame.widget_grid[item[0]][item[1]]
             if isinstance(widget, tk.Widget):
-                self.call_object_method(widget, func1)
+                if isinstance(kwargs1, dict):
+                    self.call_object_method(widget, func1, **kwargs1)
+                else:
+                    self.call_object_method(widget, func1)
 
         for item in hide_list:
             widget = self.frame.widget_grid[item[0]][item[1]]
             if isinstance(widget, tk.Widget):
-                self.call_object_method(widget, func2)
+                if isinstance(kwargs1, dict):
+                    self.call_object_method(widget, func2, **kwargs2)
+                else:
+                    self.call_object_method(widget, func2)
 
     def show_connected_widgets(self, widget_id, grid_list):
         self.widget_connector(widget_id, grid_list, 'grid', 'grid_remove')
+
+    def set_status(self, widget_id, grid_list):
+        self.widget_connector(widget_id, grid_list, 'config', 'config',
+                              kwargs1={'state': 'normal'},
+                              kwargs2={'state': 'disable'})
 
 
 class EntryButtonSet(MultiEntrySet):

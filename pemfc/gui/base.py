@@ -15,7 +15,6 @@ class Base(ABC):
         self.sim_name = kwargs.pop('sim_name', None)
         self.padx = kwargs.pop('padx', self.PADX)
         self.pady = kwargs.pop('pady', self.PADY)
-
         self.rowspan = kwargs.pop('rowspan', None)
         self.columnspan = kwargs.pop('columnspan', None)
         grid_location = kwargs.pop('grid_location', (None, None))
