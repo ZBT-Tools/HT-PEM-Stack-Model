@@ -125,8 +125,11 @@ def update_graph(value, dropdown_key):
     #                 labels=dict(x=x_key, y=y_key, color=z_key),
     #                 x=xvalues, y=yvalues, width=1000, height=600,
     #                 aspect='auto')
-    fig = go.Figure(go.Heatmap(z=local_data[z_key]['value'],
-                    x=xvalues, y=yvalues, xgap=1, ygap=1))
+    if z_key is None:
+        zvalues = np.zeros((len(xvalues), len(yvalues)))
+    else:
+        zvalues = local_data[z_key]['value']
+    fig = go.Figure(go.Heatmap(z=zvalues, x=xvalues, y=yvalues, xgap=1, ygap=1))
     fig.update_xaxes(showgrid=True, tickmode='array',
                      tickvals=local_data[x_key]['value'])
     fig.update_yaxes(showgrid=True, tickmode='array', tickvals=yvalues)
