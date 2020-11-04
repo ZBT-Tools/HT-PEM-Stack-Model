@@ -27,7 +27,8 @@ options = {
         'packages': packages,
         'namespace_packages': ['mpl_toolkits'],
         'includes': ['matplotlib.backends.backend_tkagg'],
-        'excludes': ['scipy.optimize', 'pandas', 'PyQt5'],
+        'excludes': ['scipy.optimize', 'pandas', 'PyQt5', 'scipy.spatial',
+                     'numba', 'numpy.fft', 'scipy.signal'],
         'include_files': include_files
                  }
           }
