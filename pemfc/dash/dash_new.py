@@ -125,7 +125,7 @@ app.layout = html.Div(
             ],
             id="header",
             className="row flex-display",
-            style={"margin-bottom": "25px"},
+            #style={"margin-bottom": "25px"},
         ),
         html.Div(
             [
@@ -159,13 +159,18 @@ app.layout = html.Div(
                                 className='dcc_control')],
                             id='button_container',
                             className='dcc_control'),
-                        html.P(
-                            id="output_stack_power",
-                            className='dcc_control'
-                        ),
+                        # html.P(
+                        #     id="output_stack_power",
+                        #     className='dcc_control'
+                        # ),
                         dcc.Dropdown(
                             id='results_dropdown',
                             className='dcc_control',
+                        ),
+                        dcc.Dropdown(
+                            id='results_dropdown_2',
+                            className='dcc_control',
+                            style={'display': 'true'}
                         ),
                         dcc.RangeSlider(
                             id="year_slider",
@@ -272,6 +277,7 @@ app.layout = html.Div(
     style={"display": "flex", "flex-direction": "column"},
 )
 
+
 @cache.memoize()
 def simulation_store(cell_number):
     values = {'cell number': {'sim_name': ['stack', 'cell_number'],
@@ -303,8 +309,15 @@ def compute_simulation(cell_number, n_clicks):
 def get_dropdown_options(value):
     results = simulation_store(value)
     local_data = results[1]
-    return [{'label': key, 'value': key} for key in local_data], \
-        'Current Density'
+    # values = [{'label': key, 'value': key} for key in local_data if 'value'
+    #           in local_data[key]]
+    values = [{'label': key, 'value': key} for key in local_data]
+    return values, 'Current Density'
+
+@app.callback(
+    Output("count_graph", "figure"),
+    [Input('only_signal', 'children'), Input('results_dropdown', 'value')])
+def get_values()
 
 
 @app.callback(
