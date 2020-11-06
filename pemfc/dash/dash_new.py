@@ -43,24 +43,21 @@ cache = Cache()
 cache.init_app(app.server, config=CACHE_CONFIG)
 
 # Create controls
-county_options = [
-    {"label": str(COUNTIES[county]), "value": str(county)} for county in COUNTIES
-]
+county_options = [{"label": str(COUNTIES[county]), "value": str(county)}
+                  for county in COUNTIES]
 
-well_status_options = [
-    {"label": str(WELL_STATUSES[well_status]), "value": str(well_status)}
-    for well_status in WELL_STATUSES
-]
+well_status_options = \
+    [{"label": str(WELL_STATUSES[well_status]), "value": str(well_status)}
+     for well_status in WELL_STATUSES]
 
-well_type_options = [
-    {"label": str(WELL_TYPES[well_type]), "value": str(well_type)}
-    for well_type in WELL_TYPES
-]
-
+well_type_options = \
+    [{"label": str(WELL_TYPES[well_type]), "value": str(well_type)}
+     for well_type in WELL_TYPES]
 
 
 # Create global chart template
-mapbox_access_token = "pk.eyJ1IjoicGxvdGx5bWFwYm94IiwiYSI6ImNrOWJqb2F4djBnMjEzbG50amg0dnJieG4ifQ.Zme1-Uzoi75IaFbieBDl3A"
+mapbox_access_token = "pk.eyJ1IjoicGxvdGx5bWFwYm94IiwiYSI6ImNrOWJqb2F4djBn" \
+                      "MjEzbG50amg0dnJieG4ifQ.Zme1-Uzoi75IaFbieBDl3A"
 
 # layout = dict(
 #     autosize=True,
@@ -82,9 +79,6 @@ mapbox_access_token = "pk.eyJ1IjoicGxvdGx5bWFwYm94IiwiYSI6ImNrOWJqb2F4djBnMjEzbG
 # Create app layout
 app.layout = html.Div(
     [
-        dcc.Store(id="aggregate_data"),
-        # empty Div to trigger javascript file for graph resizing
-        html.Div(id="output-clientside"),
         html.Div(
             [
                 html.Div(
@@ -93,17 +87,17 @@ app.layout = html.Div(
                             src=app.get_asset_url("logo-zbt-duisburg.png"),
                             id="zbt-image",
                             style={
-                                "height": "60px",
+                                "height": "auto",  # "60px",
                                 "width": "auto",
                                 "margin-left": "auto",
                                 "margin-right": "auto",
-                                #"margin-top": "25px",
-                                #"margin-bottom": "20px",
+                                # "margin-top": "25px",
+                                # "margin-bottom": "20px",
                             },
                         )
                     ],
                     id="logoContainer",
-                    className="pretty_container three columns",
+                    className="pretty_container four columns",
                 ),
                 html.Div(
                     [
@@ -114,7 +108,8 @@ app.layout = html.Div(
                                     style={"margin-bottom": "0px"},
                                 ),
                                 html.H5(
-                                    "Production Overview", style={"margin-top": "0px"}
+                                    "Production Overview",
+                                    style={"margin-top": "0px"}
                                 ),
                             ]
                         )
@@ -125,8 +120,12 @@ app.layout = html.Div(
             ],
             id="header",
             className="row flex-display",
-            #style={"margin-bottom": "25px"},
+            # style={"margin-bottom": "25px"},
         ),
+        dcc.Store(id="aggregate_data"),
+        # empty Div to trigger javascript file for graph resizing
+        html.Div(id="output-clientside"),
+
         html.Div(
             [
                 html.Div(
@@ -134,17 +133,21 @@ app.layout = html.Div(
                         html.Div(id='only_signal', style={'display': 'none'},
                                  className='control_label'),
                         html.P(
-                            "Filter by construction date (or select range in histogram):",
+                            "Filter by construction date "
+                            "(or select range in histogram):",
                             className="control_label",
                         ),
                         dbc.FormGroup(
                             [
-                                dbc.Label("Cell Number", html_for="cell_number", width=2),
+                                dbc.Label("Cell Number", html_for="cell_number",
+                                          width=2),
                                 dbc.Col(
                                     dbc.Input(
-                                        id="cell_number", type="number", min=0, max=100, step=1,
+                                        id="cell_number", type="number",
+                                        min=0, max=100, step=1,
                                         value=1,
-                                        placeholder="Enter number of cells in stack"
+                                        placeholder="Enter number of "
+                                                    "cells in stack"
                                     ),
                                     width=2,
                                 ),
@@ -179,7 +182,8 @@ app.layout = html.Div(
                             value=[1990, 2010],
                             className="dcc_control",
                         ),
-                        html.P("Filter by well status:", className="control_label"),
+                        html.P("Filter by well status:",
+                               className="control_label"),
                         dcc.RadioItems(
                             id="well_status_selector",
                             options=[
@@ -200,16 +204,19 @@ app.layout = html.Div(
                         ),
                         dcc.Checklist(
                             id="lock_selector",
-                            options=[{"label": "Lock camera", "value": "locked"}],
+                            options=[{"label": "Lock camera",
+                                      "value": "locked"}],
                             className="dcc_control",
                             value=[],
                         ),
-                        html.P("Filter by well type:", className="control_label"),
+                        html.P("Filter by well type:",
+                               className="control_label"),
                         dcc.RadioItems(
                             id="well_type_selector",
                             options=[
                                 {"label": "All ", "value": "all"},
-                                {"label": "Productive only ", "value": "productive"},
+                                {"label": "Productive only ",
+                                 "value": "productive"},
                                 {"label": "Customize ", "value": "custom"},
                             ],
                             value="productive",
@@ -314,16 +321,38 @@ def get_dropdown_options(value):
     values = [{'label': key, 'value': key} for key in local_data]
     return values, 'Current Density'
 
+
 @app.callback(
-    Output("count_graph", "figure"),
-    [Input('only_signal', 'children'), Input('results_dropdown', 'value')])
-def get_values()
+    [Output('results_dropdown_2', 'options'),
+     Output('results_dropdown_2', 'value')],
+    [Input('only_signal', 'children'), Input('results_dropdown', 'value')]
+)
+def get_dropdown_options_2(value, dropdown_key):
+    if dropdown_key is None:
+        raise PreventUpdate
+    else:
+        results = simulation_store(value)
+        local_data = results[1]
+        if 'value' in local_data[dropdown_key]:
+            return [], None
+        else:
+            values = [{'label': key, 'value': key}
+                      for key in local_data[dropdown_key]]
+            return values, None
+
+
+# @app.callback(
+#     Output("count_graph", "figure"),
+#     [Input('only_signal', 'children'), Input('results_dropdown', 'value')])
+# def get_values():
+#     pass
 
 
 @app.callback(
     Output("count_graph", "figure"),
-    [Input('only_signal', 'children'), Input('results_dropdown', 'value')])
-def update_graph(value, dropdown_key):
+    [Input('only_signal', 'children'), Input('results_dropdown', 'value'),
+     Input('results_dropdown_2', 'value')])
+def update_graph(value, dropdown_key, dropdown_key_2):
     results = simulation_store(value)
     global_data = results[0]
     local_data = results[1]
@@ -332,7 +361,6 @@ def update_graph(value, dropdown_key):
 
     # if dropdown_key is None:
     #     dropdown_key = 'Current Density'
-    z_key = dropdown_key
     x_key = 'Channel Location'
     y_key = 'Cells'
     xvalues = ip.interpolate_1d(local_data[x_key]['value'])
@@ -341,10 +369,16 @@ def update_graph(value, dropdown_key):
     #                 labels=dict(x=x_key, y=y_key, color=z_key),
     #                 x=xvalues, y=yvalues, width=1000, height=600,
     #                 aspect='auto')
-    if z_key is None:
+    if dropdown_key is None:
         zvalues = np.zeros((len(xvalues), len(yvalues)))
     else:
-        zvalues = local_data[z_key]['value']
+        if 'value' in local_data[dropdown_key]:
+            zvalues = local_data[dropdown_key]['value']
+        elif dropdown_key_2 is not None:
+            zvalues = local_data[dropdown_key][dropdown_key_2]['value']
+        else:
+            zvalues = np.zeros((len(xvalues), len(yvalues)))
+
     fig = go.Figure(go.Heatmap(z=zvalues, x=xvalues, y=yvalues, xgap=1, ygap=1))
     fig.update_xaxes(showgrid=True, tickmode='array',
                      tickvals=local_data[x_key]['value'])

@@ -542,6 +542,7 @@ there.
     width: 22%;
   }
   .four.columns {
+    /*width: 300px; */
     width: calc(100% / 3);
   }
   .five.columns {
@@ -595,6 +596,7 @@ there.
   #zbt-image {
     margin-bottom: 0px !important;
     height: 45px !important;
+    /* max-width: 100%; */
   }
   #learn-more-button {
     margin-top: 0px !important;
