@@ -103,7 +103,7 @@ app.layout = html.Div(
                         )
                     ],
                     id="logoContainer",
-                    className="pretty_container four columns",
+                    className="pretty_container three columns",
                 ),
                 html.Div(
                     [
