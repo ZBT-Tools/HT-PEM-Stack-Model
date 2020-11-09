@@ -97,7 +97,7 @@ app.layout = html.Div(
                         )
                     ],
                     id="logoContainer",
-                    className="pretty_container four columns",
+                    className="pretty_container three columns",
                 ),
                 html.Div(
                     [
@@ -105,7 +105,8 @@ app.layout = html.Div(
                             [
                                 html.H3(
                                     "New York Oil and Gas",
-                                    style={"margin-bottom": "0px"},
+                                    style={"margin-bottom": "0px",
+                                           "margin-top": "0px"},
                                 ),
                                 html.H5(
                                     "Production Overview",
@@ -114,7 +115,7 @@ app.layout = html.Div(
                             ]
                         )
                     ],
-                    className="eight columns",
+                    className="nine columns",
                     id="title",
                 )
             ],
@@ -231,16 +232,17 @@ app.layout = html.Div(
                         #     className="dcc_control",
                         # ),
                     ],
-                    className="pretty_container four columns",
+                    className="pretty_container three columns",
                     id="cross-filter-options",
                 ),
                 html.Div(
                     [
-                        html.Div(
-                            [dcc.Graph(id="count_graph")],
-                            id="countGraphContainer",
-                            className="pretty_container",
-                        ),
+                        # html.Div(
+                        #     [dcc.Graph(id="count_graph")],
+                        #     id="countGraphContainer",
+                        #     className="pretty_container",
+                        # ),
+                        dcc.Graph(id="count_graph")
                         # html.Div(
                         #     [dcc.Graph(id="count_graph_2")],
                         #     # id="countGraphContainer",
@@ -248,7 +250,7 @@ app.layout = html.Div(
                         # ),
                     ],
                     id="right-column",
-                    className="eight columns",
+                    className="pretty_container nine columns",
                 ),
             ],
             className="row flex-display",
