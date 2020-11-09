@@ -79,7 +79,7 @@ body {
   align-items: center;
 }
 
-#learn-more-button {
+/*#learn-more-button {
   text-align: center;
   height: 100%;
   padding: 0 20px;
@@ -88,7 +88,7 @@ body {
   float: right;
   margin-right: 10px;
   margin-top: 30px;
-}
+}*/
 #title {
   text-align: center;
 }
@@ -139,6 +139,20 @@ body {
 }
 
 #mainContainer {
+  /*background: #FFFFFF url(/fileadmin/images/bg_all.gif) no-repeat; */
+  max-width: 959px;
+  /*margin: 0 auto;
+  margin-top: 20px;
+  margin-bottom: 116px;
+  padding-right: 19px;
+  padding-left: 17px;
+  padding-right: 15px;
+  padding-left: 15px;
+  padding-left: 17px;
+  padding-right: 19px;
+  padding-right: 14px;*/
+  border: 0px solid #000000;
+
   display: flex;
   flex-direction: column;
 }
