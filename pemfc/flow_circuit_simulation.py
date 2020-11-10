@@ -120,6 +120,7 @@ flow_model.update(inlet_mass_flow=0.000449642)
 q = (flow_model.normalized_flow_distribution - 1.0) * 100.0
 reynolds = flow_model.manifolds[0].reynolds[0]
 plt.plot(x, q, label='Re={0:.2f}'.format(reynolds), color='k')
+plt.legend()
 plt.show()
 
 # flow_model.update(inlet_mass_flow=0.00059425)
