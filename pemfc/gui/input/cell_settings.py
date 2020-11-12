@@ -59,7 +59,7 @@ channel_number = \
     {'label': 'Channel Number:', 'number': 2, 'value': [10, 10],
      'sim_name': [['anode', 'channel', 'number'],
                   ['cathode', 'channel', 'number']], 'sticky': ['NW', 'NWE'],
-     'dtype': 'int', 'dimensions': 'm', 'type': 'EntrySet'}
+     'dtype': 'int', 'type': 'EntrySet'}
 
 channel_shape = \
     {'label': 'Shape of Cross-Section:', 'number': 2,
