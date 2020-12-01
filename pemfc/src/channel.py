@@ -47,8 +47,8 @@ class Channel(ABC, oo.OutputObject):
         self.temp_in = channel_dict['temp_in']
         self.temperature = g_func.full(self.n_nodes, self.temp_in)
         self.temp_ele = g_func.full(self.n_ele, self.temp_in)
-        # inlet temperature
 
+        # inlet temperature
         self.tri_mtx = None
         self.id_in = None
         self.id_out = None
