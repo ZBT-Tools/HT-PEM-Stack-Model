@@ -91,14 +91,14 @@ channel_shape = \
 
 
 channel_width = \
-    {'label': 'Width:', 'number': 2, 'value': [1e-3, 1e-3],
+    {'label': 'Channel Width:', 'number': 2, 'value': [1e-3, 1e-3],
      'sim_name': [['anode', 'channel', 'width'],
                   ['cathode', 'channel', 'width']],
      'dtype': 'float', 'dimensions': 'm', 'type': 'EntrySet',
      'sticky': ['NW', 'NWE']}
 
 channel_rib_width = \
-    {'label': 'Width of Ribs:', 'number': 2, 'value': [1e-3, 1e-3],
+    {'label': 'Rib Width:', 'number': 2, 'value': [1e-3, 1e-3],
      'sim_name': [['anode', 'channel', 'rib_width'],
                   ['cathode', 'channel', 'width']],
      'dtype': 'float', 'dimensions': 'm', 'type': 'EntrySet',
@@ -184,7 +184,7 @@ cathode_label_channel = \
 #                       channel_flow_direction],
 #      'sticky': 'WEN', 'columnspan': 4, 'padx': 0.0, 'pady': 0.0}
 channel_frame_dict = \
-    {'title': 'Channel Settings', #'grid_location': (1, 1),
+    {'title': 'Flow Field Settings', #'grid_location': (1, 1),
      'font': 'Arial 10 bold',
      'widget_dicts': [anode_label_channel,
                       cathode_label_channel,

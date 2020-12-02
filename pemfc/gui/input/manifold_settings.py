@@ -156,13 +156,17 @@ manifold_frame_dict = \
      'widget_dicts': [anode_label_manifold, cathode_label_manifold,
                       cooling_label_manifold, calc_distribution,
                       manifold_configuration,
-                      inlet_manifold_cross_section,
-                      outlet_manifold_cross_section,
-                      inlet_manifold_diameter, outlet_manifold_diameter,
-                      inlet_manifold_width, outlet_manifold_width,
-                      inlet_manifold_height, outlet_manifold_height,
-                      inlet_pressure_loss_coeff, outlet_pressure_loss_coeff],
+                      inlet_manifold_cross_section,inlet_manifold_diameter,
+                      inlet_manifold_width, inlet_manifold_height,
+                      inlet_pressure_loss_coeff,
+                      outlet_manifold_cross_section, outlet_manifold_diameter,
+                      outlet_manifold_width, outlet_manifold_height,
+                      outlet_pressure_loss_coeff],
      'highlightbackground': 'grey', 'highlightthickness': 1}
+command_order = list(range(len(manifold_frame_dict['widget_dicts'])))
+command_order.insert(0, command_order.pop(5))
+command_order.insert(1, command_order.pop(6))
+manifold_frame_dict['command_order'] = command_order
 
 tab_dict = {'title': 'Manifolds', 'show_title': False,
             'sub_frame_dicts': [manifold_frame_dict]}

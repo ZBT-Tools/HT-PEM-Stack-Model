@@ -36,6 +36,7 @@ class BaseFrame(base.Base, tk.Frame):
         show_title = kwargs.pop('show_title', True)
         title = kwargs.pop('title', None)
         font = kwargs.pop('font', None)
+        command_order = kwargs.pop('command_order', None)
         if isinstance(master, ttk.Notebook):
             self.notebook_tab = True
         else:
@@ -65,6 +66,16 @@ class BaseFrame(base.Base, tk.Frame):
                             for w_dict in widget_dicts]
             # self.columns = np.max([widget.columns for widget in self.widgets])
         self.widget_grid = []
+        if command_order is None:
+            self.command_order = None
+        elif isinstance(command_order, (list, tuple)):
+            if len(command_order) == len(self.widgets):
+                self.command_order = command_order
+            else:
+                raise ValueError('argument command_order must have the same '
+                                 'number of entries as widgets in this frame')
+        else:
+            raise TypeError('argument command_order must be of type list')
 
     def set_title(self, text, font=None, **kwargs):
         title = ws.Label(self, label=text, font=font, sticky='WENS', **kwargs)
@@ -148,9 +159,16 @@ class BaseFrame(base.Base, tk.Frame):
         self.widgets.append(widget)
 
     def call_commands(self):
-        for widget in self.widgets:
-            if hasattr(widget, 'call_commands'):
-                widget.call_commands()
+        if self.command_order is None:
+            for widget in self.widgets:
+                if hasattr(widget, 'call_commands'):
+                    widget.call_commands()
+        else:
+            for i in range(len(self.widgets)):
+                j = self.command_order[i]
+                widget = self.widgets[j]
+                if hasattr(widget, 'call_commands'):
+                    widget.call_commands()
 
 
 class MainFrame(BaseFrame):
