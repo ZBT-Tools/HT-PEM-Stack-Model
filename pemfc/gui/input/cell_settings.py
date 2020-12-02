@@ -61,6 +61,20 @@ channel_number = \
                   ['cathode', 'channel', 'number']], 'sticky': ['NW', 'NWE'],
      'dtype': 'int', 'type': 'EntrySet'}
 
+# channel_shape = \
+#     {'label': 'Shape of Cross-Section:', 'number': 2,
+#      'sim_name': [['anode', 'channel', 'cross_sectional_shape'],
+#                   ['cathode', 'channel', 'cross_sectional_shape']],
+#      'value': ['rectangular', 'trapezoidal', 'triangular'],
+#      'type': 'ComboboxSet', 'sticky': 'WN', # 'width': 12,
+#      'command': {'function': 'set_status',
+#                  'args': [[[[[4, 1], [5, 1], [6, 1]], [[7, 1]]],
+#                            [[[4, 1], [5, 1], [6, 1], [7, 1]], []],
+#                            [[[4, 1], [5, 1], [6, 1]], [[7, 1]]]],
+#                           [[[[4, 2], [5, 2], [6, 2]], [[7, 2]]],
+#                            [[[4, 2], [5, 2], [6, 2], [7, 2]], []],
+#                            [[[4, 2], [5, 2], [6, 2]], [[7, 2]]]]]}}
+
 channel_shape = \
     {'label': 'Shape of Cross-Section:', 'number': 2,
      'sim_name': [['anode', 'channel', 'cross_sectional_shape'],
@@ -68,12 +82,12 @@ channel_shape = \
      'value': ['rectangular', 'trapezoidal', 'triangular'],
      'type': 'ComboboxSet', 'sticky': 'WN', # 'width': 12,
      'command': {'function': 'set_status',
-                 'args': [[[[[4, 1], [5, 1], [6, 1]], [[7, 1]]],
-                           [[[4, 1], [5, 1], [6, 1], [7, 1]], []],
-                           [[[4, 1], [5, 1], [6, 1]], [[7, 1]]]],
-                          [[[[4, 2], [5, 2], [6, 2]], [[7, 2]]],
-                           [[[4, 2], [5, 2], [6, 2], [7, 2]], []],
-                           [[[4, 2], [5, 2], [6, 2]], [[7, 2]]]]]}}
+                 'args': [[[[], [[7, 1]]],
+                           [[[7, 1]], []],
+                           [[], [[7, 1]]]],
+                          [[[], [[7, 2]]],
+                           [[[7, 2]], []],
+                           [[], [[7, 2]]]]]}}
 
 
 channel_width = \

@@ -30,6 +30,25 @@ manifold_configuration = \
      'value': ['U', 'Z'], 'type': 'ComboboxSet'}
 
 
+# inlet_manifold_cross_section = \
+#     {'label': 'Inlet Manifold Cross-Section:', 'number': 3,
+#      'sim_name': [['anode', 'flow_circuit', 'inlet_manifold',
+#                    'cross_sectional_shape'],
+#                   ['cathode', 'flow_circuit', 'inlet_manifold',
+#                    'cross_sectional_shape'],
+#                   ['coolant_flow_circuit', 'inlet_manifold',
+#                    'cross_sectional_shape']],
+#      'value': ['circular', 'rectangular'], 'type': 'ComboboxSet',
+#      'command': {'function': 'show_connected_widgets',
+#                  'args': [[[[[6, 1]], [[8, 1], [10, 1]]],
+#                            [[[8, 1], [10, 1]], [[6, 1]]]],
+#                           [[[[6, 2], [7, 2], [8, 2]], [[9, 2]]],
+#                            [[[6, 2], [7, 2], [8, 2], [9, 2]], []]],
+#                           [[[[6, 3], [7, 3], [8, 3]], [[9, 3]]],
+#                            [[[6, 3], [7, 3], [8, 3], [9, 3]], []]]]
+#                 }
+#      }
+
 inlet_manifold_cross_section = \
     {'label': 'Inlet Manifold Cross-Section:', 'number': 3,
      'sim_name': [['anode', 'flow_circuit', 'inlet_manifold',
@@ -39,14 +58,14 @@ inlet_manifold_cross_section = \
                   ['coolant_flow_circuit', 'inlet_manifold',
                    'cross_sectional_shape']],
      'value': ['circular', 'rectangular'], 'type': 'ComboboxSet',
-     'command': {'function': 'show_connected_widgets',
+     'command': {'function': 'set_status',
                  'args': [[[[[6, 1]], [[8, 1], [10, 1]]],
                            [[[8, 1], [10, 1]], [[6, 1]]]],
                           [[[[6, 2], [7, 2], [8, 2]], [[9, 2]]],
                            [[[6, 2], [7, 2], [8, 2], [9, 2]], []]],
                           [[[[6, 3], [7, 3], [8, 3]], [[9, 3]]],
                            [[[6, 3], [7, 3], [8, 3], [9, 3]], []]]]
-                          }
+                }
      }
 
 outlet_manifold_cross_section = \
