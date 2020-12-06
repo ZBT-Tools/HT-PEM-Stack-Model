@@ -9,7 +9,7 @@ class EntryValueFactory:
             return IntEntryValue(value, widget_set)
         elif dtype == 'string':
             return StringEntryValue(value, widget_set)
-        elif dtype == 'boolean' or dtype == 'bool':
+        elif dtype in ('boolean', 'bool'):
             return BooleanEntryValue(value, widget_set)
         else:
             raise NotImplementedError

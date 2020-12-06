@@ -30,6 +30,25 @@ manifold_configuration = \
      'value': ['U', 'Z'], 'type': 'ComboboxSet'}
 
 
+# inlet_manifold_cross_section = \
+#     {'label': 'Inlet Manifold Cross-Section:', 'number': 3,
+#      'sim_name': [['anode', 'flow_circuit', 'inlet_manifold',
+#                    'cross_sectional_shape'],
+#                   ['cathode', 'flow_circuit', 'inlet_manifold',
+#                    'cross_sectional_shape'],
+#                   ['coolant_flow_circuit', 'inlet_manifold',
+#                    'cross_sectional_shape']],
+#      'value': ['circular', 'rectangular'], 'type': 'ComboboxSet',
+#      'command': {'function': 'show_connected_widgets',
+#                  'args': [[[[[6, 1]], [[8, 1], [10, 1]]],
+#                            [[[8, 1], [10, 1]], [[6, 1]]]],
+#                           [[[[6, 2], [7, 2], [8, 2]], [[9, 2]]],
+#                            [[[6, 2], [7, 2], [8, 2], [9, 2]], []]],
+#                           [[[[6, 3], [7, 3], [8, 3]], [[9, 3]]],
+#                            [[[6, 3], [7, 3], [8, 3], [9, 3]], []]]]
+#                 }
+#      }
+
 inlet_manifold_cross_section = \
     {'label': 'Inlet Manifold Cross-Section:', 'number': 3,
      'sim_name': [['anode', 'flow_circuit', 'inlet_manifold',
@@ -40,13 +59,13 @@ inlet_manifold_cross_section = \
                    'cross_sectional_shape']],
      'value': ['circular', 'rectangular'], 'type': 'ComboboxSet',
      'command': {'function': 'set_status',
-                 'args': [[[[[6, 1]], [[8, 1], [10, 1]]],
-                           [[[8, 1], [10, 1]], [[6, 1]]]],
-                          [[[[6, 2], [7, 2], [8, 2]], [[9, 2]]],
-                           [[[6, 2], [7, 2], [8, 2], [9, 2]], []]],
-                          [[[[6, 3], [7, 3], [8, 3]], [[9, 3]]],
-                           [[[6, 3], [7, 3], [8, 3], [9, 3]], []]]]
-                          }
+                 'args': [[[[[5, 1]], [[6, 1], [7, 1]]],
+                           [[[6, 1], [7, 1]], [[5, 1]]]],
+                          [[[[5, 2]], [[6, 2], [7, 2]]],
+                           [[[6, 2], [7, 2]], [[5, 2]]]],
+                          [[[[5, 3]], [[6, 3], [7, 3]]],
+                           [[[6, 3], [7, 3]], [[5, 3]]]]]
+                }
      }
 
 outlet_manifold_cross_section = \
@@ -57,7 +76,16 @@ outlet_manifold_cross_section = \
                    'cross_sectional_shape'],
                   ['coolant_flow_circuit', 'outlet_manifold',
                    'cross_sectional_shape']],
-     'value': ['circular', 'rectangular'], 'type': 'ComboboxSet'}
+     'value': ['circular', 'rectangular'], 'type': 'ComboboxSet',
+     'command': {'function': 'set_status',
+                 'args': [[[[[10, 1]], [[11, 1], [12, 1]]],
+                           [[[11, 1], [12, 1]], [[10, 1]]]],
+                          [[[[10, 2]], [[11, 2], [12, 2]]],
+                           [[[11, 2], [12, 2]], [[10, 2]]]],
+                          [[[[10, 3]], [[11, 3], [12, 3]]],
+                           [[[11, 3], [12, 3]], [[10, 3]]]]]
+                 }
+     }
 
 inlet_manifold_diameter = \
     {'label': 'Inlet Manifold Diameter:', 'value': [1e-2, 1e-2, 1e-2],
@@ -137,7 +165,7 @@ manifold_frame_dict = \
      'widget_dicts': [anode_label_manifold, cathode_label_manifold,
                       cooling_label_manifold, calc_distribution,
                       manifold_configuration,
-                      inlet_manifold_cross_section,inlet_manifold_diameter,
+                      inlet_manifold_cross_section, inlet_manifold_diameter,
                       inlet_manifold_width, inlet_manifold_height,
                       inlet_pressure_loss_coeff,
                       outlet_manifold_cross_section, outlet_manifold_diameter,
@@ -146,7 +174,12 @@ manifold_frame_dict = \
      'highlightbackground': 'grey', 'highlightthickness': 1}
 command_order = list(range(len(manifold_frame_dict['widget_dicts'])))
 command_order.insert(0, command_order.pop(5))
-command_order.insert(1, command_order.pop(6))
+command_order.insert(1, command_order.pop(10))
+# command_order.insert(1, command_order.pop(7))
+# command_order.insert(0, command_order.pop(10))
+# command_order.insert(1, command_order.pop(11))
+# command_order.insert(1, command_order.pop(12))
+
 manifold_frame_dict['command_order'] = command_order
 
 tab_dict = {'title': 'Manifolds', 'show_title': False,

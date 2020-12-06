@@ -223,6 +223,18 @@ class MultiCommandWidgetSet(MultiWidgetSet, ABC):
         else:
             getattr(obj, func)()
 
+    def call_widgets_methods(self, item_list, func, kwargs=None):
+        for item in item_list:
+            widget = self.frame.widget_grid[item[0]][item[1]]
+            if isinstance(widget, tk.Widget):
+                # self.call_object_method(widget, func, **kwargs)
+                if isinstance(kwargs, dict):
+                    getattr(widget, func)(**kwargs)
+                    # self.call_object_method(widget, func, **kwargs)
+                else:
+                    getattr(widget, func)()
+                    # self.call_object_method(widget, func)
+
 
 class MultiCheckButtonSet(MultiCommandWidgetSet):
     def __init__(self, frame, label, number=1, value=None, **kwargs):
@@ -282,18 +294,19 @@ class MultiCheckButtonSet(MultiCommandWidgetSet):
                          kwargs1=None, kwargs2=None):
         check_var = self.check_vars[widget_id].get()
         if check_var:
-            for item in grid_list:
-                widget = self.frame.widget_grid[item[0]][item[1]]
-                if isinstance(widget, tk.Widget):
-                    self.call_object_method(widget, func1, **kwargs1)
-
+            # for item in grid_list:
+            #     widget = self.frame.widget_grid[item[0]][item[1]]
+            #     if isinstance(widget, tk.Widget):
+            #         self.call_object_method(widget, func1, **kwargs1)
+            self.call_widgets_methods(grid_list, func1, kwargs1)
         else:
             if func2 is None:
                 func2 = func1
-            for item in grid_list:
-                widget = self.frame.widget_grid[item[0]][item[1]]
-                if isinstance(widget, tk.Widget):
-                    self.call_object_method(widget, func2, **kwargs2)
+            # for item in grid_list:
+            #     widget = self.frame.widget_grid[item[0]][item[1]]
+            #     if isinstance(widget, tk.Widget):
+            #         self.call_object_method(widget, func2, **kwargs2)
+            self.call_widgets_methods(grid_list, func2, kwargs2)
 
     def set_visibility(self, widget_id, grid_list):
         self.widget_connector(widget_id, grid_list, 'grid', 'grid_remove')
@@ -395,21 +408,32 @@ class ComboboxSet(MultiCommandWidgetSet):
         grid_list = arg_list[selected_id]
         show_list = grid_list[0]
         hide_list = grid_list[1]
-        for item in show_list:
-            widget = self.frame.widget_grid[item[0]][item[1]]
-            if isinstance(widget, tk.Widget):
-                if isinstance(kwargs1, dict):
-                    self.call_object_method(widget, func1, **kwargs1)
-                else:
-                    self.call_object_method(widget, func1)
 
-        for item in hide_list:
-            widget = self.frame.widget_grid[item[0]][item[1]]
-            if isinstance(widget, tk.Widget):
-                if isinstance(kwargs1, dict):
-                    self.call_object_method(widget, func2, **kwargs2)
-                else:
-                    self.call_object_method(widget, func2)
+        # def call_widgets_methods(item_list, func, kwargs=None):
+        #     for item in item_list:
+        #         widget = self.frame.widget_grid[item[0]][item[1]]
+        #         if isinstance(widget, tk.Widget):
+        #             if isinstance(kwargs, dict):
+        #                 self.call_object_method(widget, func, **kwargs)
+        #             else:
+        #                 self.call_object_method(widget, func)
+        self.call_widgets_methods(show_list, func1, kwargs1)
+        self.call_widgets_methods(hide_list, func2, kwargs2)
+        # for item in show_list:
+        #     widget = self.frame.widget_grid[item[0]][item[1]]
+        #     if isinstance(widget, tk.Widget):
+        #         if isinstance(kwargs1, dict):
+        #             self.call_object_method(widget, func1, **kwargs1)
+        #         else:
+        #             self.call_object_method(widget, func1)
+        #
+        # for item in hide_list:
+        #     widget = self.frame.widget_grid[item[0]][item[1]]
+        #     if isinstance(widget, tk.Widget):
+        #         if isinstance(kwargs2, dict):
+        #             self.call_object_method(widget, func2, **kwargs2)
+        #         else:
+        #             self.call_object_method(widget, func2)
 
     def show_connected_widgets(self, widget_id, grid_list):
         self.widget_connector(widget_id, grid_list, 'grid', 'grid_remove')
