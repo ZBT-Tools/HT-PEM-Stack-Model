@@ -175,11 +175,6 @@ manifold_frame_dict = \
 command_order = list(range(len(manifold_frame_dict['widget_dicts'])))
 command_order.insert(0, command_order.pop(5))
 command_order.insert(1, command_order.pop(10))
-# command_order.insert(1, command_order.pop(7))
-# command_order.insert(0, command_order.pop(10))
-# command_order.insert(1, command_order.pop(11))
-# command_order.insert(1, command_order.pop(12))
-
 manifold_frame_dict['command_order'] = command_order
 
 tab_dict = {'title': 'Manifolds', 'show_title': False,

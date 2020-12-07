@@ -37,6 +37,7 @@ class BaseFrame(base.Base, tk.Frame):
         title = kwargs.pop('title', None)
         font = kwargs.pop('font', None)
         command_order = kwargs.pop('command_order', None)
+        self.initialize = True
         if isinstance(master, ttk.Notebook):
             self.notebook_tab = True
         else:
@@ -159,16 +160,18 @@ class BaseFrame(base.Base, tk.Frame):
         self.widgets.append(widget)
 
     def call_commands(self):
-        if self.command_order is None:
-            for widget in self.widgets:
-                if hasattr(widget, 'call_commands'):
-                    widget.call_commands()
-        else:
+        if self.command_order is not None and self.initialize:
             for i in range(len(self.widgets)):
                 j = self.command_order[i]
                 widget = self.widgets[j]
                 if hasattr(widget, 'call_commands'):
                     widget.call_commands()
+        else:
+            if self.command_order is None:
+                for widget in self.widgets:
+                    if hasattr(widget, 'call_commands'):
+                        widget.call_commands()
+        self.initialize = False
 
 
 class MainFrame(BaseFrame):

@@ -226,6 +226,7 @@ class MultiCommandWidgetSet(MultiWidgetSet, ABC):
     def call_widgets_methods(self, item_list, func, kwargs=None):
         for item in item_list:
             widget = self.frame.widget_grid[item[0]][item[1]]
+            # self.call_commands()
             if isinstance(widget, tk.Widget):
                 # self.call_object_method(widget, func, **kwargs)
                 if isinstance(kwargs, dict):
