@@ -1,3 +1,5 @@
+load_settings_button_dict = \
+    {'label': 'Load Settings', 'type': 'OpenDirectoryButton'}
 
 output_dir_button_dict = \
     {'label': 'Open', 'type': 'OpenDirectoryButton'}

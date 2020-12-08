@@ -1,6 +1,6 @@
 # global imports
 import tkinter as tk
-from tkinter import Grid, ttk
+from tkinter import ttk
 from abc import ABC, abstractmethod
 import numpy as np
 
@@ -84,16 +84,17 @@ class MultiWidgetSet(Label, ABC):
         self.set_sticky(**kwargs)
         self.entry_value_factory = entry_value.EntryValueFactory()
         self.widgets = []
-        self.shape = None
+        # self.shape = None
 
-    def get_number(self, number, value, dtype=None):
+    @staticmethod
+    def get_number(number, value, dtype=None):
         if value is not None:
             # number = len(value)
             value = gf.ensure_list(value, length=number)
             value = np.asarray(value, dtype=dtype).flatten()
             number = len(value)
             # value = gf.ensure_list(value, length=number)
-            self.shape = gf.dim(value)
+            # self.shape = gf.dim(value)
             return number, value
         else:
             return number, value
@@ -140,6 +141,18 @@ class MultiWidgetSet(Label, ABC):
             sticky = [sticky, 'NE']
         self.sticky = sticky
 
+    def set_tk_values(self, tk_objects, values):
+        number = len(tk_objects)
+        number, values = self.get_number(number, values)
+        for i, widget in enumerate(tk_objects):
+            widget.delete(0, tk.END)
+            widget.insert(0,
+                          self.entry_value_factory.create(values[i], self.dtype,
+                                                          self))
+
+    def set_values(self, values):
+        self.set_tk_values(self.widgets, values)
+
 
 class MultiEntrySet(MultiWidgetSet):
 
@@ -165,9 +178,6 @@ class MultiEntrySet(MultiWidgetSet):
             if value is not None:
                 entry.insert(0, value[i])
             self.widgets.append(entry)
-
-    def set_commands(self, command):
-        pass
 
 
 class DimensionedEntrySet(MultiEntrySet):
@@ -253,7 +263,6 @@ class MultiCheckButtonSet(MultiCommandWidgetSet):
         self.create_widgets(frame, number, value, **kwargs)
 
     def create_widgets(self, frame, number, value, **kwargs):
-        # [print(command('test')) for command in command_list if command is not None]
         self.check_vars = []
         for i in range(number):
             self.columns += 1
@@ -263,8 +272,6 @@ class MultiCheckButtonSet(MultiCommandWidgetSet):
                 tk.Checkbutton(frame, variable=check_var, onvalue=True,
                                offvalue=False, command=self.command_list[i],
                                **kwargs)
-            # check_button.grid(row=self.row, column=self.column + 1 + i,
-            #                   padx=self.padx, pady=self.pady)
             if value is not None and value[i] is True:
                 check_button.select()
             self.widgets.append(check_button)
@@ -331,6 +338,9 @@ class MultiCheckButtonSet(MultiCommandWidgetSet):
         sticky = kwargs.pop('sticky', 'NWE')
         super().set_grid(sticky=sticky, **kwargs)
 
+    def set_values(self, values):
+        super().set_tk_values(self.check_vars, values)
+
 
 class OptionMenuSet(MultiCommandWidgetSet):
     def __init__(self, frame, label, number=1, **kwargs):
@@ -352,6 +362,19 @@ class OptionMenuSet(MultiCommandWidgetSet):
     def set_commands(self, command):
         pass
 
+    def set_values(self, values):
+        number = len(self.widgets)
+        number, values = self.get_number(number, values)
+        for i in range(len(self.widgets)):
+            option_list = []
+            menu = self.widgets[i]['menu']
+            for j in range(menu.index("end") + 1):
+                option_list.append(menu.entrycget(j, "label"))
+            if values[i] in option_list:
+                self.option_vars[i].set(values[i])
+            else:
+                raise ValueError('value not found in OptionMenu')
+
 
 class ComboboxSet(MultiCommandWidgetSet):
     def __init__(self, frame, label, number=1, value=None, **kwargs):
@@ -360,7 +383,7 @@ class ComboboxSet(MultiCommandWidgetSet):
         justify = kwargs.pop('justify', 'right')
         width = kwargs.pop('width', self.WIDTH)
         super().__init__(frame, label, **kwargs)
-        self.vars = []
+        self.values = []
         kwargs = self.remove_dict_entries(kwargs, self.REMOVE_ARGS)
         self.dtype = kwargs.pop('dtype', 'string')
         # number, value = self.get_number(number, value, dtype=object)
@@ -372,13 +395,13 @@ class ComboboxSet(MultiCommandWidgetSet):
     def create_widgets(self, frame, number, value, **kwargs):
         width = kwargs.pop('width', self.WIDTH)
         for i in range(number):
-            self.vars.append(tk.StringVar())
+            self.values.append(value)
             self.columns += 1
-            option_menu = ttk.Combobox(self.frame, values=value,
-                                       width=width, **kwargs)
-            option_menu.current(0)
-            option_menu.bind('<<ComboboxSelected>>', self.command_list[i])
-            self.widgets.append(option_menu)
+            combobox = ttk.Combobox(self.frame, values=value, width=width,
+                                    **kwargs)
+            combobox.current(0)
+            combobox.bind('<<ComboboxSelected>>', self.command_list[i])
+            self.widgets.append(combobox)
 
     def set_commands(self, commands_dict):
         function = commands_dict.pop('function', None)
@@ -411,37 +434,12 @@ class ComboboxSet(MultiCommandWidgetSet):
                 if widget is item:
                     widget_id = i
                     break
-
         selected_id = self.widgets[widget_id].current()
         grid_list = arg_list[selected_id]
         show_list = grid_list[0]
         hide_list = grid_list[1]
-
-        # def call_widgets_methods(item_list, func, kwargs=None):
-        #     for item in item_list:
-        #         widget = self.frame.widget_grid[item[0]][item[1]]
-        #         if isinstance(widget, tk.Widget):
-        #             if isinstance(kwargs, dict):
-        #                 self.call_object_method(widget, func, **kwargs)
-        #             else:
-        #                 self.call_object_method(widget, func)
         self.call_widgets_methods(show_list, func1, kwargs1)
         self.call_widgets_methods(hide_list, func2, kwargs2)
-        # for item in show_list:
-        #     widget = self.frame.widget_grid[item[0]][item[1]]
-        #     if isinstance(widget, tk.Widget):
-        #         if isinstance(kwargs1, dict):
-        #             self.call_object_method(widget, func1, **kwargs1)
-        #         else:
-        #             self.call_object_method(widget, func1)
-        #
-        # for item in hide_list:
-        #     widget = self.frame.widget_grid[item[0]][item[1]]
-        #     if isinstance(widget, tk.Widget):
-        #         if isinstance(kwargs2, dict):
-        #             self.call_object_method(widget, func2, **kwargs2)
-        #         else:
-        #             self.call_object_method(widget, func2)
 
     def show_connected_widgets(self, widget_id, grid_list):
         self.widget_connector(widget_id, grid_list, 'grid', 'grid_remove')
@@ -450,6 +448,15 @@ class ComboboxSet(MultiCommandWidgetSet):
         self.widget_connector(widget_id, grid_list, 'config', 'config',
                               kwargs1={'state': 'normal'},
                               kwargs2={'state': 'disable'})
+
+    def set_values(self, values):
+        number = len(self.widgets)
+        number, values = self.get_number(number, values)
+        for i in range(len(self.widgets)):
+            if values[i] in self.values[i]:
+                self.widgets[i].current(self.values[i].index[values[i]])
+            else:
+                raise ValueError('value not found in OptionMenu')
 
 
 class EntryButtonSet(MultiEntrySet):

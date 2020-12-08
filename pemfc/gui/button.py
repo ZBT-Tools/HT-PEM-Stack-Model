@@ -63,19 +63,16 @@ class RunButton(Button):
 
 
 class OpenDirectoryButton(Button):
-    def __init__(self, frame, entry, **kwargs):
+    def __init__(self, frame, entry=None, **kwargs):
         self.entry = entry
         self.directory = kwargs.pop('directory', None)
         super().__init__(frame, **kwargs)
 
     def command(self):
         directory = filedialog.askdirectory()
-        try:
+        if isinstance(self.entry, tk.Entry):
+            self.entry.delete(0, tk.END)
             self.entry.insert(0, directory)
-        except AttributeError:
-            raise AttributeError('member entry hast not been referenced '
-                                 'correctly to tk.Entry object')
-        print(directory)
         return directory
 
 

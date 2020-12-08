@@ -18,7 +18,7 @@ class WidgetFactory:
         else:
             if 'Set' in widget_type:
                 return self._widget_set_factory.create(frame, **kwargs)
-            elif 'Button' in widget_type and not 'Set' in widget_type:
+            elif 'Button' in widget_type and 'Set' not in widget_type:
                 return self._button_factory.create(frame, **kwargs)
             elif widget_type == 'Label':
                 kwargs.pop('type', None)
