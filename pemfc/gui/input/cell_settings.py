@@ -5,6 +5,10 @@ cell_number = {'label': 'Cell Number:', 'number': 1, 'value': 10,
                'sim_name': ['stack', 'cell_number'], 'dtype': 'int',
                # 'grid_location': (1, 0),
                'type': 'EntrySet'}
+# cell_frame = tk.Frame(dsökljdsölfj)
+# cell_label = tk.Label(cell_frame, sölkdfsdö, text='Cell Number')
+# cell_label.grid(1, )
+
 cell_length = {'label': 'Cell Length:', 'dimensions': 'm', 'value': 0.1,
                'sim_name': ['cell', 'length'], 'dtype': 'float',
                # 'grid_location': (2, 0),

@@ -236,6 +236,13 @@ class MultiCommandWidgetSet(MultiWidgetSet, ABC):
                     getattr(widget, func)()
                     # self.call_object_method(widget, func)
 
+        if isinstance(self, MultiCheckButtonSet):
+            for item in item_list:
+                widget = self.frame.widget_grid[item[0]][item[1]]
+                # self.call_commands()
+                if isinstance(widget, ttk.Combobox):
+                    widget.set(widget.get())
+
 
 class MultiCheckButtonSet(MultiCommandWidgetSet):
     def __init__(self, frame, label, number=1, value=None, **kwargs):
