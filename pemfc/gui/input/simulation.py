@@ -1,9 +1,12 @@
 load_settings_button_dict = \
-    {'label': 'Load Settings', 'grid_location': [0, 0],
-     'columnspan': 1, 'type': 'OpenDirectoryButton'}
+    {'label': 'Load Settings', 'takefocus': 0, 'row': 0, 'column': 0,
+     'sticky': '', 'width': 20, 'weights': [1, 1],
+     'type': 'OpenDirectoryButton'}
 save_settings_button_dict = \
-    {'label': 'Save Settings', 'grid_location': [0, 1],
-     'columnspan': 2, 'type': 'OpenDirectoryButton'}
+    {'label': 'Save Settings', 'takefocus': 0, 'row': 0, 'column': 1,
+     'sticky': '', 'width': 20, 'weights': [1, 1],
+     'type': 'OpenDirectoryButton'}
+
 settings_frame_dict = \
     {'title': 'Settings IO', 'show_title': False, 'font': 'Arial 10 bold',
      'widget_dicts': [load_settings_button_dict,
@@ -12,17 +15,17 @@ settings_frame_dict = \
      'highlightbackground': 'grey', 'highlightthickness': 1}
 
 output_dir_button_dict = \
-    {'label': 'Open', 'type': 'OpenDirectoryButton'}
+    {'label': 'Open', 'type': 'OpenDirectoryButton', 'width': 10}
 output_dir = \
     {'label': 'Output Directory:', 'button_dict': output_dir_button_dict,
-     'sim_name': ['output', 'directory'], 'width': 20,
-     'dtype': 'string', 'type': 'EntryButtonSet', 'sticky': 'W'}
+     'sim_name': ['output', 'directory'], 'width': 40,
+     'dtype': 'string', 'type': 'EntryButtonSet'}
 
 
 output_frame_dict = \
     {'title': 'Output Results', 'show_title': False, 'font': 'Arial 10 bold',
      'widget_dicts': [output_dir],
-     'sticky': 'WEN',
+     'sticky': 'WENS',
      'highlightbackground': 'grey', 'highlightthickness': 1}
 
 run_button_dict = {'label': 'Run Simulation', 'type': 'RunButton',

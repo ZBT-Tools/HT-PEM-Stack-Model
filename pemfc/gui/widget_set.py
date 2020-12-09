@@ -116,6 +116,7 @@ class MultiWidgetSet(Label, ABC):
             column += 1
             super().set_grid(widget=widget, row=row, column=column,
                              sticky=sticky[-1], **kwargs)
+            # self.frame.rowconfigure(row, weight=1)
         return row, column
 
     def get_tk_values(self, tk_objects):
@@ -166,6 +167,7 @@ class MultiEntrySet(MultiWidgetSet):
         number, value = self.get_number(number, value)
         kwargs['width'] = width
         kwargs['justify'] = justify
+
         self.create_widgets(frame, number, value, **kwargs)
 
     def create_widgets(self, frame, number, value, **kwargs):
@@ -271,7 +273,7 @@ class MultiCheckButtonSet(MultiCommandWidgetSet):
             check_button = \
                 tk.Checkbutton(frame, variable=check_var, onvalue=True,
                                offvalue=False, command=self.command_list[i],
-                               **kwargs)
+                               takefocus=0, **kwargs)
             if value is not None and value[i] is True:
                 check_button.select()
             self.widgets.append(check_button)

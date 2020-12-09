@@ -1,5 +1,6 @@
 # global imports
 from abc import ABC
+from tkinter import Grid
 
 
 class Base(ABC):
@@ -8,7 +9,8 @@ class Base(ABC):
     PADY = 1
 
     REMOVE_ARGS = ['row', 'column', 'grid_location', 'columnspan',
-                   'rowspan', 'sticky', 'sim_name', 'dtype', 'width']
+                   'rowspan', 'sticky', 'sim_name', 'dtype', 'padx', 'pady',
+                   'width', 'weights']
 
     def __init__(self, name, **kwargs):
         self.name = name
@@ -21,10 +23,11 @@ class Base(ABC):
         self.row = kwargs.pop('row', grid_location[0])
         self.column = kwargs.pop('column', grid_location[1])
         self.sticky = kwargs.pop('sticky', 'NE')
+        self.weights = kwargs.pop('weights', None)
 
     def _set_grid(self, widget, **kwargs):
-        # Grid.rowconfigure(self.frame, row, weight=1)
-        # Grid.columnconfigure(self.frame, column, weight=1)
+        # Grid.rowconfigure(self.frame, self.row, weight=1)
+        # Grid.columnconfigure(self.frame, self.column, weight=1)
 
         row = kwargs.pop('row', self.row)
         column = kwargs.pop('column', self.column)

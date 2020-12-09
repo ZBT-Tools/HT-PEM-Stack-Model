@@ -135,6 +135,15 @@ class BaseFrame(base.Base, tk.Frame):
                 # if not hasattr(tk_object, 'column'):
                 #     column = 0
                 tk_object.set_grid(row=row, column=column, **kwargs)
+                if hasattr(tk_object, 'weights') \
+                        and tk_object.weights is not None:
+                    if isinstance(tk_object.weights, (list, tuple)):
+                        self.rowconfigure(row, weight=tk_object.weights[0])
+                        self.columnconfigure(column,
+                                             weight=tk_object.weights[1])
+                # else:
+                #     self.rowconfigure(row, weight=1)
+                    # self.columnconfigure(column, weight=1)
 
             if self.title is not None:
                 self.title.set_grid(row=0, column=0,
