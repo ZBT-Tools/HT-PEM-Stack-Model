@@ -1,5 +1,15 @@
 load_settings_button_dict = \
-    {'label': 'Load Settings', 'type': 'OpenDirectoryButton'}
+    {'label': 'Load Settings', 'grid_location': [0, 0],
+     'columnspan': 1, 'type': 'OpenDirectoryButton'}
+save_settings_button_dict = \
+    {'label': 'Save Settings', 'grid_location': [0, 1],
+     'columnspan': 2, 'type': 'OpenDirectoryButton'}
+settings_frame_dict = \
+    {'title': 'Settings IO', 'show_title': False, 'font': 'Arial 10 bold',
+     'widget_dicts': [load_settings_button_dict,
+                      save_settings_button_dict],
+     'sticky': 'WEN',
+     'highlightbackground': 'grey', 'highlightthickness': 1}
 
 output_dir_button_dict = \
     {'label': 'Open', 'type': 'OpenDirectoryButton'}
@@ -10,7 +20,7 @@ output_dir = \
 
 
 output_frame_dict = \
-    {'title': 'Output Settings', 'show_title': True, 'font': 'Arial 10 bold',
+    {'title': 'Output Results', 'show_title': False, 'font': 'Arial 10 bold',
      'widget_dicts': [output_dir],
      'sticky': 'WEN',
      'highlightbackground': 'grey', 'highlightthickness': 1}
@@ -26,4 +36,6 @@ run_button_frame_dict = \
 
 tab_dict = \
     {'title': 'Simulation', 'show_title': False,
-     'sub_frame_dicts': [output_frame_dict, run_button_frame_dict]}
+     'sub_frame_dicts': [settings_frame_dict,
+                         output_frame_dict,
+                         run_button_frame_dict]}
