@@ -137,9 +137,9 @@ class MultiWidgetSet(Label, ABC):
         return self.get_tk_values(self.widgets)
 
     def set_sticky(self, **kwargs):
-        sticky = kwargs.pop('sticky', ['NW', 'NE'])
+        sticky = kwargs.pop('sticky', ['W', 'E'])
         if not isinstance(sticky, (list, tuple)):
-            sticky = [sticky, 'NE']
+            sticky = [sticky, 'E']
         self.sticky = sticky
 
     def set_tk_values(self, tk_objects, values):
@@ -201,7 +201,7 @@ class DimensionedEntrySet(MultiEntrySet):
         row, column = super().set_grid(row=row, column=column, **kwargs)
         column += 1
         self._set_grid(self.dimensions, row=row, column=column,
-                       sticky='NW', **kwargs)
+                       sticky='W', **kwargs)
         return row, column
 
 
@@ -337,7 +337,7 @@ class MultiCheckButtonSet(MultiCommandWidgetSet):
         return super().get_tk_values(self.check_vars)
 
     def set_grid(self, **kwargs):
-        sticky = kwargs.pop('sticky', 'NWE')
+        sticky = kwargs.pop('sticky', 'WE')
         super().set_grid(sticky=sticky, **kwargs)
 
     def set_values(self, values):
