@@ -27,24 +27,25 @@ def gen_dict_extract(key, var):
                         yield result
 
 
-def set_dict_entry(value, name_list, target_dict, list_value=False, index=0):
+def set_dict_entry(value, name_list, target_dict):
     if isinstance(target_dict, dict):
         sub_dict = target_dict
     else:
         raise TypeError
-    # if list_value:
-    #     for i in range(len(name_list) - 1):
-    #         sub_dict = sub_dict[name_list[i]]
-    #         name = name_list[i]
-    #         print(sub_dict)
-    #         print(name_list)
-    #         print(name)
-    #     sub_dict[name][int(index)] = value
-    # else:
     for i in range(len(name_list) - 1):
         sub_dict = sub_dict[name_list[i]]
     sub_dict[name_list[-1]] = EntryValue.get_value(value)
     return target_dict
+
+
+def get_dict_entry(name_list, source_dict):
+    if isinstance(source_dict, dict):
+        sub_dict = source_dict
+    else:
+        raise TypeError
+    for i in range(len(name_list) - 1):
+        sub_dict = sub_dict[name_list[i]]
+    return sub_dict[name_list[-1]]
 
 
 def save_settings(settings, fmt='json'):
@@ -56,7 +57,7 @@ def save_settings(settings, fmt='json'):
             file.write(json.dumps(settings, indent=2))
 
 
-def transfer(source_dict, target_dict):
+def gui_to_sim_transfer(source_dict, target_dict):
     # loop through tab frames of gui notebook
     # for ki, vi in gui_values.items():
     #     for kj, vj in vi.items():
@@ -72,7 +73,6 @@ def transfer(source_dict, target_dict):
 
             if isinstance(sim_names[0], list):
                 gui_values = gf.ensure_list(gui_entry['value'])
-
 
                 # if len(sim_names) != len(gui_values):
                 #     gui_values = [gui_values[0] for i in range(len(sim_names))]
@@ -100,8 +100,50 @@ def transfer(source_dict, target_dict):
             else:
                 sub_dict = \
                     set_dict_entry(gui_entry['value'], sim_names, sub_dict)
-        save_settings(target_dict)
     return target_dict
+
+
+def sim_to_gui_transfer(source_dict, target_dict):
+
+    # get list of widgets only with sim_names
+    extracted_gui_entries = list(gen_dict_extract('sim_name', target_dict))
+    if extracted_gui_entries:
+        for gui_entry in extracted_gui_entries:
+            # get reference to widget
+            widget = gui_entry['object']
+
+            sim_names = gui_entry['sim_name']
+            sim_names = gf.ensure_list(sim_names)
+            sub_dict = target_dict
+
+            if isinstance(sim_names[0], list):
+                gui_values = gf.ensure_list(gui_entry['value'])
+
+                if len(sim_names) == len(gui_values):
+                    multi_variable = True
+                else:
+                    multi_variable = False
+
+                for i, sim_name_list in enumerate(sim_names):
+                    if isinstance(sim_name_list[-1], list):
+                        pure_name_list = sim_name_list[:-1]
+                        value_list = []
+                        for j in sim_name_list[-1]:
+                            value = gui_values[j]
+                            value_list.append(EntryValue.get_value(value))
+                        sub_dict = \
+                            set_dict_entry(value_list, pure_name_list,
+                                           sub_dict)
+                    else:
+                        gui_value = gui_values[i] if multi_variable \
+                            else gui_values[0]
+                        sub_dict = set_dict_entry(gui_value, sim_name_list,
+                                                  sub_dict)
+
+            else:
+                value = get_dict_entry(sim_names, source_dict)
+                widget.set_values(value)
+
 
 
 # def set_dict_entry(value, name_list, target_dict):

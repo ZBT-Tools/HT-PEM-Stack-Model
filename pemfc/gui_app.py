@@ -3,6 +3,7 @@ import tkinter as tk
 from tkinter import ttk
 import os
 import sys
+import json
 
 # local imports
 from pemfc.gui import frame
@@ -16,6 +17,7 @@ class NotebookApp:
     def __init__(self, master, main_frame_dicts=None, **kwargs):
         self.notebook = ttk.Notebook(master)
         self.master = master
+        self.registry = {}
         # self.configure_gui()
         # Make tabs and corresponding frames
         self.frame_factory = frame.FrameFactory()
@@ -28,8 +30,19 @@ class NotebookApp:
                 self.notebook.add(main_frame, text=main_frame_dict['title'],
                                   sticky='WENS')
 
-        self.frames[-1].sub_frames[-1].widgets[0].button.configure(
-            command=self.run)
+        # configure load settings button
+        self.load_settings_button = self.frames[-1].sub_frames[0].widgets[0]
+        self.load_settings_button.button.configure(command=self.load_settings)
+        self.load_settings_button.filetypes = [('JSON Files', ['.json'])]
+        self.load_settings_button.title = 'Please select settings file.'
+
+        # configure save settings button
+        self.save_settings_button = self.frames[-1].sub_frames[0].widgets[1]
+        self.save_settings_button.button.configure(command=self.save_settings)
+
+        # configure run button
+        self.run_button = self.frames[-1].sub_frames[-1].widgets[0]
+        self.run_button.button.configure(command=self.run)
 
         self.notebook.select(self.frames[0])
         self.notebook.enable_traversal()
@@ -44,9 +57,10 @@ class NotebookApp:
             fr.set_grid(grid_list=grid_list, **kwargs)
         self.notebook.grid(sticky='WEN', **kwargs)
 
-    def get_values(self):
+    def get_values(self, get_object=False):
         # return [fr.get_values() for fr in self.frames]
-        return {fr.name: fr.get_values() for fr in self.frames}
+        return {fr.name[-1]: fr.get_values(get_object=get_object)
+                for fr in self.frames}
 
     def call_commands(self):
         for item in self.frames:
@@ -58,9 +72,25 @@ class NotebookApp:
     #     self.master.title("Example")
     #     self.master.minsize(250, 50)
 
-    def run(self):
+    def get_settings(self):
         values = self.get_values()
-        data_transfer.transfer(values, data_transfer.sim_dict)
+        return data_transfer.gui_to_sim_transfer(values, data_transfer.sim_dict)
+
+    def save_settings(self):
+        settings_dict = self.get_settings()
+        self.save_settings_button.file_content = \
+            json.dumps(settings_dict, indent=2)
+        self.save_settings_button.command()
+        return settings_dict
+
+    def load_settings(self):
+        widgets_registry = self.get_values(get_object=True)
+        settings_dict = json.load(self.load_settings_button.command())
+        data_transfer.sim_to_gui_transfer(settings_dict, widgets_registry)
+
+    def run(self):
+        settings_dict = self.get_settings()
+        data_transfer.save_settings(settings_dict)
         avg_icd = stack_simulation.main()
         # window = tk.Toplevel(self.master)
         # testresult = tk.Label(window, text=str(avg_icd), borderwidth=1)

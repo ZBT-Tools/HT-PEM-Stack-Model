@@ -44,8 +44,8 @@ class Label(base.Base):
     def __init__(self, frame, label, **kwargs):
 
         self.columns = 1
-        self.name = label.lower().strip(':')
-        super().__init__(self.name, **kwargs)
+        name = label.lower().strip(':')
+        super().__init__(frame, name, **kwargs)
         self.frame = frame
         kwargs = self.remove_dict_entries(kwargs, self.REMOVE_ARGS)
 
@@ -62,16 +62,17 @@ class Label(base.Base):
         self._set_grid(widget, row=row, column=column, **kwargs)
         return row, column
 
-    def _get_values(self):
-        if self.sim_name is None:
-            return {'gui_name': self.label.cget('text')}
-        else:
-            return {'sim_name': self.sim_name,
-                    'gui_name': self.label.cget('text')}
+    def _get_values(self, get_object=False):
+        values = {'gui_name': self.name}
+        if self.sim_name is not None:
+            values['sim_name'] = self.sim_name
+        if get_object:
+            values['object'] = self
+        return values
 
     # @abstractmethod
-    def get_values(self):
-        return self._get_values()
+    def get_values(self, get_object=False):
+        return self._get_values(get_object=get_object)
 
 
 class MultiWidgetSet(Label, ABC):
@@ -119,8 +120,8 @@ class MultiWidgetSet(Label, ABC):
             # self.frame.rowconfigure(row, weight=1)
         return row, column
 
-    def get_tk_values(self, tk_objects):
-        values = super().get_values()
+    def get_tk_values(self, tk_objects, get_object=False):
+        values = super().get_values(get_object=get_object)
         if len(tk_objects) > 1:
             values['value'] = []
             for item in tk_objects:
@@ -133,8 +134,8 @@ class MultiWidgetSet(Label, ABC):
                                                 self.dtype, self)
         return values
 
-    def get_values(self):
-        return self.get_tk_values(self.widgets)
+    def get_values(self, get_object=False):
+        return self.get_tk_values(self.widgets, get_object=get_object)
 
     def set_sticky(self, **kwargs):
         sticky = kwargs.pop('sticky', ['W', 'E'])
@@ -142,17 +143,26 @@ class MultiWidgetSet(Label, ABC):
             sticky = [sticky, 'E']
         self.sticky = sticky
 
-    def set_tk_values(self, tk_objects, values):
-        number = len(tk_objects)
-        number, values = self.get_number(number, values)
-        for i, widget in enumerate(tk_objects):
+    def set_tk_values(self, tk_objects, value, index=0):
+        if isinstance(value, (list, tuple, np.ndarray)):
+            for i, widget in enumerate(tk_objects):
+                if i >= len(value) - 1:
+                    break
+                widget.delete(0, tk.END)
+                widget.insert(0,
+                              self.entry_value_factory.create(value[i],
+                                                              self.dtype,
+                                                              self))
+        else:
+            widget = tk_objects[index]
             widget.delete(0, tk.END)
             widget.insert(0,
-                          self.entry_value_factory.create(values[i], self.dtype,
+                          self.entry_value_factory.create(value,
+                                                          self.dtype,
                                                           self))
 
-    def set_values(self, values):
-        self.set_tk_values(self.widgets, values)
+    def set_values(self, values, index=0):
+        self.set_tk_values(self.widgets, values, index=index)
 
 
 class MultiEntrySet(MultiWidgetSet):
@@ -333,15 +343,15 @@ class MultiCheckButtonSet(MultiCommandWidgetSet):
                               kwargs1={'state': 'normal'},
                               kwargs2={'state': 'disable'})
 
-    def get_values(self):
-        return super().get_tk_values(self.check_vars)
+    def get_values(self, get_object=False):
+        return super().get_tk_values(self.check_vars, get_object=get_object)
 
     def set_grid(self, **kwargs):
         sticky = kwargs.pop('sticky', 'WE')
         super().set_grid(sticky=sticky, **kwargs)
 
-    def set_values(self, values):
-        super().set_tk_values(self.check_vars, values)
+    def set_values(self, values, index=0):
+        super().set_tk_values(self.check_vars, values, index=index)
 
 
 class OptionMenuSet(MultiCommandWidgetSet):
@@ -364,16 +374,26 @@ class OptionMenuSet(MultiCommandWidgetSet):
     def set_commands(self, command):
         pass
 
-    def set_values(self, values):
-        number = len(self.widgets)
-        number, values = self.get_number(number, values)
-        for i in range(len(self.widgets)):
+    def set_values(self, values, index=0):
+        if isinstance(values, (list, tuple, np.ndarray)):
+            for i in range(len(self.widgets)):
+                if i >= len(values) - 1:
+                    break
+                option_list = []
+                menu = self.widgets[i]['menu']
+                for j in range(menu.index("end") + 1):
+                    option_list.append(menu.entrycget(j, "label"))
+                if values[i] in option_list:
+                    self.option_vars[i].set(values[i])
+                else:
+                    raise ValueError('value not found in OptionMenu')
+        else:
             option_list = []
-            menu = self.widgets[i]['menu']
-            for j in range(menu.index("end") + 1):
-                option_list.append(menu.entrycget(j, "label"))
-            if values[i] in option_list:
-                self.option_vars[i].set(values[i])
+            menu = self.widgets[index]['menu']
+            for i in range(menu.index("end") + 1):
+                option_list.append(menu.entrycget(i, "label"))
+            if values[index] in option_list:
+                self.option_vars[index].set(values)
             else:
                 raise ValueError('value not found in OptionMenu')
 
@@ -451,14 +471,20 @@ class ComboboxSet(MultiCommandWidgetSet):
                               kwargs1={'state': 'normal'},
                               kwargs2={'state': 'disable'})
 
-    def set_values(self, values):
-        number = len(self.widgets)
-        number, values = self.get_number(number, values)
-        for i in range(len(self.widgets)):
-            if values[i] in self.values[i]:
-                self.widgets[i].current(self.values[i].index[values[i]])
+    def set_values(self, values, index=0):
+        if isinstance(values, (list, tuple, np.ndarray)):
+            for i in range(len(self.widgets)):
+                if i >= len(values) - 1:
+                    break
+                if values[i] in self.values[i]:
+                    self.widgets[i].current(self.values[i].index(values[i]))
+                else:
+                    raise ValueError('value not found in Combobox')
+        else:
+            if values in self.values[index]:
+                self.widgets[index].current(self.values[index].index(values))
             else:
-                raise ValueError('value not found in OptionMenu')
+                raise ValueError('value not found in Combobox')
 
 
 class EntryButtonSet(MultiEntrySet):

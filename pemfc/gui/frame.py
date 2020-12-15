@@ -17,10 +17,11 @@ class FrameFactory:
                      **kwargs):
         # if button_dicts is None:
         if sub_frame_dicts is None:
-            return BaseFrame(master, widget_dicts=widget_dicts,
-                             **kwargs)
+            return BaseFrame(master, kwargs.pop('title'),
+                             widget_dicts=widget_dicts, **kwargs)
         else:
-            return MainFrame(master, sub_frame_dicts=sub_frame_dicts,
+            return MainFrame(master, kwargs.pop('title'),
+                             sub_frame_dicts=sub_frame_dicts,
                              widget_dicts=widget_dicts, **kwargs)
         # else:
         #     return ButtonMainFrame(master, widget_dicts=widget_set_dicts,
@@ -32,9 +33,10 @@ class BaseFrame(base.Base, tk.Frame):
     PADX = 2
     PADY = 2
 
-    def __init__(self, master, widget_dicts: list = None, **kwargs):
-        show_title = kwargs.pop('show_title', True)
-        title = kwargs.pop('title', None)
+    def __init__(self, master, name, widget_dicts: list = None, **kwargs):
+        show_title = kwargs.pop('show_title', False)
+        title = name  # kwargs.pop('title', None)
+        name = name.lower()
         font = kwargs.pop('font', None)
         command_order = kwargs.pop('command_order', None)
         self.initialize = True
@@ -43,16 +45,12 @@ class BaseFrame(base.Base, tk.Frame):
         else:
             self.notebook_tab = False
         self.title = None
-        if title is None:
-            self.name = None
-        else:
-            self.name = title.lower()
-        base.Base.__init__(self, self.name, sticky=kwargs.pop('sticky', 'WENS'),
-                           **kwargs)
+        base.Base.__init__(self, master, name,
+                           sticky=kwargs.pop('sticky', 'WENS'), **kwargs)
         kwargs = self.remove_dict_entries(kwargs, self.REMOVE_ARGS)
 
-        tk.Frame.__init__(self, master, name=self.name, **kwargs)
-        if title is not None and show_title:
+        tk.Frame.__init__(self, master, name=name, **kwargs)
+        if show_title:
             self.title = self.set_title(title, font=font)
 
         # self.grid(sticky=kwargs.pop('sticky', self.sticky),
@@ -83,16 +81,16 @@ class BaseFrame(base.Base, tk.Frame):
         return title
 
     @staticmethod
-    def _get_values(tk_objects):
+    def _get_values(tk_objects, get_object=False):
         values = {}
         for item in tk_objects:
-            values[item.name] = item.get_values()
+            values[item.name[-1]] = item.get_values(get_object=get_object)
         return values
 
-    def get_values(self, tk_objects=None):
+    def get_values(self, tk_objects=None, get_object=False):
         if tk_objects is None:
             tk_objects = self.widgets
-        return self._get_values(tk_objects)
+        return self._get_values(tk_objects, get_object=get_object)
 
     def set_grid(self, tk_objects=None, grid_list=None, **kwargs):
         row = kwargs.pop('row', self.row)
@@ -184,9 +182,9 @@ class BaseFrame(base.Base, tk.Frame):
 
 
 class MainFrame(BaseFrame):
-    def __init__(self, master, sub_frame_dicts: list = None,
+    def __init__(self, master, name, sub_frame_dicts: list = None,
                  widget_dicts: list = None, **kwargs):
-        super().__init__(master, widget_dicts=widget_dicts, **kwargs)
+        super().__init__(master, name, widget_dicts=widget_dicts, **kwargs)
         self.frame_factory = FrameFactory()
         self.sub_frames = []
         if sub_frame_dicts is not None:
@@ -205,12 +203,13 @@ class MainFrame(BaseFrame):
                                            row=row, column=column, **kwargs)
         return row, column
 
-    def get_values(self, tk_objects=None):
+    def get_values(self, tk_objects=None, get_object=False):
         if tk_objects is None:
             tk_objects = self.sub_frames
-        values = self._get_values(tk_objects=tk_objects)
+        values = self._get_values(tk_objects=tk_objects, get_object=get_object)
         if self.widgets:
-            values.update(self._get_values(tk_objects=self.widgets))
+            values.update(self._get_values(tk_objects=self.widgets,
+                                           get_object=get_object))
         return values
 
     def call_commands(self):
