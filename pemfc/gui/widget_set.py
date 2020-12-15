@@ -137,9 +137,9 @@ class MultiWidgetSet(Label, ABC):
         return self.get_tk_values(self.widgets)
 
     def set_sticky(self, **kwargs):
-        sticky = kwargs.pop('sticky', ['NW', 'NE'])
+        sticky = kwargs.pop('sticky', ['W', 'E'])
         if not isinstance(sticky, (list, tuple)):
-            sticky = [sticky, 'NE']
+            sticky = [sticky, 'E']
         self.sticky = sticky
 
     def set_tk_values(self, tk_objects, values):
