@@ -4,6 +4,7 @@ from tkinter import filedialog
 
 # local imports
 from . import base
+from . import data_transfer
 
 
 class ButtonFactory:
@@ -18,6 +19,10 @@ class ButtonFactory:
         elif button_type == 'OpenDirectoryButton':
             return OpenDirectoryButton(frame, kwargs.pop('entry', None),
                                        **kwargs)
+        elif button_type == 'OpenFileButton':
+            return OpenFileButton(frame, **kwargs)
+        elif button_type == 'SaveFileButton':
+            return SaveFileButton(frame, **kwargs)
         else:
             raise NotImplementedError('type of WidgetSet not implemented')
 
@@ -30,8 +35,7 @@ class Button(base.Base):
     def __init__(self, frame, **kwargs):
 
         label = kwargs.pop('label', '')
-        self.name = label.lower()
-        super().__init__(self.name, **kwargs)
+        super().__init__(frame, label.lower(), **kwargs)
         self.frame = frame
         kwargs = self.remove_dict_entries(kwargs, self.REMOVE_ARGS)
         self.button = tk.Button(self.frame, text=label, command=self.command,
@@ -46,15 +50,16 @@ class Button(base.Base):
     def command(self, *args):
         pass
 
-    def _get_values(self):
-        if self.sim_name is None:
-            return {'gui_name': self.button.cget('text')}
-        else:
-            return {'sim_name': self.sim_name,
-                    'gui_name': self.button.cget('text')}
+    def _get_values(self, get_object=False):
+        values = {'gui_name': self.name}
+        if self.sim_name is not None:
+            values['sim_name'] = self.sim_name
+        if get_object:
+            values['object'] = self
+        return values
 
-    def get_values(self):
-        return self._get_values()
+    def get_values(self, get_object=False):
+        return self._get_values(get_object=get_object)
 
 
 class RunButton(Button):
@@ -76,3 +81,31 @@ class OpenDirectoryButton(Button):
         return directory
 
 
+class OpenFileButton(Button):
+    def __init__(self, frame, **kwargs):
+        self.title = kwargs.pop('title', None)
+        self.filetypes = kwargs.pop('filetypes', [])
+        super().__init__(frame, **kwargs)
+
+    def command(self):
+        file = filedialog.askopenfile(title=self.title,
+                                      filetypes=self.filetypes)
+        if file is None:
+            return
+        else:
+            return file
+
+
+class SaveFileButton(Button):
+    def __init__(self, frame, file_content=None, **kwargs):
+        self.file_content = file_content
+        self.directory = kwargs.pop('directory', None)
+        super().__init__(frame, **kwargs)
+
+    def command(self):
+        directory = filedialog.asksaveasfile(mode='w', defaultextension=".txt")
+        if directory is None:
+            return
+        else:
+            directory.write(self.file_content)
+            return directory

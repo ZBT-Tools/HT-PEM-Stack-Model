@@ -1,6 +1,7 @@
 # global module imports
 import os
 import json
+import pathlib
 
 # local module imports
 from ..settings import simulation as sim, operating_conditions as op_con, \
@@ -27,36 +28,38 @@ def gen_dict_extract(key, var):
                         yield result
 
 
-def set_dict_entry(value, name_list, target_dict, list_value=False, index=0):
+def set_dict_entry(value, name_list, target_dict):
     if isinstance(target_dict, dict):
         sub_dict = target_dict
     else:
         raise TypeError
-    # if list_value:
-    #     for i in range(len(name_list) - 1):
-    #         sub_dict = sub_dict[name_list[i]]
-    #         name = name_list[i]
-    #         print(sub_dict)
-    #         print(name_list)
-    #         print(name)
-    #     sub_dict[name][int(index)] = value
-    # else:
     for i in range(len(name_list) - 1):
         sub_dict = sub_dict[name_list[i]]
     sub_dict[name_list[-1]] = EntryValue.get_value(value)
     return target_dict
 
 
+def get_dict_entry(name_list, source_dict):
+    if isinstance(source_dict, dict):
+        sub_dict = source_dict
+    else:
+        raise TypeError
+    for i in range(len(name_list) - 1):
+        sub_dict = sub_dict[name_list[i]]
+    return sub_dict[name_list[-1]]
+
+
 def save_settings(settings, fmt='json'):
     if not isinstance(settings, dict):
         raise TypeError('must provide python dict to save settings')
-    file_path = os.path.join(settings['output']['directory'], 'settings.json')
+    file_path = os.path.join(pathlib.Path(settings['output']['directory']),
+                             'settings.json')
     if fmt == 'json':
         with open(file_path, 'w') as file:
             file.write(json.dumps(settings, indent=2))
 
 
-def transfer(source_dict, target_dict):
+def gui_to_sim_transfer(source_dict, target_dict):
     # loop through tab frames of gui notebook
     # for ki, vi in gui_values.items():
     #     for kj, vj in vi.items():
@@ -72,7 +75,6 @@ def transfer(source_dict, target_dict):
 
             if isinstance(sim_names[0], list):
                 gui_values = gf.ensure_list(gui_entry['value'])
-
 
                 # if len(sim_names) != len(gui_values):
                 #     gui_values = [gui_values[0] for i in range(len(sim_names))]
@@ -100,8 +102,46 @@ def transfer(source_dict, target_dict):
             else:
                 sub_dict = \
                     set_dict_entry(gui_entry['value'], sim_names, sub_dict)
-        save_settings(target_dict)
     return target_dict
+
+
+def sim_to_gui_transfer(source_dict, target_dict):
+
+    # get list of widgets only with sim_names
+    extracted_gui_entries = list(gen_dict_extract('sim_name', target_dict))
+    if extracted_gui_entries:
+        for gui_entry in extracted_gui_entries:
+            # get reference to widget
+            widget = gui_entry['object']
+
+            sim_names = gui_entry['sim_name']
+            sim_names = gf.ensure_list(sim_names)
+            sub_dict = target_dict
+
+            if isinstance(sim_names[0], list):
+                gui_values = gf.ensure_list(gui_entry['value'])
+
+                # if len(sim_names) == len(gui_values):
+                #     multi_variable = True
+                # else:
+                #     multi_variable = False
+                value_list = []
+                for i, sim_name_list in enumerate(sim_names):
+                    if isinstance(sim_name_list[-1], list):
+                        pure_name_list = sim_name_list[:-1]
+                        for j in range(len(sim_name_list[-1])):
+                            value = \
+                                get_dict_entry(pure_name_list, source_dict)[j]
+                            value_list.append(EntryValue.get_value(value))
+                    else:
+                        value = get_dict_entry(sim_name_list, source_dict)
+                        value_list.append(value)
+
+                widget.set_values(value_list)
+            else:
+                value = get_dict_entry(sim_names, source_dict)
+                widget.set_values(value)
+
 
 
 # def set_dict_entry(value, name_list, target_dict):

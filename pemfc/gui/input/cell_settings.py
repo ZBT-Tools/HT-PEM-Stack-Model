@@ -157,7 +157,8 @@ channel_bends = \
      'sticky': ['NW', 'NWE']}
 
 bend_pressure_loss_coefficient = \
-    {'label': 'Pressure Loss Coefficient for Channel Bend:', 'value': 0.5,
+    {'label': 'Pressure Loss Coefficient for Channel Bend:',
+     'value': [0.5, 0.5],
      'sim_name': [['anode', 'channel', 'bend_friction_factor'],
                   ['cathode', 'channel', 'bend_friction_factor']],
      'dtype': 'float', 'dimensions': '-', 'type': 'EntrySet',
@@ -188,7 +189,7 @@ cathode_label_channel = \
 #                       channel_flow_direction],
 #      'sticky': 'WEN', 'columnspan': 4, 'padx': 0.0, 'pady': 0.0}
 channel_frame_dict = \
-    {'title': 'Flow Field Settings', #'grid_location': (1, 1),
+    {'title': 'Flow Field Settings', 'show_title': True,
      'font': 'Arial 10 bold',
      'widget_dicts': [anode_label_channel,
                       cathode_label_channel,

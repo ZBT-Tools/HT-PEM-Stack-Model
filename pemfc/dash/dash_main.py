@@ -65,7 +65,7 @@ app.layout = html.Div([
 def simulation_store(cell_number):
     values = {'cell number': {'sim_name': ['stack', 'cell_number'],
                               'gui_name': 'Cell Number:', 'value': cell_number}}
-    data_transfer.transfer(values, data_transfer.sim_dict)
+    data_transfer.gui_to_sim_transfer(values, data_transfer.sim_dict)
     # print(data_transfer.sim_dict)
     global_data, local_data, sim = stack_simulation.main()
     return [global_data, local_data]

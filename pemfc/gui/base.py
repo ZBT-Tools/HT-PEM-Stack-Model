@@ -1,6 +1,10 @@
 # global imports
 from abc import ABC
 from tkinter import Grid
+import copy
+
+# local imports
+from pemfc import global_functions as gf
 
 
 class Base(ABC):
@@ -12,8 +16,12 @@ class Base(ABC):
                    'rowspan', 'sticky', 'sim_name', 'dtype', 'padx', 'pady',
                    'width', 'weights']
 
-    def __init__(self, name, **kwargs):
-        self.name = name
+    def __init__(self, master, name, **kwargs):
+        if hasattr(master, 'name'):
+            self.name = copy.deepcopy(gf.ensure_list(master.name))
+            self.name.append(name.lower())
+        else:
+            self.name = [name.lower()]
         self.sim_name = kwargs.pop('sim_name', None)
         self.padx = kwargs.pop('padx', self.PADX)
         self.pady = kwargs.pop('pady', self.PADY)

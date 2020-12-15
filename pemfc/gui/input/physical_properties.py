@@ -78,12 +78,14 @@ mem_loss = \
      'dtype': 'bool', 'type': 'CheckButtonSet'}
 
 mem_ionic_conductivity = \
-    {'label': 'Ionic Conductivity:', 'value': 0.5,
+    {'label': 'Ionic Conductivity:', 'value': 5.0,
      'sim_name': ['membrane', 'ionic_conductivity'],
      'dtype': 'float', 'dimensions': 'S/m', 'type': 'EntrySet'}
 
 constant_frame = \
-    {'widget_dicts': [mem_ionic_conductivity], 'sticky': 'WEN', 'columnspan': 2}
+    {'title': 'Constant Ionic Conductivity',
+     'widget_dicts': [mem_ionic_conductivity],
+     'sticky': 'WEN', 'columnspan': 2}
 
 mem_constant_resistance = \
     {'label': 'Constant Resistance Coefficient:', 'value': 4.3e-5,
@@ -95,7 +97,8 @@ mem_temp_coefficient = \
      'sim_name': ['membrane', 'temperature_coefficient'],
      'dtype': 'float', 'dimensions': 'Ohm-m²/K', 'type': 'EntrySet'}
 kvesic_frame = \
-    {'widget_dicts': [mem_constant_resistance, mem_temp_coefficient],
+    {'title': 'Kvesic Ionic Conductivity',
+     'widget_dicts': [mem_constant_resistance, mem_temp_coefficient],
      'sticky': 'WEN', 'columnspan': 2}
 
 mem_acid_group_conc = \
@@ -107,7 +110,8 @@ mem_vapour_transport_coefficient = \
      'sim_name': ['membrane', 'vapour_transport_coefficient'],
      'dtype': 'float', 'dimensions': 'm/s', 'type': 'EntrySet'}
 springer_frame = \
-    {'widget_dicts': [mem_acid_group_conc,
+    {'title': 'Springer Ionic Conductivity',
+     'widget_dicts': [mem_acid_group_conc,
                       mem_vapour_transport_coefficient],
      'sticky': 'WEN', 'columnspan': 2}
 

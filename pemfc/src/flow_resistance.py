@@ -70,6 +70,8 @@ class WallFrictionFlowResistance(FlowResistance):
                     / ((1.0 + eps) ** 2.0
                        * (1.0 - (192.0 * eps / np.pi ** 5.0
                                  * np.tanh(np.pi / (2.0 * eps)))))
+            elif self.channel.cross_shape in ('triangular', 'trapezoidal'):
+                f_reynolds = 64.0
             else:
                 raise NotImplementedError
 

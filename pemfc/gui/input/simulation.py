@@ -1,11 +1,11 @@
 load_settings_button_dict = \
     {'label': 'Load Settings', 'takefocus': 0, 'row': 0, 'column': 0,
      'sticky': '', 'width': 20, 'weights': [1, 1],
-     'type': 'OpenDirectoryButton'}
+     'type': 'OpenFileButton'}
 save_settings_button_dict = \
     {'label': 'Save Settings', 'takefocus': 0, 'row': 0, 'column': 1,
      'sticky': '', 'width': 20, 'weights': [1, 1],
-     'type': 'OpenDirectoryButton'}
+     'type': 'SaveFileButton'}
 
 settings_frame_dict = \
     {'title': 'Settings IO', 'show_title': False, 'font': 'Arial 10 bold',
