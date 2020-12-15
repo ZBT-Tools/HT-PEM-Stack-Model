@@ -157,7 +157,8 @@ channel_bends = \
      'sticky': ['NW', 'NWE']}
 
 bend_pressure_loss_coefficient = \
-    {'label': 'Pressure Loss Coefficient for Channel Bend:', 'value': 0.5,
+    {'label': 'Pressure Loss Coefficient for Channel Bend:',
+     'value': [0.5, 0.5],
      'sim_name': [['anode', 'channel', 'bend_friction_factor'],
                   ['cathode', 'channel', 'bend_friction_factor']],
      'dtype': 'float', 'dimensions': '-', 'type': 'EntrySet',

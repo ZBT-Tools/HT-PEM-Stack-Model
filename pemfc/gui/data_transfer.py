@@ -1,6 +1,7 @@
 # global module imports
 import os
 import json
+import pathlib
 
 # local module imports
 from ..settings import simulation as sim, operating_conditions as op_con, \
@@ -51,7 +52,8 @@ def get_dict_entry(name_list, source_dict):
 def save_settings(settings, fmt='json'):
     if not isinstance(settings, dict):
         raise TypeError('must provide python dict to save settings')
-    file_path = os.path.join(settings['output']['directory'], 'settings.json')
+    file_path = os.path.join(pathlib.Path(settings['output']['directory']),
+                             'settings.json')
     if fmt == 'json':
         with open(file_path, 'w') as file:
             file.write(json.dumps(settings, indent=2))
@@ -119,27 +121,23 @@ def sim_to_gui_transfer(source_dict, target_dict):
             if isinstance(sim_names[0], list):
                 gui_values = gf.ensure_list(gui_entry['value'])
 
-                if len(sim_names) == len(gui_values):
-                    multi_variable = True
-                else:
-                    multi_variable = False
-
+                # if len(sim_names) == len(gui_values):
+                #     multi_variable = True
+                # else:
+                #     multi_variable = False
+                value_list = []
                 for i, sim_name_list in enumerate(sim_names):
                     if isinstance(sim_name_list[-1], list):
                         pure_name_list = sim_name_list[:-1]
-                        value_list = []
-                        for j in sim_name_list[-1]:
-                            value = gui_values[j]
+                        for j in range(len(sim_name_list[-1])):
+                            value = \
+                                get_dict_entry(pure_name_list, source_dict)[j]
                             value_list.append(EntryValue.get_value(value))
-                        sub_dict = \
-                            set_dict_entry(value_list, pure_name_list,
-                                           sub_dict)
                     else:
-                        gui_value = gui_values[i] if multi_variable \
-                            else gui_values[0]
-                        sub_dict = set_dict_entry(gui_value, sim_name_list,
-                                                  sub_dict)
+                        value = get_dict_entry(sim_name_list, source_dict)
+                        value_list.append(value)
 
+                widget.set_values(value_list)
             else:
                 value = get_dict_entry(sim_names, source_dict)
                 widget.set_values(value)

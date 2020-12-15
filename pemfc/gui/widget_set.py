@@ -146,20 +146,26 @@ class MultiWidgetSet(Label, ABC):
     def set_tk_values(self, tk_objects, value, index=0):
         if isinstance(value, (list, tuple, np.ndarray)):
             for i, widget in enumerate(tk_objects):
-                if i >= len(value) - 1:
+                if i > len(value) - 1:
                     break
+                state = widget.cget('state')
+                widget.config(state='normal')
                 widget.delete(0, tk.END)
                 widget.insert(0,
                               self.entry_value_factory.create(value[i],
                                                               self.dtype,
-                                                              self))
+                                                              self).value)
+                widget.config(state=state)
         else:
             widget = tk_objects[index]
+            state = widget.cget('state')
+            widget.config(state='normal')
             widget.delete(0, tk.END)
             widget.insert(0,
                           self.entry_value_factory.create(value,
                                                           self.dtype,
-                                                          self))
+                                                          self).value)
+            widget.config(state=state)
 
     def set_values(self, values, index=0):
         self.set_tk_values(self.widgets, values, index=index)
@@ -284,8 +290,9 @@ class MultiCheckButtonSet(MultiCommandWidgetSet):
                 tk.Checkbutton(frame, variable=check_var, onvalue=True,
                                offvalue=False, command=self.command_list[i],
                                takefocus=0, **kwargs)
-            if value is not None and value[i] is True:
+            if value is not None and value[i]:
                 check_button.select()
+                # check_button.invoke()
             self.widgets.append(check_button)
 
     def set_commands(self, commands_dict):
@@ -351,7 +358,25 @@ class MultiCheckButtonSet(MultiCommandWidgetSet):
         super().set_grid(sticky=sticky, **kwargs)
 
     def set_values(self, values, index=0):
-        super().set_tk_values(self.check_vars, values, index=index)
+        if isinstance(values, (list, tuple, np.ndarray)):
+            for i, chkvar in enumerate(self.check_vars):
+                if i > len(values) - 1 or i > len(self.check_vars) - 1:
+                    break
+                value = \
+                    self.entry_value_factory.create(values[i],
+                                                    self.dtype, self).value
+                if chkvar.get() != value:
+                    self.widgets[i].invoke()
+                # chkvar.set(value)
+                # self.widgets[i].invoke()
+        else:
+            chkvar = self.check_vars[index]
+            value = \
+                self.entry_value_factory.create(values, self.dtype, self).value
+            if chkvar.get() != value:
+                self.widgets[index].invoke()
+            # chkvar.set(value)
+            # self.widgets[index].invoke()
 
 
 class OptionMenuSet(MultiCommandWidgetSet):
@@ -377,7 +402,7 @@ class OptionMenuSet(MultiCommandWidgetSet):
     def set_values(self, values, index=0):
         if isinstance(values, (list, tuple, np.ndarray)):
             for i in range(len(self.widgets)):
-                if i >= len(values) - 1:
+                if i > len(values) - 1 or i > len(self.widgets) - 1:
                     break
                 option_list = []
                 menu = self.widgets[i]['menu']
@@ -474,7 +499,7 @@ class ComboboxSet(MultiCommandWidgetSet):
     def set_values(self, values, index=0):
         if isinstance(values, (list, tuple, np.ndarray)):
             for i in range(len(self.widgets)):
-                if i >= len(values) - 1:
+                if i > len(values) - 1 or i > len(self.widgets) - 1:
                     break
                 if values[i] in self.values[i]:
                     self.widgets[i].current(self.values[i].index(values[i]))
@@ -508,3 +533,6 @@ class EntryButtonSet(MultiEntrySet):
         column += 1
         self._set_grid(self.button.button, row=row, column=column, **kwargs)
         return row, column
+
+    # def set_values(self, value, index=0):
+    #     if isinstance8
