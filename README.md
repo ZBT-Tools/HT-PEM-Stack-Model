@@ -29,10 +29,10 @@ Features:
 # Usage
 Download the repository and execute the pemfc/main_app.py (pure cli program) or 
 the pemfc/gui_app.py (GUI program) file with your Python interpreter. Input
-parameters can be adapted in the corresponding files in the "settings" folder. 
+parameters can be adjusted via GUI or in  the corresponding files in the
+pemfc/settings folder. 
 At the end of a simulation run, a folder called "output" will be created, 
-which contains the results in various data files and plots. Settings can be
- adjusted in the GUI or in the specific files under pemfc/settings.
+which contains the results in various data files and plots.
 
 # References:
 Stack discretization, temperature coupling, reactant transport and membrane properties according to:  
