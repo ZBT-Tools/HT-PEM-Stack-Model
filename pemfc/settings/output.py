@@ -9,4 +9,4 @@ save_plot_data = True
 # show voltage losses in the U-I-graph (not working correctly at the moment;
 # please remind to fix, if required)
 # show_voltage_loss = False
-directory = r'C:\Users\feierabend\PycharmProjects\PEMFCModel\output'
+directory = r'C:\Users\lukas\PycharmProjects\PEMFCModel\output'
