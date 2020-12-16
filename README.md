@@ -27,12 +27,18 @@ Features:
 - Matplotlib 2.2.2
 
 # Usage
-Download the repository and execute the pemfc/main_app.py (pure cli program) or 
-the pemfc/gui_app.py (GUI program) file with your Python interpreter. Input
+Download the repository and execute
+> `python -m pemfc.main_app` 
+
+for the CLI app, or
+
+> `python -m pemfc.gui_app`
+
+for the GUI app from repository folder with your Python interpreter. Input
 parameters can be adjusted via GUI or in  the corresponding files in the
-pemfc/settings folder. 
-At the end of a simulation run, a folder called "output" will be created, 
-which contains the results in various data files and plots.
+pemfc/settings folder. If not otherwise specified, a folder called "output" 
+will be created at the end of a simulation run, which contains the results in
+ various data files and plots.
 
 # References:
 Stack discretization, temperature coupling, reactant transport and membrane properties according to:  
