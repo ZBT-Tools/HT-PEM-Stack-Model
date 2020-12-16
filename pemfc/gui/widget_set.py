@@ -177,7 +177,7 @@ class MultiEntrySet(MultiWidgetSet):
         justify = kwargs.pop('justify', 'right')
         width = kwargs.pop('width', self.WIDTH)
         super().__init__(frame, label, **kwargs)
-        # number, value = self.get_number(number, value)
+        number, value = self.get_number(number, value)
         # dtype = 'float'
         # if value is not None:
         #     dtype = str(type(value[0]))
