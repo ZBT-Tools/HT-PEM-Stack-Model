@@ -21,16 +21,18 @@ Features:
     - cathodic gas diffusion electrode and membrane (GDE-Mem, Cat)        
     - cathodic bipolar plate and gas diffusion electrode (BPP-GDE, Cat)
 
-# Required Python libraries:
+# Minimum requirements:
 - NumPy 1.14.3
 - SciPy 1.1.0
 - Matplotlib 2.2.2
 
 # Usage
-Download the repository and execute the stack_simulation.py file with your
- Python interpreter. Input parameters can be adapted in the corresponding
-  files in the "settings" folder. At the end of a simulation run, a folder
-   called "output" will be created, which contains the results in various data files and plots
+Download the repository and execute the pemfc/main_app.py (pure cli program) or 
+the pemfc/gui_app.py (GUI program) file with your Python interpreter. Input
+parameters can be adapted in the corresponding files in the "settings" folder. 
+At the end of a simulation run, a folder called "output" will be created, 
+which contains the results in various data files and plots. Settings can be
+ adjusted in the GUI or in the specific files under pemfc/settings.
 
 # References:
 Stack discretization, temperature coupling, reactant transport and membrane properties according to:  
