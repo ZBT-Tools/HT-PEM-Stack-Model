@@ -143,7 +143,6 @@ def sim_to_gui_transfer(source_dict, target_dict):
                 widget.set_values(value)
 
 
-
 # def set_dict_entry(value, name_list, target_dict):
 #     if isinstance(target_dict, dict):
 #         sub_dict = target_dict

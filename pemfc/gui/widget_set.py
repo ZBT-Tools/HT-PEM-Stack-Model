@@ -177,13 +177,15 @@ class MultiEntrySet(MultiWidgetSet):
         justify = kwargs.pop('justify', 'right')
         width = kwargs.pop('width', self.WIDTH)
         super().__init__(frame, label, **kwargs)
+        # number, value = self.get_number(number, value)
+        # dtype = 'float'
+        # if value is not None:
+        #     dtype = str(type(value[0]))
         self.dtype = kwargs.pop('dtype', 'float')
         kwargs = self.remove_dict_entries(kwargs, self.REMOVE_ARGS)
         self.shape = (number, 0)
-        number, value = self.get_number(number, value)
         kwargs['width'] = width
         kwargs['justify'] = justify
-
         self.create_widgets(frame, number, value, **kwargs)
 
     def create_widgets(self, frame, number, value, **kwargs):

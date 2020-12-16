@@ -88,6 +88,7 @@ class NotebookApp:
         settings_dict = json.load(self.load_settings_button.command())
         data_transfer.sim_to_gui_transfer(settings_dict, widgets_registry)
         self.call_commands()
+        data_transfer.sim_dict.update(settings_dict)
 
     def run(self):
         settings_dict = self.get_settings()
