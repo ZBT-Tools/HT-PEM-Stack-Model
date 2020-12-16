@@ -5,6 +5,8 @@ import shutil
 from itertools import cycle, islice
 import matplotlib
 import matplotlib.pyplot as plt
+import timeit
+
 
 # local module imports
 from . import interpolation as ip
@@ -37,6 +39,7 @@ class Output:
         # object of the class Stack
         self.output_dir = dict_output.get('directory',
                                           os.path.join(os.getcwd(), 'output'))
+        self.case_name = None
         if not os.path.exists(self.output_dir):
             try:
                 original_umask = os.umask(0)
@@ -413,6 +416,7 @@ class Output:
             raise TypeError('argument fc_stack must be of type Stack from pemfc'
                             'module')
 
+        self.case_name = folder_name
         csv_path = os.path.join(self.output_dir, folder_name, 'csv_data')
         plot_path = os.path.join(self.output_dir, folder_name, 'plots')
         if not os.path.exists(csv_path):
@@ -549,3 +553,19 @@ class Output:
         plt.tight_layout()
         plt.savefig(os.path.join(self.output_dir, 'polarization_curve.png'))
         plt.close()
+
+    def print_global_data(self, sim, data, **kwargs):
+        name = kwargs.pop('name', 'summary.txt')
+        summary_file_path = os.path.join(self.output_dir, self.case_name, name)
+        with open(summary_file_path, 'w') as file:
+            file.write('Initialization time: {0:.4f}\n'.format(
+                (sim.timing['initialization'] - sim.timing['start'])))
+            file.write('Simulation time: {0:.4f}\n'.format(sim.timing[
+                                                               'simulation']))
+            file.write('Output time: {0:.4f}\n'.format(sim.timing['output']))
+            stop_time = timeit.default_timer()
+            file.write('Total time:{0:.4f}\n'.format(stop_time - sim.timing[
+                'start']))
+            for k, v in data.items():
+                file.write('{} [{}]: '.format(k, v['units'])
+                           + '{0:.4f}\n'.format(v['value']))

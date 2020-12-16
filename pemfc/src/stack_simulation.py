@@ -17,22 +17,10 @@ def main():
     sim.timing['initialization'] = timeit.default_timer()
     # simulation.timing['start'] = start_time
     g_data, l_data = sim.run()
+    sim.output.print_global_data(sim, g_data)
     return g_data, l_data, sim
 
 
 if __name__ == "__main__":
     global_data, local_data, sim = main()
-    summary_file_path = os.path.join(sim.output.output_dir, 'pemfc_output.txt')
-    with open(summary_file_path, 'w') as file:
-        file.write('Initialization time: {}\n'.format(
-              (sim.timing['initialization'] - sim.timing['start'])))
-        file.write('Simulation time: {}\n'.format(sim.timing['simulation']))
-        file.write('Output time: {}\n'.format(sim.timing['output']))
-        stop_time = timeit.default_timer()
-        file.write('Total time:{}\n'.format(stop_time - sim.timing['start']))
-        for k, v in global_data.items():
-            file.write('{} [{}]: {}\n'.format(k, v['value'], v['units']))
 
-
-if __name__ == "__main__":
-    main()
