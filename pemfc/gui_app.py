@@ -85,11 +85,15 @@ class NotebookApp:
         return settings_dict
 
     def load_settings(self):
-        widgets_registry = self.get_values(get_object=True)
-        settings_dict = json.load(self.load_settings_button.command())
-        data_transfer.sim_to_gui_transfer(settings_dict, widgets_registry)
-        self.call_commands()
-        input_dicts.sim_dict.update(settings_dict)
+        file_directory = self.load_settings_button.command()
+        if file_directory is None:
+            return
+        else:
+            settings_dict = json.load(file_directory)
+            widgets_registry = self.get_values(get_object=True)
+            data_transfer.sim_to_gui_transfer(settings_dict, widgets_registry)
+            self.call_commands()
+            input_dicts.sim_dict.update(settings_dict)
 
     def run(self):
         self.get_settings()

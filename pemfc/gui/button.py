@@ -75,10 +75,13 @@ class OpenDirectoryButton(Button):
 
     def command(self):
         directory = filedialog.askdirectory()
-        if isinstance(self.entry, tk.Entry):
-            self.entry.delete(0, tk.END)
-            self.entry.insert(0, directory)
-        return directory
+        if directory is None:
+            return
+        else:
+            if isinstance(self.entry, tk.Entry):
+                self.entry.delete(0, tk.END)
+                self.entry.insert(0, directory)
+            return directory
 
 
 class OpenFileButton(Button):
@@ -88,9 +91,10 @@ class OpenFileButton(Button):
         super().__init__(frame, **kwargs)
 
     def command(self):
-        file = filedialog.askopenfile(title=self.title,
-                                      filetypes=self.filetypes)
-        if file is None:
+        try:
+            file = filedialog.askopenfile(title=self.title,
+                                          filetypes=self.filetypes)
+        except AttributeError:
             return
         else:
             return file
