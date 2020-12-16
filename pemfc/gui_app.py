@@ -10,7 +10,8 @@ from pemfc.gui import frame
 from pemfc.gui import input
 from pemfc.gui import data_transfer
 # from pemfc.gui import icon
-from pemfc.src import stack_simulation
+from pemfc import main_app
+from pemfc.data import input_dicts
 
 
 class NotebookApp:
@@ -74,7 +75,7 @@ class NotebookApp:
 
     def get_settings(self):
         values = self.get_values()
-        return data_transfer.gui_to_sim_transfer(values, data_transfer.sim_dict)
+        return data_transfer.gui_to_sim_transfer(values, input_dicts.sim_dict)
 
     def save_settings(self):
         settings_dict = self.get_settings()
@@ -88,16 +89,11 @@ class NotebookApp:
         settings_dict = json.load(self.load_settings_button.command())
         data_transfer.sim_to_gui_transfer(settings_dict, widgets_registry)
         self.call_commands()
-        data_transfer.sim_dict.update(settings_dict)
+        input_dicts.sim_dict.update(settings_dict)
 
     def run(self):
-        settings_dict = self.get_settings()
-        data_transfer.save_settings(settings_dict)
-        avg_icd = stack_simulation.main()
-        # window = tk.Toplevel(self.master)
-        # testresult = tk.Label(window, text=str(avg_icd), borderwidth=1)
-        # testresult.pack(ipadx=1)
-        # print(values)
+        self.get_settings()
+        main_app.main()
 
 
 def resource_path(relative_path):

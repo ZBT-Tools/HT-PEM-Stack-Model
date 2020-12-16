@@ -4,14 +4,11 @@ import dash_html_components as html
 import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output
 from dash.exceptions import PreventUpdate
-import plotly.express as px
 import plotly.graph_objects as go
-import numpy as np
 from pemfc.src import interpolation as ip
-from pemfc.src import stack_simulation
+from pemfc import main_app
 from pemfc.gui import data_transfer
 from flask_caching import Cache
-import pickle
 
 #external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
 external_stylesheets = [dbc.themes.BOOTSTRAP]
@@ -67,7 +64,7 @@ def simulation_store(cell_number):
                               'gui_name': 'Cell Number:', 'value': cell_number}}
     data_transfer.gui_to_sim_transfer(values, data_transfer.sim_dict)
     # print(data_transfer.sim_dict)
-    global_data, local_data, sim = stack_simulation.main()
+    global_data, local_data, sim = main_app.main()
     return [global_data, local_data]
 
 

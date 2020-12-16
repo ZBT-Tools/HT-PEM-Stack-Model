@@ -23,7 +23,7 @@ from .src import simulation
 from .src import species
 from .src import stack
 from .src import temperature_system
-from .src import stack_simulation
+from . import main_app
 
 from .gui import base
 from .gui import button

@@ -4,8 +4,8 @@ import numpy as np
 # local module imports
 from . import electrical_coupling as el_cpl, flow_circuit as flow_circuit, \
     cell as cl, temperature_system as therm_cpl, fluid as fluid, channel as chl
-# from ..data import input_dicts as in_dicts
-from ..gui import data_transfer
+from ..data import input_dicts
+# from ..gui import data_transfer
 
 gui_data = True
 
@@ -15,7 +15,7 @@ class Stack:
     def __init__(self, n_nodes, current_control=False):
 
         # Read settings dictionaries
-        stack_dict = data_transfer.sim_dict['stack']
+        stack_dict = input_dicts.sim_dict['stack']
 
         self.n_cells = stack_dict['cell_number']
         # number of cells of the stack
@@ -28,10 +28,10 @@ class Stack:
         # self.calc_flow_dis = stack_dict['calc_flow_distribution']
         # switch to calculate the flow distribution
         if gui_data:
-            cell_dict = data_transfer.sim_dict['cell']
-            membrane_dict = data_transfer.sim_dict['membrane']
-            anode_dict = data_transfer.sim_dict['anode']
-            cathode_dict = data_transfer.sim_dict['cathode']
+            cell_dict = input_dicts.sim_dict['cell']
+            membrane_dict = input_dicts.sim_dict['membrane']
+            anode_dict = input_dicts.sim_dict['anode']
+            cathode_dict = input_dicts.sim_dict['cathode']
             ano_channel_dict = anode_dict['channel']
             cat_channel_dict = cathode_dict['channel']
             ano_fluid_dict = ano_channel_dict['fluid']
@@ -42,7 +42,7 @@ class Stack:
             cat_flow_circuit_dict = cathode_dict['flow_circuit']
             cat_in_manifold_dict = cat_flow_circuit_dict['inlet_manifold']
             cat_out_manifold_dict = cat_flow_circuit_dict['outlet_manifold']
-            temperature_dict = data_transfer.sim_dict['temperature_system']
+            temperature_dict = input_dicts.sim_dict['temperature_system']
         else:
             raise NotImplementedError
             # cell_dict = in_dicts.dict_cell
@@ -125,10 +125,10 @@ class Stack:
 
         cool_flow = stack_dict['cool_flow']
         if cool_flow:
-            coolant_channel_dict = data_transfer.sim_dict['coolant_channel']
+            coolant_channel_dict = input_dicts.sim_dict['coolant_channel']
             coolant_dict = coolant_channel_dict['fluid']
             dict_coolant_flow_circuit = \
-                data_transfer.sim_dict['coolant_flow_circuit']
+                input_dicts.sim_dict['coolant_flow_circuit']
             dict_coolant_in_manifold = \
                 dict_coolant_flow_circuit['inlet_manifold']
             dict_coolant_out_manifold = \

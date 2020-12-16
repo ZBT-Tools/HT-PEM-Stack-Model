@@ -99,7 +99,6 @@ class OpenFileButton(Button):
 class SaveFileButton(Button):
     def __init__(self, frame, file_content=None, **kwargs):
         self.file_content = file_content
-        self.directory = kwargs.pop('directory', None)
         super().__init__(frame, **kwargs)
 
     def command(self):

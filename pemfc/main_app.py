@@ -18,6 +18,7 @@ def main():
     # simulation.timing['start'] = start_time
     g_data, l_data = sim.run()
     sim.output.print_global_data(sim, g_data)
+    sim.output.save_settings()
     return g_data, l_data, sim
 
 

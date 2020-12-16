@@ -6,12 +6,14 @@ from itertools import cycle, islice
 import matplotlib
 import matplotlib.pyplot as plt
 import timeit
+import json
 
 
 # local module imports
 from . import interpolation as ip
 from . import global_functions as g_func
 from . import stack as stack
+from ..data import input_dicts
 
 # configure backend here
 matplotlib.use('TkAgg')
@@ -569,3 +571,15 @@ class Output:
             for k, v in data.items():
                 file.write('{} [{}]: '.format(k, v['units'])
                            + '{0:.4f}\n'.format(v['value']))
+
+    def save_settings(self, settings=None, fmt='json'):
+        if settings is None:
+            settings = input_dicts.sim_dict
+        elif not isinstance(settings, dict):
+            raise TypeError('must provide python dict to save settings')
+        else:
+            file_path = os.path.join(self.output_dir, self.case_name,
+                                     'settings.json')
+            if fmt == 'json':
+                with open(file_path, 'w') as file:
+                    file.write(json.dumps(settings, indent=2))
