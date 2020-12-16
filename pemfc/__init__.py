@@ -1,4 +1,4 @@
-# from .src import *
+from .src import *
 from .data import gas_properties
 from .data import input_dicts
 from .data import material_properties
@@ -24,6 +24,7 @@ from .src import species
 from .src import stack
 from .src import temperature_system
 from . import main_app
+from . import gui_app
 
 from .gui import base
 from .gui import button
