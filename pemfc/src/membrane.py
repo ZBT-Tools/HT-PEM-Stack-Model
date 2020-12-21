@@ -61,7 +61,7 @@ class WaterTransportMembrane(Membrane, ABC):
         super().__init__(membrane_dict, dx, **kwargs)
 
         self.vapour_coeff = membrane_dict['vapour_transport_coefficient']
-        self.acid_group_conc = membrane_dict['acid group_concentration']
+        self.acid_group_conc = membrane_dict['acid_group_concentration']
         self.w_cross_flow = np.zeros(self.dx.shape)
         self.faraday_const = constants.FARADAY
         # water cross flux through the membrane
