@@ -3,6 +3,8 @@ __pycache__/
 .idea/
 venv/
 output/
+build/
+lib/
 *.pyc
 *.png
 *.jpg
