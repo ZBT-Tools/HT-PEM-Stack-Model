@@ -86,6 +86,7 @@ class WallFrictionFlowResistance(FlowResistance):
                 raise NotImplementedError
         np.seterr(under='ignore')
         self.value[:] = self.channel.dx_node / self.channel.d_h * factor
+        self.value[np.isnan(self.value)] = 0.0
         self.value[self.value < constants.SMALL] = 0.0
         np.seterr(under='raise')
 
