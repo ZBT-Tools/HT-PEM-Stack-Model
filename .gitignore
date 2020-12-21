@@ -4,7 +4,7 @@ __pycache__/
 venv/
 output/
 build/
-lib/
+pemfc/build
 *.pyc
 *.png
 *.jpg
