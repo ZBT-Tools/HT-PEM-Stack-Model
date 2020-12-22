@@ -185,8 +185,11 @@ class Stack:
             self.i_cd_target = i_cd_target[0]
         else:
             self.i_cd_target = i_cd_target
-        # self.target_cell_voltage = g_par.dict_case['average_cell_voltage']
-        # self.v_target = self.n_cells * self.target_cell_voltage
+        v_target = np.asarray(stack_dict['init_current_density'])
+        if v_target.ndim > 0:
+            self.v_target = v_target[0]
+        else:
+            self.v_target = v_target
 
         # Initialize the electrical coupling
         self.elec_sys = el_cpl.ElectricalCoupling(self)

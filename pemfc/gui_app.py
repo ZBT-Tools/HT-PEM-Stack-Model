@@ -31,26 +31,27 @@ class NotebookApp:
                 self.notebook.add(main_frame, text=main_frame_dict['title'],
                                   sticky='WENS')
 
-        # sim_frame = self.frames[-1]
+        sim_frame = self.frames[-1]
 
         # configure load settings button
-        self.load_settings_button = self.frames[-1].sub_frames[0].widgets[0]
+        self.load_settings_button = sim_frame.sub_frames[0].widgets[0]
         self.load_settings_button.button.configure(command=self.load_settings)
         self.load_settings_button.filetypes = [('JSON Files', ['.json'])]
         self.load_settings_button.title = 'Please select settings file.'
 
         # configure save settings button
-        self.save_settings_button = self.frames[-1].sub_frames[0].widgets[1]
+        self.save_settings_button = sim_frame.sub_frames[0].widgets[1]
         self.save_settings_button.button.configure(command=self.save_settings)
 
         # configure run button
-        run_frame = self.frames[-1].sub_frames[-1]
-        self.run_button = self.frames[-1].sub_frames[-1].widgets[0]
+        run_frame = sim_frame.sub_frames[-1]
+        self.run_button = run_frame.widgets[0]
         self.run_button.button.configure(command=self.run)
 
         # # add progress bar
-        # progress = ttk.Progressbar(self.frames[-1].sub_frames[-1], orient=tk.HORIZONTAL,
+        # self.progress = ttk.Progressbar(run_frame, orient=tk.HORIZONTAL,
         #                            length=100, mode='determinate')
+        # run_frame.widgets.append(self.progress)
 
         self.notebook.select(self.frames[0])
         self.notebook.enable_traversal()
@@ -129,6 +130,23 @@ if __name__ == "__main__":
     # root.resizable(False, False)
     root.rowconfigure(0, weight=1)
     root.columnconfigure(0, weight=1)
+
+    # style = ttk.Style()
+
+    # style.theme_create('style', #parent='alt',
+    #                         settings={
+    #                             'Combobox': {
+    #                                 'configure': {
+    #                                     #'fieldbackground': 'white',
+    #                                     #'selectbackground': 'white',
+    #                                     #'selectforeground': 'black'
+    #                                     #'highlightbackground': 'Yellow'
+    #                                 }
+    #                             }
+    #                         }
+    #                         )
+    #
+    # style.theme_use('style')
 
     base_app = NotebookApp(root, main_frame_dicts=input.main_frame_dicts)
 

@@ -84,7 +84,8 @@ class BaseFrame(base.Base, tk.Frame):
     def _get_values(tk_objects, get_object=False):
         values = {}
         for item in tk_objects:
-            values[item.name[-1]] = item.get_values(get_object=get_object)
+            if hasattr(item, 'get_values'):
+                values[item.name[-1]] = item.get_values(get_object=get_object)
         return values
 
     def get_values(self, tk_objects=None, get_object=False):
@@ -132,7 +133,10 @@ class BaseFrame(base.Base, tk.Frame):
                 #     row += 1
                 # if not hasattr(tk_object, 'column'):
                 #     column = 0
-                tk_object.set_grid(row=row, column=column, **kwargs)
+                if hasattr(tk_object, 'set_grid'):
+                    tk_object.set_grid(row=row, column=column, **kwargs)
+                else:
+                    tk_object.grid(row=row, column=column, **kwargs)
                 if hasattr(tk_object, 'weights') \
                         and tk_object.weights is not None:
                     if isinstance(tk_object.weights, (list, tuple)):

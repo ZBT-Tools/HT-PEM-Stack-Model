@@ -1,4 +1,16 @@
 # Thermal conductivities
+anode_label = {'label': 'Anode', 'row': 1, 'column': 1, 'columnspan': 2, #'pady': 0,
+               'type': 'Label', 'sticky': 'WENS'}
+cathode_label = {'label': 'Cathode', 'row': 1, 'column': 3, 'columnspan': 2, #'pady': 0,
+                 'type': 'Label', 'sticky': 'WENS'}
+in_plane_label_1 = {'label': 'ip', 'row': 2, 'column': 1, #'pady': 0,
+                  'type': 'Label', 'sticky': 'WENS'}
+through_plane_label_1 = {'label': 'tp', 'row': 2, 'column': 2, #'pady': 0,
+                         'type': 'Label', 'sticky': 'WENS'}
+in_plane_label_2 = {'label': 'ip', 'row': 2, 'column': 3, #'pady': 0,
+                    'type': 'Label', 'sticky': 'WENS'}
+through_plane_label_2 = {'label': 'tp', 'row': 2, 'column': 4, #'pady': 0,
+                         'type': 'Label', 'sticky': 'WENS'}
 electrical_conductivity_bpp = \
     {'label': 'Bipolar Plate Electrical Conductivity:',
      'number': 4, 'value': 6e4, 'width': 5,
@@ -53,7 +65,11 @@ porosity_cl = \
 porous_frame_dict = \
     {'title': 'Porous Layers', 'show_title': True,
      'font': 'Arial 10 bold', 'sticky': 'WEN',
-     'widget_dicts': [thermal_conductivity_bpp,
+     'widget_dicts': [anode_label,
+                      cathode_label,
+                      through_plane_label_1, in_plane_label_1,
+                      through_plane_label_2, in_plane_label_2,
+                      thermal_conductivity_bpp,
                       thermal_conductivity_gde,
                       electrical_conductivity_bpp,
                       electrical_conductivity_gde,

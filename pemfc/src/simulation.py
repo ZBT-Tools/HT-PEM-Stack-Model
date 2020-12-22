@@ -44,13 +44,26 @@ class Simulation:
         # initialize stack object
         n_nodes = dict_simulation['nodes']
         self.current_control = dict_simulation.get('current_control', True)
-        self.stack = stack.Stack(n_nodes, current_control=self.current_control)
+        if 'operation_control' in dict_simulation:
+            if dict_simulation['operation_control'].lower() == 'current':
+                self.current_control = True
+            elif dict_simulation['operation_control'].lower() == 'voltage':
+                self.current_control = False
+
         self.current_density = dict_simulation['current_density']
         self.average_cell_voltage = dict_simulation['average_cell_voltage']
         if self.current_control and self.current_density is None:
             raise ValueError('parameter current_density must be provided')
         elif not self.current_density and self.average_cell_voltage is None:
             raise ValueError('parameter average_cell_voltage must be provided')
+        stack_dict = input_dicts.sim_dict['stack']
+        cell_number = stack_dict['cell_number']
+        if self.current_control:
+            stack_dict['init_current_density'] = self.current_density
+        else:
+            stack_dict['voltage'] = self.average_cell_voltage * cell_number
+
+        self.stack = stack.Stack(n_nodes, current_control=self.current_control)
 
         # initialize output object
         output_dict = input_dicts.sim_dict['output']

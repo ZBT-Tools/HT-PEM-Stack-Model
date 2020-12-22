@@ -13,7 +13,7 @@ maximum_iteration_number = 200
 maximum_iteration_number_flow = 50
 # underrelaxation factor for current density updates (0.0 - 1.0)
 # lower: faster convergence, higher: better stability
-underrelaxation_factor = 0.2
+underrelaxation_factor = 0.5
 # minimum number of iterations
 # numerical concentration value for determining critical current density for
 # linearization/regularization of Kulikovsky model at limiting current densities

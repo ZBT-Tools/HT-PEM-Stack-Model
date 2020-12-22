@@ -139,8 +139,11 @@ class ParallelFlowCircuit(ABC, oo.OutputObject):
                           'reached'.format(self.max_iter, error, self))
         else:
             self.update_channels()
-        self.normalized_flow_distribution[:] = \
-            self.channel_mass_flow / np.average(self.channel_mass_flow)
+        try:
+            self.normalized_flow_distribution[:] = \
+                self.channel_mass_flow / np.average(self.channel_mass_flow)
+        except FloatingPointError:
+            self.normalized_flow_distribution[:] = 0.0
 
     @abstractmethod
     def single_loop(self, inlet_mass_flow=None, update_channels=True):

@@ -13,7 +13,8 @@ sim_dict = {
         'calc_temperature': sim.calc_temperature,
         'calc_current_density': sim.calc_electricity,
         # 'calc_flow_distribution': sim.calc_flow_distribution,
-        'init_current_density': op_con.current_density
+        'init_current_density': op_con.current_density,
+        'init_voltage': None
         },
     'simulation': {
         'maximum_iteration': sim.maximum_iteration_number,

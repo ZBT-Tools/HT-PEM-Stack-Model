@@ -308,10 +308,10 @@ class HalfCell:
             (self.channel.pressure[id_in] - humidity_in * sat_p)
         dmol = np.zeros_like(current_density)
         h2o_prod = self.flow_field.active_area_dx * self.n_stoi[self.id_h2o] \
-                   * current_density / (self.n_charge * self.faraday)
+            * current_density / (self.n_charge * self.faraday)
         dmol += h2o_prod
         h2o_cross = self.flow_field.active_area_dx * self.w_cross_flow \
-                    * self.channel.flow_direction
+            * self.channel.flow_direction
         dmol += h2o_cross
         return mol_flow_in, dmol
 
@@ -361,12 +361,15 @@ class HalfCell:
                 + np.pi * i_hat / (2. + i_hat)
         except FloatingPointError:
             raise
-        v_loss_cl_diff = \
-            ((self.prot_con_cl * self.tafel_slope ** 2.)
-             / (4. * self.faraday * self.diff_coeff_cl * conc)
-             * (current_density / self.i_star
-                - np.log10(1. + np.square(current_density) /
-                           (self.i_star ** 2. * beta ** 2.)))) / var
+        try:
+            v_loss_cl_diff = \
+                ((self.prot_con_cl * self.tafel_slope ** 2.)
+                 / (4. * self.faraday * self.diff_coeff_cl * conc)
+                 * (current_density / self.i_star
+                    - np.log10(1. + np.square(current_density) /
+                               (self.i_star ** 2. * beta ** 2.)))) / var
+        except FloatingPointError:
+            raise
         return v_loss_cl_diff
 
     def calc_transport_loss_diffusion_layer(self, var):
