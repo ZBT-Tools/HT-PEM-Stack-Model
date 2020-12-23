@@ -42,8 +42,8 @@ class Base(ABC):
         # self.frame.rowconfigure(row, weight=1)
         # self.frame.columnconfigure(column, weight=1)
         widget.grid(row=row, column=column,
-                    padx=kwargs.pop('padx', self.PADX),
-                    pady=kwargs.pop('pady', self.PADY),
+                    padx=kwargs.pop('padx', self.padx),
+                    pady=kwargs.pop('pady', self.pady),
                     columnspan=kwargs.pop('columnspan', self.columnspan),
                     rowspan=kwargs.pop('rowspan', self.rowspan),
                     sticky=kwargs.pop('sticky', self.sticky), **kwargs)

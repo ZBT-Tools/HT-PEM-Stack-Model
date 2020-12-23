@@ -228,6 +228,7 @@ class MultiCommandWidgetSet(MultiWidgetSet, ABC):
     def __init__(self, frame, label, **kwargs):
         super().__init__(frame, label, **kwargs)
         self.command_list = None
+        self.execute = True
 
     def get_commands(self, command, number):
         self.command_list = [None for i in range(number)]
@@ -241,10 +242,11 @@ class MultiCommandWidgetSet(MultiWidgetSet, ABC):
         pass
 
     def call_commands(self):
-        if isinstance(self.command_list, list):
-            for command in self.command_list:
-                if callable(command):
-                    command()
+        if self.execute:
+            if isinstance(self.command_list, list):
+                for command in self.command_list:
+                    if callable(command):
+                        command()
 
     @staticmethod
     def call_object_method(obj, func, **kwargs):

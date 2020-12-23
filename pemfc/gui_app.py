@@ -58,6 +58,15 @@ class NotebookApp:
         self.set_grid()
         self.call_commands()
 
+        # set custom grid
+        # values = self.get_values(get_object=True)
+        # widget_set = values['physical properties']['physical properties']\
+        #     ['porous layers']['gas diffusion layer porosity']['object']
+        # widget_set.widgets[0].grid(column=1, columnspan=2)
+        # widget_set.widgets[1].grid(column=2, columnspan=2)
+
+        print('marker')
+
     def set_grid(self, grid_list=None, **kwargs):
         self.notebook.rowconfigure(0, weight=1)
         self.notebook.columnconfigure(0, weight=1)

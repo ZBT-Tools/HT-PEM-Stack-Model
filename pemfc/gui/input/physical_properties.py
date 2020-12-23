@@ -1,15 +1,15 @@
 # Thermal conductivities
-anode_label = {'label': 'Anode', 'row': 1, 'column': 1, 'columnspan': 2, #'pady': 0,
+anode_label = {'label': 'Anode', 'row': 1, 'column': 1, 'columnspan': 2, 'pady': 0,
                'type': 'Label', 'sticky': 'WENS'}
-cathode_label = {'label': 'Cathode', 'row': 1, 'column': 3, 'columnspan': 2, #'pady': 0,
+cathode_label = {'label': 'Cathode', 'row': 1, 'column': 3, 'columnspan': 2, 'pady': 0,
                  'type': 'Label', 'sticky': 'WENS'}
-in_plane_label_1 = {'label': 'ip', 'row': 2, 'column': 1, #'pady': 0,
+in_plane_label_1 = {'label': 'ip', 'row': 2, 'column': 1, 'pady': 0,
                   'type': 'Label', 'sticky': 'WENS'}
-through_plane_label_1 = {'label': 'tp', 'row': 2, 'column': 2, #'pady': 0,
+through_plane_label_1 = {'label': 'tp', 'row': 2, 'column': 2, 'pady': 0,
                          'type': 'Label', 'sticky': 'WENS'}
-in_plane_label_2 = {'label': 'ip', 'row': 2, 'column': 3, #'pady': 0,
+in_plane_label_2 = {'label': 'ip', 'row': 2, 'column': 3, 'pady': 0,
                     'type': 'Label', 'sticky': 'WENS'}
-through_plane_label_2 = {'label': 'tp', 'row': 2, 'column': 4, #'pady': 0,
+through_plane_label_2 = {'label': 'tp', 'row': 2, 'column': 4, 'pady': 0,
                          'type': 'Label', 'sticky': 'WENS'}
 electrical_conductivity_bpp = \
     {'label': 'Bipolar Plate Electrical Conductivity:',
@@ -53,7 +53,7 @@ thermal_conductivity_mem = \
 
 porosity_gdl = \
     {'label': 'Gas Diffusion Layer Porosity:', 'number': 2, 'value': 0.8,
-     'width': 5, #'column': 1,
+     'width': 5, #'column': 1, 'columnspan': 2,
      'sim_name': [['anode', 'porosity_gdl'], ['cathode', 'porosity_gdl']],
      'dtype': 'float', 'dimensions': '-', 'type': 'EntrySet'}
 porosity_cl = \
